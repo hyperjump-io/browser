@@ -40,6 +40,9 @@
     "webpack": "^4.14.0",
     "webpack-node-externals": "^1.7.2"
   },
+  "dependencies": {
+    "@hyperjump/json-pointer": "^0.1.2"
+  },
   "nyc": {
     "include": [
       "lib/**/*.js"
