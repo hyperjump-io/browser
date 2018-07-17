@@ -36,12 +36,14 @@
     "istanbul-instrumenter-loader": "^3.0.1",
     "mocha": "^5.2.0",
     "mocha-webpack": "^2.0.0-beta.0",
+    "nock": "^9.4.2",
     "nyc": "^11.8.0",
     "webpack": "^4.14.0",
     "webpack-node-externals": "^1.7.2"
   },
   "dependencies": {
-    "@hyperjump/json-pointer": "^0.1.2"
+    "@hyperjump/json-pointer": "^0.1.2",
+    "axios": "^0.18.0"
   },
   "nyc": {
     "include": [

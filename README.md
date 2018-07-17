@@ -16,10 +16,16 @@ npm install @hyperjump/json-reference --save
 Usage
 -----
 
-```javascript
-import * as JsonReference from "@hyperjump/json-reference";
+```http
+GET http://json-reference.hyperjump.com/example1 HTTP/1.1
+Accept: application/reference+json
+```
 
-const document = JsonReference.load("#", `{
+```http
+HTTP/1.1 200 OK
+Content-Type: application/reference+json
+
+{
   "foo": "bar",
   "aaa": {
     "bbb": 222,
@@ -28,9 +34,15 @@ const document = JsonReference.load("#", `{
   "ccc": {
     "$ref": "#/aaa"
   }
-}`);
+}
+```
 
-const aaa = JsonReference.follow(doc, "/aaa");
+```javascript
+import * as JsonReference from "@hyperjump/json-reference";
+
+const doc = JsonReference.get("http://json-reference.hyperjump.com/example1");
+
+const aaa = JsonReference.get("/aaa", doc);
 JsonReference.value(aaa); // => "bar"
 JsonReference.pointer(aaa); // => "/aaa"
 ```
