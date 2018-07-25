@@ -26,6 +26,7 @@
     "babel-eslint": "^8.2.5",
     "babel-loader": "^7.1.4",
     "babel-plugin-root-import": "^5.1.0",
+    "babel-plugin-transform-async-to-module-method": "^6.24.1",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-preset-env": "^1.7.0",
     "chai": "^4.1.2",
@@ -43,7 +44,8 @@
   },
   "dependencies": {
     "@hyperjump/json-pointer": "^0.1.2",
-    "axios": "^0.18.0"
+    "axios": "^0.18.0",
+    "bluebird": "^3.5.1"
   },
   "nyc": {
     "include": [

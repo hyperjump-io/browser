@@ -7,6 +7,10 @@
     }],
     ["transform-object-rest-spread", {
       "useBuiltIns": true
+    }],
+    ["babel-plugin-transform-async-to-module-method", {
+      "module": "bluebird",
+      "method": "coroutine"
     }]
   ]
 }
