@@ -31,20 +31,43 @@ Content-Type: application/reference+json
     "bbb": 222,
     "$ref": "#/foo"
   },
-  "ccc": {
-    "$ref": "#/aaa"
-  }
+  "ccc": { "$ref": "#/aaa" },
+  "ddd": {
+    "111": 111,
+    "222": { "$ref": "#/aaa/bbb" }
+  },
+  "eee": ["a", { "$ref": "#/ddd/111" }]
 }
 ```
 
 ```javascript
-import * as JsonReference from "@hyperjump/json-reference";
+import * as JRef from "@hyperjump/json-reference";
 
-const doc = JsonReference.get("http://json-reference.hyperjump.com/example1");
+(async () => {
+  // Get a document by absolute URL
+  const doc = await JRef.get("http://json-reference.hyperjump.com/example1");
 
-const aaa = JsonReference.get("/aaa", doc);
-JsonReference.value(aaa); // => "bar"
-JsonReference.pointer(aaa); // => "/aaa"
+  // Get a document with a relative URL using another document as the context
+  const aaa = await JRef.get("/aaa", doc);
+
+  // Get the value of a document
+  JRef.value(aaa); // => "bar"
+
+  // Get the JSON Pointer for the document
+  JRef.pointer(aaa); // => "/aaa"
+
+  // Map over a document whose value is an array
+  const eee = JRef.get("#/eee");
+  const getType = (item) => typeof JRef.value(item);
+  const types = await JRef.map(getType, eee); // => ["string", "number"];
+
+  // Get the key/value pairs of a document whose value is an object
+  const ddd = JRef.get("#/ddd");
+  await JRef.entries(ddd); // => [
+                           //      ["111", await JRef.get("#/ddd/111", doc)],
+                           //      ["222", await JRef.get("#/ddd/222", doc)]
+                           //    ]
+}());
 ```
 
 Contributing
