@@ -1,5 +1,6 @@
 .nyc_output
 coverage
 dist
+http-cache
 node_modules
 package-lock.json

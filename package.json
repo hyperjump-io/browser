@@ -44,8 +44,8 @@
   },
   "dependencies": {
     "@hyperjump/json-pointer": "^0.1.2",
-    "axios": "^0.18.0",
-    "bluebird": "^3.5.1"
+    "bluebird": "^3.5.1",
+    "make-fetch-happen": "^4.0.1"
   },
   "nyc": {
     "include": [
