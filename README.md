@@ -17,7 +17,7 @@ Usage
 -----
 
 ```http
-GET http://json-reference.hyperjump.com/example1 HTTP/1.1
+GET http://json-reference.hyperjump.io/example1 HTTP/1.1
 Accept: application/reference+json
 ```
 
@@ -45,7 +45,7 @@ import * as JRef from "@hyperjump/json-reference";
 
 (async () => {
   // Get a document by absolute URL
-  const doc = await JRef.get("http://json-reference.hyperjump.com/example1");
+  const doc = await JRef.get("http://json-reference.hyperjump.io/example1");
 
   // Get a document with a relative URL using another document as the context
   const aaa = await JRef.get("/aaa", doc);
