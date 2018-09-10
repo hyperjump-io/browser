@@ -27,16 +27,17 @@ Content-Type: application/reference+json
 
 {
   "foo": "bar",
-  "aaa": {
-    "bbb": 222,
-    "$ref": "#/foo"
-  },
+  "aaa": { "$ref": "#/foo" },
   "ccc": { "$ref": "#/aaa" },
   "ddd": {
     "111": 111,
     "222": { "$ref": "#/aaa/bbb" }
   },
-  "eee": ["a", { "$ref": "#/ddd/111" }]
+  "eee": ["a", { "$ref": "#/ddd/111" }],
+  "fff": {
+    "$id": "http://json-reference.hyperjump.io/example2",
+    "abc": 123
+  }
 }
 ```
 
@@ -99,7 +100,8 @@ Schema.
 
 With this implementation, I use JSON Reference draft-03 from the original
 authors as a starting point and evolve the concept from there. Therefore, this
-implementation is not the same JSON Reference used by JSON Schema.
+implementation IS NOT the same JSON Reference used in recent drafts of JSON
+Schema.
 
 Documentation
 -------------
@@ -119,7 +121,7 @@ body.
 
 Request:
 ```http
-GET /example#/foo HTTP/1.1
+GET /example#/aaa HTTP/1.1
 Accept: application/reference+json
 ```
 
@@ -134,9 +136,7 @@ Content-Type: application/reference+json
     "bbb": 222,
     "$ref": "#/foo"
   },
-  "ccc": {
-    "$ref": "#/aaa"
-  }
+  "ccc": { "$ref": "#/aaa" }
 }
 ```
 
@@ -150,14 +150,21 @@ defines a reference to another document or a different part of the current
 document. The value of the `$ref` property should be a URL defined as a JSON
 string.
 
-When the "value" is an object with a `$ref` property, this should result in a
-redirect to the URL defined by the `$ref`.
+When the "value" is an object with a `$ref` property, it should be like following
+a link to the URL defined by the `$ref`. It's a little like an iframe in HTML.
+It's a document within a document.
 
-Unlike JSON Reference draft-03, properties adjacent to a `$ref` property are not
-ignored, but they are often shadowed. In the example above, when we request
-`/example#/aaa/bbb` we get `222`, but if we're iterating over each of the
-properties in the response, when we get to `/example#/aaa` we get redirected to
-`/foo` and `/aaa/bbb` is never reached.
+When the "value" is an object with an "$id" property, it should be interpreted
+as a separate JSON Reference document embedded in the document. The `$id` is
+equivalent to `$ref` if the `$ref` were followed and inlined into the document.
+This is a little like the HTTP/2 server push feature. It's sending additional
+documents with the request because we know the client is just going to request
+those documents next.
 
-Implementations are discouraged from inlining referenced documents. Inlining is
-possible, but there are issues that we won't get into here.
+The JSON Pointer fragment is not aware of the semantics of the `$ref` and `$id`
+keywords. Therefore, it is possible to point to values that don't make sense
+for a JSON Reference document. In the example above, we can request
+`/example#/aaa/bbb` and get `222` even though `/example#/aaa` is a reference.
+We allow this because we don't want JSON Pointer implementations to have to be
+aware of JSON Reference, but doing things like this is highly discouraged and
+will cause problems when inlining documents with `$id`.
