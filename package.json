@@ -43,7 +43,7 @@
     "webpack-node-externals": "^1.7.2"
   },
   "dependencies": {
-    "@hyperjump/json-pointer": "^0.2.0",
+    "@hyperjump/json-pointer": "^0.2.1",
     "bluebird": "^3.5.3",
     "make-fetch-happen": "^4.0.1"
   },
