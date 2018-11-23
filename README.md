@@ -91,8 +91,8 @@ npm test -- --watch
 History
 -------
 
-JSON Reference is best known for it's part in JSON Schema. Although it had an
-author in common with JSON Schema, JSON Reference started as an independant,
+JSON Reference is best known for its role in JSON Schema. Although it had an
+author in common with JSON Schema, JSON Reference started as an independent,
 standalone specification. Both JSON Schema and JSON Reference were abandoned by
 their authors before reaching RFC status. In 2016, a new group picked up the
 JSON Schema specification and eventually folded JSON Reference into JSON Schema.
