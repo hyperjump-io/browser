@@ -5,14 +5,11 @@
     "node": true,
     "mocha": true
   },
-  "parser": "babel-eslint",
   "parserOptions": {
-    "sourceType": "module"
+    "ecmaVersion": 2018
   },
   "extends": [
-    "eslint:recommended",
-    "plugin:import/errors",
-    "plugin:import/warnings"
+    "eslint:recommended"
   ],
   "plugins": ["import"],
   "rules": {
@@ -20,9 +17,9 @@
     "block-spacing": ["error", "always"],
     "brace-style": ["error", "1tbs"],
     "comma-dangle": ["error", "never"],
+    "import/no-unresolved": ["error", { "commonjs": true }],
     "import/extensions": ["error", "always", { "js": "never" }],
     "import/newline-after-import": ["error", { "count": 2 }],
-    "import/no-commonjs": ["error"],
     "indent": ["error", 2],
     "linebreak-style": ["error", "unix"],
     "no-trailing-spaces": "error",
@@ -33,6 +30,6 @@
     "semi": ["error", "always"]
   },
   "settings": {
-    "import/resolver": "babel-plugin-root-import"
+    "import/resolver": "node"
   }
 }
