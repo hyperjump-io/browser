@@ -1,4 +1,4 @@
-const Hyperjump = require("./hyperjump");
+const Hyperjump = require("..");
 
 
 const contentType = "application/json";

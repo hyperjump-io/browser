@@ -1,20 +1,47 @@
-JSON Reference
-==============
+Hyperjump Browser
+=================
 
-This is an implementation inspired by the
-[JSON Reference I-D](https://tools.ietf.org/html/draft-pbryan-zyp-json-ref-03).
-The goal is to make some improvements to the specification and define an
-`application/reference+json` media type.
+The hyperjump browser is an experimental generic hypermedia client. It aims to
+provide a uniform interface for working with hypermedia enabled media types.
+When you use a web browser, you don't interact with HTML, you interact with the
+UI that the HTML represents. The hyperjump browser aims to do the same except
+with data. It abstracts away the hypermedia so you can work data as if it's just
+plain JSON data without having to leave the browser.
+
+The hyperjump browser allows you to plug in support for different media types,
+but it comes with support for `application/reference+json`. This media type is
+based on the [JSON Reference I-D](https://tools.ietf.org/html/draft-pbryan-zyp-json-ref-03)
+with some additions and improvements.
 
 Installation
 ------------
 
 ```bash
-npm install @hyperjump/json-reference --save
+npm install @hyperjump/browser --save
+```
+
+Contributing
+------------
+
+### Tests
+
+Run the tests
+
+```bash
+npm test
+```
+
+Run the tests with a continuous test runner
+
+```bash
+npm test -- --watch
 ```
 
 Usage
 -----
+
+The following is a quick set of examples with little explanation. See the *JSON
+Reference* section below for the theory behind JSON Reference.
 
 ```http
 GET http://json-reference.hyperjump.io/example1 HTTP/1.1
@@ -42,7 +69,7 @@ Content-Type: application/reference+json
 ```
 
 ```javascript
-import * as JRef from "@hyperjump/json-reference";
+const JRef = require("@hyperjump/browser/json-reference");
 
 (async () => {
   // Get a document by absolute URL
@@ -59,34 +86,19 @@ import * as JRef from "@hyperjump/json-reference";
 
   // Map over a document whose value is an array
   const eee = JRef.get("#/eee");
-  const getType = (item) => typeof JRef.value(item);
-  const types = await JRef.map(getType, eee); // => ["string", "number"];
+  const types = await JRef.map((item) => typeof JRef.value(item), eee); // => ["string", "number"];
 
   // Get the key/value pairs of a document whose value is an object
   const ddd = JRef.get("#/ddd");
   await JRef.entries(ddd); // => [
-                           //      ["111", await JRef.get("#/ddd/111", doc)],
-                           //      ["222", await JRef.get("#/ddd/222", doc)]
+                           //      ["111", JRef.get("#/ddd/111", doc)],
+                           //      ["222", JRef.get("#/ddd/222", doc)]
                            //    ]
 }());
 ```
 
-Contributing
-------------
-
-### Tests
-
-Run the tests
-
-```bash
-npm test
-```
-
-Run the tests with a continuous test runner
-
-```bash
-npm test -- --watch
-```
+JSON Reference
+==============
 
 History
 -------

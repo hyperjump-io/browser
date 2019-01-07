@@ -1,7 +1,7 @@
 const JsonPointer = require("@hyperjump/json-pointer");
 const Promise = require("bluebird");
-const Hyperjump = require("./hyperjump");
-const Json = require("./json");
+const Hyperjump = require("..");
+const Json = require("../json");
 
 
 const contentType = "application/reference+json";

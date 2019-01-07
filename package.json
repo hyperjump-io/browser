@@ -1,22 +1,18 @@
 {
-  "name": "@hyperjump/json-reference",
+  "name": "@hyperjump/browser",
   "version": "0.6.0",
-  "description": "An implementation of JSON Reference",
-  "main": "./lib/json-reference.js",
-  "files": [
-    "lib/**/*"
-  ],
+  "description": "A generic hypermedia client for JSON Reference",
   "scripts": {
     "clean": "xargs -a .gitignore rm -rf",
     "lint": "eslint .",
-    "test": "mocha 'lib/**/*.spec.js'"
+    "test": "mocha '{,!(node_modules)}/*.spec.js'"
   },
-  "repository": "github:jdesrosiers/json-reference",
+  "repository": "github:jdesrosiers/hyperjump-browser",
   "keywords": [
+    "hyperjump",
     "JSON Reference",
     "$ref",
-    "$id",
-    "hyperjump"
+    "$id"
   ],
   "author": "Jason Desrosiers <jdesrosi@gmail.com>",
   "license": "MIT",
