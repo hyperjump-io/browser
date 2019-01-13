@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { Given, When, Then } = require("../mocha-gherkin.spec");
-const JsonReference = require(".");
+const JRef = require(".");
 const nock = require("nock");
 
 
@@ -30,7 +30,7 @@ Given("a JSON Reference document", () => {
       }, { "Content-Type": "application/reference+json" })
       .persist();
 
-    doc = await JsonReference.get(exampleUrl);
+    doc = await JRef.get(exampleUrl, JRef.nil);
   });
 
   after(nock.cleanAll);
@@ -39,15 +39,15 @@ Given("a JSON Reference document", () => {
     let subject;
 
     before(async () => {
-      subject = await JsonReference.get("#/foo", doc);
+      subject = await JRef.get("#/foo", doc);
     });
 
     Then("it should have the value that is pointed to", () => {
-      expect(JsonReference.value(subject)).to.equal("bar");
+      expect(JRef.value(subject)).to.equal("bar");
     });
 
     Then("it should have the pointer that was given", () => {
-      expect(JsonReference.pointer(subject)).to.equal("/foo");
+      expect(JRef.pointer(subject)).to.equal("/foo");
     });
   });
 
@@ -55,15 +55,15 @@ Given("a JSON Reference document", () => {
     let subject;
 
     before(async () => {
-      subject = await JsonReference.get("#/aaa", doc);
+      subject = await JRef.get("#/aaa", doc);
     });
 
     Then("it should follow the $ref", () => {
-      expect(JsonReference.value(subject)).to.equal("bar");
+      expect(JRef.value(subject)).to.equal("bar");
     });
 
     Then("it should have the pointer in the $ref", () => {
-      expect(JsonReference.pointer(subject)).to.equal("/foo");
+      expect(JRef.pointer(subject)).to.equal("/foo");
     });
   });
 
@@ -71,15 +71,15 @@ Given("a JSON Reference document", () => {
     let subject;
 
     before(async () => {
-      subject = await JsonReference.get("#/aaa/bbb", doc);
+      subject = await JRef.get("#/aaa/bbb", doc);
     });
 
     Then("it should have the value that is pointed to", () => {
-      expect(JsonReference.value(subject)).to.equal(222);
+      expect(JRef.value(subject)).to.equal(222);
     });
 
     Then("it should have the pointer that was given", () => {
-      expect(JsonReference.pointer(subject)).to.equal("/aaa/bbb");
+      expect(JRef.pointer(subject)).to.equal("/aaa/bbb");
     });
   });
 
@@ -87,11 +87,11 @@ Given("a JSON Reference document", () => {
     let subject;
 
     before(async () => {
-      subject = await JsonReference.get("#/fff", doc);
+      subject = await JRef.get("#/fff", doc);
     });
 
     Then("it should return a new document using the $id as URL", () => {
-      expect(JsonReference.value(subject)).to.eql({ "abc": 123 });
+      expect(JRef.value(subject)).to.eql({ "abc": 123 });
     });
   });
 
@@ -99,11 +99,11 @@ Given("a JSON Reference document", () => {
     let subject;
 
     before(async () => {
-      subject = await JsonReference.get("#/eee", doc);
+      subject = await JRef.get("#/eee", doc);
     });
 
     Then("it should apply the function to every item in the array", async () => {
-      const types = await JsonReference.map((item) => typeof JsonReference.value(item), subject);
+      const types = await JRef.map((item) => typeof JRef.value(item), subject);
       expect(types).to.eql(["string", "number"]);
     });
   });
@@ -112,15 +112,15 @@ Given("a JSON Reference document", () => {
     let subject;
 
     before(async () => {
-      subject = await JsonReference.get("#/ddd", doc);
+      subject = await JRef.get("#/ddd", doc);
     });
 
     Then("it should return key/document pairs", async () => {
-      const one = await JsonReference.get("#/ddd/111", doc);
-      const two = await JsonReference.get("#/ddd/222", doc);
+      const one = await JRef.get("#/ddd/111", doc);
+      const two = await JRef.get("#/ddd/222", doc);
       const expected = [["111", one], ["222", two]];
 
-      expect(await JsonReference.entries(subject)).to.eql(expected);
+      expect(await JRef.entries(subject)).to.eql(expected);
     });
   });
 });

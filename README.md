@@ -73,7 +73,7 @@ const JRef = require("@hyperjump/browser/json-reference");
 
 (async () => {
   // Get a document by absolute URL
-  const doc = await JRef.get("http://json-reference.hyperjump.io/example1");
+  const doc = await JRef.get("http://json-reference.hyperjump.io/example1", JRef.nil);
 
   // Get a document with a relative URL using another document as the context
   const aaa = await JRef.get("/aaa", doc);
@@ -85,11 +85,11 @@ const JRef = require("@hyperjump/browser/json-reference");
   JRef.pointer(aaa); // => "/aaa"
 
   // Map over a document whose value is an array
-  const eee = JRef.get("#/eee");
+  const eee = JRef.get("#/eee", doc);
   const types = await JRef.map((item) => typeof JRef.value(item), eee); // => ["string", "number"];
 
   // Get the key/value pairs of a document whose value is an object
-  const ddd = JRef.get("#/ddd");
+  const ddd = JRef.get("#/ddd", doc);
   await JRef.entries(ddd); // => [
                            //      ["111", JRef.get("#/ddd/111", doc)],
                            //      ["222", JRef.get("#/ddd/222", doc)]
