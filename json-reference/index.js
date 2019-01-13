@@ -57,10 +57,21 @@ const map = curry((fn, doc, options = {}) => {
   return Promise.map(items, fn);
 });
 
+const identity = (a) => a;
+const pipeline = (fns) => {
+  const [handler = identity, ...handlers] = fns;
+  return (...args) => Promise.resolve(handler(...args))
+    .then(data => Promise.reduce(handlers, (acc, fn) => fn(acc), data));
+};
+
 const uriFragment = (url) => url.split("#", 2)[1] || "";
 const isObject = (value) => typeof value === "object" && !Array.isArray(value) && value !== null;
 const isRef = (value) => isObject(value) && "$ref" in value;
 const isId = (value) => isObject(value) && "$id" in value;
 const append = (key, doc) => "#" + encodeURI(JsonPointer.append(key, pointer(doc)));
 
-module.exports = { contentType, contentTypeHandler, get, nil, source, value, pointer, entries, map };
+module.exports = {
+  contentType, contentTypeHandler,
+  get, nil, source, value, pointer,
+  entries, map, pipeline
+};

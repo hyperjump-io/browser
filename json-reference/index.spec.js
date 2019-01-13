@@ -22,7 +22,7 @@ Given("a JSON Reference document", () => {
           "111": 111,
           "222": { "$ref": "#/aaa/bbb" }
         },
-        "eee": ["a", { "$ref": "#/ddd/111" }],
+        "eee": [333, { "$ref": "#/ddd/111" }],
         "fff": {
           "$id": "http://json-reference.hyperjump.io/example2",
           "abc": 123
@@ -103,8 +103,8 @@ Given("a JSON Reference document", () => {
     });
 
     Then("it should apply the function to every item in the array", async () => {
-      const types = await JRef.map((item) => typeof JRef.value(item), subject);
-      expect(types).to.eql(["string", "number"]);
+      const types = await JRef.map((item) => JRef.value(item) * 2, subject);
+      expect(types).to.eql([666, 222]);
     });
   });
 
@@ -121,6 +121,24 @@ Given("a JSON Reference document", () => {
       const expected = [["111", one], ["222", two]];
 
       expect(await JRef.entries(subject)).to.eql(expected);
+    });
+  });
+
+  When("the document is applied to a pipeline that sums numbers at #/eee", () => {
+    let subject;
+
+    before(async () => {
+      const go = JRef.pipeline([
+        JRef.get("#/eee"),
+        JRef.map(JRef.value),
+        (foo) => foo.reduce((sum, a) => sum + a)
+      ]);
+
+      subject = await go(doc);
+    });
+
+    Then("the result should be the sum of the numbers", () => {
+      expect(subject).to.equal(444);
     });
   });
 });

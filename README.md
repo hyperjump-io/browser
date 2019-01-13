@@ -60,7 +60,7 @@ Content-Type: application/reference+json
     "111": 111,
     "222": { "$ref": "#/aaa/bbb" }
   },
-  "eee": ["a", { "$ref": "#/ddd/111" }],
+  "eee": [333, { "$ref": "#/ddd/111" }],
   "fff": {
     "$id": "http://json-reference.hyperjump.io/example2",
     "abc": 123
@@ -86,7 +86,7 @@ const JRef = require("@hyperjump/browser/json-reference");
 
   // Map over a document whose value is an array
   const eee = JRef.get("#/eee", doc);
-  const types = await JRef.map((item) => typeof JRef.value(item), eee); // => ["string", "number"];
+  const types = await JRef.map((item) => JRef.value(item) * 2, eee); // => [666, 222];
 
   // Get the key/value pairs of a document whose value is an object
   const ddd = JRef.get("#/ddd", doc);
@@ -94,6 +94,14 @@ const JRef = require("@hyperjump/browser/json-reference");
                            //      ["111", JRef.get("#/ddd/111", doc)],
                            //      ["222", JRef.get("#/ddd/222", doc)]
                            //    ]
+
+  // Apply operations as a pipeline that works with promises
+  const doubleEee = JRef.pipeline([
+    JRef.get("#/eee"),
+    JRef.map(JRef.value),
+    (items) => items.map((a) => a * 2)
+  ]);
+  await doubleEee(doc); // => [666, 222]
 }());
 ```
 
