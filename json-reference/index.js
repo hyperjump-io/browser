@@ -57,7 +57,6 @@ const map = curry((fn, doc, options = {}) => {
   return Promise.map(items, fn);
 });
 
-const identity = (a) => a;
 const pipeline = (fns) => {
   const [handler = identity, ...handlers] = fns;
   return (...args) => Promise.resolve(handler(...args))
@@ -69,9 +68,10 @@ const isObject = (value) => typeof value === "object" && !Array.isArray(value) &
 const isRef = (value) => isObject(value) && "$ref" in value;
 const isId = (value) => isObject(value) && "$id" in value;
 const append = (key, doc) => "#" + encodeURI(JsonPointer.append(key, pointer(doc)));
+const identity = (a) => a;
 
 module.exports = {
   contentType, contentTypeHandler,
-  get, nil, source, value, pointer,
-  entries, map, pipeline
+  nil, source, get,
+  value, pointer, entries, map, pipeline
 };
