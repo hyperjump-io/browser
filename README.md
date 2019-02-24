@@ -98,8 +98,7 @@ const JRef = require("@hyperjump/browser/json-reference");
   // Apply operations as a pipeline that works with promises
   const doubleEee = JRef.pipeline([
     JRef.get("#/eee"),
-    JRef.map(JRef.value),
-    (items) => items.map((a) => a * 2)
+    JRef.map((items) => JRef.value(items) * 2)
   ]);
   await doubleEee(doc); // => [666, 222]
 }());
@@ -117,10 +116,11 @@ standalone specification. Both JSON Schema and JSON Reference were abandoned by
 their authors before reaching RFC status. In 2016, a new group picked up the
 JSON Schema specification and eventually folded JSON Reference into JSON Schema.
 
-With this implementation, I use JSON Reference draft-03 from the original
-authors as a starting point and evolve the concept from there. Therefore, this
-implementation IS NOT the same JSON Reference used in recent drafts of JSON
-Schema.
+With this implementation, I use
+[JSON Reference draft-03](https://tools.ietf.org/html/draft-pbryan-zyp-json-ref-03)
+from the original authors as a starting point and evolve the concept from there.
+Therefore, _the `$ref` and `$id` in this implementation IS NOT the same `$ref`
+and `$id` used in recent drafts of JSON Schema_.
 
 Documentation
 -------------
