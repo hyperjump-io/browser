@@ -3,6 +3,7 @@ const resolveUrl = require("url").resolve;
 
 
 const construct = (url, headers, body) => Object.freeze({ url, headers, body });
+const extend = (doc, extras) => Object.freeze({ ...doc, ...extras });
 
 const nil = construct("", {}, undefined);
 
@@ -11,7 +12,10 @@ const get = async (url, doc = nil, options = {}) => {
   const resolvedUrl = resolveUrl(doc.url, url);
 
   if (uriReference(doc.url) === uriReference(resolvedUrl)) {
-    result = construct(resolvedUrl, doc.headers, doc.body);
+    result = extend(doc, { url: resolvedUrl });
+  } else if (doc.embedded && uriReference(resolvedUrl) in doc.embedded) {
+    const headers = { "content-type": doc.headers["content-type"] };
+    result = construct(resolvedUrl, headers, doc.embedded[resolvedUrl]);
   } else {
     const response = await fetch(resolvedUrl, options);
     const headers = {};
@@ -38,4 +42,4 @@ const contentTypeHandler = (doc) => {
 
 const uriReference = (url) => url.split("#", 1)[0];
 
-module.exports = { construct, nil, get, source, addContentType };
+module.exports = { construct, extend, nil, get, source, addContentType };

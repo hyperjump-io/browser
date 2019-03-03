@@ -7,19 +7,25 @@ const Json = require("../json");
 
 const contentType = "application/reference+json";
 const contentTypeHandler = async (doc, options) => {
-  let jsonDoc = await Json.contentTypeHandler(doc, options);
-  let docValue = value(jsonDoc);
+  const jrefDoc = (!("jref" in doc)) ? Hyperjump.extend(doc, parse(doc)) : doc;
+  const docValue = value(jrefDoc);
+  return isRef(docValue) ? await get(docValue["$ref"], jrefDoc, options) : jrefDoc;
+};
 
-  if (isId(docValue)) {
-    const id = docValue["$id"];
-    delete docValue["$id"];
-    // TODO: Cache embedded document. I'll probably need to implement my own HTTP Cache for this.
-    const headers = { "content-type": jsonDoc.headers["content-type"] };
-    jsonDoc = Hyperjump.construct(id, headers, JSON.stringify(docValue));
-    docValue = value(jsonDoc);
-  }
+const parse = (doc) => {
+  const embedded = {};
+  const jref = JSON.parse(Hyperjump.source(doc), (key, value) => {
+    if (isId(value)) {
+      const id = uriReference(value["$id"]);
+      delete value["$id"];
+      embedded[id] = JSON.stringify(value);
+      return { "$ref": id };
+    } else {
+      return value;
+    }
+  });
 
-  return isRef(docValue) ? await get(docValue["$ref"], jsonDoc, options) : jsonDoc;
+  return { jref, embedded };
 };
 
 Hyperjump.addContentType(contentType, contentTypeHandler);
@@ -33,7 +39,7 @@ const get = curry(async (url, doc, options = {}) => {
   return await Hyperjump.get(url, doc, options);
 });
 
-const value = (doc) => JsonPointer.get(pointer(doc), Json.value(doc));
+const value = (doc) => JsonPointer.get(pointer(doc), doc.jref);
 
 const pointer = (doc) => decodeURIComponent(uriFragment(doc.url));
 
@@ -64,6 +70,7 @@ const pipeline = (fns) => {
 };
 
 const uriFragment = (url) => url.split("#", 2)[1] || "";
+const uriReference = (url) => url.split("#", 1)[0];
 const isObject = (value) => typeof value === "object" && !Array.isArray(value) && value !== null;
 const isRef = (value) => isObject(value) && "$ref" in value;
 const isId = (value) => isObject(value) && "$id" in value;

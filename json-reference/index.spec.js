@@ -27,8 +27,7 @@ Given("a JSON Reference document", () => {
           "$id": "http://json-reference.hyperjump.io/example2",
           "abc": 123
         }
-      }, { "Content-Type": "application/reference+json" })
-      .persist();
+      }, { "Content-Type": "application/reference+json" });
 
     doc = await JRef.get(exampleUrl, JRef.nil);
   });
