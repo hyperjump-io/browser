@@ -25,7 +25,7 @@
     "nock": "^9.6.1"
   },
   "dependencies": {
-    "@hyperjump/json-pointer": "^0.3.0",
+    "@hyperjump/json-pointer": "^0.3.1",
     "bluebird": "^3.5.3",
     "just-curry-it": "^3.1.0",
     "make-fetch-happen": "^4.0.1"

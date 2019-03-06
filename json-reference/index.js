@@ -67,7 +67,7 @@ const uriFragment = (url) => url.split("#", 2)[1] || "";
 const isObject = (value) => typeof value === "object" && !Array.isArray(value) && value !== null;
 const isRef = (value) => isObject(value) && "$ref" in value;
 const isId = (value) => isObject(value) && "$id" in value;
-const append = (key, doc) => "#" + encodeURI(JsonPointer.append(key, pointer(doc)));
+const append = (key, doc) => "#" + encodeURI(JsonPointer.append(key, pointer(doc))).replace(/#/g, "%23");
 const identity = (a) => a;
 
 module.exports = {
