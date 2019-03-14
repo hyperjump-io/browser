@@ -54,15 +54,15 @@ Content-Type: application/reference+json
 
 {
   "foo": "bar",
-  "aaa": { "$ref": "#/foo" },
-  "ccc": { "$ref": "#/aaa" },
+  "aaa": { "$href": "#/foo" },
+  "ccc": { "$href": "#/aaa" },
   "ddd": {
     "111": 111,
-    "222": { "$ref": "#/aaa/bbb" }
+    "222": { "$href": "#/aaa/bbb" }
   },
-  "eee": [333, { "$ref": "#/ddd/111" }],
+  "eee": [333, { "$href": "#/ddd/111" }],
   "fff": {
-    "$id": "http://json-reference.hyperjump.io/example2",
+    "$embedded": "http://json-reference.hyperjump.io/example2",
     "abc": 123
   }
 }
@@ -119,8 +119,8 @@ JSON Schema specification and eventually folded JSON Reference into JSON Schema.
 With this implementation, I use
 [JSON Reference draft-03](https://tools.ietf.org/html/draft-pbryan-zyp-json-ref-03)
 from the original authors as a starting point and evolve the concept from there.
-Therefore, _the `$ref` and `$id` in this implementation IS NOT the same `$ref`
-and `$id` used in recent drafts of JSON Schema_.
+Therefore, _the `$href` and `$embedded` in this implementation ARE NOT a simple
+renaming of `$ref` and `$id` in recent drafts of JSON Schema_.
 
 Documentation
 -------------
@@ -159,14 +159,14 @@ Content-Type: application/reference+json
 }
 ```
 
-### $ref
+### $href
 
-In a JSON Reference document, the `$ref` property defines a reference to another
-document or a different part of the current document. The value of the `$ref`
-property is a string that defines a relative or absolute URL as specified by
-[RFC-3986](https://tools.ietf.org/html/rfc3986).
+In a JSON Reference document, the `$href` property defines a reference to
+another document or a different part of the current document. The value of the
+`$href` property is a string that defines a relative or absolute URL as
+specified by [RFC-3986](https://tools.ietf.org/html/rfc3986).
 
-When the "value" is an object with a `$ref` property, it should follow the
+When the "value" is an object with a `$href` property, it should follow the
 reference like following a link. In the following example the fragment points
 `/aaa`, which is a reference that points to `/foo`, and thus the "value" is
 `"bar"`.
@@ -184,20 +184,20 @@ Content-Type: application/reference+json
 
 {
   "foo": "bar",
-  "aaa": { "$ref": "#/foo" }
+  "aaa": { "$href": "#/foo" }
 }
 ```
 
-A `$ref` is a document boundary that JSON Pointers should not cross. `$ref`s
+A `$href` is a document boundary that JSON Pointers should not cross. `$nref`s
 should not be followed in order to resolve the fragment's JSON Pointer.
 
-### $id
+### $embedded
 
-In a JSON Reference document, the `$id` property is a string that defines an
-absolute URL that identifies a document within the parent document. It's the
-inlined version of a `$ref`. This is a little like the HTTP/2 server push
-feature. It's sending additional documents with the request because we know the
-client is just going to request those documents next.
+In a JSON Reference document, the `$embedded` property is a string that defines
+an absolute URL that indicates a document embedded within the parent document.
+It's the inlined version of a `$href`. This is a little like the HTTP/2 server
+push feature. It's sending additional documents with the request because we know
+the client is just going to request those documents next.
 
 In the example below, the "value" of the document is `111`.
 
@@ -214,18 +214,18 @@ Content-Type: application/reference+json
 
 {
   "foo": {
-    "$id": "http://json-reference.hyperjump.io/example2#/aaa",
+    "$embedded": "http://json-reference.hyperjump.io/example2#/aaa",
     "aaa": 111
   }
 }
 ```
 
-An `$id` is a document boundary that JSON Pointers should not cross. A JSON
-Reference's fragment JSON Pointer should not point to a separate document
-inlined with `$id`.
+An `$embedded` is a document boundary that JSON Pointers should not cross. A
+JSON Reference's fragment JSON Pointer should not point to a separate document
+inlined with `$embedded`.
 
 #### Limitations
 
-The problem with inlining `$ref`s with `$id` is that we don't get the HTTP
-headers that describe important things like caching. An optional `$headers`
+The problem with inlining `$href`s with `$embedded` is that we don't get the
+HTTP headers that describe important things like caching. An optional `$headers`
 keyword is being considered.

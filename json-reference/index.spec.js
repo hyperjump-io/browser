@@ -15,16 +15,16 @@ Given("a JSON Reference document", () => {
         "foo": "bar",
         "aaa": {
           "bbb": 222,
-          "$ref": "#/foo"
+          "$href": "#/foo"
         },
-        "ccc": { "$ref": "#/aaa" },
+        "ccc": { "$href": "#/aaa" },
         "ddd": {
           "111": 111,
-          "222": { "$ref": "#/aaa/bbb" }
+          "222": { "$href": "#/aaa/bbb" }
         },
-        "eee": [333, { "$ref": "#/ddd/111" }],
+        "eee": [333, { "$href": "#/ddd/111" }],
         "fff": {
-          "$id": "http://json-reference.hyperjump.io/example2",
+          "$embedded": "http://json-reference.hyperjump.io/example2",
           "abc": 123
         }
       }, { "Content-Type": "application/reference+json" });
@@ -50,23 +50,23 @@ Given("a JSON Reference document", () => {
     });
   });
 
-  When("pointing to an element with a $ref", () => {
+  When("pointing to an element with a $href", () => {
     let subject;
 
     before(async () => {
       subject = await JRef.get("#/aaa", doc);
     });
 
-    Then("it should follow the $ref", () => {
+    Then("it should follow the $href", () => {
       expect(JRef.value(subject)).to.equal("bar");
     });
 
-    Then("it should have the pointer in the $ref", () => {
+    Then("it should have the pointer in the $href", () => {
       expect(JRef.pointer(subject)).to.equal("/foo");
     });
   });
 
-  When("pointing to an element that has a $ref sibling", () => {
+  When("pointing to an element that has a $href sibling", () => {
     let subject;
 
     before(async () => {
@@ -82,14 +82,14 @@ Given("a JSON Reference document", () => {
     });
   });
 
-  When("pointing to an element with an $id", () => {
+  When("pointing to an element with an $embedded", () => {
     let subject;
 
     before(async () => {
       subject = await JRef.get("#/fff", doc);
     });
 
-    Then("it should return a new document using the $id as URL", () => {
+    Then("it should return a new document using the $embedded as URL", () => {
       expect(JRef.value(subject)).to.eql({ "abc": 123 });
     });
   });

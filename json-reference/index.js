@@ -9,17 +9,17 @@ const contentType = "application/reference+json";
 const contentTypeHandler = async (doc, options) => {
   const jrefDoc = (!("jref" in doc)) ? Hyperjump.extend(doc, parse(doc)) : doc;
   const docValue = value(jrefDoc);
-  return isRef(docValue) ? await get(docValue["$ref"], jrefDoc, options) : jrefDoc;
+  return isRef(docValue) ? await get(docValue["$href"], jrefDoc, options) : jrefDoc;
 };
 
 const parse = (doc) => {
   const embedded = {};
   const jref = JSON.parse(Hyperjump.source(doc), (key, value) => {
     if (isId(value)) {
-      const id = uriReference(value["$id"]);
-      delete value["$id"];
+      const id = uriReference(value["$embedded"]);
+      delete value["$embedded"];
       embedded[id] = JSON.stringify(value);
-      return { "$ref": id };
+      return { "$href": id };
     } else {
       return value;
     }
@@ -72,8 +72,8 @@ const pipeline = (fns) => {
 const uriFragment = (url) => url.split("#", 2)[1] || "";
 const uriReference = (url) => url.split("#", 1)[0];
 const isObject = (value) => typeof value === "object" && !Array.isArray(value) && value !== null;
-const isRef = (value) => isObject(value) && "$ref" in value;
-const isId = (value) => isObject(value) && "$id" in value;
+const isRef = (value) => isObject(value) && "$href" in value;
+const isId = (value) => isObject(value) && "$embedded" in value;
 const append = (key, doc) => "#" + encodeURI(JsonPointer.append(key, pointer(doc))).replace(/#/g, "%23");
 const identity = (a) => a;
 

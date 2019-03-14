@@ -1,3 +1,4 @@
 http-cache/
 .eslintrc.json
 **/*.spec.js
+*.md
