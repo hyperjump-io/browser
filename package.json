@@ -5,7 +5,7 @@
   "scripts": {
     "clean": "xargs -a .gitignore rm -rf",
     "lint": "eslint .",
-    "test": "mocha '{,!(node_modules)}/*.spec.js'"
+    "test": "mocha './{,!(node_modules)}/*.spec.js'"
   },
   "repository": "github:jdesrosiers/hyperjump-browser",
   "keywords": [
@@ -26,7 +26,6 @@
   },
   "dependencies": {
     "@hyperjump/json-pointer": "^0.3.1",
-    "bluebird": "^3.5.3",
     "just-curry-it": "^3.1.0",
     "make-fetch-happen": "^4.0.1"
   }

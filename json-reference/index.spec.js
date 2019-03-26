@@ -94,35 +94,6 @@ Given("a JSON Reference document", () => {
     });
   });
 
-  When("mapping over an array", () => {
-    let subject;
-
-    before(async () => {
-      subject = await JRef.get("#/eee", doc);
-    });
-
-    Then("it should apply the function to every item in the array", async () => {
-      const types = await JRef.map((item) => JRef.value(item) * 2, subject);
-      expect(types).to.eql([666, 222]);
-    });
-  });
-
-  When("getting entries of an object", () => {
-    let subject;
-
-    before(async () => {
-      subject = await JRef.get("#/ddd", doc);
-    });
-
-    Then("it should return key/document pairs", async () => {
-      const one = await JRef.get("#/ddd/111", doc);
-      const two = await JRef.get("#/ddd/222", doc);
-      const expected = [["111", one], ["222", two]];
-
-      expect(await JRef.entries(subject)).to.eql(expected);
-    });
-  });
-
   When("the document is applied to a pipeline that sums numbers at #/eee", () => {
     let subject;
 
@@ -130,7 +101,7 @@ Given("a JSON Reference document", () => {
       const go = JRef.pipeline([
         JRef.get("#/eee"),
         JRef.map(JRef.value),
-        (foo) => foo.reduce((sum, a) => sum + a)
+        JRef.reduce((sum, a) => sum + a, 0)
       ]);
 
       subject = await go(doc);
