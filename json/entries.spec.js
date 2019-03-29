@@ -1,27 +1,34 @@
 const { expect } = require("chai");
 const { Given, When, Then } = require("../mocha-gherkin.spec");
-const JRef = require(".");
+const Json = require(".");
 const nock = require("nock");
 
 
-Given("a JSON Reference document", () => {
+Given("a JSON document", () => {
   let doc;
   let aaa;
   let ccc;
 
   before(async () => {
-    const exampleUrl = "http://json-reference.hyperjump.io/entries/example1";
-    nock("http://json-reference.hyperjump.io")
+    const exampleUrl = "http://json.hyperjump.io/entries/example1";
+    nock("http://json.hyperjump.io")
       .get("/entries/example1")
       .reply(200, {
         "aaa": 111,
-        "bbb": { "$href": "#/aaa" },
+        "bbb": 111,
         "ccc": 333
-      }, { "Content-Type": "application/reference+json" });
+      }, { "Content-Type": "application/json" });
+    doc = await Json.get(exampleUrl, Json.nil);
 
-    doc = await JRef.get(exampleUrl, JRef.nil);
-    aaa = await JRef.get("#/aaa", doc);
-    ccc = await JRef.get("#/ccc", doc);
+    nock("http://json.hyperjump.io")
+      .get("/entries/example1/aaa")
+      .reply(200, 111, { "Content-Type": "application/json" });
+    aaa = await Json.get("example1/aaa", doc);
+
+    nock("http://json.hyperjump.io")
+      .get("/entries/example1/ccc")
+      .reply(200, 222, { "Content-Type": "application/json" });
+    ccc = await Json.get("example1/ccc", doc);
   });
 
   after(nock.cleanAll);
@@ -30,11 +37,11 @@ Given("a JSON Reference document", () => {
     let subject;
 
     before(async () => {
-      subject = await JRef.entries(doc);
+      subject = await Json.entries(doc);
     });
 
     Then("the values should be documents", async () => {
-      expect(subject).to.eql([["aaa", aaa], ["bbb", aaa], ["ccc", ccc]]);
+      expect(subject).to.eql([["aaa", 111], ["bbb", 111], ["ccc", 333]]);
     });
   });
 
@@ -42,7 +49,7 @@ Given("a JSON Reference document", () => {
     let subject;
 
     before(async () => {
-      subject = await JRef.entries({
+      subject = await Json.entries({
         "aaa": aaa,
         "bbb": aaa,
         "ccc": ccc

@@ -1,6 +1,6 @@
 const { expect } = require("chai");
-const { Given, When, Then } = require("../mocha-gherkin.spec");
-const JRef = require(".");
+const { Given, When, Then } = require("./mocha-gherkin.spec");
+const Hyperjump = require(".");
 const nock = require("nock");
 
 
@@ -18,8 +18,8 @@ Given("a JSON Reference document", () => {
         "ccc": 111
       }, { "Content-Type": "application/reference+json" });
 
-    doc = await JRef.get(`${exampleUrl}#/aaa`, JRef.nil);
-    double = JRef.map(async (item) => JRef.value(item) * 2);
+    doc = await Hyperjump.get(`${exampleUrl}#/aaa`, Hyperjump.nil);
+    double = Hyperjump.map(async (item) => Hyperjump.value(item) * 2);
   });
 
   after(nock.cleanAll);
@@ -41,8 +41,8 @@ Given("a JSON Reference document", () => {
 
     before(async () => {
       subject = await double([
-        await JRef.get("#/aaa/0", doc),
-        await JRef.get("#/aaa/1", doc)
+        await Hyperjump.get("#/aaa/0", doc),
+        await Hyperjump.get("#/aaa/1", doc)
       ]);
     });
 

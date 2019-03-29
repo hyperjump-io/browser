@@ -34,7 +34,7 @@ Given("a JSON Reference document", () => {
 
   after(nock.cleanAll);
 
-  When("pointing to a normal plain JSON element", () => {
+  When("pointing to a normal plain JSON value", () => {
     let subject;
 
     before(async () => {
@@ -43,10 +43,6 @@ Given("a JSON Reference document", () => {
 
     Then("it should have the value that is pointed to", () => {
       expect(JRef.value(subject)).to.equal("bar");
-    });
-
-    Then("it should have the pointer that was given", () => {
-      expect(JRef.pointer(subject)).to.equal("/foo");
     });
   });
 
@@ -60,10 +56,6 @@ Given("a JSON Reference document", () => {
     Then("it should follow the $href", () => {
       expect(JRef.value(subject)).to.equal("bar");
     });
-
-    Then("it should have the pointer in the $href", () => {
-      expect(JRef.pointer(subject)).to.equal("/foo");
-    });
   });
 
   When("pointing to an element that has a $href sibling", () => {
@@ -76,13 +68,9 @@ Given("a JSON Reference document", () => {
     Then("it should have the value that is pointed to", () => {
       expect(JRef.value(subject)).to.equal(222);
     });
-
-    Then("it should have the pointer that was given", () => {
-      expect(JRef.pointer(subject)).to.equal("/aaa/bbb");
-    });
   });
 
-  When("pointing to an element with an $embedded", () => {
+  When("pointing to an element with an $embedded document", () => {
     let subject;
 
     before(async () => {
@@ -91,24 +79,6 @@ Given("a JSON Reference document", () => {
 
     Then("it should return a new document using the $embedded as URL", () => {
       expect(JRef.value(subject)).to.eql({ "abc": 123 });
-    });
-  });
-
-  When("the document is applied to a pipeline that sums numbers at #/eee", () => {
-    let subject;
-
-    before(async () => {
-      const go = JRef.pipeline([
-        JRef.get("#/eee"),
-        JRef.map(JRef.value),
-        JRef.reduce((sum, a) => sum + a, 0)
-      ]);
-
-      subject = await go(doc);
-    });
-
-    Then("the result should be the sum of the numbers", () => {
-      expect(subject).to.equal(444);
     });
   });
 });
