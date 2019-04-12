@@ -1,5 +1,6 @@
 const JsonPointer = require("@hyperjump/json-pointer");
 const Hyperjump = require("../core");
+const { uriReference, uriFragment, isObject } = require("../common");
 
 
 const get = async (doc, options) => {
@@ -28,22 +29,17 @@ const value = (doc) => JsonPointer.get(pointer(doc), doc.jref);
 
 const entries = (doc, options = {}) => {
   return Promise.all(Object.keys(value(doc))
-    .map(async (key) => {
-      const url = append(key, doc);
-      return [key, await Hyperjump.get(url, doc, options)];
-    }));
+    .map(async (key) => [key, await prop(key, doc, options)]));
+};
+
+const prop = (key, doc, options = {}) => {
+  const ptr = JsonPointer.append(key, pointer(doc));
+  const url = "#" + encodeURI(ptr).replace(/#/g, "%23");
+  return Hyperjump.get(url, doc, options);
 };
 
 const pointer = (doc) => decodeURIComponent(uriFragment(doc.url));
-
-const uriFragment = (url) => url.split("#", 2)[1] || "";
-const uriReference = (url) => url.split("#", 1)[0];
-const isObject = (value) => typeof value === "object" && !Array.isArray(value) && value !== null;
 const isHref = (value) => isObject(value) && "$href" in value;
 const isEmbedded = (value) => isObject(value) && "$embedded" in value;
-const append = (key, doc) => {
-  const ptr = JsonPointer.append(key, pointer(doc));
-  return "#" + encodeURI(ptr).replace(/#/g, "%23");
-};
 
 module.exports = { get, value, entries };

@@ -1,12 +1,17 @@
 const makeFetchHappen = require("make-fetch-happen");
 const resolveUrl = require("url").resolve;
 const curry = require("just-curry-it");
+const { uriReference, isObject } = require("./common");
 
+
+const fetch = makeFetchHappen.defaults({ cacheManager: "./http-cache" });
 
 const construct = (url, headers, body) => Object.freeze({ url, headers, body });
 const extend = (doc, extras) => Object.freeze({ ...doc, ...extras });
 
 const nil = construct("", {}, undefined);
+const source = (doc) => doc.body;
+const value = (doc) => isDocument(doc) ? contentTypeHandler(doc).value(doc) : doc;
 
 const get = curry(async (url, doc, options = {}) => {
   let result;
@@ -29,17 +34,11 @@ const get = curry(async (url, doc, options = {}) => {
   return await contentTypeHandler(result).get(result, options);
 });
 
-const fetch = makeFetchHappen.defaults({ cacheManager: "./http-cache" });
-
-const source = (doc) => doc.body;
-const value = (doc) => isDocument(doc) ? contentTypeHandler(doc).value(doc) : doc;
-const entries = (doc, options = {}) => {
-  if (isDocument(doc)) {
-    return contentTypeHandler(doc).entries(doc, options);
-  } else {
-    return Object.entries(doc);
-  }
-};
+const entries = (doc, options = {}) => isDocument(doc) ? (
+  contentTypeHandler(doc).entries(doc, options)
+) : (
+  Object.entries(doc)
+);
 
 const map = curry(async (fn, subject, options = {}) => {
   const list = (await entries(subject, options))
@@ -78,8 +77,6 @@ const contentTypeHandler = (doc) => {
   return contentType in contentTypes ? contentTypes[contentType] : defaultHandler;
 };
 
-const uriReference = (url) => url.split("#", 1)[0];
-const isObject = (value) => typeof value === "object" && !Array.isArray(value) && value !== null;
 const isDocument = (value) => isObject(value) && "url" in value;
 
 module.exports = {
