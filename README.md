@@ -69,40 +69,114 @@ Content-Type: application/reference+json
 ```
 
 ```javascript
-const JRef = require("@hyperjump/browser/json-reference");
+const Hyperjump = require("@hyperjump/browser");
 
 (async () => {
   // Get a document by absolute URL
-  const doc = await JRef.get("http://json-reference.hyperjump.io/example1", JRef.nil);
+  const doc = await Hyperjump.get("http://json-reference.hyperjump.io/example1", Hyperjump.nil);
 
   // Get a document with a relative URL using another document as the context
-  const aaa = await JRef.get("/aaa", doc);
+  const aaa = await Hyperjump.get("/aaa", doc);
 
   // Get the value of a document
-  JRef.value(aaa); // => "bar"
+  Hyperjump.value(aaa); // => "bar"
 
   // Get the JSON Pointer for the document
-  JRef.pointer(aaa); // => "/aaa"
+  Hyperjump.pointer(aaa); // => "/aaa"
 
   // Map over a document whose value is an array
-  const eee = JRef.get("#/eee", doc);
-  const types = await JRef.map((item) => JRef.value(item) * 2, eee); // => [666, 222];
+  const eee = Hyperjump.get("#/eee", doc);
+  const types = await Hyperjump.map((item) => Hyperjump.value(item) * 2, eee); // => [666, 222];
 
   // Get the key/value pairs of a document whose value is an object
-  const ddd = JRef.get("#/ddd", doc);
-  await JRef.entries(ddd); // => [
-                           //      ["111", JRef.get("#/ddd/111", doc)],
-                           //      ["222", JRef.get("#/ddd/222", doc)]
-                           //    ]
+  const ddd = Hyperjump.get("#/ddd", doc);
+  await Hyperjump.entries(ddd); // => [
+                                //      ["111", Hyperjump.get("#/ddd/111", doc)],
+                                //      ["222", Hyperjump.get("#/ddd/222", doc)]
+                                //    ]
 
   // Apply operations as a pipeline that works with promises
-  const doubleEee = JRef.pipeline([
-    JRef.get("#/eee"),
-    JRef.map((items) => JRef.value(items) * 2)
+  const doubleEee = Hyperjump.pipeline([
+    Hyperjump.get("#/eee"),
+    Hyperjump.map((items) => Hyperjump.value(items) * 2)
   ]);
   await doubleEee(doc); // => [666, 222]
 }());
 ```
+
+API
+---
+
+### `nil`
+`Document`
+
+The nil document. This is like the blank page you see when you first open your
+browser.
+
+### `get`
+`(Url, Document, Options?) => Promise<Document>`
+
+Retrieve a document with respect to a context document. Options can be passed to
+set custom headers. If the value of the document is a link, it will be followed.
+
+### `value`
+`(Document|any) => any`
+
+The value of a document.
+
+### `source`
+`(Document) => string`
+
+The raw source of a document.
+
+### `entries`
+`(Document|any, Options) => Promise<[string, Document|any][]>`
+
+An array of key/value pairs from a document whose value is an Object.
+
+### `step`
+`(string, Document|any, Options) => Promise<Document|any>`
+
+Step into a document using the key given.
+
+### `map`
+`((Document|any) => T, Document|any, Options) => Promise<T[]>`
+
+A map function that works with promises and knows how to step into a document.
+
+### `filter`
+`((Document|any) => boolean, Document|any, Options) => Promise<(Document|any)[]>`
+
+A filter function that works with promises and knows how to step into a
+document.
+
+### `reduce`
+`((T, Document|any) => T, T, Document|any, Options) => Promise<T>`
+
+A reduce function that works with promises and knows how to step into a
+document.
+
+### `pipeline`
+`(Function[], Document|any) => Promise<any>`
+
+Compose an array of functions that call the next function with result of the
+previous function. It works with promises.
+
+### `construct`
+`(Url, Headers, string) => Document`
+
+Construct a document given a URL, headers, and body. For internal use.
+
+### `extend`
+`(Document, Object) => Document`
+
+Modify or add fields to a document. For internal use.
+
+### `addContentType`
+`(string, ContentTypeHandler) => void`
+
+Add support for a new content type. The `ContentTypeHandler` is an object with
+three functions: `get`, `value`, and `step`.
 
 JSON Reference
 ==============
