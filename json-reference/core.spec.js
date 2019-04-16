@@ -81,4 +81,31 @@ Given("a JSON Reference document", () => {
       expect(JRef.value(subject)).to.eql({ "abc": 123 });
     });
   });
+
+  When("stepping into a document whose value is an array", () => {
+    let subject;
+
+    before(async () => {
+      const eee = await JRef.get("#/eee", doc);
+      subject = await JRef.step("1", eee);
+    });
+
+    Then("it should return the element in the array that was indicated", async () => {
+      const expected = await JRef.get("#/ddd/111", doc);
+      expect(subject).to.eql(expected);
+    });
+  });
+
+  When("stepping into a document whose value is an object", () => {
+    let subject;
+
+    before(async () => {
+      subject = await JRef.step("foo", doc);
+    });
+
+    Then("it should return the element in the object that was indicated", async () => {
+      const expected = await JRef.get("#/foo", doc);
+      expect(subject).to.eql(expected);
+    });
+  });
 });

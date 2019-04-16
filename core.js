@@ -34,32 +34,39 @@ const get = curry(async (url, doc, options = {}) => {
   return await contentTypeHandler(result).get(result, options);
 });
 
+const step = curry(async (key, doc, options = {}) => isDocument(doc) ? (
+  contentTypeHandler(doc).step(key, doc, options)
+) : (
+  doc[key]
+));
+
 const entries = (doc, options = {}) => isDocument(doc) ? (
-  contentTypeHandler(doc).entries(doc, options)
+  Promise.all(Object.keys(value(doc))
+    .map(async (key) => [key, await step(key, doc, options)]))
 ) : (
   Object.entries(doc)
 );
 
-const map = curry(async (fn, subject, options = {}) => {
-  const list = (await entries(subject, options))
+const map = curry(async (fn, doc, options = {}) => {
+  const list = (await entries(doc, options))
     .map(([_key, item]) => fn(item));
 
   return Promise.all(list);
 });
 
-const filter = curry(async (fn, subject, options = {}) => {
+const filter = curry(async (fn, doc, options = {}) => {
   return reduce(async (acc, item) => {
     return (await fn(item)) ? acc.concat([item]) : acc;
-  }, [], subject, options);
+  }, [], doc, options);
 });
 
-const reduce = curry(async (fn, acc, subject, options = {}) => {
-  return (await entries(subject, options))
+const reduce = curry(async (fn, acc, doc, options = {}) => {
+  return (await entries(doc, options))
     .reduce(async (acc, [_key, item]) => fn(await acc, item), acc);
 });
 
-const pipeline = curry((fns, subject) => {
-  return fns.reduce(async (acc, fn) => fn(await acc), subject);
+const pipeline = curry((fns, doc) => {
+  return fns.reduce(async (acc, fn) => fn(await acc), doc);
 });
 
 const addContentType = (contentType, handler) => contentTypes[contentType] = handler;
@@ -81,5 +88,5 @@ const isDocument = (value) => isObject(value) && "url" in value;
 
 module.exports = {
   construct, extend, addContentType,
-  nil, get, source, value, entries, map, filter, reduce, pipeline
+  nil, get, source, value, entries, step, map, filter, reduce, pipeline
 };

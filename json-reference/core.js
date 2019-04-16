@@ -27,12 +27,7 @@ const parse = (doc) => {
 
 const value = (doc) => JsonPointer.get(pointer(doc), doc.jref);
 
-const entries = (doc, options = {}) => {
-  return Promise.all(Object.keys(value(doc))
-    .map(async (key) => [key, await prop(key, doc, options)]));
-};
-
-const prop = (key, doc, options = {}) => {
+const step = (key, doc, options = {}) => {
   const ptr = JsonPointer.append(key, pointer(doc));
   const url = "#" + encodeURI(ptr).replace(/#/g, "%23");
   return Hyperjump.get(url, doc, options);
@@ -42,4 +37,4 @@ const pointer = (doc) => decodeURIComponent(uriFragment(doc.url));
 const isHref = (value) => isObject(value) && "$href" in value;
 const isEmbedded = (value) => isObject(value) && "$embedded" in value;
 
-module.exports = { get, value, entries };
+module.exports = { get, value, step };
