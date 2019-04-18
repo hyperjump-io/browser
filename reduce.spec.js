@@ -18,7 +18,7 @@ Given("a JSON Reference document", () => {
         "ccc": 111
       }, { "Content-Type": "application/reference+json" });
 
-    doc = await Hyperjump.get(`${exampleUrl}#/aaa`, Hyperjump.nil);
+    doc = Hyperjump.get(`${exampleUrl}#/aaa`, Hyperjump.nil);
     sumOf = Hyperjump.reduce(async (sum, item) => sum + Hyperjump.value(item), 0);
   });
 

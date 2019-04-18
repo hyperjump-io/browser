@@ -20,7 +20,7 @@ Given("a JSON Reference document", () => {
         "ccc": -111
       }, { "Content-Type": "application/reference+json" });
 
-    doc = await Hyperjump.get(`${exampleUrl}#/aaa`, Hyperjump.nil);
+    doc = Hyperjump.get(`${exampleUrl}#/aaa`, Hyperjump.nil);
     aaa0 = await Hyperjump.get(`#/aaa/0`, doc);
     bbb = await Hyperjump.get(`#/bbb`, doc);
     positiveNumbersOf = Hyperjump.filter(async (item) => Hyperjump.value(item) > 0);

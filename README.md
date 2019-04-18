@@ -114,7 +114,7 @@ The nil document. This is like the blank page you see when you first open your
 browser.
 
 ### `get`
-`(Url, Document, Options?) => Promise<Document>`
+`(Url, Document|Promise<Document>, Options?) => Promise<Document>`
 
 Retrieve a document with respect to a context document. Options can be passed to
 set custom headers. If the value of the document is a link, it will be followed.
@@ -130,34 +130,34 @@ The value of a document.
 The raw source of a document.
 
 ### `entries`
-`(Document|any, Options) => Promise<[string, Document|any][]>`
+`(Document|Promise<Document>|any, Options) => Promise<[string, Document|any][]>`
 
 An array of key/value pairs from a document whose value is an Object.
 
 ### `step`
-`(string, Document|any, Options) => Promise<Document|any>`
+`(string, Document|Promise<Document>|any, Options) => Promise<Document|any>`
 
 Step into a document using the key given.
 
 ### `map`
-`((Document|any) => T, Document|any, Options) => Promise<T[]>`
+`((Document|any) => T, Document|Promise<Document>|any, Options) => Promise<T[]>`
 
 A map function that works with promises and knows how to step into a document.
 
 ### `filter`
-`((Document|any) => boolean, Document|any, Options) => Promise<(Document|any)[]>`
+`((Document|any) => boolean, Document|Promise<Document>|any, Options) => Promise<(Document|any)[]>`
 
 A filter function that works with promises and knows how to step into a
 document.
 
 ### `reduce`
-`((T, Document|any) => T, T, Document|any, Options) => Promise<T>`
+`((T, Document|any) => T, T, Document|Promise<Document>|any, Options) => Promise<T>`
 
 A reduce function that works with promises and knows how to step into a
 document.
 
 ### `pipeline`
-`(Function[], Document|any) => Promise<any>`
+`(Function[], Document|Promise<Document>|any) => Promise<any>`
 
 Compose an array of functions that call the next function with result of the
 previous function. It works with promises.

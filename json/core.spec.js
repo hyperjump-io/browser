@@ -35,13 +35,13 @@ Given("the nil browser", () => {
 Given("a document whose value is an array", () => {
   let doc;
 
-  before(async () => {
+  before(() => {
     const exampleUrl = "http://json.hyperjump.io/step/example2";
     nock("http://json.hyperjump.io")
       .get("/step/example2")
       .reply(200, [111, 222, 333], { "Content-Type": "application/json" });
 
-    doc = await Json.get(`${exampleUrl}`, Json.nil);
+    doc = Json.get(`${exampleUrl}`, Json.nil);
   });
 
   after(nock.cleanAll);
@@ -62,7 +62,7 @@ Given("a document whose value is an array", () => {
 Given("a document whose value is an object", () => {
   let doc;
 
-  before(async () => {
+  before(() => {
     const exampleUrl = "http://json.hyperjump.io/step/example3";
     nock("http://json.hyperjump.io")
       .get("/step/example3")
@@ -72,7 +72,7 @@ Given("a document whose value is an object", () => {
         "ccc": 333
       }, { "Content-Type": "application/json" });
 
-    doc = await Json.get(`${exampleUrl}`, Json.nil);
+    doc = Json.get(`${exampleUrl}`, Json.nil);
   });
 
   after(nock.cleanAll);

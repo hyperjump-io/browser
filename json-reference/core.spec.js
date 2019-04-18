@@ -7,7 +7,7 @@ const nock = require("nock");
 Given("a JSON Reference document", () => {
   let doc;
 
-  before(async () => {
+  before(() => {
     const exampleUrl = "http://json-reference.hyperjump.io/example1";
     nock("http://json-reference.hyperjump.io")
       .get("/example1")
@@ -29,7 +29,7 @@ Given("a JSON Reference document", () => {
         }
       }, { "Content-Type": "application/reference+json" });
 
-    doc = await JRef.get(exampleUrl, JRef.nil);
+    doc = JRef.get(exampleUrl, JRef.nil);
   });
 
   after(nock.cleanAll);
@@ -86,7 +86,7 @@ Given("a JSON Reference document", () => {
     let subject;
 
     before(async () => {
-      const eee = await JRef.get("#/eee", doc);
+      const eee = JRef.get("#/eee", doc);
       subject = await JRef.step("1", eee);
     });
 

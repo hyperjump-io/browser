@@ -19,7 +19,7 @@ Given("a JSON Reference document", () => {
         "ccc": 333
       }, { "Content-Type": "application/reference+json" });
 
-    doc = await Hyperjump.get(exampleUrl, Hyperjump.nil);
+    doc = Hyperjump.get(exampleUrl, Hyperjump.nil);
     aaa = await Hyperjump.get("#/aaa", doc);
     ccc = await Hyperjump.get("#/ccc", doc);
   });

@@ -7,7 +7,7 @@ const nock = require("nock");
 Given("A resource is available as Json and JRef", () => {
   const exampleUrl = "http://core.hyperjump.io/example1";
 
-  before(async () => {
+  before(() => {
     nock("http://core.hyperjump.io")
       .get("/example1")
       .reply(200, {
@@ -30,12 +30,12 @@ Given("A resource is available as Json and JRef", () => {
   When("the document is fetched as JSON", () => {
     let doc;
 
-    before(async () => {
-      doc = await Hyperjump.get(exampleUrl, Hyperjump.nil);
+    before(() => {
+      doc = Hyperjump.get(exampleUrl, Hyperjump.nil);
     });
 
-    Then("it's source should be the unprocessed body of the response", () => {
-      expect(Hyperjump.source(doc)).to.equal(`{"aaa":111,"bbb":111,"ccc":333}`);
+    Then("it's source should be the unprocessed body of the response", async () => {
+      expect(Hyperjump.source(await doc)).to.equal(`{"aaa":111,"bbb":111,"ccc":333}`);
     });
 
     And("the document is applied to a pipeline that sums numbers", () => {
@@ -59,14 +59,14 @@ Given("A resource is available as Json and JRef", () => {
   When("the document is fetched as JRef", () => {
     let doc;
 
-    before(async () => {
-      doc = await Hyperjump.get(exampleUrl, Hyperjump.nil, {
+    before(() => {
+      doc = Hyperjump.get(exampleUrl, Hyperjump.nil, {
         headers: { "Accept": "application/reference+json" }
       });
     });
 
-    Then("it's source should be the unprocessed body of the response", () => {
-      expect(Hyperjump.source(doc)).to.equal(`{"aaa":111,"bbb":{"$href":"#/aaa"},"ccc":333}`);
+    Then("it's source should be the unprocessed body of the response", async () => {
+      expect(Hyperjump.source(await doc)).to.equal(`{"aaa":111,"bbb":{"$href":"#/aaa"},"ccc":333}`);
     });
 
     And("the document is applied to a pipeline that sums numbers", () => {

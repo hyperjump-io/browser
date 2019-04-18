@@ -13,8 +13,9 @@ const nil = construct("", {}, undefined);
 const source = (doc) => doc.body;
 const value = (doc) => isDocument(doc) ? contentTypeHandler(doc).value(doc) : doc;
 
-const get = curry(async (url, doc, options = {}) => {
+const get = curry(async (url, contextDoc, options = {}) => {
   let result;
+  const doc = await contextDoc;
   const resolvedUrl = resolveUrl(doc.url, url);
 
   if (uriReference(doc.url) === uriReference(resolvedUrl)) {
@@ -34,17 +35,17 @@ const get = curry(async (url, doc, options = {}) => {
   return await contentTypeHandler(result).get(result, options);
 });
 
-const step = curry(async (key, doc, options = {}) => isDocument(doc) ? (
-  contentTypeHandler(doc).step(key, doc, options)
+const step = curry(async (key, doc, options = {}) => isDocument(await doc) ? (
+  contentTypeHandler(await doc).step(key, await doc, options)
 ) : (
-  doc[key]
+  (await doc)[key]
 ));
 
-const entries = (doc, options = {}) => isDocument(doc) ? (
-  Promise.all(Object.keys(value(doc))
-    .map(async (key) => [key, await step(key, doc, options)]))
+const entries = async (doc, options = {}) => isDocument(await doc) ? (
+  Promise.all(Object.keys(value(await doc))
+    .map(async (key) => [key, await step(key, await doc, options)]))
 ) : (
-  Object.entries(doc)
+  Object.entries(await doc)
 );
 
 const map = curry(async (fn, doc, options = {}) => {
