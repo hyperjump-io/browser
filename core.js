@@ -77,7 +77,7 @@ const contentTypes = {};
 const defaultHandler = {
   get: async (doc) => doc,
   value: source,
-  entries: async (doc) => Object.entries(value(doc))
+  step: async (key, doc) => value(doc)[key]
 };
 
 const contentTypeHandler = (doc) => {
