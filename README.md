@@ -1,17 +1,20 @@
 Hyperjump Browser
 =================
 
-The hyperjump browser is an experimental generic hypermedia client. It aims to
+The Hyperjump browser is an experimental generic hypermedia client. It aims to
 provide a uniform interface for working with hypermedia enabled media types.
 When you use a web browser, you don't interact with HTML, you interact with the
-UI that the HTML represents. The hyperjump browser aims to do the same except
+UI that the HTML represents. The Hyperjump browser aims to do the same except
 with data. It abstracts away the hypermedia so you can work data as if it's just
 plain JSON data without having to leave the browser.
 
-The hyperjump browser allows you to plug in support for different media types,
-but it comes with support for `application/reference+json`. This media type is
-based on the [JSON Reference I-D](https://tools.ietf.org/html/draft-pbryan-zyp-json-ref-03)
-with some additions and improvements.
+The Hyperjump browser allows you to plug in support for different media types,
+but it comes with support for and was initially designed for
+[JSON Reference (JRef)](https://github.com/jdesrosiers/hyperjump-browser/tree/master/json-reference).
+This media type is based on the
+[JSON Reference I-D](https://tools.ietf.org/html/draft-pbryan-zyp-json-ref-03)
+with some additions and improvements. The Hyperjump browser also has support for
+JSON, but you won't get support for the interesting things the browser supports.
 
 Installation
 ------------
@@ -40,69 +43,124 @@ npm test -- --watch
 Usage
 -----
 
-The following is a quick set of examples with little explanation. See the *JSON
-Reference* section below for the theory behind JSON Reference.
+The following is short demo. See the
+[API](https://github.com/jdesrosiers/hyperjump-browser/tree/master/json-reference)
+section below to see all of the things you can do.
 
-```http
-GET http://json-reference.hyperjump.io/example1 HTTP/1.1
-Accept: application/reference+json
-```
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/reference+json
-
-{
-  "foo": "bar",
-  "aaa": { "$href": "#/foo" },
-  "ccc": { "$href": "#/aaa" },
-  "ddd": {
-    "111": 111,
-    "222": { "$href": "#/aaa/bbb" }
-  },
-  "eee": [333, { "$href": "#/ddd/111" }],
-  "fff": {
-    "$embedded": "http://json-reference.hyperjump.io/example2",
-    "abc": 123
-  }
-}
-```
+This example uses a variation of the
+[Star Wars API (SWAPI)](https://www.swapi.co) implemented using the
+[JRef](https://github.com/jdesrosiers/hyperjump-browser/tree/master/json-reference)
+media type.
 
 ```javascript
 const Hyperjump = require("@hyperjump/browser");
 
-(async () => {
-  // Get a document by absolute URL
-  const doc = await Hyperjump.get("http://json-reference.hyperjump.io/example1", Hyperjump.nil);
 
-  // Get a document with a relative URL using another document as the context
-  const aaa = await Hyperjump.get("/aaa", doc);
+const Film = {
+  title: Hyperjump.pipeline([Hyperjump.get("#/title"), Hyperjump.value]),
+  characters: Hyperjump.get("#/characters")
+};
 
-  // Get the value of a document
-  Hyperjump.value(aaa); // => "bar"
+const Character = {
+  name: Hyperjump.pipeline([Hyperjump.get("#/name"), Hyperjump.value]),
+  mass: Hyperjump.pipeline([Hyperjump.get("#/mass"), Hyperjump.value]),
+  gender: Hyperjump.pipeline([Hyperjump.get("#/gender"), Hyperjump.value]),
+  homeworld: Hyperjump.get("#/homeworld")
+};
 
-  // Get the JSON Pointer for the document
-  Hyperjump.pointer(aaa); // => "/aaa"
+const Planet = {
+  name: Hyperjump.pipeline([Hyperjump.get("#/name"), Hyperjump.value])
+}
 
-  // Map over a document whose value is an array
-  const eee = Hyperjump.get("#/eee", doc);
-  const types = await Hyperjump.map((item) => Hyperjump.value(item) * 2, eee); // => [666, 222];
+const characterNames = Hyperjump.pipeline([
+  Film.characters,
+  Hyperjump.map(Character.name)
+]);
 
-  // Get the key/value pairs of a document whose value is an object
-  const ddd = Hyperjump.get("#/ddd", doc);
-  await Hyperjump.entries(ddd); // => [
-                                //      ["111", Hyperjump.get("#/ddd/111", doc)],
-                                //      ["222", Hyperjump.get("#/ddd/222", doc)]
-                                //    ]
+const characterHomeworldName = Hyperjump.pipeline([
+  Character.homeworld,
+  Planet.name
+])
 
-  // Apply operations as a pipeline that works with promises
-  const doubleEee = Hyperjump.pipeline([
-    Hyperjump.get("#/eee"),
-    Hyperjump.map((items) => Hyperjump.value(items) * 2)
-  ]);
-  await doubleEee(doc); // => [666, 222]
+const characterHomeworlds = Hyperjump.map(async (character) => {
+  const name = await Character.name(character);
+  const homeworld = await characterHomeworldName(character)
+
+  return `${name} is from ${homeworld}`;
+});
+
+const ladies = Hyperjump.pipeline([
+  Hyperjump.filter(async (character) => {
+    const gender = await Character.gender(character);
+    return gender === "female";
+  }),
+  Hyperjump.map(Character.name)
+]);
+
+const mass = Hyperjump.pipeline([
+  Hyperjump.map(Character.mass),
+  Hyperjump.reduce(async (acc, mass) => acc + (parseInt(mass, 10) || 0), 0)
+]);
+
+(async function () {
+  const film = Hyperjump.get("http://swapi.hyperjump.io/api/films/1", Hyperjump.nil);
+  const characters = Film.characters(film);
+
+  await Film.title(film); // --> A New Hope
+  await characterHomeworlds(characters); // --> [ 'Luke Skywalker is from Tatooine',
+                                         // -->   'C-3PO is from Tatooine',
+                                         // -->   'R2-D2 is from Naboo',
+                                         // -->   ... ]
+  await ladies(characters); // --> [ 'Leia Organa', 'Beru Whitesun lars' ]
+  await mass(characters); // --> 1290
 }());
 ```
+
+In this example, we create functions using composition to get the data we want.
+The composition approach makes this code very resilient to changes. If something
+changes, you only have to change it in one function and all the functions that
+compose that function just work. The downside of this approach, however, is that
+it can be a bit verbose. That's why there's also the "Natural" API for the
+Hyperjump browser.
+
+```javascript
+const Hyperjump = require("@hyperjump/natural");
+
+
+const characterHomeworlds = Hyperjump.map(async (character) => {
+  const name = await character.name;
+  const homeworld = await character.homeworld.name;
+
+  return `${name} is from ${homeworld}`;
+});
+
+const ladies = Hyperjump.pipeline([
+  Hyperjump.filter(async (character) => (await character.gender) === "female"),
+  Hyperjump.map((character) => character.name)
+]);
+
+const mass = Hyperjump.reduce(async (acc, character) => {
+  return acc + (parseInt(await character.mass, 10) || 0);
+}, 0);
+
+(async function () {
+  const film = Hyperjump.get("http://swapi.hyperjump.io/api/films/1", Hyperjump.nil);
+
+  await film.title; // --> A New Hope
+  await characterHomeworlds(film.characters); // --> [ 'Luke Skywalker is from Tatooine',
+                                              // -->   'C-3PO is from Tatooine',
+                                              // -->   'R2-D2 is from Naboo',
+                                              // -->   ... ]
+  await ladies(film.characters); // --> [ 'Leia Organa', 'Beru Whitesun lars' ]
+  await mass(film.characters); // --> 1290
+}());
+```
+
+Except for all the promises, this looks exactly like it might if you were
+working with a normal in-memory data structure. The "Natural" API is much more
+concise and readable than the standard API, but has less resiliency to change
+than the standard API. It also has the limitation that it is based on the
+JavaScript Proxy API which is not supported everywhere yet.
 
 API
 ---
@@ -177,129 +235,3 @@ Modify or add fields to a document. For internal use.
 
 Add support for a new content type. The `ContentTypeHandler` is an object with
 three functions: `get`, `value`, and `step`.
-
-JSON Reference
-==============
-
-History
--------
-
-JSON Reference is best known for its role in JSON Schema. Although it had an
-author in common with JSON Schema, JSON Reference started as an independent,
-standalone specification. Both JSON Schema and JSON Reference were abandoned by
-their authors before reaching RFC status. In 2016, a new group picked up the
-JSON Schema specification and eventually folded JSON Reference into JSON Schema.
-
-With this implementation, I use
-[JSON Reference draft-03](https://tools.ietf.org/html/draft-pbryan-zyp-json-ref-03)
-from the original authors as a starting point and evolve the concept from there.
-Therefore, _the `$href` and `$embedded` in this implementation ARE NOT a simple
-renaming of `$ref` and `$id` in recent drafts of JSON Schema_.
-
-Documentation
--------------
-
-To understand how this implementation works, you need to think about it like a
-document in a browser. Like HTML in a web browser, a JSON Reference document is
-identified by a URL and relative URLs within the document are resolved against
-that URL.
-
-An HTTP message with `Content-Type: application/reference+json` should be
-interpreted as a JSON Reference document. This content is a JSON object that can
-be parsed with any [RFC-7150](https://tools.ietf.org/html/rfc7159) compliant
-JSON parser. The URL fragment used to identify the document should be
-interpreted as a JSON Pointer ([RFC-6901](https://tools.ietf.org/html/rfc6901)).
-
-### Value
-
-The "value" of a JSON Reference document is the result of applying the JSON
-Pointer in the URL fragment to the JSON message body. In the following example,
-the URL is `http://json-reference.hyperjump.io/example#/foo`, which means the
-fragment is `/foo`, and the "value" is `"bar"`.
-
-Request:
-```http
-GET http://json-reference.hyperjump.io/example#/foo HTTP/1.1
-Accept: application/reference+json
-```
-
-Response:
-```http
-HTTP/1.1 200 OK
-Content-Type: application/reference+json
-
-{
-  "foo": "bar"
-}
-```
-
-### $href
-
-In a JSON Reference document, the `$href` property defines a reference to
-another document or a different part of the current document. The value of the
-`$href` property is a string that defines a relative or absolute URL as
-specified by [RFC-3986](https://tools.ietf.org/html/rfc3986).
-
-When the "value" is an object with a `$href` property, it should follow the
-reference like following a link. In the following example the fragment points
-`/aaa`, which is a reference that points to `/foo`, and thus the "value" is
-`"bar"`.
-
-Request:
-```http
-GET http://json-reference.hyperjump.io/example#/aaa HTTP/1.1
-Accept: application/reference+json
-```
-
-Response:
-```http
-HTTP/1.1 200 OK
-Content-Type: application/reference+json
-
-{
-  "foo": "bar",
-  "aaa": { "$href": "#/foo" }
-}
-```
-
-A `$href` is a document boundary that JSON Pointers should not cross. `$nref`s
-should not be followed in order to resolve the fragment's JSON Pointer.
-
-### $embedded
-
-In a JSON Reference document, the `$embedded` property is a string that defines
-an absolute URL that indicates a document embedded within the parent document.
-It's the inlined version of a `$href`. This is a little like the HTTP/2 server
-push feature. It's sending additional documents with the request because we know
-the client is just going to request those documents next.
-
-In the example below, the "value" of the document is `111`.
-
-Request:
-```http
-GET http://json-reference.hyperjump.io/example#/foo HTTP/1.1
-Accept: application/reference+json
-```
-
-Response:
-```http
-HTTP/1.1 200 OK
-Content-Type: application/reference+json
-
-{
-  "foo": {
-    "$embedded": "http://json-reference.hyperjump.io/example2#/aaa",
-    "aaa": 111
-  }
-}
-```
-
-An `$embedded` is a document boundary that JSON Pointers should not cross. A
-JSON Reference's fragment JSON Pointer should not point to a separate document
-inlined with `$embedded`.
-
-#### Limitations
-
-The problem with inlining `$href`s with `$embedded` is that we don't get the
-HTTP headers that describe important things like caching. An optional `$headers`
-keyword is being considered.
