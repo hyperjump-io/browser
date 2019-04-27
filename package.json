@@ -1,6 +1,6 @@
 {
   "name": "@hyperjump/browser",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "A generic hypermedia client for JSON Reference",
   "scripts": {
     "clean": "xargs -a .gitignore rm -rf",
