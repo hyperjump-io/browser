@@ -1,5 +1,5 @@
-const Hyperjump = require("./core");
-const { isObject } = require("./common");
+const Hyperjump = require("../core");
+const { isObject } = require("../common");
 const curry = require("just-curry-it");
 
 
@@ -16,7 +16,7 @@ const wrapper = (doc, options = {}) => new Proxy(Promise.resolve(doc), {
             Hyperjump.reduce((acc, [key, value]) => {
               acc[key] = wrapper(value, options);
               return acc;
-            }, {}, options)
+            }, {})
           ], doc);
         } else {
           return Hyperjump.value(doc);
@@ -27,15 +27,15 @@ const wrapper = (doc, options = {}) => new Proxy(Promise.resolve(doc), {
     } else if (typeof propertyName === "symbol" || propertyName === "inspect") {
       return doc[propertyName];
     } else {
-      const result = doc.then((doc) => Hyperjump.step(propertyName, doc, options));
+      const result = Hyperjump.step(propertyName, doc, options);
       return wrapper(result, options);
     }
   }
 });
 
-const get = curry((url, doc, options = {}) => {
-  const result = Hyperjump.get(url, doc, options);
-  return wrapper(result, options);
+const get = curry((url, contextDoc, options = {}) => {
+  const doc = Hyperjump.get(url, contextDoc, options);
+  return wrapper(doc, options);
 });
 
 module.exports = { ...Hyperjump, get };

@@ -1,6 +1,6 @@
 const { expect } = require("chai");
-const { Given, When, Then } = require("./mocha-gherkin.spec");
-const Hyperjump = require("./natural");
+const { Given, When, Then } = require("../mocha-gherkin.spec");
+const Hyperjump = require("./core");
 const nock = require("nock");
 
 
