@@ -2,6 +2,10 @@
   "name": "@hyperjump/browser",
   "version": "0.15.1",
   "description": "A generic hypermedia client for JSON Reference",
+  "main": "index.js",
+  "browser": {
+    "./fetch.js": "./fetch.browser.js"
+  },
   "scripts": {
     "clean": "xargs -a .gitignore rm -rf",
     "lint": "eslint .",
@@ -27,6 +31,7 @@
   "dependencies": {
     "@hyperjump/json-pointer": "^0.3.1",
     "just-curry-it": "^3.1.0",
-    "make-fetch-happen": "^4.0.1"
+    "make-fetch-happen": "^4.0.1",
+    "url-resolve-browser": "^1.0.4"
   }
 }

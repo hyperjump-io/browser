@@ -38,4 +38,4 @@ const get = curry((url, contextDoc, options = {}) => {
   return wrapper(doc, options);
 });
 
-module.exports = { ...Hyperjump, get };
+module.exports = Object.assign({}, Hyperjump, { get });

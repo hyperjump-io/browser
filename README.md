@@ -40,6 +40,21 @@ Run the tests with a continuous test runner
 npm test -- --watch
 ```
 
+Bundlers
+--------
+
+When using with the Rollup bundler, you will need to include the `browser: true`
+config option.
+
+```
+  plugins: [
+    resolve({
+      browser: true
+    }),
+    commonjs()
+  ]
+```
+
 Usage
 -----
 

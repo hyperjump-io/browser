@@ -1,10 +1,8 @@
-const makeFetchHappen = require("make-fetch-happen");
-const resolveUrl = require("url").resolve;
 const curry = require("just-curry-it");
+const resolveUrl = require("url-resolve-browser");
+const fetch = require("./fetch");
 const { uriReference, isObject } = require("./common");
 
-
-const fetch = makeFetchHappen.defaults({ cacheManager: "./http-cache" });
 
 const construct = (url, headers, body) => Object.freeze({ url, headers, body });
 const extend = (doc, extras) => Object.freeze({ ...doc, ...extras });
