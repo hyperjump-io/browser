@@ -1,6 +1,6 @@
-const Hyperjump = require("../core");
-const { isObject } = require("../common");
 const curry = require("just-curry-it");
+const Hyperjump = require("..");
+const { isObject } = require("../common");
 
 
 const wrapper = (doc, options = {}) => new Proxy(Promise.resolve(doc), {
