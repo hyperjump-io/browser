@@ -9,12 +9,9 @@ with data. It abstracts away the hypermedia so you can work data as if it's just
 plain JSON data without having to leave the browser.
 
 The Hyperjump browser allows you to plug in support for different media types,
-but it comes with support for and was initially designed for
-[JSON Reference (JRef)](https://github.com/jdesrosiers/hyperjump-browser/tree/master/json-reference).
-This media type is based on the
-[JSON Reference I-D](https://tools.ietf.org/html/draft-pbryan-zyp-json-ref-03)
-with some additions and improvements. The Hyperjump browser also has support for
-JSON, but you won't get support for the interesting things the browser supports.
+but it comes with support for and was initially designed for [JSON Reference][jref]
+(JRef). The Hyperjump browser also has support for JSON, but you won't get support
+for the interesting things the browser supports.
 
 Installation
 ------------
@@ -43,8 +40,8 @@ npm test -- --watch
 Bundlers
 --------
 
-When using with the Rollup bundler, you will need to include the `browser: true`
-config option.
+When using with the [Rollup][rollup] bundler, you will need to include the
+`browser: true` config option.
 
 ```
   plugins: [
@@ -58,13 +55,11 @@ config option.
 Usage
 -----
 
-The following is short demo. See the
-[API](https://github.com/jdesrosiers/hyperjump-browser/tree/master/json-reference)
-section below to see all of the things you can do.
+The following is short demo. See the [API](#api) section below to see all of the
+things you can do.
 
-This example uses a variation of the
-[Star Wars API (SWAPI)](https://www.swapi.co) implemented using the
-[JRef](https://github.com/jdesrosiers/hyperjump-browser/tree/master/json-reference)
+This example uses the API at https://swapi.hyperjump.io. It's a variation of the
+[Star Wars API (SWAPI)](https://www.swapi.co) implemented using the [JRef][jref]
 media type.
 
 ```javascript
@@ -118,7 +113,7 @@ const mass = Hyperjump.pipeline([
 ]);
 
 (async function () {
-  const film = Hyperjump.get("http://swapi.hyperjump.io/api/films/1", Hyperjump.nil);
+  const film = Hyperjump.get("https://swapi.hyperjump.io/api/films/1", Hyperjump.nil);
   const characters = Film.characters(film);
 
   await Film.title(film); // --> A New Hope
@@ -139,7 +134,7 @@ it can be a bit verbose. That's why there's also the "Natural" API for the
 Hyperjump browser.
 
 ```javascript
-const Hyperjump = require("@hyperjump/natural");
+const Hyperjump = require("@hyperjump/browser/browser/natural");
 
 
 const characterHomeworlds = Hyperjump.map(async (character) => {
@@ -159,7 +154,7 @@ const mass = Hyperjump.reduce(async (acc, character) => {
 }, 0);
 
 (async function () {
-  const film = Hyperjump.get("http://swapi.hyperjump.io/api/films/1", Hyperjump.nil);
+  const film = Hyperjump.get("https://swapi.hyperjump.io/api/films/1", Hyperjump.nil);
 
   await film.title; // --> A New Hope
   await characterHomeworlds(film.characters); // --> [ 'Luke Skywalker is from Tatooine',
@@ -213,21 +208,31 @@ An array of key/value pairs from a document whose value is an Object.
 Step into a document using the key given.
 
 ### `map`
-`((Document|any) => T, Document|Promise<Document>|any, Options) => Promise<T[]>`
+`((Document|any, string) => T, Document|Promise<Document>|any, Options) => Promise<T[]>`
 
 A map function that works with promises and knows how to step into a document.
 
 ### `filter`
-`((Document|any) => boolean, Document|Promise<Document>|any, Options) => Promise<(Document|any)[]>`
+`((Document|any, string) => boolean, Document|Promise<Document>|any, Options) => Promise<(Document|any)[]>`
 
 A filter function that works with promises and knows how to step into a
 document.
 
 ### `reduce`
-`((T, Document|any) => T, T, Document|Promise<Document>|any, Options) => Promise<T>`
+`((T, Document|any, string) => T, T, Document|Promise<Document>|any, Options) => Promise<T>`
 
 A reduce function that works with promises and knows how to step into a
 document.
+
+### `some`
+`((Document|any, string) => boolean, Document|Promise<Document>|any, Options) => Promise<T[]>`
+
+A some function that works with promises and knows how to step into a document.
+
+### `every`
+`((Document|any, string) => boolean, Document|Promise<Document>|any, Options) => Promise<T[]>`
+
+An every function that works with promises and knows how to step into a document.
 
 ### `pipeline`
 `(Function[], Document|Promise<Document>|any) => Promise<any>`
@@ -250,3 +255,6 @@ Modify or add fields to a document. For internal use.
 
 Add support for a new content type. The `ContentTypeHandler` is an object with
 three functions: `get`, `value`, and `step`.
+
+[jref]: https://github.com/jdesrosiers/hyperjump-browser/blob/master/json-reference/README.md
+[rollup]: https://rollupjs.org
