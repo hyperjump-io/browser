@@ -48,7 +48,7 @@ const entries = async (doc, options = {}) => isDocument(await doc) ? (
 
 const map = curry(async (fn, doc, options = {}) => {
   const list = (await entries(doc, options))
-    .map(([_key, item]) => fn(item));
+    .map(([key, item]) => fn(item, key));
 
   return Promise.all(list);
 });
@@ -57,6 +57,16 @@ const filter = curry(async (fn, doc, options = {}) => {
   return reduce(async (acc, item) => {
     return (await fn(item)) ? acc.concat([item]) : acc;
   }, [], doc, options);
+});
+
+const some = curry(async (fn, doc, options = {}) => {
+  return (await map(fn, doc, options))
+    .some((a) => a);
+});
+
+const every = curry(async (fn, doc, options = {}) => {
+  return (await map(fn, doc, options))
+    .every((a) => a);
 });
 
 const reduce = curry(async (fn, acc, doc, options = {}) => {
@@ -87,5 +97,5 @@ const isDocument = (value) => isObject(value) && "url" in value;
 
 module.exports = {
   construct, extend, addContentType,
-  nil, get, source, value, entries, step, map, filter, reduce, pipeline
+  nil, get, source, value, entries, step, map, filter, reduce, some, every, pipeline
 };
