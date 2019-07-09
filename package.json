@@ -31,7 +31,6 @@
   "dependencies": {
     "@hyperjump/json-pointer": "^0.3.1",
     "just-curry-it": "^3.1.0",
-    "make-fetch-happen": "^4.0.1",
-    "url-resolve-browser": "^1.0.4"
+    "make-fetch-happen": "^4.0.1"
   }
 }
