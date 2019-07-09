@@ -22,7 +22,7 @@ Given("A resource is available as Json and JRef", () => {
         "aaa": 111,
         "bbb": { "$href": "#/aaa" },
         "ccc": 333
-      }, { "Content-Type": "application/reference+json" });
+      }, { "Content-Type": "application/reference+json; charset=utf-8" });
   });
 
   after(nock.cleanAll);

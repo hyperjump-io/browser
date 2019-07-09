@@ -1,4 +1,5 @@
 const curry = require("just-curry-it");
+const contentTypeParser = require("content-type");
 const resolveUrl = require("./url-resolve-browser");
 const fetch = require("./fetch");
 const { uriReference, isObject } = require("./common");
@@ -89,7 +90,7 @@ const defaultHandler = {
 };
 
 const contentTypeHandler = (doc) => {
-  const contentType = doc.headers["content-type"];
+  const contentType = contentTypeParser.parse(doc.headers["content-type"]).type;
   return contentType in contentTypes ? contentTypes[contentType] : defaultHandler;
 };
 

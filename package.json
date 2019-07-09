@@ -1,7 +1,7 @@
 {
   "name": "@hyperjump/browser",
   "version": "0.17.1",
-  "description": "A generic hypermedia client for JSON Reference",
+  "description": "A generic hypermedia client",
   "main": "index.js",
   "browser": {
     "./fetch.js": "./fetch.browser.js"
@@ -13,10 +13,11 @@
   },
   "repository": "github:jdesrosiers/hyperjump-browser",
   "keywords": [
-    "hyperjump",
+    "Hyperjump",
     "JSON Reference",
-    "$ref",
-    "$id"
+    "JRef",
+    "hypermedia",
+    "generic client"
   ],
   "author": "Jason Desrosiers <jdesrosi@gmail.com>",
   "license": "MIT",
@@ -24,13 +25,14 @@
     "chai": "^4.2.0",
     "eslint": "^4.19.1",
     "eslint-import-resolver-node": "^0.3.2",
-    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-import": "^2.18.0",
     "mocha": "^5.2.0",
     "nock": "^9.6.1"
   },
   "dependencies": {
     "@hyperjump/json-pointer": "^0.3.1",
+    "content-type": "^1.0.4",
     "just-curry-it": "^3.1.0",
-    "make-fetch-happen": "^4.0.1"
+    "make-fetch-happen": "^4.0.2"
   }
 }
