@@ -90,6 +90,10 @@ const defaultHandler = {
 };
 
 const contentTypeHandler = (doc) => {
+  if (doc === nil) {
+    return defaultHandler;
+  }
+
   const contentType = contentTypeParser.parse(doc.headers["content-type"]).type;
   return contentType in contentTypes ? contentTypes[contentType] : defaultHandler;
 };
