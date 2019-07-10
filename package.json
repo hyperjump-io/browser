@@ -1,6 +1,6 @@
 {
   "name": "@hyperjump/browser",
-  "version": "0.17.2",
+  "version": "0.17.3",
   "description": "A generic hypermedia client",
   "main": "index.js",
   "browser": {
