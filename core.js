@@ -79,8 +79,6 @@ const pipeline = curry((fns, doc) => {
   return fns.reduce(async (acc, fn) => fn(await acc), doc);
 });
 
-const addContentType = (contentType, handler) => contentTypes[contentType] = handler;
-
 const contentTypes = {};
 
 const defaultHandler = {
@@ -88,6 +86,9 @@ const defaultHandler = {
   value: source,
   step: async (key, doc) => value(doc)[key]
 };
+
+const addContentType = (contentType, handler) => contentTypes[contentType] = handler;
+const getContentType = (contentType) => contentTypes[contentType];
 
 const contentTypeHandler = (doc) => {
   if (doc === nil) {
@@ -101,6 +102,6 @@ const contentTypeHandler = (doc) => {
 const isDocument = (value) => isObject(value) && "url" in value;
 
 module.exports = {
-  construct, extend, addContentType,
+  construct, extend, addContentType, getContentType,
   nil, get, source, value, entries, step, map, filter, reduce, some, every, pipeline
 };
