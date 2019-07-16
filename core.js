@@ -1,6 +1,6 @@
 const curry = require("just-curry-it");
 const contentTypeParser = require("content-type");
-const resolveUrl = require("./url-resolve-browser");
+const resolveUrl = require("url-resolve-browser");
 const fetch = require("./fetch");
 const { uriReference, isObject } = require("./common");
 
