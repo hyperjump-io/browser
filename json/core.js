@@ -6,6 +6,6 @@ const get = async (doc) => {
   return !("json" in doc) ? Hyperjump.extend(doc, { json }) : doc;
 };
 const value = (doc) => doc.json;
-const step = async (key, doc) => value(doc)[key];
+const step = async (key, doc) => value(await doc)[key];
 
 module.exports = { get, value, step };

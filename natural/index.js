@@ -1,6 +1,6 @@
 const Hyperjump = require("./core");
-require("../json");
 require("../json-reference");
+require("../json");
 
 
 module.exports = Hyperjump;
