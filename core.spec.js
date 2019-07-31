@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { Given, When, Then } = require("./mocha-gherkin.spec");
-const Hyperjump = require("./natural");
+const Hyperjump = require(".");
 const nock = require("nock");
 
 
@@ -8,8 +8,10 @@ Given("a JSON Reference document", () => {
   let doc;
 
   before(() => {
-    nock("http://core.hyperjump.io")
-      .get("/example1")
+    const host = "http://core.hyperjump.io";
+    const exampleUrl = "/example1";
+    nock(host)
+      .get(exampleUrl)
       .reply(200, {
         "foo": "bar",
         "aaa": {
@@ -23,12 +25,12 @@ Given("a JSON Reference document", () => {
         },
         "eee": [333, 222, { "$href": "#/ddd/111" }],
         "fff": {
-          "$embedded": "http://json-reference.hyperjump.io/example2",
+          "$embedded": "http://core.hyperjump.io/example2",
           "abc": 123
         }
       }, { "Content-Type": "application/reference+json" });
 
-    doc = Hyperjump.get("http://core.hyperjump.io/example1", Hyperjump.nil);
+    doc = Hyperjump.fetch(`${host}${exampleUrl}`);
   });
 
   after(nock.cleanAll);
@@ -74,8 +76,10 @@ Given("a JSON document", () => {
   let doc;
 
   before(() => {
-    nock("http://core.hyperjump.io")
-      .get("/example2")
+    const host = "http://core.hyperjump.io";
+    const exampleUrl = "/example2";
+    nock(host)
+      .get(exampleUrl)
       .reply(200, {
         "foo": "bar",
         "aaa": {
@@ -84,7 +88,7 @@ Given("a JSON document", () => {
         "eee": [333, 222, 111]
       }, { "Content-Type": "application/json" });
 
-    doc = Hyperjump.get("http://core.hyperjump.io/example2", Hyperjump.nil);
+    doc = Hyperjump.fetch(`${host}${exampleUrl}`);
   });
 
   after(nock.cleanAll);
@@ -127,19 +131,20 @@ Given("a JSON document", () => {
 });
 
 Given("A resource is available as Json and JRef", () => {
-  const exampleUrl = "http://core.hyperjump.io/example3";
+  const host = "http://core.hyperjump.io";
+  const exampleUrl = "/example3";
 
   before(() => {
-    nock("http://core.hyperjump.io")
-      .get("/example3")
+    nock(host)
+      .get(exampleUrl)
       .reply(200, {
         "aaa": 111,
         "bbb": 222,
         "ccc": 333
       }, { "Content-Type": "application/json; charset=utf-8" });
 
-    nock("http://core.hyperjump.io")
-      .get("/example3")
+    nock(host)
+      .get(exampleUrl)
       .reply(200, {
         "aaa": 111,
         "bbb": { "$href": "#/aaa" },
@@ -153,7 +158,7 @@ Given("A resource is available as Json and JRef", () => {
     let doc;
 
     before(() => {
-      doc = Hyperjump.get(exampleUrl, Hyperjump.nil, {
+      doc = Hyperjump.fetch(`${host}${exampleUrl}`, {
         headers: { "Accept": "application/json" }
       });
     });
@@ -167,7 +172,7 @@ Given("A resource is available as Json and JRef", () => {
     let doc;
 
     before(() => {
-      doc = Hyperjump.get(exampleUrl, Hyperjump.nil, {
+      doc = Hyperjump.fetch(`${host}${exampleUrl}`, {
         headers: { "Accept": "application/reference+json" }
       });
     });

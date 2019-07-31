@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { Given, When, Then } = require("../mocha-gherkin.spec");
-const JRef = require(".");
+const Hyperjump = require(".");
 const nock = require("nock");
 
 
@@ -29,7 +29,7 @@ Given("a JSON Reference document", () => {
         }
       }, { "Content-Type": "application/reference+json" });
 
-    doc = JRef.get(exampleUrl, JRef.nil);
+    doc = Hyperjump.fetch(exampleUrl);
   });
 
   after(nock.cleanAll);
@@ -38,11 +38,11 @@ Given("a JSON Reference document", () => {
     let subject;
 
     before(async () => {
-      subject = await JRef.get("#/foo", doc);
+      subject = await doc.foo;
     });
 
     Then("it should have the value that is pointed to", () => {
-      expect(JRef.value(subject)).to.equal("bar");
+      expect(subject).to.equal("bar");
     });
   });
 
@@ -50,23 +50,11 @@ Given("a JSON Reference document", () => {
     let subject;
 
     before(async () => {
-      subject = await JRef.get("#/aaa", doc);
+      subject = await doc.aaa;
     });
 
     Then("it should follow the $href", () => {
-      expect(JRef.value(subject)).to.equal("bar");
-    });
-  });
-
-  When("pointing to an element that has a $href sibling", () => {
-    let subject;
-
-    before(async () => {
-      subject = await JRef.get("#/aaa/bbb", doc);
-    });
-
-    Then("it should have the value that is pointed to", () => {
-      expect(JRef.value(subject)).to.equal(222);
+      expect(subject).to.equal("bar");
     });
   });
 
@@ -74,11 +62,11 @@ Given("a JSON Reference document", () => {
     let subject;
 
     before(async () => {
-      subject = await JRef.get("#/fff", doc);
+      subject = await doc.fff;
     });
 
-    Then("it should return a new document using the $embedded as URL", () => {
-      expect(JRef.value(subject)).to.eql({ "abc": 123 });
+    Then("it should return a new document using the $embedded as URL", async () => {
+      expect(await subject.abc).to.eql(123);
     });
   });
 
@@ -86,13 +74,12 @@ Given("a JSON Reference document", () => {
     let subject;
 
     before(async () => {
-      const eee = JRef.get("#/eee", doc);
-      subject = await JRef.step("1", eee);
+      const eee = doc.eee;
+      subject = eee[1];
     });
 
     Then("it should return the element in the array that was indicated", async () => {
-      const expected = await JRef.get("#/ddd/111", doc);
-      expect(subject).to.eql(expected);
+      expect(await subject).to.eql(111);
     });
   });
 
@@ -100,12 +87,11 @@ Given("a JSON Reference document", () => {
     let subject;
 
     before(async () => {
-      subject = await JRef.step("foo", doc);
+      subject = await doc.foo;
     });
 
     Then("it should return the element in the object that was indicated", async () => {
-      const expected = await JRef.get("#/foo", doc);
-      expect(subject).to.eql(expected);
+      expect(subject).to.eql("bar");
     });
   });
 });

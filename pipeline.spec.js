@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { Given, When, Then } = require("./mocha-gherkin.spec");
-const Hyperjump = require("./natural");
+const Hyperjump = require(".");
 const nock = require("nock");
 
 
@@ -19,7 +19,7 @@ Given("a pipeline", () => {
     let doc;
 
     before(async () => {
-      const host = "http://filter.hyperjump.io";
+      const host = "http://pipeline.hyperjump.io";
       const exampleUrl = "/example1";
       nock(host)
         .get(exampleUrl)
@@ -41,7 +41,7 @@ Given("a pipeline", () => {
           }
         }, { "Content-Type": "application/reference+json" });
 
-      doc = Hyperjump.get(`${host}${exampleUrl}`, Hyperjump.nil);
+      doc = Hyperjump.fetch(`${host}${exampleUrl}`);
     });
 
     after(nock.cleanAll);
@@ -55,7 +55,7 @@ Given("a pipeline", () => {
     let doc;
 
     before(async () => {
-      const host = "http://filter.hyperjump.io";
+      const host = "http://pipeline.hyperjump.io";
       const exampleUrl = "/example2";
       nock(host)
         .get(exampleUrl)
@@ -63,7 +63,7 @@ Given("a pipeline", () => {
           "eee": [333, 222, 111]
         }, { "Content-Type": "application/json" });
 
-      doc = Hyperjump.get(`${host}${exampleUrl}`, Hyperjump.nil);
+      doc = Hyperjump.fetch(`${host}${exampleUrl}`);
     });
 
     after(nock.cleanAll);

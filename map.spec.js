@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { Given, When, Then } = require("./mocha-gherkin.spec");
-const Hyperjump = require("./natural");
+const Hyperjump = require(".");
 const nock = require("nock");
 
 
@@ -19,7 +19,7 @@ Given("a JSON Reference document", () => {
         "ccc": 111
       }, { "Content-Type": "application/reference+json" });
 
-    doc = Hyperjump.get(`${host}${exampleUrl}#/aaa`, Hyperjump.nil);
+    doc = Hyperjump.fetch(`${host}${exampleUrl}#/aaa`);
     double = Hyperjump.map(async (item) => await item * 2);
   });
 
