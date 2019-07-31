@@ -10,8 +10,8 @@ plain JSON data without having to leave the browser.
 
 The Hyperjump browser allows you to plug in support for different media types,
 but it comes with support for and was initially designed for [JSON Reference][jref]
-(JRef). The Hyperjump browser also has support for JSON, but you won't get support
-for the interesting things the browser supports.
+(JRef). The Hyperjump browser also has support for JSON, but you won't get
+support for the interesting things the browser supports.
 
 Installation
 ------------
@@ -66,77 +66,6 @@ media type.
 const Hyperjump = require("@hyperjump/browser");
 
 
-const Film = {
-  title: Hyperjump.pipeline([Hyperjump.get("#/title"), Hyperjump.value]),
-  characters: Hyperjump.get("#/characters")
-};
-
-const Character = {
-  name: Hyperjump.pipeline([Hyperjump.get("#/name"), Hyperjump.value]),
-  mass: Hyperjump.pipeline([Hyperjump.get("#/mass"), Hyperjump.value]),
-  gender: Hyperjump.pipeline([Hyperjump.get("#/gender"), Hyperjump.value]),
-  homeworld: Hyperjump.get("#/homeworld")
-};
-
-const Planet = {
-  name: Hyperjump.pipeline([Hyperjump.get("#/name"), Hyperjump.value])
-}
-
-const characterNames = Hyperjump.pipeline([
-  Film.characters,
-  Hyperjump.map(Character.name)
-]);
-
-const characterHomeworldName = Hyperjump.pipeline([
-  Character.homeworld,
-  Planet.name
-])
-
-const characterHomeworlds = Hyperjump.map(async (character) => {
-  const name = await Character.name(character);
-  const homeworld = await characterHomeworldName(character)
-
-  return `${name} is from ${homeworld}`;
-});
-
-const ladies = Hyperjump.pipeline([
-  Hyperjump.filter(async (character) => {
-    const gender = await Character.gender(character);
-    return gender === "female";
-  }),
-  Hyperjump.map(Character.name)
-]);
-
-const mass = Hyperjump.pipeline([
-  Hyperjump.map(Character.mass),
-  Hyperjump.reduce(async (acc, mass) => acc + (parseInt(mass, 10) || 0), 0)
-]);
-
-(async function () {
-  const film = Hyperjump.get("https://swapi.hyperjump.io/api/films/1", Hyperjump.nil);
-  const characters = Film.characters(film);
-
-  await Film.title(film); // --> A New Hope
-  await characterHomeworlds(characters); // --> [ 'Luke Skywalker is from Tatooine',
-                                         // -->   'C-3PO is from Tatooine',
-                                         // -->   'R2-D2 is from Naboo',
-                                         // -->   ... ]
-  await ladies(characters); // --> [ 'Leia Organa', 'Beru Whitesun lars' ]
-  await mass(characters); // --> 1290
-}());
-```
-
-In this example, we create functions using composition to get the data we want.
-The composition approach makes this code very resilient to changes. If something
-changes, you only have to change it in one function and all the functions that
-compose that function just work. The downside of this approach, however, is that
-it can be a bit verbose. That's why there's also the "Natural" API for the
-Hyperjump browser.
-
-```javascript
-const Hyperjump = require("@hyperjump/browser/browser/natural");
-
-
 const characterHomeworlds = Hyperjump.map(async (character) => {
   const name = await character.name;
   const homeworld = await character.homeworld.name;
@@ -154,7 +83,7 @@ const mass = Hyperjump.reduce(async (acc, character) => {
 }, 0);
 
 (async function () {
-  const film = Hyperjump.get("https://swapi.hyperjump.io/api/films/1", Hyperjump.nil);
+  const film = Hyperjump.fetch("https://swapi.hyperjump.io/api/films/1");
 
   await film.title; // --> A New Hope
   await characterHomeworlds(film.characters); // --> [ 'Luke Skywalker is from Tatooine',
@@ -167,10 +96,7 @@ const mass = Hyperjump.reduce(async (acc, character) => {
 ```
 
 Except for all the promises, this looks exactly like it might if you were
-working with a normal in-memory data structure. The "Natural" API is much more
-concise and readable than the standard API, but has less resiliency to change
-than the standard API. It also has the limitation that it is based on the
-JavaScript Proxy API which is not supported everywhere yet.
+working with a normal in-memory data structure.
 
 API
 ---
@@ -187,6 +113,12 @@ browser.
 Retrieve a document with respect to a context document. Options can be passed to
 set custom headers. If the value of the document is a link, it will be followed.
 
+### `fetch`
+`(Url, Options?) => Proxy<Promise<Document>>`
+
+Retrieve a document. Options can be passed to set custom headers. If the value
+of the document is a link, it will be followed.
+
 ### `value`
 `(Document|any) => any`
 
@@ -196,11 +128,6 @@ The value of a document.
 `(Document) => string`
 
 The raw source of a document.
-
-### `entries`
-`(Document|Promise<Document>|any, Options) => Promise<[string, Document|any][]>`
-
-An array of key/value pairs from a document whose value is an Object.
 
 ### `step`
 `(string, Document|Promise<Document>|any, Options) => Promise<Document|any>`
