@@ -12,6 +12,11 @@ const nil = construct("", {}, undefined);
 const source = (doc) => doc.body;
 const value = (doc) => contentTypeHandler(doc).value(doc);
 
+const fetch = curry((url, options = {}) => {
+  const resultDoc = get(url, nil, options);
+  return wrapper(resultDoc, options);
+});
+
 const get = curry(async (url, contextDoc, options = {}) => {
   let result;
   const doc = await contextDoc;
@@ -34,26 +39,31 @@ const get = curry(async (url, contextDoc, options = {}) => {
   return await contentTypeHandler(result).get(result, options);
 });
 
-const step = curry(async (key, doc, options = {}) => {
-  return contentTypeHandler(await doc).step(key, await doc, options);
-});
-
 const wrapper = (doc, options = {}) => {
   return new Proxy(doc, {
     get: (doc, propertyName) => {
       if (propertyName === "then") {
-        const v = _value(doc, options);
+        const v = project(doc, options);
         const then = v.then;
         return then.bind(v);
+      } else if (propertyName === "$follow") {
+        return (url) => {
+          const nextDoc = get(url, doc, options);
+          return wrapper(nextDoc, options);
+        };
+      } else if (propertyName === "$source") {
+        return doc.then(value);
+      } else if (propertyName === "$url") {
+        return doc.then((d) => d.url);
       } else {
         const value = safeStep(propertyName, doc, options);
-        return wrapper(value);
+        return wrapper(value, options);
       }
     }
   });
 };
 
-const _value = async (doc, options = {}) => {
+const project = async (doc, options = {}) => {
   const docValue = value(await doc);
 
   if (isObject(docValue)) {
@@ -72,20 +82,19 @@ const _value = async (doc, options = {}) => {
   }
 };
 
+const step = curry(async (key, doc, options = {}) => {
+  return contentTypeHandler(await doc).step(key, await doc, options);
+});
+
 const safeStep = async (propertyName, doc, options = {}) => {
   const docValue = value(await doc);
   const keys = Object.keys(docValue);
   return keys.includes(propertyName) ? step(propertyName, doc, options) : undefined;
 };
 
-const fetch = curry((url, options = {}) => {
-  const resultDoc = get(url, nil, options);
-  return wrapper(resultDoc, options);
-});
+const entries = async (doc) => Object.entries(await doc);
 
-const map = curry(async (fn, doc) => {
-  return (await doc).map(fn);
-});
+const map = curry(async (fn, doc) => (await doc).map(fn));
 
 const filter = curry(async (fn, doc, options = {}) => {
   return reduce(async (acc, item) => {
@@ -113,6 +122,18 @@ const pipeline = curry((fns, doc) => {
   return fns.reduce(async (acc, fn) => fn(await acc), doc);
 });
 
+const all = (doc) => Promise.all(doc);
+
+const allValues = (doc) => {
+  return pipeline([
+    entries,
+    reduce(async (acc, [propertyName, propertyValue]) => {
+      acc[propertyName] = await propertyValue;
+      return acc;
+    }, {})
+  ], doc);
+};
+
 const contentTypes = {};
 
 const defaultHandler = {
@@ -137,5 +158,7 @@ const isDocument = (value) => isObject(value) && "url" in value;
 
 module.exports = {
   construct, extend, addContentType, getContentType,
-  nil, get, fetch, source, value, step, map, filter, reduce, some, every, pipeline
+  nil, get, fetch, source, value, step,
+  entries, map, filter, reduce, some, every, pipeline,
+  all, allValues
 };

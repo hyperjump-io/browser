@@ -4,12 +4,58 @@ const Hyperjump = require(".");
 const nock = require("nock");
 
 
+Given("a Hyperjump document", () => {
+  let doc;
+  const host = "http://core.hyperjump.io";
+  const exampleUrl = "/example1";
+
+  before(() => {
+    nock(host)
+      .get(exampleUrl)
+      .reply(200, {
+        "foo": {
+          "aaa": 111,
+          "bbb": { "$href": "#/foo/aaa" }
+        }
+      }, { "Content-Type": "application/reference+json" });
+
+    doc = Hyperjump.fetch(`${host}${exampleUrl}`);
+  });
+
+  after(nock.cleanAll);
+
+  Then("the URL can be retrieved", async () => {
+    expect(await doc.$url).to.equal(`${host}${exampleUrl}`);
+  });
+
+  When("following a link", () => {
+    let subject;
+
+    before(() => {
+      subject = doc.$follow("#/foo");
+    });
+
+    Then("the url of the resulting document should be the resolved url", async () => {
+      expect(await subject.$url).to.equal(`${host}${exampleUrl}#/foo`);
+    });
+  });
+
+  Then("the source is the raw value of the document", async () => {
+    expect(await doc.$source).to.eql({
+      "foo": {
+        "aaa": 111,
+        "bbb": { "$href": "#/foo/aaa" }
+      }
+    });
+  });
+});
+
 Given("a JSON Reference document", () => {
   let doc;
 
   before(() => {
     const host = "http://core.hyperjump.io";
-    const exampleUrl = "/example1";
+    const exampleUrl = "/example2";
     nock(host)
       .get(exampleUrl)
       .reply(200, {
@@ -25,7 +71,7 @@ Given("a JSON Reference document", () => {
         },
         "eee": [333, 222, { "$href": "#/ddd/111" }],
         "fff": {
-          "$embedded": "http://core.hyperjump.io/example2",
+          "$embedded": "http://core.hyperjump.io/example3",
           "abc": 123
         }
       }, { "Content-Type": "application/reference+json" });
@@ -77,7 +123,7 @@ Given("a JSON document", () => {
 
   before(() => {
     const host = "http://core.hyperjump.io";
-    const exampleUrl = "/example2";
+    const exampleUrl = "/example4";
     nock(host)
       .get(exampleUrl)
       .reply(200, {
@@ -132,7 +178,7 @@ Given("a JSON document", () => {
 
 Given("A resource is available as Json and JRef", () => {
   const host = "http://core.hyperjump.io";
-  const exampleUrl = "/example3";
+  const exampleUrl = "/example5";
 
   before(() => {
     nock(host)
