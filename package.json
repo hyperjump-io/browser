@@ -2,14 +2,14 @@
   "name": "@hyperjump/browser",
   "version": "0.18.1",
   "description": "A generic hypermedia client",
-  "main": "index.js",
+  "main": "lib/index.js",
   "browser": {
-    "./fetch.js": "./fetch.browser.js"
+    "./lib/fetch.js": "./lib/fetch.browser.js"
   },
   "scripts": {
     "clean": "xargs -a .gitignore rm -rf",
     "lint": "eslint .",
-    "test": "mocha './{,!(node_modules)}/*.spec.js'"
+    "test": "mocha 'lib/**/*.spec.js'"
   },
   "repository": "github:jdesrosiers/hyperjump-browser",
   "keywords": [
