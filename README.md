@@ -1,5 +1,4 @@
-Hyperjump Browser
-=================
+# Hyperjump Browser
 
 The Hyperjump browser is an experimental generic hypermedia client. It aims to
 provide a uniform interface for working with hypermedia enabled media types.
@@ -13,15 +12,13 @@ but it comes with support for and was initially designed for [JSON Reference][jr
 (JRef). The Hyperjump browser also has support for JSON, but you won't get
 support for the interesting things the browser supports.
 
-Installation
-------------
+## Installation
 
 ```bash
 npm install @hyperjump/browser --save
 ```
 
-Contributing
-------------
+## Contributing
 
 ### Tests
 
@@ -37,8 +34,7 @@ Run the tests with a continuous test runner
 npm test -- --watch
 ```
 
-Bundlers
---------
+## Bundlers
 
 When using with the [Rollup][rollup] bundler, you will need to include the
 `browser: true` config option.
@@ -52,8 +48,7 @@ When using with the [Rollup][rollup] bundler, you will need to include the
   ]
 ```
 
-Usage
------
+## Usage
 
 The following is short demo. See the [API](#api) section below to see all of the
 things you can do.
@@ -62,23 +57,27 @@ This example uses the API at https://swapi.hyperjump.io. It's a variation of the
 [Star Wars API (SWAPI)](https://www.swapi.co) implemented using the [JRef][jref]
 media type.
 
+[Hyperjump Pact][pact] is used to apply standard higher-order functions that
+work with promises.
+
 ```javascript
 const Hyperjump = require("@hyperjump/browser");
+const Pact = require("@hyperjump/pact");
 
 
-const characterHomeworlds = Hyperjump.map(async (character) => {
+const characterHomeworlds = Pact.map(async (character) => {
   const name = await character.name;
   const homeworld = await character.homeworld.name;
 
   return `${name} is from ${homeworld}`;
 });
 
-const ladies = Hyperjump.pipeline([
-  Hyperjump.filter(async (character) => (await character.gender) === "female"),
-  Hyperjump.map((character) => character.name)
+const ladies = Pact.pipeline([
+  Pact.filter(async (character) => (await character.gender) === "female"),
+  Pact.map((character) => character.name)
 ]);
 
-const mass = Hyperjump.reduce(async (acc, character) => {
+const mass = Pact.reduce(async (acc, character) => {
   return acc + (parseInt(await character.mass, 10) || 0);
 }, 0);
 
@@ -98,90 +97,57 @@ const mass = Hyperjump.reduce(async (acc, character) => {
 Except for all the promises, this looks exactly like it might if you were
 working with a normal in-memory data structure.
 
-API
----
+## API
 
-### `nil`
+### nil
 `Document`
 
 The nil document. This is like the blank page you see when you first open your
 browser.
 
-### `get`
+### get
 `(Url, Document|Promise<Document>, Options?) => Promise<Document>`
 
 Retrieve a document with respect to a context document. Options can be passed to
 set custom headers. If the value of the document is a link, it will be followed.
 
-### `fetch`
-`(Url, Options?) => Proxy<Promise<Document>>`
+### fetch
+`(Url, Options?) => Hyperjump`
 
 Retrieve a document. Options can be passed to set custom headers. If the value
 of the document is a link, it will be followed.
 
-### `value`
+### value
 `(Document|any) => any`
 
 The value of a document.
 
-### `source`
+### source
 `(Document) => string`
 
 The raw source of a document.
 
-### `step`
-`(string, Document|Promise<Document>|any, Options) => Promise<Document|any>`
+### step
+`(string, Document|Promise<Document>, Options) => Promise<Document|any>`
 
 Step into a document using the key given.
 
-### `map`
-`((Document|any, string) => T, Document|Promise<Document>|any, Options) => Promise<T[]>`
-
-A map function that works with promises and knows how to step into a document.
-
-### `filter`
-`((Document|any, string) => boolean, Document|Promise<Document>|any, Options) => Promise<(Document|any)[]>`
-
-A filter function that works with promises and knows how to step into a
-document.
-
-### `reduce`
-`((T, Document|any, string) => T, T, Document|Promise<Document>|any, Options) => Promise<T>`
-
-A reduce function that works with promises and knows how to step into a
-document.
-
-### `some`
-`((Document|any, string) => boolean, Document|Promise<Document>|any, Options) => Promise<T[]>`
-
-A some function that works with promises and knows how to step into a document.
-
-### `every`
-`((Document|any, string) => boolean, Document|Promise<Document>|any, Options) => Promise<T[]>`
-
-An every function that works with promises and knows how to step into a document.
-
-### `pipeline`
-`(Function[], Document|Promise<Document>|any) => Promise<any>`
-
-Compose an array of functions that call the next function with result of the
-previous function. It works with promises.
-
-### `construct`
+### construct
 `(Url, Headers, string) => Document`
 
 Construct a document given a URL, headers, and body. For internal use.
 
-### `extend`
+### extend
 `(Document, Object) => Document`
 
 Modify or add fields to a document. For internal use.
 
-### `addContentType`
+### addContentType
 `(string, ContentTypeHandler) => void`
 
 Add support for a new content type. The `ContentTypeHandler` is an object with
 three functions: `get`, `value`, and `step`.
 
 [jref]: https://github.com/jdesrosiers/hyperjump-browser/blob/master/json-reference/README.md
+[pact]: https://github.com/jdesrosiers/hyperjump-pact
 [rollup]: https://rollupjs.org

@@ -92,48 +92,6 @@ const safeStep = async (propertyName, doc, options = {}) => {
   return keys.includes(propertyName) ? step(propertyName, doc, options) : undefined;
 };
 
-const entries = async (doc) => Object.entries(await doc);
-
-const map = curry(async (fn, doc) => (await doc).map(fn));
-
-const filter = curry(async (fn, doc, options = {}) => {
-  return reduce(async (acc, item) => {
-    return (await fn(item)) ? acc.concat([item]) : acc;
-  }, [], doc, options);
-});
-
-const some = curry(async (fn, doc) => {
-  const results = await map(fn, doc);
-  return (await Promise.all(results))
-    .some((a) => a);
-});
-
-const every = curry(async (fn, doc) => {
-  const results = await map(fn, doc);
-  return (await Promise.all(results))
-    .every((a) => a);
-});
-
-const reduce = curry(async (fn, acc, doc) => {
-  return (await doc).reduce(async (acc, item) => fn(await acc, item), acc);
-});
-
-const pipeline = curry((fns, doc) => {
-  return fns.reduce(async (acc, fn) => fn(await acc), doc);
-});
-
-const all = (doc) => Promise.all(doc);
-
-const allValues = (doc) => {
-  return pipeline([
-    entries,
-    reduce(async (acc, [propertyName, propertyValue]) => {
-      acc[propertyName] = await propertyValue;
-      return acc;
-    }, {})
-  ], doc);
-};
-
 const contentTypes = {};
 
 const defaultHandler = {
@@ -158,7 +116,5 @@ const isDocument = (value) => isObject(value) && "url" in value;
 
 module.exports = {
   construct, extend, addContentType, getContentType,
-  nil, get, fetch, source, value, step,
-  entries, map, filter, reduce, some, every, pipeline,
-  all, allValues
+  nil, get, fetch, source, value, step
 };
