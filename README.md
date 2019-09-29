@@ -65,16 +65,20 @@ const Hyperjump = require("@hyperjump/browser");
 const Pact = require("@hyperjump/pact");
 
 
-const characterHomeworlds = Pact.map(async (character) => {
-  const name = await character.name;
-  const homeworld = await character.homeworld.name;
+const characterHomeworlds = Pact.pipeline([
+  Pact.map(async (character) => {
+    const name = await character.name;
+    const homeworld = await character.homeworld.name;
 
-  return `${name} is from ${homeworld}`;
-});
+    return `${name} is from ${homeworld}`;
+  }),
+  Pact.all
+]);
 
 const ladies = Pact.pipeline([
   Pact.filter(async (character) => (await character.gender) === "female"),
-  Pact.map((character) => character.name)
+  Pact.map((character) => character.name),
+  Pact.all
 ]);
 
 const mass = Pact.reduce(async (acc, character) => {
