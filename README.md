@@ -115,6 +115,11 @@ browser.
 Retrieve a document with respect to a context document. Options can be passed to
 set custom headers. If the value of the document is a link, it will be followed.
 
+### assign
+`(any, Document|Promise<Document>) => Promise<Document>`
+
+Set the value of a document. The return value is the updated document.
+
 ### fetch
 `(Url, Options?) => Hyperjump`
 

@@ -25,12 +25,12 @@
     "chai": "^4.2.0",
     "eslint": "^4.19.1",
     "eslint-import-resolver-node": "^0.3.2",
-    "eslint-plugin-import": "^2.18.0",
+    "eslint-plugin-import": "^2.18.2",
     "mocha": "^5.2.0",
     "nock": "^9.6.1"
   },
   "dependencies": {
-    "@hyperjump/json-pointer": "^0.3.1",
+    "@hyperjump/json-pointer": "^0.5.0",
     "content-type": "^1.0.4",
     "just-curry-it": "^3.1.0",
     "make-fetch-happen": "^4.0.2",
