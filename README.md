@@ -148,6 +148,6 @@ Modify or add fields to a document. For internal use.
 Add support for a new content type. The `ContentTypeHandler` is an object with
 three functions: `get`, `value`, and `step`.
 
-[jref]: https://github.com/jdesrosiers/hyperjump-browser/blob/master/json-reference/README.md
-[pact]: https://github.com/jdesrosiers/hyperjump-pact
+[jref]: https://github.com/hyperjump-io/browser/blob/master/lib/json-reference/README.md
+[pact]: https://github.com/hyperjump-io/hyperjump-pact
 [rollup]: https://rollupjs.org
