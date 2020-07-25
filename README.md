@@ -53,9 +53,9 @@ When using with the [Rollup][rollup] bundler, you will need to include the
 The following is short demo. See the [API](#api) section below to see all of the
 things you can do.
 
-This example uses the API at https://swapi.hyperjump.io. It's a variation of the
-[Star Wars API (SWAPI)](https://www.swapi.co) implemented using the [JRef][jref]
-media type.
+This example uses the API at [https://swapi.hyperjump.io](https://explore.hyperjump.io#https://swapi.hyperjump.io/api/films/1).
+It's a variation of the [Star Wars API (SWAPI)](https://swapi.dev)
+implemented using the [JRef][jref] media type.
 
 [Hyperjump Pact][pact] is used to apply standard higher-order functions that
 work with promises.
@@ -158,5 +158,5 @@ Add support for a new content type. The `ContentTypeHandler` is an object with
 three functions: `get`, `value`, and `step`.
 
 [jref]: https://github.com/hyperjump-io/browser/blob/master/lib/json-reference/README.md
-[pact]: https://github.com/hyperjump-io/hyperjump-pact
+[pact]: https://github.com/hyperjump-io/pact
 [rollup]: https://rollupjs.org
