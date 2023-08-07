@@ -1,0 +1,46 @@
+{
+  "name": "@hyperjump/browser",
+  "version": "1.0.0",
+  "description": "Browse JSON-compatible data with hypermedia references",
+  "type": "module",
+  "main": "lib/index.js",
+  "browser": {
+    "./lib/fetch.js": "./lib/fetch.browser.js"
+  },
+  "scripts": {
+    "clean": "xargs -a .gitignore rm -rf",
+    "lint": "eslint lib",
+    "test": "mocha 'lib/**/*.spec.ts'"
+  },
+  "repository": "github:hyperjump-io/browser",
+  "keywords": [
+    "json",
+    "reference",
+    "jref",
+    "hypermedia"
+  ],
+  "author": "Jason Desrosiers <jdesrosi@gmail.com>",
+  "license": "MIT",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/jdesrosiers"
+  },
+  "devDependencies": {
+    "@types/chai": "*",
+    "@types/mocha": "*",
+    "@typescript-eslint/eslint-plugin": "*",
+    "@typescript-eslint/parser": "*",
+    "chai": "*",
+    "eslint": "*",
+    "eslint-import-resolver-node": "*",
+    "eslint-import-resolver-typescript": "*",
+    "eslint-plugin-import": "*",
+    "mocha": "*",
+    "ts-node": "*",
+    "typescript": "*",
+    "yaml": "*"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

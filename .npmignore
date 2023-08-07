@@ -1,0 +1,8 @@
+.github/
+.eslintrc.json
+.mocharc.json
+**/*.spec.ts
+**/*.schema.json
+**/*.schema.yaml
+tsconfig.json
+scratch/
