@@ -48,7 +48,6 @@
     "key-spacing": "error",
     "keyword-spacing": "error",
     "linebreak-style": "error",
-    "lines-between-class-members": "error",
     "logical-assignment-operators": "error",
     "max-classes-per-file": "error",
     "max-len": ["warn", { "code": 160, "ignoreStrings": true, "ignoreTemplateLiterals": true, "ignoreRegExpLiterals": true }],

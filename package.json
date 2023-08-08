@@ -4,6 +4,10 @@
   "description": "Browse JSON-compatible data with hypermedia references",
   "type": "module",
   "main": "lib/index.js",
+  "exports": {
+    ".": "./index.js",
+    "./jref": "./jref/index.js"
+  },
   "browser": {
     "./lib/fetch.js": "./lib/fetch.browser.js"
   },

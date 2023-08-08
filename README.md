@@ -23,6 +23,25 @@ configuration.
   ]
 ```
 
+## JRef
+Parse and stringify JRef values using the same API as the `JSON` built-in
+functions including reviver and replacer functions.
+
+```javascript
+import { parse, stringify, Reference } from "@hyperjump/browser/jref";
+
+const blogPostJref = `{
+  "title": "Working with JRef",
+  "author": { "$href": "/author/jdesrosiers" },
+  "content": "lorem ipsum dolor sit amet",
+}`;
+const blogPost = parse(blogPostJref);
+blogPost.author instanceof Reference; // => true
+blogPost.author.href; // => "/author/jdesrosiers"
+
+stringify(blogPost, null, "  ") === blogPostJref // => true
+```
+
 ## Contributing
 
 ### Tests
