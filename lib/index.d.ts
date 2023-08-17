@@ -3,6 +3,7 @@ import type { JRef } from "./jref/index.js";
 
 export type Browser = {
   uri: string;
+  cursor: string;
   document: Document;
 };
 
