@@ -48,6 +48,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@hyperjump/json-pointer": "^1.0.1",
     "@hyperjump/uri": "^1.2.0",
     "content-type": "^1.0.5",
     "undici": "^5.23.0"

@@ -250,6 +250,32 @@ describe("JSON Browser", () => {
           }
         });
       });
+
+      it("follow references", async () => {
+        const path = "/foo";
+        const fragment = "/bar";
+        const href = "#/foo";
+        const jref = `{
+  "foo": 42,
+  "bar": { "$href": "${href}" }
+}`;
+
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: path })
+          .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
+
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: path })
+          .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
+
+        const browser = await get(`${testDomain}${path}#${fragment}`);
+
+        expect(browser.uri).to.equal(`${testDomain}${path}${href}`);
+        expect(browser.cursor).to.equal(href.slice(1));
+        expect(browser.document).to.eql({
+          value: { foo: 42, bar: new Reference(href) }
+        });
+      });
     });
   });
 });
