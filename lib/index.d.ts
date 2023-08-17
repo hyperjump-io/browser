@@ -11,7 +11,7 @@ export type Document = {
   value: JRef;
 };
 
-export const get: (uri: string) => Promise<Browser>;
+export const get: (uri: string, browser?: Browser) => Promise<Browser>;
 export const value: (browser: Browser) => unknown;
 
 export class HttpError extends Error {

@@ -36,8 +36,9 @@ using the JRef media type.
 ```javascript
 import { get, value } from "@hyperjump/browser";
 
-const browser = await get("https://swapi.hyperjump.io/api/people/1#/name");
-const name = value(browser); // => Luke Skywalker
+const lukeSkywalker = await get("https://swapi.hyperjump.io/api/people/1");
+const name = await get("#/name", lukeSkywalker);
+value(browser); // => Luke Skywalker
 ```
 
 ### API

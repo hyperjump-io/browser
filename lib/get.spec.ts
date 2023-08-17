@@ -276,6 +276,58 @@ describe("JSON Browser", () => {
           value: { foo: 42, bar: new Reference(href) }
         });
       });
+
+      it("relative to browser", async () => {
+        const path = "/foo";
+        const href = "/bar";
+        const foo = `{
+  "foo": 42,
+  "bar": { "$href": "${href}" }
+}`;
+        const bar = `"bar"`;
+
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: path })
+          .reply(200, foo, { headers: { "content-type": "application/reference+json" } });
+
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: href })
+          .reply(200, bar, { headers: { "content-type": "application/reference+json" } });
+
+        const context = await get(`${testDomain}${path}`);
+        const browser = await get(href, context);
+
+        expect(browser.uri).to.equal(`${testDomain}${href}`);
+        expect(browser.cursor).to.equal("");
+        expect(browser.document).to.eql({ value: "bar" });
+      });
+
+      it("fragment-only relative to browser", async () => {
+        const path = "/foo";
+        const fragment = "/foo";
+        const href = "#/foo";
+        const jref = `{
+  "foo": 42,
+  "bar": { "$href": "${href}" }
+}`;
+
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: path })
+          .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
+
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: path })
+          .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
+
+        const context = await get(`${testDomain}${path}`);
+        const browser = await get(`#${fragment}`, context);
+
+        expect(browser.uri).to.equal(`${testDomain}${path}#${fragment}`);
+        expect(browser.cursor).to.equal(href.slice(1));
+        expect(browser.document).to.eql({
+          value: { foo: 42, bar: new Reference(href) }
+        });
+      });
     });
   });
 });
