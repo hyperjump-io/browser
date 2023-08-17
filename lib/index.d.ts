@@ -12,6 +12,7 @@ export type Document = {
 };
 
 export const get: (uri: string) => Promise<Browser>;
+export const value: (browser: Browser) => unknown;
 
 export class HttpError extends Error {
   public response: Response;

@@ -34,9 +34,10 @@ It's a variation of the [Star Wars API (SWAPI)](https://swapi.dev) implemented
 using the JRef media type.
 
 ```javascript
-import { get } from "@hyperjump/browser";
+import { get, value } from "@hyperjump/browser";
 
-const lukeSkywalker = await get("https://swapi.hyperjump.io/api/people/1");
+const browser = await get("https://swapi.hyperjump.io/api/people/1#/name");
+const name = value(browser); // => Luke Skywalker
 ```
 
 ### API
@@ -50,6 +51,11 @@ const lukeSkywalker = await get("https://swapi.hyperjump.io/api/people/1");
     * HttpError
     * UnsupportedMediaTypeError
     * UnknownMediaTypeError
+
+* value(browser: Browser) => any
+
+    Get the value the browser instance represents. Any references will be
+    returned as a `Reference` type.
 
 ## Media Type Plugins
 Support for the JRef media type is included by default, but you can add support
