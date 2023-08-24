@@ -1,18 +1,16 @@
+import type { Response } from "undici";
 import type { JRef } from "./jref/index.js";
 
 
-export type Browser = {
-  uri: string;
-  cursor: string;
-  document: Document;
-};
-
+// Browser
 export type Document = {
-  value: JRef;
+  baseUri: string;
+  cursor: string;
+  root: JRef;
 };
 
-export const get: (uri: string, browser?: Browser) => Promise<Browser>;
-export const value: (browser: Browser) => unknown;
+export const get: (uri: string, document?: Document) => Promise<Document>;
+export const value: (document: Document) => unknown;
 
 export class HttpError extends Error {
   public response: Response;
@@ -20,8 +18,10 @@ export class HttpError extends Error {
   public constructor(response: Response, message?: string);
 }
 
+// Media Types
 export type MediaTypePlugin = {
-  parse: (response: Response) => Promise<Document>;
+  parse: (response: Response, fragment: string) => Promise<Document>;
+  fileMatcher: (path: string) => Promise<boolean>;
   quality?: number;
 };
 
@@ -30,7 +30,27 @@ export const removeMediaTypePlugin: (contentType: string) => void;
 export const setMediaTypeQuality: (contentType: string, quality: number) => void;
 
 export class UnsupportedMediaTypeError extends Error {
+  public constructor(mediaType: string, message?: string);
 }
 
 export class UnknownMediaTypeError extends Error {
+  public constructor(message?: string);
+}
+
+// URI Schemes
+export type UriSchemePlugin = {
+  retrieve: typeof retrieve;
+};
+
+export const addUriSchemePlugin: (scheme: string, plugin: UriSchemePlugin) => void;
+export const removeUriSchemePlugin: (scheme: string) => void;
+export const retrieve: (uri: string, document?: Document) => Promise<{
+  response: Response;
+  fragment: string;
+}>;
+
+export class UnsupportedUriSchemeError extends Error {
+  public scheme: string;
+
+  public constructor(scheme: string, message?: string);
 }

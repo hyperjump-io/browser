@@ -23,7 +23,7 @@ configuration.
   ]
 ```
 
-## Browser
+## JRef Browser
 This is a generic client for traversing JSON Reference (JRef) and other
 JSON-compatible media types in a way that abstracts the references without
 loosing information.
@@ -38,27 +38,29 @@ import { get, value } from "@hyperjump/browser";
 
 const lukeSkywalker = await get("https://swapi.hyperjump.io/api/people/1");
 const name = await get("#/name", lukeSkywalker);
-value(browser); // => Luke Skywalker
+value(name); // => Luke Skywalker
 ```
 
 ### API
-* get(uri: string): Promise<Document>
+* get(uri: string, document?: Document): Promise<Document>
 
     Retrieve a document located at the given URI. Support for JRef is built-in.
-    See the [Media Type Plugins][#media-type-plugins] section for information on
-    how to support other media types.
+    See the [Media Types](#media-type) section for information on
+    how to support other media types. Support for `http(s):` and `file:` URI
+    schemes are built-in. See the [Uri Schemes](#uri-schemes) section for
+    information on how to support other URI schemes.
 
     Throws
     * HttpError
     * UnsupportedMediaTypeError
     * UnknownMediaTypeError
 
-* value(browser: Browser) => any
+* value(document: Browser) => any
 
-    Get the value the browser instance represents. Any references will be
-    returned as a `Reference` type.
+    Get the value the document represents. Any references will be returned as a
+    `Reference` type.
 
-## Media Type Plugins
+## Media Types
 Support for the JRef media type is included by default, but you can add support
 for any media type you like as long as it can be represented in a
 JSON-compatible way.
@@ -98,6 +100,50 @@ removeMediaTypePlugin("application/reference+json");
       number (defaults to `1`)
 * removeMediaTypePlugin(contentType: string): void
 * setMediaTypeQuality(contentType: string, quality: number): void;
+
+## URI Schemes
+By default, `http(s):` and `file:` URIs are supported. You can add support for
+additional URI schemes using plugins.
+
+```javascript
+import { addUriSchemePlugin, removeUriSchemePlugin, retrieve } from "@hyperjump/browser";
+
+// Add support for the `urn:` scheme
+addUriSchemePlugin("urn", {
+  parse: async (response) => {
+    const { nid, nss, query, fragment } = parseUrn(uri);
+    nid = nid.toLowerCase();
+
+    if (!(nid in mappings) || !(nss in mappings[nid])) {
+      throw Error(`Not found - ${uri}`);
+    }
+
+    let url = mappings[nid][nss];
+    url += query ? "?" + query : "";
+    url += fragment ? "#" + fragment : "";
+
+    return retrieve(url, document);
+  }
+});
+
+// Only support `urn:` by removing default plugins
+removeUriSchemePlugin("http");
+removeUriSchemePlugin("https");
+removeUriSchemePlugin("file");
+```
+
+### API
+* addUriSchemePlugin(scheme: string, plugin: UriSchemePlugin): void
+
+    Add support for additional URI schemes.
+
+  * type UriSchemePlugin
+    * retrieve: (uri: string, docuemnt: Document) => { response: Response, fragment: string }
+* removeUriSchemePlugin(scheme: string): void
+* retrieve(uri: string, docuemnt: Document) => { response: Response, fragment: string }
+
+    This is used internally, but you may need if mapping names to locators such
+    as in the example above.
 
 ## JRef
 Parse and stringify JRef values using the same API as the `JSON` built-in

@@ -8,9 +8,6 @@
     ".": "./index.js",
     "./jref": "./jref/index.js"
   },
-  "browser": {
-    "./lib/fetch.js": "./lib/fetch.browser.js"
-  },
   "scripts": {
     "clean": "xargs -a .gitignore rm -rf",
     "lint": "eslint lib",

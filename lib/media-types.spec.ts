@@ -18,8 +18,13 @@ describe("JSON Browser", () => {
       beforeEach(() => {
         addMediaTypePlugin("application/foo", {
           parse: async () => {
-            return { value: null };
-          }
+            return {
+              baseUri: "https://example.com/foo",
+              cursor: "",
+              root: null
+            };
+          },
+          fileMatcher: async (path) => path.endsWith(".foo")
         });
       });
 
@@ -49,8 +54,13 @@ describe("JSON Browser", () => {
       beforeEach(() => {
         addMediaTypePlugin("application/foo", {
           parse: async () => {
-            return { value: null };
+            return {
+              baseUri: "https://exmple.com/foo",
+              cursor: "",
+              root: null
+            };
           },
+          fileMatcher: async (path) => path.endsWith(".foo"),
           quality: 0.8
         });
       });
