@@ -8,6 +8,10 @@
     ".": "./index.js",
     "./jref": "./jref/index.js"
   },
+  "browser": {
+    "./lib/index.js": "./lib/index.browser.js",
+    "./lib/base-uri.js": "./lib/base-uri.browser.js"
+  },
   "scripts": {
     "clean": "xargs -a .gitignore rm -rf",
     "lint": "eslint lib",

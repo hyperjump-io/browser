@@ -41,6 +41,18 @@ const name = await get("#/name", lukeSkywalker);
 value(name); // => Luke Skywalker
 ```
 
+You can also work with files on the filesystem. When working with files, Media
+types are determined by file extensions. The JRef media type uses the `.jref`
+extension.
+
+```javascript
+import { get, value } from "@hyperjump/browser";
+
+const lukeSkywalker = await get("api/people/1.jref"); // Relative paths work
+const name = await get("#/name", lukeSkywalker);
+value(name); // => Luke Skywalker
+```
+
 ### API
 * get(uri: string, document?: Document): Promise<Document>
 
