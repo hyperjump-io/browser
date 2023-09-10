@@ -3,10 +3,10 @@ import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import { expect } from "chai";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { get, UnknownMediaTypeError } from "./index.js";
-import { Reference } from "./jref/index.js";
+import { get, UnknownMediaTypeError } from "../index.js";
+import { Reference } from "../jref/index.js";
 
-import type { Document } from "./index.js";
+import type { Document } from "../index.js";
 
 
 describe("JSON Browser", () => {

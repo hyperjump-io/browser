@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { get, value } from "./index.js";
-import { Reference } from "./jref/index.js";
+import { get, value } from "../index.js";
+import { Reference } from "../jref/index.js";
 
 
 describe("JSON Browser", () => {

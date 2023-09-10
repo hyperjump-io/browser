@@ -1,7 +1,7 @@
 import { Readable } from "node:stream";
 import { expect } from "chai";
 import { Response } from "undici";
-import { addUriSchemePlugin, removeUriSchemePlugin, UnsupportedUriSchemeError, get } from "./index.js";
+import { addUriSchemePlugin, removeUriSchemePlugin, UnsupportedUriSchemeError, get } from "../index.js";
 
 
 describe("JSON Browser", () => {

@@ -3,7 +3,7 @@ import {
   addMediaTypePlugin,
   removeMediaTypePlugin,
   setMediaTypeQuality
-} from "./index.js";
+} from "../index.js";
 import { acceptableMediaTypes } from "./media-types.js";
 
 
