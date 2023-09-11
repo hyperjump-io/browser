@@ -11,6 +11,7 @@ export type Document = {
 
 export const get: (uri: string, document?: Document) => Promise<Document>;
 export const value: (document: Document) => unknown;
+export const step: (key: string, document: Document) => Promise<Document>;
 
 export class HttpError extends Error {
   public response: Response;

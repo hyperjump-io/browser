@@ -24,8 +24,8 @@ describe("JSON Browser", () => {
       const fragment = "/bar";
       const href = "#/foo";
       const jref = `{
-"foo": 42,
-"bar": { "$href": "${href}" }
+  "foo": 42,
+  "bar": { "$href": "${href}" }
 }`;
 
       mockAgent.get(testDomain)
@@ -47,8 +47,8 @@ describe("JSON Browser", () => {
       const path = "/foo";
       const href = "/bar";
       const foo = `{
-"foo": 42,
-"bar": { "$href": "${href}" }
+  "foo": 42,
+  "bar": { "$href": "${href}" }
 }`;
       const bar = `"bar"`;
 
@@ -73,8 +73,8 @@ describe("JSON Browser", () => {
       const fragment = "/foo";
       const href = "#/foo";
       const jref = `{
-"foo": 42,
-"bar": { "$href": "${href}" }
+  "foo": 42,
+  "bar": { "$href": "${href}" }
 }`;
 
       mockAgent.get(testDomain)

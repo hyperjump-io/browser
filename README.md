@@ -37,7 +37,8 @@ using the JRef media type.
 import { get, value } from "@hyperjump/browser";
 
 const lukeSkywalker = await get("https://swapi.hyperjump.io/api/people/1");
-const name = await get("#/name", lukeSkywalker);
+const name = await get("#/name", lukeSkywalker); // Or
+const name = await step("name", lukeSkywalker);
 value(name); // => Luke Skywalker
 ```
 
@@ -66,11 +67,14 @@ value(name); // => Luke Skywalker
     * HttpError
     * UnsupportedMediaTypeError
     * UnknownMediaTypeError
-
 * value(document: Browser) => any
 
     Get the value the document represents. Any references will be returned as a
     `Reference` type.
+* step(key: string | number, document: Browser) => Promise<Document>
+
+    Move the document cursor by the given "key" value. This is analogous to
+    indexing into an object or array (`foo[key]`).
 
 ## Media Types
 Support for the JRef media type is included by default, but you can add support
