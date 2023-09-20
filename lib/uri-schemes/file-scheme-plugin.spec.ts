@@ -1,6 +1,7 @@
 import { mkdir, rm, writeFile, symlink } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
+import { cwd } from "node:process";
 import { expect } from "chai";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { get, UnknownMediaTypeError } from "../index.js";
@@ -12,16 +13,15 @@ import type { Document } from "../index.js";
 describe("JSON Browser", () => {
   describe("get", () => {
     describe("`file:` scheme", () => {
-      const __dirname = dirname(fileURLToPath(import.meta.url));
       const fixtureDirectory = "__test-fixtures__";
-      const testUri = dirname(import.meta.url);
+      const testUri = `file://${cwd()}`;
 
       beforeEach(async () => {
-        await mkdir(`${__dirname}/${fixtureDirectory}`);
+        await mkdir(`${cwd()}/${fixtureDirectory}`);
       });
 
       afterEach(async () => {
-        await rm(`${__dirname}/${fixtureDirectory}`, { recursive: true });
+        await rm(`${cwd()}/${fixtureDirectory}`, { recursive: true });
       });
 
       it("not found", async () => {
@@ -40,7 +40,7 @@ describe("JSON Browser", () => {
 foo: 42
 `;
 
-        await writeFile(`${__dirname}/${path}`, jref, { flag: "w+" });
+        await writeFile(`${cwd()}/${path}`, jref, { flag: "w+" });
 
         try {
           await get(path);
@@ -90,7 +90,7 @@ foo: 42
   "bar": { "$href": "${href}" }
 }`;
 
-          await writeFile(`${__dirname}/${path}`, jref, { flag: "w+" });
+          await writeFile(`${cwd()}/${path}`, jref, { flag: "w+" });
 
           const browser = await get(`${path}#${fragment}`);
 
@@ -100,7 +100,7 @@ foo: 42
         });
 
         it("full path", async () => {
-          const path = `${__dirname}/${fixtureDirectory}/foo.jref`;
+          const path = `${cwd()}/${fixtureDirectory}/foo.jref`;
           const fragment = "/foo";
           const href = "#/foo";
           const jref = `{
@@ -118,7 +118,7 @@ foo: 42
         });
 
         it("full URI with authority", async () => {
-          const path = `${__dirname}/${fixtureDirectory}/foo.jref`;
+          const path = `${cwd()}/${fixtureDirectory}/foo.jref`;
           const fragment = "/foo";
           const href = "#/foo";
           const jref = `{
@@ -136,7 +136,7 @@ foo: 42
         });
 
         it("full URI without authority", async () => {
-          const path = `${__dirname}/${fixtureDirectory}/foo.jref`;
+          const path = `${cwd()}/${fixtureDirectory}/foo.jref`;
           const fragment = "/foo";
           const href = "#/foo";
           const jref = `{
@@ -164,8 +164,8 @@ foo: 42
   "bar": { "$href": "${href}" }
 }`;
 
-        await writeFile(`${__dirname}/${actualPath}`, jref, { flag: "w+" });
-        await symlink(`${__dirname}/${actualPath}`, `${__dirname}/${path}`);
+        await writeFile(`${cwd()}/${actualPath}`, jref, { flag: "w+" });
+        await symlink(`${cwd()}/${actualPath}`, `${cwd()}/${path}`);
 
         const browser = await get(`${path}#${fragment}`);
 

@@ -49,8 +49,8 @@ extension.
 ```javascript
 import { get, value } from "@hyperjump/browser";
 
-const lukeSkywalker = await get("api/people/1.jref"); // Relative paths work
-const name = await get("#/name", lukeSkywalker);
+const lukeSkywalker = await get("./api/people/1.jref"); // Relative paths work
+const name = await step("name", lukeSkywalker);
 value(name); // => Luke Skywalker
 ```
 
