@@ -12,6 +12,10 @@ export type Document = {
 export const get: (uri: string, document?: Document) => Promise<Document>;
 export const value: (document: Document) => unknown;
 export const step: (key: string, document: Document) => Promise<Document>;
+export const iter: (document: Document) => AsyncGenerator<Document>;
+export const keys: (document: Document) => Generator<string>;
+export const values: (document: Document) => AsyncGenerator<string>;
+export const entries: (document: Document) => AsyncGenerator<[string, Document]>;
 
 export class HttpError extends Error {
   public response: Response;

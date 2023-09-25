@@ -34,12 +34,16 @@ It's a variation of the [Star Wars API (SWAPI)](https://swapi.dev) implemented
 using the JRef media type.
 
 ```javascript
-import { get, value } from "@hyperjump/browser";
+import { get, step, value, iter } from "@hyperjump/browser";
 
-const lukeSkywalker = await get("https://swapi.hyperjump.io/api/people/1");
-const name = await get("#/name", lukeSkywalker); // Or
-const name = await step("name", lukeSkywalker);
-value(name); // => Luke Skywalker
+const aNewHope = await get("https://swapi.hyperjump.io/api/films/1");
+const characters = await get("#/characters", aNewHope); // Or
+const characters = await step("characters", aNewHope);
+
+for await (const character of iter(characters)) {
+  const name = await step("name", character);
+  value(name); // => Luke Skywalker, etc.
+}
 ```
 
 You can also work with files on the filesystem. When working with files, Media
@@ -67,14 +71,26 @@ value(name); // => Luke Skywalker
     * HttpError
     * UnsupportedMediaTypeError
     * UnknownMediaTypeError
-* value(document: Browser) => any
+* value(document: Document) => any
 
     Get the value the document represents. Any references will be returned as a
     `Reference` type.
-* step(key: string | number, document: Browser) => Promise<Document>
+* step(key: string | number, document: Document) => Promise\<Document>
 
     Move the document cursor by the given "key" value. This is analogous to
     indexing into an object or array (`foo[key]`).
+* **Schema.iter**: (document: Document) => AsyncGenerator\<Document>
+
+    Iterate over the items in the array that the Document represents.
+* **Schema.entries**: (document: Document) => AsyncGenerator\<[string, Document]>
+
+    Similar to `Object.entries`, but yields Documents for values.
+* **Schema.values**: (document: Document) => AsyncGenerator\<Document>
+
+    Similar to `Object.values`, but yields Documents for values.
+* **Schema.keys**: (document: Document) => Generator\<string>
+
+    Similar to `Object.keys`.
 
 ## Media Types
 Support for the JRef media type is included by default, but you can add support
