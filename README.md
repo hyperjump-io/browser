@@ -78,7 +78,7 @@ value(name); // => Luke Skywalker
 * step(key: string | number, document: Document) => Promise\<Document>
 
     Move the document cursor by the given "key" value. This is analogous to
-    indexing into an object or array (`foo[key]`).
+    indexing into an object or array (`foo[key]`). This function is curried.
 * **Schema.iter**: (document: Document) => AsyncGenerator\<Document>
 
     Iterate over the items in the array that the Document represents.
