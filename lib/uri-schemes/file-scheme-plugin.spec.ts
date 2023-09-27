@@ -1,10 +1,8 @@
 import { mkdir, rm, writeFile, symlink } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { dirname } from "node:path";
 import { cwd } from "node:process";
 import { expect } from "chai";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { get, UnknownMediaTypeError } from "../index.js";
+import { get, RetrievalError } from "../index.js";
 import { Reference } from "../jref/index.js";
 
 import type { Document } from "../index.js";
@@ -29,8 +27,8 @@ describe("JSON Browser", () => {
           await get("nothing-here.jref");
           expect.fail("Expected Error: ENOENT: no such file or directory");
         } catch (error: unknown) {
-          expect(error).to.be.instanceof(Error);
-          expect((error as Error).message).to.contain("ENOENT: no such file or directory");
+          expect(error).to.be.instanceof(RetrievalError);
+          expect(((error as RetrievalError).cause as Error).message).to.contain("ENOENT: no such file or directory");
         }
       });
 
@@ -44,9 +42,10 @@ foo: 42
 
         try {
           await get(path);
-          expect.fail("Expected UnknownMediaTypeError");
+          expect.fail("Expected RetrievalError => UnknownMediaTypeError");
         } catch (error: unknown) {
-          expect(error).to.be.instanceof(UnknownMediaTypeError);
+          expect(error).to.be.instanceof(RetrievalError);
+          expect(((error as RetrievalError).cause as Error).name).to.equal("UnknownMediaTypeError");
         }
       });
 
@@ -70,7 +69,7 @@ foo: 42
           await mockAgent.close();
         });
 
-        it("file references only allowed from file context", async () => {
+        it("file references not allowed from non-filesystem context", async () => {
           try {
             await get(`${testUri}/foo.jref`, document);
             expect.fail("Expected Error: Accessing a file from a non-filesystem document is not allowed");
@@ -78,10 +77,26 @@ foo: 42
             expect(error).to.be.instanceof(Error);
           }
         });
+
+        it("file references are allowed from file context", async () => {
+          const rootPath = `${fixtureDirectory}/root.jref`;
+          const fooPath = `${fixtureDirectory}/foo.jref`;
+          const jref = "{}";
+
+          await writeFile(`${cwd()}/${rootPath}`, jref, { flag: "w+" });
+          await writeFile(`${cwd()}/${fooPath}`, jref, { flag: "w+" });
+
+          const root = await get(rootPath);
+          const browser = await get(`./foo.jref`, root);
+
+          expect(browser.baseUri).to.equal(`${testUri}/${fooPath}`);
+          expect(browser.cursor).to.equal("");
+          expect(browser.root).to.eql({});
+        });
       });
 
       describe("success", () => {
-        it("caller file relative path", async () => {
+        it("cwd relative path", async () => {
           const path = `${fixtureDirectory}/foo.jref`;
           const fragment = "/foo";
           const href = "#/foo";

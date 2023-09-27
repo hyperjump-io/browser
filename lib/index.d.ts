@@ -17,10 +17,8 @@ export const keys: (document: Document) => Generator<string>;
 export const values: (document: Document) => AsyncGenerator<string>;
 export const entries: (document: Document) => AsyncGenerator<[string, Document]>;
 
-export class HttpError extends Error {
-  public response: Response;
-
-  public constructor(response: Response, message?: string);
+export class RetrievalError extends Error {
+  public constructor(message: string, cause: Error);
 }
 
 // Media Types
@@ -34,14 +32,6 @@ export const addMediaTypePlugin: (contentType: string, plugin: MediaTypePlugin) 
 export const removeMediaTypePlugin: (contentType: string) => void;
 export const setMediaTypeQuality: (contentType: string, quality: number) => void;
 
-export class UnsupportedMediaTypeError extends Error {
-  public constructor(mediaType: string, message?: string);
-}
-
-export class UnknownMediaTypeError extends Error {
-  public constructor(message?: string);
-}
-
 // URI Schemes
 export type UriSchemePlugin = {
   retrieve: typeof retrieve;
@@ -53,9 +43,3 @@ export const retrieve: (uri: string, document?: Document) => Promise<{
   response: Response;
   fragment: string;
 }>;
-
-export class UnsupportedUriSchemeError extends Error {
-  public scheme: string;
-
-  public constructor(scheme: string, message?: string);
-}

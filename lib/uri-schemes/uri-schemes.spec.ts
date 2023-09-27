@@ -1,7 +1,7 @@
 import { Readable } from "node:stream";
 import { expect } from "chai";
 import { Response } from "undici";
-import { addUriSchemePlugin, removeUriSchemePlugin, UnsupportedUriSchemeError, get } from "../index.js";
+import { addUriSchemePlugin, removeUriSchemePlugin, get, RetrievalError } from "../index.js";
 
 
 describe("JSON Browser", () => {
@@ -11,10 +11,10 @@ describe("JSON Browser", () => {
     it("Error on unsupported scheme", async () => {
       try {
         await get("foo:something");
-        expect.fail("Expected UnsupportedUriSchemeError");
+        expect.fail("Expected RetrievalError => UnsupportedUriSchemeError");
       } catch (error: unknown) {
-        expect(error).to.be.instanceof(UnsupportedUriSchemeError);
-        expect((error as UnsupportedUriSchemeError).scheme).to.equal("foo");
+        expect(error).to.be.instanceof(RetrievalError);
+        expect(((error as RetrievalError).cause as Error).name).to.equal("UnsupportedUriSchemeError");
       }
     });
 
@@ -48,10 +48,10 @@ describe("JSON Browser", () => {
 
         try {
           await get("foo:something");
-          expect.fail("Expected UnsupportedUriSchemeError");
+          expect.fail("Expected RetrievalError => UnsupportedUriSchemeError");
         } catch (error: unknown) {
-          expect(error).to.be.instanceof(UnsupportedUriSchemeError);
-          expect((error as UnsupportedUriSchemeError).scheme).to.equal("foo");
+          expect(error).to.be.instanceof(RetrievalError);
+          expect(((error as RetrievalError).cause as Error).name).to.equal("UnsupportedUriSchemeError");
         }
       });
     });

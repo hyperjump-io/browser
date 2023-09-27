@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Browse JSON-compatible data with hypermedia references",
   "type": "module",
-  "main": "lib/index.js",
+  "main": "./lib/index.js",
   "exports": {
-    ".": "./index.js",
+    ".": "./lib/index.js",
     "./jref": "./jref/index.js"
   },
   "browser": {

@@ -66,11 +66,6 @@ value(name); // => Luke Skywalker
     how to support other media types. Support for `http(s):` and `file:` URI
     schemes are built-in. See the [Uri Schemes](#uri-schemes) section for
     information on how to support other URI schemes.
-
-    Throws
-    * HttpError
-    * UnsupportedMediaTypeError
-    * UnknownMediaTypeError
 * value(document: Document) => any
 
     Get the value the document represents. Any references will be returned as a

@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { get, HttpError, UnsupportedMediaTypeError, UnknownMediaTypeError } from "../index.js";
+import { get, RetrievalError } from "../index.js";
 import { Reference } from "../jref/index.js";
 
 
@@ -29,10 +29,10 @@ describe("JSON Browser", () => {
 
         try {
           await get(testDomain + path);
-          expect.fail("Expected HttpError");
+          expect.fail("Expected RetrievalError => HttpError");
         } catch (error: unknown) {
-          expect(error).to.be.instanceof(HttpError);
-          expect((error as HttpError).response.status).to.equal(404);
+          expect(error).to.be.instanceof(RetrievalError);
+          expect(((error as RetrievalError).cause as Error).name).to.equal("HttpError");
         }
       });
 
@@ -45,9 +45,10 @@ describe("JSON Browser", () => {
 
         try {
           await get(testDomain + path);
-          expect.fail("Expected UnknownMediaTypeError");
+          expect.fail("Expected RetrievalError => UnknownMediaTypeError");
         } catch (error: unknown) {
-          expect(error).to.be.instanceof(UnknownMediaTypeError);
+          expect(error).to.be.instanceof(RetrievalError);
+          expect(((error as RetrievalError).cause as Error).name).to.equal("UnknownMediaTypeError");
         }
       });
 
@@ -62,9 +63,10 @@ describe("JSON Browser", () => {
 
         try {
           await get(testDomain + path);
-          expect.fail("Expected UnsupportedMediaTypeError");
+          expect.fail("Expected RetrievalError => UnsupportedMediaTypeError");
         } catch (error: unknown) {
-          expect(error).to.be.instanceof(UnsupportedMediaTypeError);
+          expect(error).to.be.instanceof(RetrievalError);
+          expect(((error as RetrievalError).cause as Error).name).to.equal("UnsupportedMediaTypeError");
         }
       });
 
@@ -131,9 +133,10 @@ describe("JSON Browser", () => {
 
         try {
           await get(testDomain + path);
-          expect.fail("Expected HttpError");
+          expect.fail("Expected RetrievalError => HttpError");
         } catch (error: unknown) {
-          expect(error).to.be.instanceof(HttpError);
+          expect(error).to.be.instanceof(RetrievalError);
+          expect(((error as RetrievalError).cause as Error).name).to.equal("HttpError");
         }
       });
 
@@ -231,9 +234,10 @@ describe("JSON Browser", () => {
 
           try {
             await get(testDomain + path);
-            expect.fail("Expected HttpError");
+            expect.fail("Expected RetrievalError => HttpError");
           } catch (error: unknown) {
-            expect(error).to.be.instanceof(HttpError);
+            expect(error).to.be.instanceof(RetrievalError);
+            expect(((error as RetrievalError).cause as Error).name).to.include("HttpError");
           }
         });
       });
