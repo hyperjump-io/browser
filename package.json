@@ -10,7 +10,7 @@
   },
   "browser": {
     "./lib/index.js": "./lib/index.browser.js",
-    "./lib/context-uri.js": "./lib/context-uri.browser.js"
+    "./lib/browser/context-uri.js": "./lib/browser/context-uri.browser.js"
   },
   "scripts": {
     "clean": "xargs -a .gitignore rm -rf",
