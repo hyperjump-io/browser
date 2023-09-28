@@ -6,7 +6,7 @@
   "main": "./lib/index.js",
   "exports": {
     ".": "./lib/index.js",
-    "./jref": "./jref/index.js"
+    "./jref": "./lib/jref/index.js"
   },
   "browser": {
     "./lib/index.js": "./lib/index.browser.js",
