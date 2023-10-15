@@ -165,7 +165,8 @@ describe("JSON Browser", () => {
         expect(browser.root).to.eql({ foo: 42, bar: new Reference(href) });
       });
 
-      it("redirect with a Location that includes a fragment", async () => {
+      // There isn't a way to make this pass in the browser do to limitations of the Fetch spec.
+      it.skip("redirect with a Location that includes a fragment", async () => {
         const path = "/foo";
         const redirectPath = "/alternate-foo";
         const redirectFragment = "/main";
@@ -194,7 +195,8 @@ describe("JSON Browser", () => {
         });
       });
 
-      it("redirect whose inherited fragment gets overriden by the Location's fragment", async () => {
+      // There isn't a way to make this pass in the browser do to limitations of the Fetch spec.
+      it.skip("redirect whose inherited fragment gets overriden by the Location's fragment", async () => {
         const path = "/foo";
         const fragment = "/root";
         const redirectPath = "/alternate-foo";
