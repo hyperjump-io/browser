@@ -1,13 +1,13 @@
 import { describe, it, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { get, step, value } from "../index.js";
-import type { Document } from "../index.js";
+import type { Browser } from "../index.js";
 
 
 describe("JSON Browser", () => {
   describe("step", () => {
     let mockAgent: MockAgent;
-    let subject: Document;
+    let subject: Browser;
 
     const testDomain = "https://example.com";
 
@@ -32,8 +32,9 @@ describe("JSON Browser", () => {
       const subject = await get(testDomain + path);
       const foo = await step("foo", subject);
 
-      expect(foo.baseUri).to.equal(testDomain + path);
+      expect(foo.uri).to.equal(testDomain + path);
       expect(foo.cursor).to.equal("/foo");
+      expect(foo.document.baseUri).to.equal(testDomain + path);
       expect(value(foo)).to.equal(42);
     });
 
@@ -51,8 +52,9 @@ describe("JSON Browser", () => {
       const subject = await get(testDomain + path);
       const foo = await step("bar", subject);
 
-      expect(foo.baseUri).to.equal(testDomain + path);
+      expect(foo.uri).to.equal(`${testDomain}${path}#/foo`);
       expect(foo.cursor).to.equal("/foo");
+      expect(foo.document.baseUri).to.equal(testDomain + path);
       expect(value(foo)).to.equal(42);
     });
 
@@ -71,8 +73,9 @@ describe("JSON Browser", () => {
       const subject = await get(testDomain + path);
       const foo = await step("baz", subject);
 
-      expect(foo.baseUri).to.equal(testDomain + path);
+      expect(foo.uri).to.equal(`${testDomain}${path}#/foo`);
       expect(foo.cursor).to.equal("/foo");
+      expect(foo.document.baseUri).to.equal(testDomain + path);
       expect(value(foo)).to.equal(42);
     });
 
@@ -97,8 +100,9 @@ describe("JSON Browser", () => {
       const subject = await get(testDomain + subjectPath);
       const foo = await step("baz", subject);
 
-      expect(foo.baseUri).to.equal(testDomain + externalPath);
+      expect(foo.uri).to.equal(`${testDomain}${externalPath}#/foo`);
       expect(foo.cursor).to.equal("/foo");
+      expect(foo.document.baseUri).to.equal(testDomain + externalPath);
       expect(value(foo)).to.equal(42);
     });
 
@@ -120,10 +124,12 @@ describe("JSON Browser", () => {
       mockAgent.get(testDomain)
         .intercept({ method: "GET", path: externalPath })
         .reply(200, externalJref, { headers: { "content-type": "application/reference+json" } });
+
       const foo = await step("bar", subject);
 
-      expect(foo.baseUri).to.equal(testDomain + externalPath);
+      expect(foo.uri).to.equal(`${testDomain}${externalPath}#/foo`);
       expect(foo.cursor).to.equal("/foo");
+      expect(foo.document.baseUri).to.equal(testDomain + externalPath);
       expect(value(foo)).to.equal(42);
     });
 
@@ -148,9 +154,11 @@ describe("JSON Browser", () => {
       mockAgent.get(testDomain)
         .intercept({ method: "GET", path: externalPath })
         .reply(200, externalJref, { headers: { "content-type": "application/reference+json" } });
+
       const foo = await step("baz", subject);
 
-      expect(foo.baseUri).to.equal(testDomain + externalPath);
+      expect(foo.uri).to.equal(`${testDomain}${externalPath}#/foo`);
+      expect(foo.document.baseUri).to.equal(testDomain + externalPath);
       expect(foo.cursor).to.equal("/foo");
       expect(value(foo)).to.equal(42);
     });

@@ -86,9 +86,10 @@ describe("JSON Browser", () => {
 
           const browser = await get(`${testDomain}${path}#${fragment}`);
 
-          expect(browser.baseUri).to.equal(testDomain + path);
+          expect(browser.uri).to.equal(`${testDomain}${path}#${fragment}`);
           expect(browser.cursor).to.equal(fragment);
-          expect(browser.root).to.eql({ foo: 42, bar: new Reference(href) });
+          expect(browser.document.baseUri).to.equal(testDomain + path);
+          expect(browser.document.root).to.eql({ foo: 42, bar: new Reference(href) });
         });
       });
 
@@ -113,9 +114,10 @@ describe("JSON Browser", () => {
 
           const browser = await get(testDomain + path);
 
-          expect(browser.baseUri).to.equal(location);
+          expect(browser.uri).to.equal(location);
           expect(browser.cursor).to.equal("");
-          expect(browser.root).to.eql({ foo: 42, bar: new Reference(href) });
+          expect(browser.document.baseUri).to.equal(location);
+          expect(browser.document.root).to.eql({ foo: 42, bar: new Reference(href) });
         });
       });
 
@@ -160,9 +162,10 @@ describe("JSON Browser", () => {
 
         const browser = await get(`${testDomain}${path}#${fragment}`);
 
-        expect(browser.baseUri).to.equal(testDomain + redirectPath);
+        expect(browser.uri).to.equal(`${testDomain}${redirectPath}#${fragment}`);
         expect(browser.cursor).to.equal(fragment);
-        expect(browser.root).to.eql({ foo: 42, bar: new Reference(href) });
+        expect(browser.document.baseUri).to.equal(testDomain + redirectPath);
+        expect(browser.document.root).to.eql({ foo: 42, bar: new Reference(href) });
       });
 
       // There isn't a way to make this pass in the browser do to limitations of the Fetch spec.
@@ -188,9 +191,10 @@ describe("JSON Browser", () => {
 
         const browser = await get(`${testDomain}${path}`);
 
-        expect(browser.baseUri).to.equal(testDomain + redirectPath);
+        expect(browser.uri).to.equal(testDomain + redirectPath);
         expect(browser.cursor).to.equal(redirectFragment);
-        expect(browser.root).to.eql({
+        expect(browser.document.baseUri).to.equal(testDomain + redirectPath);
+        expect(browser.document.root).to.eql({
           main: { foo: 42, bar: new Reference(href) }
         });
       });
@@ -219,9 +223,10 @@ describe("JSON Browser", () => {
 
         const browser = await get(`${testDomain}${path}#${fragment}`);
 
-        expect(browser.baseUri).to.equal(testDomain + redirectPath);
+        expect(browser.uri).to.equal(`${testDomain}${redirectPath}#${fragment}`);
         expect(browser.cursor).to.equal(redirectFragment);
-        expect(browser.root).to.eql({
+        expect(browser.document.baseUri).to.equal(testDomain + redirectPath);
+        expect(browser.document.root).to.eql({
           main: { foo: 42, bar: new Reference(href) }
         });
       });

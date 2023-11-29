@@ -5,7 +5,7 @@ import { MockAgent, setGlobalDispatcher } from "undici";
 import { get, RetrievalError } from "../index.js";
 import { Reference } from "../jref/index.js";
 
-import type { Document } from "../index.js";
+import type { Browser } from "../index.js";
 
 
 describe("JSON Browser", () => {
@@ -50,7 +50,7 @@ foo: 42
       });
 
       describe("http context", () => {
-        let document: Document;
+        let browser: Browser;
 
         beforeEach(async () => {
           const mockAgent = new MockAgent();
@@ -64,14 +64,14 @@ foo: 42
             .intercept({ method: "GET", path: path })
             .reply(200, "{}", { headers: { "content-type": "application/reference+json" } });
 
-          document = await get(testDomain + path);
+          browser = await get(testDomain + path);
 
           await mockAgent.close();
         });
 
         it("file references not allowed from non-filesystem context", async () => {
           try {
-            await get(`${testUri}/foo.jref`, document);
+            await get(`${testUri}/foo.jref`, browser);
             expect.fail("Expected Error: Accessing a file from a non-filesystem document is not allowed");
           } catch (error: unknown) {
             expect(error).to.be.instanceof(Error);
@@ -89,9 +89,10 @@ foo: 42
           const root = await get(rootPath);
           const browser = await get(`./foo.jref`, root);
 
-          expect(browser.baseUri).to.equal(`${testUri}/${fooPath}`);
+          expect(browser.uri).to.equal(`${testUri}/${fooPath}`);
           expect(browser.cursor).to.equal("");
-          expect(browser.root).to.eql({});
+          expect(browser.document.baseUri).to.equal(`${testUri}/${fooPath}`);
+          expect(browser.document.root).to.eql({});
         });
       });
 
@@ -109,9 +110,10 @@ foo: 42
 
           const browser = await get(`${path}#${fragment}`);
 
-          expect(browser.baseUri).to.equal(`${testUri}/${path}`);
+          expect(browser.uri).to.equal(`${testUri}/${path}#${fragment}`);
           expect(browser.cursor).to.equal(fragment);
-          expect(browser.root).to.eql({ foo: 42, bar: new Reference(href) });
+          expect(browser.document.baseUri).to.equal(`${testUri}/${path}`);
+          expect(browser.document.root).to.eql({ foo: 42, bar: new Reference(href) });
         });
 
         it("full path", async () => {
@@ -127,9 +129,10 @@ foo: 42
 
           const browser = await get(`${path}#${fragment}`);
 
-          expect(browser.baseUri).to.equal(`file://${path}`);
+          expect(browser.uri).to.equal(`file://${path}#${fragment}`);
           expect(browser.cursor).to.equal(fragment);
-          expect(browser.root).to.eql({ foo: 42, bar: new Reference(href) });
+          expect(browser.document.baseUri).to.equal(`file://${path}`);
+          expect(browser.document.root).to.eql({ foo: 42, bar: new Reference(href) });
         });
 
         it("full URI with authority", async () => {
@@ -145,9 +148,10 @@ foo: 42
 
           const browser = await get(`file://${path}#${fragment}`);
 
-          expect(browser.baseUri).to.equal(`file://${path}`);
+          expect(browser.uri).to.equal(`file://${path}#${fragment}`);
           expect(browser.cursor).to.equal(fragment);
-          expect(browser.root).to.eql({ foo: 42, bar: new Reference(href) });
+          expect(browser.document.baseUri).to.equal(`file://${path}`);
+          expect(browser.document.root).to.eql({ foo: 42, bar: new Reference(href) });
         });
 
         it("full URI without authority", async () => {
@@ -163,9 +167,10 @@ foo: 42
 
           const browser = await get(`file:${path}#${fragment}`);
 
-          expect(browser.baseUri).to.equal(`file:${path}`);
+          expect(browser.uri).to.equal(`file:${path}#${fragment}`);
           expect(browser.cursor).to.equal(fragment);
-          expect(browser.root).to.eql({ foo: 42, bar: new Reference(href) });
+          expect(browser.document.baseUri).to.equal(`file:${path}`);
+          expect(browser.document.root).to.eql({ foo: 42, bar: new Reference(href) });
         });
       });
 
@@ -184,9 +189,10 @@ foo: 42
 
         const browser = await get(`${path}#${fragment}`);
 
-        expect(browser.baseUri).to.equal(`${testUri}/${actualPath}`);
+        expect(browser.uri).to.equal(`${testUri}/${actualPath}#${fragment}`);
         expect(browser.cursor).to.equal(fragment);
-        expect(browser.root).to.eql({ foo: 42, bar: new Reference("#/foo") });
+        expect(browser.document.baseUri).to.equal(`${testUri}/${actualPath}`);
+        expect(browser.document.root).to.eql({ foo: 42, bar: new Reference("#/foo") });
       });
     });
   });

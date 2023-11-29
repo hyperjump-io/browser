@@ -9,6 +9,9 @@ export type Reviver = (key: string, value: unknown) => unknown;
 export const stringify: (value: JRef, replacer?: (string | number)[] | null | Replacer, space?: string | number) => string;
 export type Replacer = (key: string, value: unknown) => unknown;
 
+export type JRefType = "object" | "array" | "string" | "number" | "boolean" | "null" | "reference" | "undefined";
+export const jrefTypeOf: (value: unknown) => JRefType;
+
 export class Reference {
   constructor(href: string, value?: unknown);
 

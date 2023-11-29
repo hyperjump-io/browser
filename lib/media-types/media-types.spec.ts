@@ -20,8 +20,8 @@ describe("JSON Browser", () => {
           parse: async () => {
             return {
               baseUri: "https://example.com/foo",
-              cursor: "",
-              root: null
+              root: null,
+              anchorLocation: (fragment) => fragment ?? ""
             };
           },
           fileMatcher: async (path) => path.endsWith(".foo")
@@ -56,8 +56,8 @@ describe("JSON Browser", () => {
           parse: async () => {
             return {
               baseUri: "https://exmple.com/foo",
-              cursor: "",
-              root: null
+              root: null,
+              anchorLocation: (fragment) => fragment ?? ""
             };
           },
           fileMatcher: async (path) => path.endsWith(".foo"),

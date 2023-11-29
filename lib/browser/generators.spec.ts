@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { get, value, iter, keys, values, entries } from "../index.js";
-import type { Document } from "../index.js";
+import type { Browser } from "../index.js";
 
 
 describe("JSON Browser", () => {
@@ -39,9 +39,9 @@ describe("JSON Browser", () => {
       const subject = await get(`${testDomain}/subject`);
       const generator = iter(subject);
 
-      expect(value((await generator.next()).value as Document)).to.equal(1);
-      expect(value((await generator.next()).value as Document)).to.equal(2);
-      expect(value((await generator.next()).value as Document)).to.equal(2);
+      expect(value((await generator.next()).value as Browser)).to.equal(1);
+      expect(value((await generator.next()).value as Browser)).to.equal(2);
+      expect(value((await generator.next()).value as Browser)).to.equal(2);
       expect((await generator.next()).done).to.equal(true);
     });
 
@@ -89,9 +89,9 @@ describe("JSON Browser", () => {
       const subject = await get(`${testDomain}/subject`);
       const generator = values(subject);
 
-      expect(value((await generator.next()).value as Document)).to.equal(1);
-      expect(value((await generator.next()).value as Document)).to.equal(2);
-      expect(value((await generator.next()).value as Document)).to.equal(2);
+      expect(value((await generator.next()).value as Browser)).to.equal(1);
+      expect(value((await generator.next()).value as Browser)).to.equal(2);
+      expect(value((await generator.next()).value as Browser)).to.equal(2);
       expect((await generator.next()).done).to.equal(true);
     });
 
@@ -119,15 +119,15 @@ describe("JSON Browser", () => {
       const subject = await get(`${testDomain}/subject`);
       const generator = entries(subject);
 
-      const a = (await generator.next()).value as [string, Document];
+      const a = (await generator.next()).value as [string, Browser];
       expect(a[0]).to.eql("a");
       expect(value(a[1])).to.eql(1);
 
-      const b = (await generator.next()).value as [string, Document];
+      const b = (await generator.next()).value as [string, Browser];
       expect(b[0]).to.eql("b");
       expect(value(b[1])).to.eql(2);
 
-      const c = (await generator.next()).value as [string, Document];
+      const c = (await generator.next()).value as [string, Browser];
       expect(c[0]).to.eql("c");
       expect(value(c[1])).to.eql(2);
 

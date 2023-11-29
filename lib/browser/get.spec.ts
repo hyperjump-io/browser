@@ -38,9 +38,10 @@ describe("JSON Browser", () => {
 
       const browser = await get(`${testDomain}${path}#${fragment}`);
 
-      expect(browser.baseUri).to.equal(`${testDomain}${path}`);
+      expect(browser.uri).to.equal(`${testDomain}${path}${href}`);
       expect(browser.cursor).to.equal(href.slice(1));
-      expect(browser.root).to.eql({ foo: 42, bar: new Reference(href) });
+      expect(browser.document.baseUri).to.equal(`${testDomain}${path}`);
+      expect(browser.document.root).to.eql({ foo: 42, bar: new Reference(href) });
     });
 
     it("relative to browser", async () => {
@@ -63,9 +64,10 @@ describe("JSON Browser", () => {
       const context = await get(`${testDomain}${path}`);
       const browser = await get(href, context);
 
-      expect(browser.baseUri).to.equal(`${testDomain}${href}`);
+      expect(browser.uri).to.equal(`${testDomain}${href}`);
       expect(browser.cursor).to.equal("");
-      expect(browser.root).to.eql("bar");
+      expect(browser.document.baseUri).to.equal(`${testDomain}${href}`);
+      expect(browser.document.root).to.eql("bar");
     });
 
     it("fragment-only relative to browser", async () => {
@@ -88,9 +90,10 @@ describe("JSON Browser", () => {
       const context = await get(testDomain + path);
       const browser = await get(`#${fragment}`, context);
 
-      expect(browser.baseUri).to.equal(testDomain + path);
+      expect(browser.uri).to.equal(`${testDomain}${path}#${fragment}`);
       expect(browser.cursor).to.equal(href.slice(1));
-      expect(browser.root).to.eql({ foo: 42, bar: new Reference(href) });
+      expect(browser.document.baseUri).to.equal(testDomain + path);
+      expect(browser.document.root).to.eql({ foo: 42, bar: new Reference(href) });
     });
   });
 });

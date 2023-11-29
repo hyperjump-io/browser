@@ -66,32 +66,32 @@ value(name); // => Luke Skywalker
 
 ### API
 
-* get(uri: string, document?: Document): Promise\<Document>
+* get(uri: string, browser?: Browser): Promise\<Browser>
 
     Retrieve a document located at the given URI. Support for [JRef] is built
     in. See the [Media Types](#media-type) section for information on how
     to support other media types. Support for `http(s):` and `file:` URI schemes
     are built in. See the [Uri Schemes](#uri-schemes) section for information on
     how to support other URI schemes.
-* value(document: Document) => Json
+* value(browser: Browser) => Json
 
     Get the JSON compatible value the document represents. Any references will
     have been followed so you'll never receive a `Reference` type.
-* step(key: string | number, document: Document) => Promise\<Document>
+* step(key: string | number, browser: Browser) => Promise\<Browser>
 
-    Move the document cursor by the given "key" value. This is analogous to
+    Move the browser cursor by the given "key" value. This is analogous to
     indexing into an object or array (`foo[key]`). This function supports
     curried application.
-* **Schema.iter**: (document: Document) => AsyncGenerator\<Document>
+* iter(browser: Browser) => AsyncGenerator\<Browser>
 
-    Iterate over the items in the array that the Document represents.
-* **Schema.entries**: (document: Document) => AsyncGenerator\<[string, Document]>
+    Iterate over the items in the array that the document represents.
+* entries(browser: Browser) => AsyncGenerator\<[string, Browser]>
 
-    Similar to `Object.entries`, but yields Documents for values.
-* **Schema.values**: (document: Document) => AsyncGenerator\<Document>
+    Similar to `Object.entries`, but yields Browsers for values.
+* values(browser: Browser) => AsyncGenerator\<Browser>
 
-    Similar to `Object.values`, but yields Documents for values.
-* **Schema.keys**: (document: Document) => Generator\<string>
+    Similar to `Object.values`, but yields Browsers for values.
+* keys(browser: Browser) => Generator\<string>
 
     Similar to `Object.keys`.
 
@@ -109,13 +109,16 @@ import YAML from "yaml";
 addMediaTypePlugin("application/reference+yaml", {
   parse: async (response) => {
     return {
-      documentValue: YAML.parse(await response.text(), (key, value) => {
+      baseUri: response.url,
+      root: (response) => YAML.parse(await response.text(), (key, value) => {
         return value !== null && typeof value.$href === "string"
           ? new Reference(value.$href)
           : value;
-      });
+      },
+      anchorLocation: (fragment) => fragment ?? "";
     };
-  }
+  },
+  fileMatcher: (path) => path.endsWith(".jref")
 });
 
 // Prefer "YRef" over JRef by reducing the quality for JRef.
@@ -132,7 +135,7 @@ removeMediaTypePlugin("application/reference+json");
     Add support for additional media types.
 
   * type MediaTypePlugin
-    * parse: (content: string) => Document
+    * parse: (response: Response) => Document
     * [quality](https://developer.mozilla.org/en-US/docs/Glossary/Quality_values):
       number (defaults to `1`)
 * removeMediaTypePlugin(contentType: string): void
@@ -157,7 +160,7 @@ import { addUriSchemePlugin, removeUriSchemePlugin, retrieve } from "@hyperjump/
 
 // Add support for the `urn:` scheme
 addUriSchemePlugin("urn", {
-  parse: (urn, document) => {
+  parse: (urn, baseUri) => {
     let { nid, nss, query, fragment } = parseUrn(urn);
     nid = nid.toLowerCase();
 
@@ -169,7 +172,7 @@ addUriSchemePlugin("urn", {
     uri += query ? "?" + query : "";
     uri += fragment ? "#" + fragment : "";
 
-    return retrieve(uri, document);
+    return retrieve(uri, baseUri);
   }
 });
 
@@ -185,11 +188,11 @@ removeUriSchemePlugin("file");
     Add support for additional URI schemes.
 
   * type UriSchemePlugin
-    * retrieve: (uri: string, document: Document) => Promise\<{ response: Response, fragment: string }>
+    * retrieve: (uri: string, baseUri?: string) => Promise\<{ response: Response, fragment: string }>
 * removeUriSchemePlugin(scheme: string): void
 
     Remove support for a URI scheme.
-* retrieve(uri: string, document: Document) => Promise\<{ response: Response, fragment: string }>
+* retrieve(uri: string, baseUri: string) => Promise\<{ response: Response, fragment: string }>
 
     This is used internally, but you may need it if mapping names to locators
     such as in the example above.
