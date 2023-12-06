@@ -14,7 +14,7 @@ describe("JSON Browser", () => {
         expect.fail("Expected RetrievalError => UnsupportedUriSchemeError");
       } catch (error: unknown) {
         expect(error).to.be.instanceof(RetrievalError);
-        expect(((error as RetrievalError).cause as Error).name).to.equal("UnsupportedUriSchemeError");
+        expect((error as RetrievalError).cause.name).to.equal("UnsupportedUriSchemeError");
       }
     });
 
@@ -51,7 +51,7 @@ describe("JSON Browser", () => {
           expect.fail("Expected RetrievalError => UnsupportedUriSchemeError");
         } catch (error: unknown) {
           expect(error).to.be.instanceof(RetrievalError);
-          expect(((error as RetrievalError).cause as Error).name).to.equal("UnsupportedUriSchemeError");
+          expect((error as RetrievalError).cause.name).to.equal("UnsupportedUriSchemeError");
         }
       });
     });

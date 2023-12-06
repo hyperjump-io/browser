@@ -28,7 +28,7 @@ describe("JSON Browser", () => {
           expect.fail("Expected Error: ENOENT: no such file or directory");
         } catch (error: unknown) {
           expect(error).to.be.instanceof(RetrievalError);
-          expect(((error as RetrievalError).cause as Error).message).to.contain("ENOENT: no such file or directory");
+          expect((error as RetrievalError).cause.message).to.contain("ENOENT: no such file or directory");
         }
       });
 
@@ -45,7 +45,7 @@ foo: 42
           expect.fail("Expected RetrievalError => UnknownMediaTypeError");
         } catch (error: unknown) {
           expect(error).to.be.instanceof(RetrievalError);
-          expect(((error as RetrievalError).cause as Error).name).to.equal("UnknownMediaTypeError");
+          expect((error as RetrievalError).cause.name).to.equal("UnknownMediaTypeError");
         }
       });
 

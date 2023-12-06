@@ -2,7 +2,10 @@
 .eslintrc.json
 .mocharc.json
 **/*.spec.ts
-**/*.schema.json
-**/*.schema.yaml
 tsconfig.json
+lib/jref/SPECIFICATION.md
 scratch/
+TODO
+rollup.config.js
+dist/
+lib/urn-scheme-plugin.js

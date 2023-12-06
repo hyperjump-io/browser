@@ -32,7 +32,7 @@ describe("JSON Browser", () => {
           expect.fail("Expected RetrievalError => HttpError");
         } catch (error: unknown) {
           expect(error).to.be.instanceof(RetrievalError);
-          expect(((error as RetrievalError).cause as Error).name).to.equal("HttpError");
+          expect((error as RetrievalError).cause.name).to.equal("HttpError");
         }
       });
 
@@ -48,7 +48,7 @@ describe("JSON Browser", () => {
           expect.fail("Expected RetrievalError => UnknownMediaTypeError");
         } catch (error: unknown) {
           expect(error).to.be.instanceof(RetrievalError);
-          expect(((error as RetrievalError).cause as Error).name).to.equal("UnknownMediaTypeError");
+          expect((error as RetrievalError).cause.name).to.equal("UnknownMediaTypeError");
         }
       });
 
@@ -66,7 +66,7 @@ describe("JSON Browser", () => {
           expect.fail("Expected RetrievalError => UnsupportedMediaTypeError");
         } catch (error: unknown) {
           expect(error).to.be.instanceof(RetrievalError);
-          expect(((error as RetrievalError).cause as Error).name).to.equal("UnsupportedMediaTypeError");
+          expect((error as RetrievalError).cause.name).to.equal("UnsupportedMediaTypeError");
         }
       });
 
@@ -136,7 +136,7 @@ describe("JSON Browser", () => {
           expect.fail("Expected RetrievalError => HttpError");
         } catch (error: unknown) {
           expect(error).to.be.instanceof(RetrievalError);
-          expect(((error as RetrievalError).cause as Error).name).to.equal("HttpError");
+          expect((error as RetrievalError).cause.name).to.equal("HttpError");
         }
       });
 
@@ -239,7 +239,7 @@ describe("JSON Browser", () => {
             expect.fail("Expected RetrievalError => HttpError");
           } catch (error: unknown) {
             expect(error).to.be.instanceof(RetrievalError);
-            expect(((error as RetrievalError).cause as Error).name).to.include("HttpError");
+            expect((error as RetrievalError).cause.name).to.include("HttpError");
           }
         });
       });
