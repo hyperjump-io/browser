@@ -1,5 +1,6 @@
-import { describe, it, beforeEach, expect } from "vitest";
-import { get } from "../index.js";
+import { describe, it, beforeEach, afterEach, expect } from "vitest";
+import { MockAgent, setGlobalDispatcher } from "undici";
+import { get, addMediaTypePlugin, removeMediaTypePlugin } from "../index.js";
 import { Reference } from "../jref/index.js";
 
 import type{ Browser, Document } from "../index.js";
@@ -7,70 +8,80 @@ import type{ Browser, Document } from "../index.js";
 
 describe("JSON Browser", () => {
   describe("embedded", () => {
-    const testDomain = "https://example.com";
-    const anchorLocation = (fragment: string | undefined) => fragment ?? "";
+    const testDomain = "https://test.hyperjump.io";
+    let mockAgent: MockAgent;
     let browser: Browser;
 
-    beforeEach(() => {
-      const embedded: Record<string, Document> = {};
+    beforeEach(async () => {
+      mockAgent = new MockAgent();
+      mockAgent.disableNetConnect();
+      setGlobalDispatcher(mockAgent);
 
-      embedded[`${testDomain}/foo`] = {
-        baseUri: `${testDomain}/foo`,
-        root: {
-          main: new Reference("/main"),
-          bar: new Reference("/bar")
+      addMediaTypePlugin("application/prs.hyperjump-embedded", {
+        parse: async () => {
+          const embedded: Record<string, Document> = {};
+          const anchorLocation = (fragment: string | undefined) => fragment ?? "";
+
+          embedded[`${testDomain}/foo`] = {
+            baseUri: `${testDomain}/foo`,
+            root: {
+              main: new Reference("/main"),
+              bar: new Reference("/bar")
+            },
+            anchorLocation,
+            embedded
+          };
+
+          embedded[`${testDomain}/bar`] = {
+            baseUri: `${testDomain}/bar`,
+            root: {},
+            anchorLocation,
+            embedded
+          };
+
+          embedded[`${testDomain}/cached`] = {
+            baseUri: `${testDomain}/cached`,
+            root: {
+              foo: new Reference("/foo")
+            },
+            anchorLocation,
+            embedded
+          };
+
+          return {
+            baseUri: `${testDomain}/main`,
+            root: {
+              aaa: 42,
+              bbb: new Reference("/foo"),
+              ccc: new Reference("/foo#/main"),
+              ddd: new Reference("/foo#/bar"),
+              eee: new Reference("/cached#/foo")
+            },
+            anchorLocation,
+            embedded
+          };
         },
-        anchorLocation,
-        embedded
-      };
+        fileMatcher: async (path) => path.endsWith(".embedded")
+      });
 
-      embedded[`${testDomain}/bar`] = {
-        baseUri: `${testDomain}/bar`,
-        root: {},
-        anchorLocation,
-        embedded
-      };
+      const cached = `{
+        "foo": { "$href": "/bar" }
+      }`;
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/cached" })
+        .reply(200, cached, { headers: { "content-type": "application/reference+json" } });
+      browser = await get(`${testDomain}/cached`);
 
-      embedded[`${testDomain}/cached`] = {
-        baseUri: `${testDomain}/cached`,
-        root: {
-          foo: new Reference("/foo")
-        },
-        anchorLocation,
-        embedded
-      };
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/main" })
+        .reply(200, "", { headers: { "content-type": "application/prs.hyperjump-embedded" } });
+      browser = await get(`${testDomain}/main`, browser);
+    });
 
-      const cachedDocument = {
-        baseUri: `${testDomain}/cached`,
-        root: {
-          foo: new Reference("/bar")
-        },
-        anchorLocation,
-        embedded
-      };
+    afterEach(async () => {
+      await mockAgent.close();
 
-      const mainDocument = {
-        baseUri: `${testDomain}/main`,
-        root: {
-          aaa: 42,
-          bbb: new Reference("/foo"),
-          ccc: new Reference("/foo#/main"),
-          ddd: new Reference("/foo#/bar"),
-          eee: new Reference("/cached#/foo")
-        },
-        anchorLocation,
-        embedded
-      };
-
-      browser = {
-        uri: `${testDomain}/main`,
-        cursor: "",
-        document: mainDocument,
-        cache: {
-          [`${testDomain}/main`]: { source: "https", document: mainDocument },
-          [`${testDomain}/cached`]: { source: "https", document: cachedDocument }
-        }
-      };
+      removeMediaTypePlugin("application/prs.hyperjump-embedded");
     });
 
     it("getting an embedded document", async () => {

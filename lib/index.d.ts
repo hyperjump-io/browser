@@ -7,7 +7,6 @@ export type Browser<T extends Document = Document> = {
   uri: string;
   document: T;
   cursor: string;
-  cache: Record<string, { source: string, document: Document }>;
 };
 
 export type Document = {
