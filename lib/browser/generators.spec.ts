@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { get, value, iter, keys, values, entries } from "../index.js";
 import type { Document } from "../index.js";

@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect } from "vitest";
 import {
   addMediaTypePlugin,
   removeMediaTypePlugin,

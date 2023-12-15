@@ -1,6 +1,6 @@
 import { mkdir, rm, writeFile, symlink } from "node:fs/promises";
 import { cwd } from "node:process";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { get, RetrievalError } from "../index.js";
 import { Reference } from "../jref/index.js";

@@ -1,5 +1,5 @@
 import { Readable } from "node:stream";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect } from "vitest";
 import { Response } from "undici";
 import { addUriSchemePlugin, removeUriSchemePlugin, get, RetrievalError } from "../index.js";
 

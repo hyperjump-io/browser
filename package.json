@@ -15,7 +15,7 @@
   "scripts": {
     "clean": "xargs -a .gitignore rm -rf",
     "lint": "eslint lib",
-    "test": "mocha 'lib/**/*.spec.ts'"
+    "test": "vitest --watch=false"
   },
   "repository": {
     "type": "git",
@@ -34,20 +34,16 @@
     "url": "https://github.com/sponsors/jdesrosiers"
   },
   "devDependencies": {
-    "@types/chai": "*",
-    "@types/mocha": "*",
+    "@types/node": "^20.10.4",
     "@typescript-eslint/eslint-plugin": "*",
     "@typescript-eslint/parser": "*",
-    "chai": "*",
     "eslint": "*",
     "eslint-import-resolver-exports": "*",
     "eslint-import-resolver-node": "*",
     "eslint-import-resolver-typescript": "*",
     "eslint-plugin-import": "*",
-    "mocha": "*",
-    "ts-node": "*",
     "typescript": "*",
-    "yaml": "*"
+    "vitest": "^1.0.4"
   },
   "engines": {
     "node": ">=18.0.0"

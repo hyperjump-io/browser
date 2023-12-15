@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import { describe, it, beforeAll, expect } from "vitest";
 import { parse, stringify, Reference } from "./index.js";
 
 
@@ -196,7 +196,7 @@ describe("JRef", () => {
       let subject: Reference;
       const uri = "https://example.com/foo";
 
-      before(() => {
+      beforeAll(() => {
         subject = new Reference(uri);
       });
 
@@ -213,7 +213,7 @@ describe("JRef", () => {
       let subject: Reference;
       const uri = "https://example.com/foo";
 
-      before(() => {
+      beforeAll(() => {
         subject = new Reference(uri, [uri]);
       });
 
