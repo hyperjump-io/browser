@@ -77,6 +77,18 @@ value(name); // => Luke Skywalker
 
     Get the JSON compatible value the document represents. Any references will
     have been followed so you'll never receive a `Reference` type.
+* typeof(browser: Browser) => JRefType
+
+    Works the same as the `typeof` keyword. It will return one of the JSON types
+    (null, boolean, number, string, array, object) or "reference". If the value
+    is not one of these types, it will throw an error.
+* has(key: string, browser: Browser) => boolean
+
+    Returns whether or not a property is present in the object that the browser
+    represents.
+* length(browser: Browser) => number
+
+    Get the length of the array that the browser represents.
 * step(key: string | number, browser: Browser) => Promise\<Browser>
 
     Move the browser cursor by the given "key" value. This is analogous to

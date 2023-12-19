@@ -1,5 +1,5 @@
 import type { Response } from "undici";
-import type { JRef } from "./jref/index.js";
+import type { JRef, JRefType } from "./jref/index.js";
 
 
 // Browser
@@ -17,12 +17,15 @@ export type Document = {
 };
 
 export const get: <T extends Document>(uri: string, browser?: Browser) => Promise<Browser<T>>;
-export const value: (browser: Browser) => unknown;
-export const step: <T extends Document>(key: string, browser: Browser) => Promise<Browser<T>>;
-export const iter: <T extends Document>(browser: Browser) => AsyncGenerator<Browser<T>>;
+export const value: <T>(browser: Browser) => T;
+export const typeOf: (browser: Browser) => JRefType;
+export const has: (key: string, browser: Browser) => boolean;
+export const length: (browser: Browser) => number;
+export const step: (key: string, browser: Browser) => Promise<Browser>;
+export const iter: (browser: Browser) => AsyncGenerator<Browser>;
 export const keys: (browser: Browser) => Generator<string>;
-export const values: (browser: Browser) => AsyncGenerator<string>;
-export const entries: <T extends Document>(browser: Browser) => AsyncGenerator<[string, Browser<T>]>;
+export const values: (browser: Browser) => AsyncGenerator<Browser>;
+export const entries: (browser: Browser) => AsyncGenerator<[string, Browser]>;
 
 export class RetrievalError extends Error {
   public constructor(message: string, cause: Error);
@@ -36,7 +39,7 @@ export type MediaTypePlugin<T extends Document = Document> = {
   quality?: number;
 };
 
-export const addMediaTypePlugin: <T extends Document>(contentType: string, plugin: MediaTypePlugin<T>) => void;
+export const addMediaTypePlugin: (contentType: string, plugin: MediaTypePlugin) => void;
 export const removeMediaTypePlugin: (contentType: string) => void;
 export const setMediaTypeQuality: (contentType: string, quality: number) => void;
 
