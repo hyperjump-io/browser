@@ -19,6 +19,10 @@ describe("JRef - jrefTypeOf", () => {
     expect(jrefTypeOf(42)).to.equal("number");
   });
 
+  it("bigint", () => {
+    expect(jrefTypeOf(42n)).to.equal("number");
+  });
+
   it("string", () => {
     expect(jrefTypeOf("")).to.equal("string");
   });
@@ -31,6 +35,10 @@ describe("JRef - jrefTypeOf", () => {
     expect(jrefTypeOf({})).to.equal("object");
   });
 
+  it("null prototype object", () => {
+    expect(jrefTypeOf(Object.create(null))).to.equal("object");
+  });
+
   it("reference", () => {
     expect(jrefTypeOf(new Reference("/"))).to.equal("reference");
   });
@@ -39,13 +47,23 @@ describe("JRef - jrefTypeOf", () => {
     expect(jrefTypeOf(undefined)).to.equal("undefined");
   });
 
-  it("function should error", () => {
-    const subject = () => true;
-    expect(() => jrefTypeOf(subject)).to.throw(Error, "Not a JRef compatible type");
+  it("symbol", () => {
+    const subject = Symbol("test");
+    expect(() => jrefTypeOf(subject)).to.throw(Error, "Not a JRef compatible type: symbol");
   });
 
-  it("Set should error", () => {
+  it("function", () => {
+    const subject = () => true;
+    expect(() => jrefTypeOf(subject)).to.throw(Error, "Not a JRef compatible type: function");
+  });
+
+  it("non-plain-object", () => {
     const subject = new Set();
-    expect(() => jrefTypeOf(subject)).to.throw(Error, "Not a JRef compatible type");
+    expect(() => jrefTypeOf(subject)).to.throw(Error, "Not a JRef compatible type: Set");
+  });
+
+  it("anonymous non-plain-object", () => {
+    const subject = new class {}();
+    expect(() => jrefTypeOf(subject)).to.throw(Error, "Not a JRef compatible type: anonymous");
   });
 });

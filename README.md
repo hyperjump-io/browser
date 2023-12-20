@@ -215,7 +215,7 @@ Parse and stringify [JRef] values using the same API as the `JSON` built-in
 functions including reviver and replacer functions.
 
 ```javascript
-import { parse, stringify, Reference } from "@hyperjump/browser/jref";
+import { parse, stringify, jrefTypeOf } from "@hyperjump/browser/jref";
 
 const blogPostJref = `{
   "title": "Working with JRef",
@@ -223,11 +223,24 @@ const blogPostJref = `{
   "content": "lorem ipsum dolor sit amet",
 }`;
 const blogPost = parse(blogPostJref);
-blogPost.author instanceof Reference; // => true
+jrefTypeOf(blogPost.author) // => "reference"
 blogPost.author.href; // => "/author/jdesrosiers"
 
 stringify(blogPost, null, "  ") === blogPostJref // => true
 ```
+
+### API
+export type Replacer = (key: string, value: unknown) => unknown;
+
+* parse: (jref: string, reviver?: (key: string, value: unknown) => unknown) => JRef;
+
+    Same as `JSON.parse`, but converts `{ "$href": "..." }` to `Reference`
+    objects.
+* stringify: (value: JRef, replacer?: (string | number)[] | null | Replacer, space?: string | number) => string;
+
+    Same as `JSON.stringify`, but converts `Reference` objects to `{ "$href":
+    "... " }`
+* jrefTypeOf: (value: unknown) => "object" | "array" | "string" | "number" | "boolean" | "null" | "reference" | "undefined";
 
 ## Contributing
 
