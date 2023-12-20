@@ -30,7 +30,7 @@ describe("JSON Browser", () => {
             });
             Object.defineProperty(response, "url", { value: uri });
 
-            return { response, fragment: "" };
+            return response;
           }
         });
       });

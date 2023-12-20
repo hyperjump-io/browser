@@ -48,6 +48,6 @@ export type UriSchemePlugin = {
   retrieve: typeof retrieve;
 };
 
-export const retrieve: (uri: string, baseUri?: string) => Promise<{ response: Response, fragment: string }>;
+export const retrieve: (uri: string, baseUri?: string) => Promise<Response>;
 export const addUriSchemePlugin: (scheme: string, plugin: UriSchemePlugin) => void;
 export const removeUriSchemePlugin: (scheme: string) => void;

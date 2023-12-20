@@ -200,11 +200,11 @@ removeUriSchemePlugin("file");
     Add support for additional URI schemes.
 
   * type UriSchemePlugin
-    * retrieve: (uri: string, baseUri?: string) => Promise\<{ response: Response, fragment: string }>
+    * retrieve: (uri: string, baseUri?: string) => Promise\<Response>
 * removeUriSchemePlugin(scheme: string): void
 
     Remove support for a URI scheme.
-* retrieve(uri: string, baseUri: string) => Promise\<{ response: Response, fragment: string }>
+* retrieve(uri: string, baseUri: string) => Promise\<Response>
 
     This is used internally, but you may need it if mapping names to locators
     such as in the example above.
