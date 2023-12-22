@@ -1,131 +1,182 @@
-import { describe, it, beforeEach, afterEach, expect } from "vitest";
+import { describe, it, beforeEach, afterEach, expect, beforeAll, afterAll } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { get, addMediaTypePlugin, removeMediaTypePlugin } from "../index.js";
-import { Reference } from "../jref/index.js";
+import { parse, stringify } from "../jref/index.js";
 
-import type{ Browser, Document } from "../index.js";
+import type { Document } from "../index.js";
+import type { JRefObject } from "../jref/index.js";
 
 
 describe("JSON Browser", () => {
   describe("embedded", () => {
     const testDomain = "https://test.hyperjump.io";
+    const testMediaType = "application/prs.hyperjump-embedded-test";
+
+    beforeAll(() => {
+      const parseToDocument = (url: string, text: string, embedded: Record<string, Document> = {}): Document => {
+        return {
+          baseUri: url,
+          root: parse(text, (key, value) => {
+            if (key === "$embedded") {
+              for (const uri in value as JRefObject) {
+                embedded[uri] = parseToDocument(uri, stringify((value as JRefObject)[uri]), embedded);
+              }
+              return;
+            } else {
+              return value;
+            }
+          }),
+          anchorLocation: (fragment: string | undefined) => fragment ?? "",
+          embedded: embedded
+        };
+      };
+      addMediaTypePlugin(testMediaType, {
+        parse: async (response) => parseToDocument(response.url, await response.text()),
+        fileMatcher: async (path) => path.endsWith(".embedded")
+      });
+    });
+
+    afterAll(() => {
+      removeMediaTypePlugin(testMediaType);
+    });
+
     let mockAgent: MockAgent;
-    let browser: Browser;
 
     beforeEach(async () => {
       mockAgent = new MockAgent();
       mockAgent.disableNetConnect();
       setGlobalDispatcher(mockAgent);
-
-      addMediaTypePlugin("application/prs.hyperjump-embedded", {
-        parse: async () => {
-          const embedded: Record<string, Document> = {};
-          const anchorLocation = (fragment: string | undefined) => fragment ?? "";
-
-          embedded[`${testDomain}/foo`] = {
-            baseUri: `${testDomain}/foo`,
-            root: {
-              main: new Reference("/main"),
-              bar: new Reference("/bar")
-            },
-            anchorLocation,
-            embedded
-          };
-
-          embedded[`${testDomain}/bar`] = {
-            baseUri: `${testDomain}/bar`,
-            root: {},
-            anchorLocation,
-            embedded
-          };
-
-          embedded[`${testDomain}/cached`] = {
-            baseUri: `${testDomain}/cached`,
-            root: {
-              foo: new Reference("/foo")
-            },
-            anchorLocation,
-            embedded
-          };
-
-          return {
-            baseUri: `${testDomain}/main`,
-            root: {
-              aaa: 42,
-              bbb: new Reference("/foo"),
-              ccc: new Reference("/foo#/main"),
-              ddd: new Reference("/foo#/bar"),
-              eee: new Reference("/cached#/foo")
-            },
-            anchorLocation,
-            embedded
-          };
-        },
-        fileMatcher: async (path) => path.endsWith(".embedded")
-      });
-
-      const cached = `{
-        "foo": { "$href": "/bar" }
-      }`;
-      mockAgent.get(testDomain)
-        .intercept({ method: "GET", path: "/cached" })
-        .reply(200, cached, { headers: { "content-type": "application/reference+json" } });
-      browser = await get(`${testDomain}/cached`);
-
-      mockAgent.get(testDomain)
-        .intercept({ method: "GET", path: "/main" })
-        .reply(200, "", { headers: { "content-type": "application/prs.hyperjump-embedded" } });
-      browser = await get(`${testDomain}/main`, browser);
     });
 
     afterEach(async () => {
       await mockAgent.close();
-
-      removeMediaTypePlugin("application/prs.hyperjump-embedded");
     });
 
     it("getting an embedded document", async () => {
-      const foo = await get("/foo", browser);
+      const jrefEmbedded = `{
+        "$embedded": {
+          "${testDomain}/foo": {}
+        }
+      }`;
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/main" })
+        .reply(200, jrefEmbedded, { headers: { "content-type": testMediaType } });
+      const main = await get(`${testDomain}/main`);
+      const subject = await get("/foo", main);
 
-      expect(foo.uri).to.equal(`${testDomain}/foo`);
+      expect(subject.uri).to.equal(`${testDomain}/foo`);
     });
 
     it("getting the main document from an embedded document", async () => {
-      const foo = await get("/foo", browser);
-      const main = await get("/main", foo);
+      const jrefEmbedded = `{
+        "$embedded": {
+          "${testDomain}/foo": {}
+        }
+      }`;
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/main" })
+        .reply(200, jrefEmbedded, { headers: { "content-type": testMediaType } });
+      const main = await get(`${testDomain}/main`);
+      const foo = await get("/foo", main);
+      const subject = await get("/main", foo);
 
-      expect(main.uri).to.equal(`${testDomain}/main`);
+      expect(subject.uri).to.equal(`${testDomain}/main`);
     });
 
     it("getting an embedded document from an embedded document", async () => {
-      const foo = await get("/foo", browser);
-      const bar = await get("/bar", foo);
+      const jrefEmbedded = `{
+        "$embedded": {
+          "${testDomain}/foo": {},
+          "${testDomain}/bar": {}
+        }
+      }`;
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/main" })
+        .reply(200, jrefEmbedded, { headers: { "content-type": testMediaType } });
+      const main = await get(`${testDomain}/main`);
+      const foo = await get("/foo", main);
+      const subject = await get("/bar", foo);
 
-      expect(bar.uri).to.equal(`${testDomain}/bar`);
+      expect(subject.uri).to.equal(`${testDomain}/bar`);
     });
 
     it("referencing an embedded document", async () => {
-      const foo = await get("#/bbb", browser);
+      const jrefEmbedded = `{
+        "foo": { "$href": "/foo" },
 
-      expect(foo.uri).to.equal(`${testDomain}/foo`);
+        "$embedded": {
+          "${testDomain}/foo": {}
+        }
+      }`;
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/main" })
+        .reply(200, jrefEmbedded, { headers: { "content-type": testMediaType } });
+      const subject = await get(`${testDomain}/main#/foo`);
+
+      expect(subject.uri).to.equal(`${testDomain}/foo`);
     });
 
     it("referencing the main document from an embedded document", async () => {
-      const foo = await get("#/ccc", browser);
+      const jrefEmbedded = `{
+        "$embedded": {
+          "${testDomain}/foo": {
+            "main": { "$href": "/main" }
+          }
+        }
+      }`;
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/main" })
+        .reply(200, jrefEmbedded, { headers: { "content-type": testMediaType } });
+      const main = await get(`${testDomain}/main`);
+      const subject = await get("/foo#/main", main);
 
-      expect(foo.uri).to.equal(`${testDomain}/main`);
+      expect(subject.uri).to.equal(`${testDomain}/main`);
     });
 
     it("referencing an embedded document from an embedded document", async () => {
-      const foo = await get("#/ddd", browser);
+      const jrefEmbedded = `{
+        "$embedded": {
+          "${testDomain}/foo": {
+            "bar": { "$href": "/bar" }
+          },
+          "${testDomain}/bar": {}
+        }
+      }`;
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/main" })
+        .reply(200, jrefEmbedded, { headers: { "content-type": testMediaType } });
+      const main = await get(`${testDomain}/main`);
+      const subject = await get("/foo#/bar", main);
 
-      expect(foo.uri).to.equal(`${testDomain}/bar`);
+      expect(subject.uri).to.equal(`${testDomain}/bar`);
     });
 
-    it("an embedded document takes precence over a cached document", async () => {
-      const foo = await get("#/eee", browser);
+    it("a cached document takes precence over an embedded document", async () => {
+      const cachedJrefEmbedded = `{
+        "foo": { "$href": "/main" }
+      }`;
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/cached" })
+        .reply(200, cachedJrefEmbedded, { headers: { "content-type": testMediaType } });
+      const cached = await get(`${testDomain}/cached`);
 
-      expect(foo.uri).to.equal(`${testDomain}/foo`);
+      const jrefEmbedded = `{
+        "main": { "$href": "/cached#/foo" },
+
+        "$embedded": {
+          "${testDomain}/cached": {
+            "foo": { "$href": "/foo" }
+          },
+          "${testDomain}/foo": {}
+        }
+      }`;
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/main" })
+        .reply(200, jrefEmbedded, { headers: { "content-type": testMediaType } });
+      const main = await get(`${testDomain}/main`, cached);
+      const subject = await get("/cached#/foo", main);
+
+      expect(subject.uri).to.equal(`${testDomain}/main`);
     });
   });
 });
