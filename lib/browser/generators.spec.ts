@@ -20,7 +20,7 @@ describe("JSON Browser", () => {
     });
 
     it("iter", async () => {
-      const jref = `[1, { "$href": "/external" }, { "$href": "#/1" }]`;
+      const jref = `[1, { "$ref": "/external" }, { "$ref": "#/1" }]`;
       const external = "2";
 
       mockAgent.get(testDomain)
@@ -48,8 +48,8 @@ describe("JSON Browser", () => {
     it("keys", async () => {
       const jref = `{
         "a": 1,
-        "b": { "$href": "/external" },
-        "c": { "$href": "#/1" }
+        "b": { "$ref": "/external" },
+        "c": { "$ref": "#/1" }
       }`;
 
       mockAgent.get(testDomain)
@@ -68,8 +68,8 @@ describe("JSON Browser", () => {
     it("values", async () => {
       const jref = `{
         "a": 1,
-        "b": { "$href": "/external" },
-        "c": { "$href": "#/b" }
+        "b": { "$ref": "/external" },
+        "c": { "$ref": "#/b" }
       }`;
       const external = "2";
 
@@ -98,8 +98,8 @@ describe("JSON Browser", () => {
     it("entries", async () => {
       const jref = `{
         "a": 1,
-        "b": { "$href": "/external" },
-        "c": { "$href": "#/b" }
+        "b": { "$ref": "/external" },
+        "c": { "$ref": "#/b" }
       }`;
       const external = "2";
 

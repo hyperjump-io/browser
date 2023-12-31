@@ -16,22 +16,6 @@ environments, so this module may be less stable in those environments.
 npm install @hyperjump/browser
 ```
 
-### Browser
-
-When in a browser context, this library is designed to use the browser's `fetch`
-implementation instead of a node.js fetch clone. The Webpack bundler does this
-properly without any extra configuration, but if you are using the Rollup
-bundler you will need to include the `browser: true` option in your Rollup
-configuration.
-
-```javascript
-  plugins: [
-    resolve({
-      browser: true
-    })
-  ]
-```
-
 ## JRef Browser
 
 This example uses the API at
@@ -73,11 +57,10 @@ value(name); // => Luke Skywalker
     to support other media types. Support for `http(s):` and `file:` URI schemes
     are built in. See the [Uri Schemes](#uri-schemes) section for information on
     how to support other URI schemes.
-* value(browser: Browser) => Json
+* value(browser: Browser) => JRef
 
-    Get the JSON compatible value the document represents. Any references will
-    have been followed so you'll never receive a `Reference` type.
-* typeof(browser: Browser) => JRefType
+    Get the JRef compatible value the document represents.
+* typeOf(browser: Browser) => JRefType
 
     Works the same as the `typeof` keyword. It will return one of the JSON types
     (null, boolean, number, string, array, object) or "reference". If the value
@@ -123,11 +106,11 @@ addMediaTypePlugin("application/reference+yaml", {
     return {
       baseUri: response.url,
       root: (response) => YAML.parse(await response.text(), (key, value) => {
-        return value !== null && typeof value.$href === "string"
-          ? new Reference(value.$href)
+        return value !== null && typeof value.$ref === "string"
+          ? new Reference(value.$ref)
           : value;
       },
-      anchorLocation: (fragment) => fragment ?? "";
+      anchorLocation: (fragment) => decodeUri(fragment ?? "");
     };
   },
   fileMatcher: (path) => path.endsWith(".jref")
@@ -204,22 +187,22 @@ removeUriSchemePlugin("file");
 * removeUriSchemePlugin(scheme: string): void
 
     Remove support for a URI scheme.
-* retrieve(uri: string, baseUri: string) => Promise\<Response>
+* retrieve(uri: string, baseUri?: string) => Promise\<Response>
 
     This is used internally, but you may need it if mapping names to locators
     such as in the example above.
 
 ## JRef
 
-Parse and stringify [JRef] values using the same API as the `JSON` built-in
-functions including reviver and replacer functions.
+`parse` and `stringify` [JRef] values using the same API as the `JSON` built-in
+functions including `reviver` and `replacer` functions.
 
 ```javascript
 import { parse, stringify, jrefTypeOf } from "@hyperjump/browser/jref";
 
 const blogPostJref = `{
   "title": "Working with JRef",
-  "author": { "$href": "/author/jdesrosiers" },
+  "author": { "$ref": "/author/jdesrosiers" },
   "content": "lorem ipsum dolor sit amet",
 }`;
 const blogPost = parse(blogPostJref);
@@ -234,11 +217,11 @@ export type Replacer = (key: string, value: unknown) => unknown;
 
 * parse: (jref: string, reviver?: (key: string, value: unknown) => unknown) => JRef;
 
-    Same as `JSON.parse`, but converts `{ "$href": "..." }` to `Reference`
+    Same as `JSON.parse`, but converts `{ "$ref": "..." }` to `Reference`
     objects.
 * stringify: (value: JRef, replacer?: (string | number)[] | null | Replacer, space?: string | number) => string;
 
-    Same as `JSON.stringify`, but converts `Reference` objects to `{ "$href":
+    Same as `JSON.stringify`, but converts `Reference` objects to `{ "$ref":
     "... " }`
 * jrefTypeOf: (value: unknown) => "object" | "array" | "string" | "number" | "boolean" | "null" | "reference" | "undefined";
 

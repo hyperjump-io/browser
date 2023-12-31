@@ -103,7 +103,7 @@ foo: 42
           const href = "#/foo";
           const jref = `{
   "foo": 42,
-  "bar": { "$href": "${href}" }
+  "bar": { "$ref": "${href}" }
 }`;
 
           await writeFile(`${cwd()}/${path}`, jref, { flag: "w+" });
@@ -122,7 +122,7 @@ foo: 42
           const href = "#/foo";
           const jref = `{
   "foo": 42,
-  "bar": { "$href": "${href}" }
+  "bar": { "$ref": "${href}" }
 }`;
 
           await writeFile(path, jref, { flag: "w+" });
@@ -141,7 +141,7 @@ foo: 42
           const href = "#/foo";
           const jref = `{
   "foo": 42,
-  "bar": { "$href": "${href}" }
+  "bar": { "$ref": "${href}" }
 }`;
 
           await writeFile(path, jref, { flag: "w+" });
@@ -160,7 +160,7 @@ foo: 42
           const href = "#/foo";
           const jref = `{
   "foo": 42,
-  "bar": { "$href": "${href}" }
+  "bar": { "$ref": "${href}" }
 }`;
 
           await writeFile(path, jref, { flag: "w+" });
@@ -181,7 +181,7 @@ foo: 42
         const href = "/bar";
         const jref = `{
   "foo": 42,
-  "bar": { "$href": "${href}" }
+  "bar": { "$ref": "${href}" }
 }`;
 
         await writeFile(`${cwd()}/${actualPath}`, jref, { flag: "w+" });

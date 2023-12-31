@@ -43,7 +43,7 @@ describe("JRef", () => {
       });
 
       it("reference", () => {
-        const subject = parse(`{ "$href": "${uri}" }`);
+        const subject = parse(`{ "$ref": "${uri}" }`);
         expect(subject).to.eql(new Reference(uri));
       });
     });
@@ -60,7 +60,7 @@ describe("JRef", () => {
       });
 
       it("reference", () => {
-        const subject = parse(`["foo", { "$href": "${uri}" }, 42]`);
+        const subject = parse(`["foo", { "$ref": "${uri}" }, 42]`);
         expect(subject).to.be.eql(["foo", new Reference(uri), 42]);
       });
     });
@@ -77,14 +77,14 @@ describe("JRef", () => {
       });
 
       it("reference", () => {
-        const subject = parse(`{ "foo": 42, "bar": { "$href": "${uri}" } }`);
+        const subject = parse(`{ "foo": 42, "bar": { "$ref": "${uri}" } }`);
         expect(subject).to.be.eql({ foo: 42, bar: new Reference(uri) });
       });
     });
 
     describe("reviver", () => {
       it("convert properties that start with 'i' to integers", () => {
-        const subject = parse(`{ "foo": 42, "iBar": "42", "baz": { "$href": "${uri}" } }`, (key, value) => {
+        const subject = parse(`{ "foo": 42, "iBar": "42", "baz": { "$ref": "${uri}" } }`, (key, value) => {
           return key[0] === "i" && typeof value === "string" ? parseInt(value, 10) : value;
         });
         expect(subject).to.eql({ foo: 42, iBar: 42, baz: new Reference(uri) });
@@ -131,7 +131,7 @@ describe("JRef", () => {
 
       it("reference", () => {
         const subject = stringify(new Reference(uri));
-        expect(subject).to.equal(`{"$href":"${uri}"}`);
+        expect(subject).to.equal(`{"$ref":"${uri}"}`);
       });
     });
 
@@ -148,7 +148,7 @@ describe("JRef", () => {
 
       it("reference", () => {
         const subject = stringify(["foo", new Reference(uri), 42]);
-        expect(subject).to.be.equal(`["foo",{"$href":"${uri}"},42]`);
+        expect(subject).to.be.equal(`["foo",{"$ref":"${uri}"},42]`);
       });
     });
 
@@ -165,7 +165,7 @@ describe("JRef", () => {
 
       it("reference", () => {
         const subject = stringify({ foo: 42, bar: new Reference(uri) });
-        expect(subject).to.equal(`{"foo":42,"bar":{"$href":"${uri}"}}`);
+        expect(subject).to.equal(`{"foo":42,"bar":{"$ref":"${uri}"}}`);
       });
     });
 
@@ -174,7 +174,7 @@ describe("JRef", () => {
         const subject = stringify({ foo: 42, iBar: 42, baz: new Reference(uri) }, (key, value) => {
           return key[0] === "i" && typeof value === "number" ? String(value) : value;
         });
-        expect(subject).to.equal(`{"foo":42,"iBar":"42","baz":{"$href":"${uri}"}}`);
+        expect(subject).to.equal(`{"foo":42,"iBar":"42","baz":{"$ref":"${uri}"}}`);
       });
     });
 
@@ -184,7 +184,7 @@ describe("JRef", () => {
         expect(subject).to.equal(`{
   "foo": 42,
   "bar": {
-    "$href": "${uri}"
+    "$ref": "${uri}"
   }
 }`);
       });
@@ -200,12 +200,12 @@ describe("JRef", () => {
         subject = new Reference(uri);
       });
 
-      it("href getter", () => {
+      it("$ref getter", () => {
         expect(subject.href).to.equal(uri);
       });
 
       it("to JSON", () => {
-        expect(JSON.stringify(subject)).to.equal(`{"$href":"${uri}"}`);
+        expect(JSON.stringify(subject)).to.equal(`{"$ref":"${uri}"}`);
       });
     });
 
@@ -217,7 +217,7 @@ describe("JRef", () => {
         subject = new Reference(uri, [uri]);
       });
 
-      it("href getter", () => {
+      it("$ref getter", () => {
         expect(subject.href).to.equal(uri);
       });
 

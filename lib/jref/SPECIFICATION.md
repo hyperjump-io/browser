@@ -3,7 +3,10 @@
 ## Introduction
 
 JSON Reference (JRef) is an extension of the [JSON] data interchange format.
-JRef extends [JSON] to add a "reference" type.
+JRef extends [JSON] to add a "reference" type. The spirit of this specification
+is to continue the work started by the [JSON Reference I-D]. This specification
+is 100% compatible with those drafts, but defines things in different way and
+assigns a media type identifier.
 
 ## Media Type
 
@@ -37,22 +40,22 @@ either the current document or a different resource.
 ### Syntax
 
 A value that has the syntax of a [JSON] object is considered a "reference" type
-if it has a `$href` property whose value is of type "string". If either of those
+if it has a `$ref` property whose value is of type "string". If either of those
 constraints aren't met, the value is considered a normal [JSON] object.
 
-The semantics of any properties other than `$href` in a "reference" are
+The semantics of any properties other than `$ref` in a "reference" are
 undefined.
 
 The "reference" type is a scalar value that can not be indexed into like a
 [JSON] object despite the syntactic similarity with a [JSON] object.
 
 ```json
-{ "$href": "https://example.com/example.json#/foo/bar" }
+{ "$ref": "https://example.com/example.json#/foo/bar" }
 ```
 
 ### Semantics
 
-The value of `$href` in a reference is a [URI-reference]. The process for
+The value of `$ref` in a reference is a [URI-reference]. The process for
 determining the base URI for the document is defined by [RFC 3986 Section
 5.1].
 
@@ -63,7 +66,7 @@ reference and present the user with the resulting value.
 
 ```json
 {
-  "foo": { "$href": "#/bar" },
+  "foo": { "$ref": "#/bar" },
   "bar": 42
 }
 ```
@@ -117,16 +120,16 @@ loops.
 
 ```json
 {
-  "foo": { "$href": "#/bar" },
-  "bar": { "$href": "#/foo" }
+  "foo": { "$ref": "#/bar" },
+  "bar": { "$ref": "#/foo" }
 }
 ```
 
 ```json
 {
-  "foo": { "$href": "#/bar" },
-  "bar": { "$href": "#/baz" },
-  "baz": { "$href": "#/foo" }
+  "foo": { "$ref": "#/bar" },
+  "bar": { "$ref": "#/baz" },
+  "baz": { "$ref": "#/foo" }
 }
 ```
 
@@ -167,3 +170,4 @@ MAY also allow users to configure which locations are allowed to be referenced.
 [`https:` URI]: https://www.rfc-editor.org/rfc/rfc9110#section-4.2.2
 [`file:` URI]: https://www.rfc-editor.org/rfc/rfc8089.html
 [IANA media types registry]: https://www.iana.org/assignments/media-types/media-types.xhtml
+[JSON Reference I-D]: https://datatracker.ietf.org/doc/html/draft-pbryan-zyp-json-ref-03

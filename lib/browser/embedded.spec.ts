@@ -102,7 +102,7 @@ describe("JSON Browser", () => {
 
     it("referencing an embedded document", async () => {
       const jrefEmbedded = `{
-        "foo": { "$href": "/foo" },
+        "foo": { "$ref": "/foo" },
 
         "$embedded": {
           "${testDomain}/foo": {}
@@ -120,7 +120,7 @@ describe("JSON Browser", () => {
       const jrefEmbedded = `{
         "$embedded": {
           "${testDomain}/foo": {
-            "main": { "$href": "/main" }
+            "main": { "$ref": "/main" }
           }
         }
       }`;
@@ -137,7 +137,7 @@ describe("JSON Browser", () => {
       const jrefEmbedded = `{
         "$embedded": {
           "${testDomain}/foo": {
-            "bar": { "$href": "/bar" }
+            "bar": { "$ref": "/bar" }
           },
           "${testDomain}/bar": {}
         }
@@ -153,7 +153,7 @@ describe("JSON Browser", () => {
 
     it("a cached document takes precence over an embedded document", async () => {
       const cachedJrefEmbedded = `{
-        "foo": { "$href": "/main" }
+        "foo": { "$ref": "/main" }
       }`;
       mockAgent.get(testDomain)
         .intercept({ method: "GET", path: "/cached" })
@@ -161,11 +161,11 @@ describe("JSON Browser", () => {
       const cached = await get(`${testDomain}/cached`);
 
       const jrefEmbedded = `{
-        "main": { "$href": "/cached#/foo" },
+        "main": { "$ref": "/cached#/foo" },
 
         "$embedded": {
           "${testDomain}/cached": {
-            "foo": { "$href": "/foo" }
+            "foo": { "$ref": "/foo" }
           },
           "${testDomain}/foo": {}
         }

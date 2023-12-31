@@ -42,7 +42,7 @@ describe("JSON Browser", () => {
       const path = "/subject";
       const jref = `{
   "foo": 42,
-  "bar": { "$href": "#/foo" }
+  "bar": { "$ref": "#/foo" }
 }`;
 
       mockAgent.get(testDomain)
@@ -62,8 +62,8 @@ describe("JSON Browser", () => {
       const path = "/subject";
       const jref = `{
   "foo": 42,
-  "bar": { "$href": "#/foo" },
-  "baz": { "$href": "#/bar" }
+  "bar": { "$ref": "#/foo" },
+  "baz": { "$ref": "#/bar" }
 }`;
 
       mockAgent.get(testDomain)
@@ -82,8 +82,8 @@ describe("JSON Browser", () => {
     it("local reference to external reference to value", async () => {
       const subjectPath = "/subject";
       const subjectJref = `{
-  "bar": { "$href": "/external#/foo" },
-  "baz": { "$href": "#/bar" }
+  "bar": { "$ref": "/external#/foo" },
+  "baz": { "$ref": "#/bar" }
 }`;
 
       mockAgent.get(testDomain)
@@ -109,7 +109,7 @@ describe("JSON Browser", () => {
     it("external reference to value", async () => {
       const subjectPath = "/subject";
       const subjectJref = `{
-  "bar": { "$href": "/external#/foo" }
+  "bar": { "$ref": "/external#/foo" }
 }`;
 
       mockAgent.get(testDomain)
@@ -136,7 +136,7 @@ describe("JSON Browser", () => {
     it("external reference to local reference to value", async () => {
       const subjectPath = "/subject";
       const subjectJref = `{
-  "baz": { "$href": "/external#/bar" }
+  "baz": { "$ref": "/external#/bar" }
 }`;
 
       mockAgent.get(testDomain)
@@ -148,7 +148,7 @@ describe("JSON Browser", () => {
       const externalPath = "/external";
       const externalJref = `{
   "foo": 42,
-  "bar": { "$href": "#/foo" }
+  "bar": { "$ref": "#/foo" }
 }`;
 
       mockAgent.get(testDomain)
