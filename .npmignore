@@ -1,6 +1,5 @@
 .github/
 .eslintrc.json
-.mocharc.json
 **/*.spec.ts
 tsconfig.json
 lib/jref/SPECIFICATION.md

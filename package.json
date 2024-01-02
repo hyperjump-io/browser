@@ -25,7 +25,8 @@
     "json",
     "reference",
     "jref",
-    "hypermedia"
+    "hypermedia",
+    "$ref"
   ],
   "author": "Jason Desrosiers <jdesrosi@gmail.com>",
   "license": "MIT",

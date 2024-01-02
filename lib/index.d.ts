@@ -43,6 +43,15 @@ export const addMediaTypePlugin: (contentType: string, plugin: MediaTypePlugin) 
 export const removeMediaTypePlugin: (contentType: string) => void;
 export const setMediaTypeQuality: (contentType: string, quality: number) => void;
 
+export class UnsupportedMediaTypeError extends Error {
+  public constructor(mediaType: string, message?: string);
+  public get mediaType(): string;
+}
+
+export class UnknownMediaTypeError extends Error {
+  public constructor(message?: string);
+}
+
 // URI Schemes
 export type UriSchemePlugin = {
   retrieve: typeof retrieve;
@@ -51,3 +60,8 @@ export type UriSchemePlugin = {
 export const retrieve: (uri: string, baseUri?: string) => Promise<Response>;
 export const addUriSchemePlugin: (scheme: string, plugin: UriSchemePlugin) => void;
 export const removeUriSchemePlugin: (scheme: string) => void;
+
+export class UnsupportedUriSchemeError extends Error {
+  public constructor(scheme: string, message?: string);
+  public get scheme(): string;
+}

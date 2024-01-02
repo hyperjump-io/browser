@@ -1,9 +1,5 @@
 import { describe, it, beforeEach, afterEach, expect } from "vitest";
-import {
-  addMediaTypePlugin,
-  removeMediaTypePlugin,
-  setMediaTypeQuality
-} from "../index.js";
+import { addMediaTypePlugin, removeMediaTypePlugin, setMediaTypeQuality } from "../index.js";
 import { acceptableMediaTypes } from "./media-types.js";
 
 
