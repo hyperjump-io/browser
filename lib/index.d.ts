@@ -42,6 +42,7 @@ export type MediaTypePlugin<T extends Document = Document> = {
 export const addMediaTypePlugin: (contentType: string, plugin: MediaTypePlugin) => void;
 export const removeMediaTypePlugin: (contentType: string) => void;
 export const setMediaTypeQuality: (contentType: string, quality: number) => void;
+export const acceptableMediaTypes: () => string;
 
 export class UnsupportedMediaTypeError extends Error {
   public constructor(mediaType: string, message?: string);

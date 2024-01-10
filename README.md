@@ -144,6 +144,11 @@ removeMediaTypePlugin("application/reference+json");
     [Accept](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept)
     header of requests to indicate to servers what media types are preferred
     over others.
+* acceptableMediaTypes(): string;
+
+    Build an `Accept` request header from the registered media type plugins.
+    This function is used internally. You would only need it if you're writing a
+    custom `http(s):` URI scheme plugin.
 
 ## URI Schemes
 
