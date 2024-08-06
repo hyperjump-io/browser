@@ -1,5 +1,7 @@
 import { mkdir, rm, writeFile, symlink } from "node:fs/promises";
 import { cwd } from "node:process";
+import { join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, it, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { get, RetrievalError } from "../index.js";
@@ -12,14 +14,15 @@ describe("JSON Browser", () => {
   describe("get", () => {
     describe("`file:` scheme", () => {
       const fixtureDirectory = "__test-fixtures__";
-      const testUri = `file://${cwd()}`;
+      const testUri = pathToFileURL(cwd()).toString();
+      const testPath = fileURLToPath(`${testUri}/${fixtureDirectory}`);
 
       beforeEach(async () => {
-        await mkdir(`${cwd()}/${fixtureDirectory}`);
+        await mkdir(testPath, { recursive: true });
       });
 
       afterEach(async () => {
-        await rm(`${cwd()}/${fixtureDirectory}`, { recursive: true });
+        await rm(testPath, { recursive: true, force: true });
       });
 
       it("not found", async () => {
@@ -38,7 +41,7 @@ describe("JSON Browser", () => {
 foo: 42
 `;
 
-        await writeFile(`${cwd()}/${path}`, jref, { flag: "w+" });
+        await writeFile(fileURLToPath(`${testUri}/${path}`), jref);
 
         try {
           await get(path);
@@ -83,8 +86,8 @@ foo: 42
           const fooPath = `${fixtureDirectory}/foo.jref`;
           const jref = "{}";
 
-          await writeFile(`${cwd()}/${rootPath}`, jref, { flag: "w+" });
-          await writeFile(`${cwd()}/${fooPath}`, jref, { flag: "w+" });
+          await writeFile(fileURLToPath(`${testUri}/${rootPath}`), jref);
+          await writeFile(fileURLToPath(`${testUri}/${fooPath}`), jref);
 
           const root = await get(rootPath);
           const browser = await get(`./foo.jref`, root);
@@ -106,7 +109,7 @@ foo: 42
   "bar": { "$ref": "${href}" }
 }`;
 
-          await writeFile(`${cwd()}/${path}`, jref, { flag: "w+" });
+          await writeFile(fileURLToPath(`${testUri}/${path}`), jref);
 
           const browser = await get(`${path}#${fragment}`);
 
@@ -117,7 +120,7 @@ foo: 42
         });
 
         it("full path", async () => {
-          const path = `${cwd()}/${fixtureDirectory}/foo.jref`;
+          const path = fileURLToPath(`${testUri}/${fixtureDirectory}/foo.jref`, { windows: false });
           const fragment = "/foo";
           const href = "#/foo";
           const jref = `{
@@ -125,7 +128,8 @@ foo: 42
   "bar": { "$ref": "${href}" }
 }`;
 
-          await writeFile(path, jref, { flag: "w+" });
+          const filesystemPath = fileURLToPath(pathToFileURL(path, { windows: false }));
+          await writeFile(filesystemPath, jref);
 
           const browser = await get(`${path}#${fragment}`);
 
@@ -136,7 +140,7 @@ foo: 42
         });
 
         it("full URI with authority", async () => {
-          const path = `${cwd()}/${fixtureDirectory}/foo.jref`;
+          const path = fileURLToPath(`${testUri}/${fixtureDirectory}/foo.jref`, { windows: false });
           const fragment = "/foo";
           const href = "#/foo";
           const jref = `{
@@ -144,7 +148,8 @@ foo: 42
   "bar": { "$ref": "${href}" }
 }`;
 
-          await writeFile(path, jref, { flag: "w+" });
+          const filesystemPath = fileURLToPath(pathToFileURL(path, { windows: false }));
+          await writeFile(filesystemPath, jref);
 
           const browser = await get(`file://${path}#${fragment}`);
 
@@ -155,7 +160,7 @@ foo: 42
         });
 
         it("full URI without authority", async () => {
-          const path = `${cwd()}/${fixtureDirectory}/foo.jref`;
+          const path = fileURLToPath(`${testUri}/${fixtureDirectory}/foo.jref`);
           const fragment = "/foo";
           const href = "#/foo";
           const jref = `{
@@ -163,7 +168,7 @@ foo: 42
   "bar": { "$ref": "${href}" }
 }`;
 
-          await writeFile(path, jref, { flag: "w+" });
+          await writeFile(path, jref);
 
           const browser = await get(`file:${path}#${fragment}`);
 
@@ -184,8 +189,8 @@ foo: 42
   "bar": { "$ref": "${href}" }
 }`;
 
-        await writeFile(`${cwd()}/${actualPath}`, jref, { flag: "w+" });
-        await symlink(`${cwd()}/${actualPath}`, `${cwd()}/${path}`);
+        await writeFile(fileURLToPath(`${testUri}/${actualPath}`), jref);
+        await symlink(fileURLToPath(`${testUri}/${actualPath}`), join(cwd(), path));
 
         const browser = await get(`${path}#${fragment}`);
 
