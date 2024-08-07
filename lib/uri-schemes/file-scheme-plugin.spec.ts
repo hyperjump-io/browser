@@ -52,6 +52,23 @@ foo: 42
         }
       });
 
+      it("/.jref is not a JRef file", async () => {
+        const path = `${fixtureDirectory}/.jref`;
+        const jref = `
+foo: 42
+`;
+
+        await writeFile(fileURLToPath(`${testUri}/${path}`), jref);
+
+        try {
+          await get(path);
+          expect.fail("Expected RetrievalError => UnknownMediaTypeError");
+        } catch (error: unknown) {
+          expect(error).to.be.instanceof(RetrievalError);
+          expect((error as RetrievalError).cause.name).to.equal("UnknownMediaTypeError");
+        }
+      });
+
       describe("http context", () => {
         let browser: Browser;
 
