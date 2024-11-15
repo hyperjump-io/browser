@@ -17,7 +17,12 @@
     "url": "https://github.com/sponsors/jdesrosiers"
   },
   "type": "module",
-  "main": "./lib/index.js",
+  "exports": {
+    "rejson": "./src/json/index.js"
+  },
+  "bin": {
+    "rejson": "./src/json/rejson-cli.js"
+  },
   "scripts": {
     "lint": "eslint src",
     "test": "vitest --watch=false",
@@ -28,6 +33,7 @@
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "*",
+    "@types/moo": "^0.5.9",
     "@types/node": "*",
     "@typescript-eslint/eslint-plugin": "*",
     "@typescript-eslint/parser": "*",
@@ -35,5 +41,11 @@
     "eslint-plugin-import": "*",
     "typescript-eslint": "*",
     "vitest": "*"
+  },
+  "dependencies": {
+    "moo": "^0.5.2",
+    "unified": "^11.0.5",
+    "unified-args": "^11.0.1",
+    "vfile": "^6.0.3"
   }
 }

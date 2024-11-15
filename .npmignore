@@ -1,6 +1,7 @@
 .github/
 eslint.config.js
 **/*.test.js
+src/json/jsonast-util-tests/
 tsconfig.json
 lib/jref/SPECIFICATION.md
 scratch/
