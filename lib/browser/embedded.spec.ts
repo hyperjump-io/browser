@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach, expect, beforeAll, afterAll } from "vitest";
+import { describe, test, beforeEach, afterEach, expect, beforeAll, afterAll } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { get, addMediaTypePlugin, removeMediaTypePlugin } from "../index.js";
 import { parse, stringify } from "../jref/index.js";
@@ -32,7 +32,7 @@ describe("JSON Browser", () => {
       };
       addMediaTypePlugin(testMediaType, {
         parse: async (response) => parseToDocument(response.url, await response.text()),
-        fileMatcher: async (path) => path.endsWith(".embedded")
+        fileMatcher: async (path) => path.endsWith(".embedded") // eslint-disable-line @typescript-eslint/require-await
       });
     });
 
@@ -42,7 +42,7 @@ describe("JSON Browser", () => {
 
     let mockAgent: MockAgent;
 
-    beforeEach(async () => {
+    beforeEach(() => {
       mockAgent = new MockAgent();
       mockAgent.disableNetConnect();
       setGlobalDispatcher(mockAgent);
@@ -52,7 +52,7 @@ describe("JSON Browser", () => {
       await mockAgent.close();
     });
 
-    it("getting an embedded document", async () => {
+    test("getting an embedded document", async () => {
       const jrefEmbedded = `{
         "$embedded": {
           "${testDomain}/foo": {}
@@ -67,7 +67,7 @@ describe("JSON Browser", () => {
       expect(subject.uri).to.equal(`${testDomain}/foo`);
     });
 
-    it("getting the main document from an embedded document", async () => {
+    test("getting the main document from an embedded document", async () => {
       const jrefEmbedded = `{
         "$embedded": {
           "${testDomain}/foo": {}
@@ -83,7 +83,7 @@ describe("JSON Browser", () => {
       expect(subject.uri).to.equal(`${testDomain}/main`);
     });
 
-    it("getting an embedded document from an embedded document", async () => {
+    test("getting an embedded document from an embedded document", async () => {
       const jrefEmbedded = `{
         "$embedded": {
           "${testDomain}/foo": {},
@@ -100,7 +100,7 @@ describe("JSON Browser", () => {
       expect(subject.uri).to.equal(`${testDomain}/bar`);
     });
 
-    it("referencing an embedded document", async () => {
+    test("referencing an embedded document", async () => {
       const jrefEmbedded = `{
         "foo": { "$ref": "/foo" },
 
@@ -116,7 +116,7 @@ describe("JSON Browser", () => {
       expect(subject.uri).to.equal(`${testDomain}/foo`);
     });
 
-    it("referencing the main document from an embedded document", async () => {
+    test("referencing the main document from an embedded document", async () => {
       const jrefEmbedded = `{
         "$embedded": {
           "${testDomain}/foo": {
@@ -133,7 +133,7 @@ describe("JSON Browser", () => {
       expect(subject.uri).to.equal(`${testDomain}/main`);
     });
 
-    it("referencing an embedded document from an embedded document", async () => {
+    test("referencing an embedded document from an embedded document", async () => {
       const jrefEmbedded = `{
         "$embedded": {
           "${testDomain}/foo": {
@@ -151,7 +151,7 @@ describe("JSON Browser", () => {
       expect(subject.uri).to.equal(`${testDomain}/bar`);
     });
 
-    it("a cached document takes precence over an embedded document", async () => {
+    test("a cached document takes precence over an embedded document", async () => {
       const cachedJrefEmbedded = `{
         "foo": { "$ref": "/main" }
       }`;

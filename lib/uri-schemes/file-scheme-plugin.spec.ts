@@ -2,7 +2,7 @@ import { mkdir, rm, writeFile, symlink } from "node:fs/promises";
 import { cwd } from "node:process";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { describe, it, beforeEach, afterEach, expect } from "vitest";
+import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { get, RetrievalError } from "../index.js";
 import { Reference } from "../jref/index.js";
@@ -25,7 +25,7 @@ describe("JSON Browser", () => {
         await rm(testPath, { recursive: true, force: true });
       });
 
-      it("not found", async () => {
+      test("not found", async () => {
         try {
           await get("nothing-here.jref");
           expect.fail("Expected Error: ENOENT: no such file or directory");
@@ -35,7 +35,7 @@ describe("JSON Browser", () => {
         }
       });
 
-      it("unknown content type", async () => {
+      test("unknown content type", async () => {
         const path = `${fixtureDirectory}/foo.yaml`;
         const jref = `
 foo: 42
@@ -52,7 +52,7 @@ foo: 42
         }
       });
 
-      it("/.jref is not a JRef file", async () => {
+      test("/.jref is not a JRef file", async () => {
         const path = `${fixtureDirectory}/.jref`;
         const jref = `
 foo: 42
@@ -89,7 +89,7 @@ foo: 42
           await mockAgent.close();
         });
 
-        it("file references not allowed from non-filesystem context", async () => {
+        test("file references not allowed from non-filesystem context", async () => {
           try {
             await get(`${testUri}/foo.jref`, browser);
             expect.fail("Expected Error: Accessing a file from a non-filesystem document is not allowed");
@@ -98,7 +98,7 @@ foo: 42
           }
         });
 
-        it("file references are allowed from file context", async () => {
+        test("file references are allowed from file context", async () => {
           const rootPath = `${fixtureDirectory}/root.jref`;
           const fooPath = `${fixtureDirectory}/foo.jref`;
           const jref = "{}";
@@ -117,7 +117,7 @@ foo: 42
       });
 
       describe("success", () => {
-        it("cwd relative path", async () => {
+        test("cwd relative path", async () => {
           const path = `${fixtureDirectory}/foo.jref`;
           const fragment = "/foo";
           const href = "#/foo";
@@ -136,7 +136,7 @@ foo: 42
           expect(browser.document.root).to.eql({ foo: 42, bar: new Reference(href) });
         });
 
-        it("full path", async () => {
+        test("full path", async () => {
           const path = fileURLToPath(`${testUri}/${fixtureDirectory}/foo.jref`, { windows: false });
           const fragment = "/foo";
           const href = "#/foo";
@@ -156,7 +156,7 @@ foo: 42
           expect(browser.document.root).to.eql({ foo: 42, bar: new Reference(href) });
         });
 
-        it("full URI with authority", async () => {
+        test("full URI with authority", async () => {
           const path = fileURLToPath(`${testUri}/${fixtureDirectory}/foo.jref`, { windows: false });
           const fragment = "/foo";
           const href = "#/foo";
@@ -176,7 +176,7 @@ foo: 42
           expect(browser.document.root).to.eql({ foo: 42, bar: new Reference(href) });
         });
 
-        it("full URI without authority", async () => {
+        test("full URI without authority", async () => {
           const path = fileURLToPath(`${testUri}/${fixtureDirectory}/foo.jref`);
           const fragment = "/foo";
           const href = "#/foo";
@@ -196,7 +196,7 @@ foo: 42
         });
       });
 
-      it("symlink", async () => {
+      test("symlink", async () => {
         const path = `${fixtureDirectory}/symlink-foo.jref`;
         const actualPath = `${fixtureDirectory}/foo.jref`;
         const fragment = "/foo";

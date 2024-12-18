@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach, expect } from "vitest";
+import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { get, RetrievalError } from "../index.js";
 import { Reference } from "../jref/index.js";
@@ -20,7 +20,7 @@ describe("JSON Browser", () => {
         await mockAgent.close();
       });
 
-      it("not found", async () => {
+      test("not found", async () => {
         const path = "/foo";
 
         mockAgent.get(testDomain)
@@ -36,7 +36,7 @@ describe("JSON Browser", () => {
         }
       });
 
-      it("no content type", async () => {
+      test("no content type", async () => {
         const path = "/foo";
 
         mockAgent.get(testDomain)
@@ -52,7 +52,7 @@ describe("JSON Browser", () => {
         }
       });
 
-      it("unsupported content type", async () => {
+      test("unsupported content type", async () => {
         const path = "/foo";
         const yaml = `foo: 42`;
         const contentType = "application/yaml";
@@ -71,7 +71,7 @@ describe("JSON Browser", () => {
       });
 
       [200, 203].forEach((status) => {
-        it(`${status}`, async () => {
+        test(`${status}`, async () => {
           const path = "/foo";
           const fragment = "/foo";
           const href = "/bar";
@@ -94,7 +94,7 @@ describe("JSON Browser", () => {
       });
 
       [301, 302, 303, 307, 308].forEach((status) => {
-        it(`${status}`, async () => {
+        test(`${status}`, async () => {
           const path = "/foo";
           const redirectPath = "/alternate-foo";
           const href = "/bar";
@@ -121,7 +121,7 @@ describe("JSON Browser", () => {
         });
       });
 
-      it("redirect without a Location", async () => {
+      test("redirect without a Location", async () => {
         const path = "/foo";
         const href = "/bar";
         const jref = `{
@@ -142,7 +142,7 @@ describe("JSON Browser", () => {
         }
       });
 
-      it("Redirect that inherits a fragment", async () => {
+      test("Redirect that inherits a fragment", async () => {
         const path = "/foo";
         const fragment = "/foo";
         const redirectPath = "/alternate-foo";
@@ -169,7 +169,7 @@ describe("JSON Browser", () => {
       });
 
       // There isn't a way to make this pass in the browser do to limitations of the Fetch spec.
-      it.skip("redirect with a Location that includes a fragment", async () => {
+      test.skip("redirect with a Location that includes a fragment", async () => {
         const path = "/foo";
         const redirectPath = "/alternate-foo";
         const redirectFragment = "/main";
@@ -200,7 +200,7 @@ describe("JSON Browser", () => {
       });
 
       // There isn't a way to make this pass in the browser do to limitations of the Fetch spec.
-      it.skip("redirect whose inherited fragment gets overriden by the Location's fragment", async () => {
+      test.skip("redirect whose inherited fragment gets overriden by the Location's fragment", async () => {
         const path = "/foo";
         const fragment = "/root";
         const redirectPath = "/alternate-foo";
@@ -232,7 +232,7 @@ describe("JSON Browser", () => {
       });
 
       [201, 202, 204, 205, 206, 300, 304].forEach((status) => {
-        it(`${status}`, async () => {
+        test(`${status}`, async () => {
           const path = "/foo";
 
           mockAgent.get(testDomain)

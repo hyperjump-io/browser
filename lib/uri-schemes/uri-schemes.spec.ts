@@ -1,5 +1,5 @@
 import { Readable } from "node:stream";
-import { describe, it, beforeEach, afterEach, expect } from "vitest";
+import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { Response } from "undici";
 import { addUriSchemePlugin, removeUriSchemePlugin, get, RetrievalError } from "../index.js";
 
@@ -8,7 +8,7 @@ describe("JSON Browser", () => {
   describe("URI schemes", () => {
     const fixtureDocument = `{"foo": 42}`;
 
-    it("Error on unsupported scheme", async () => {
+    test("Error on unsupported scheme", async () => {
       try {
         await get("foo:something");
         expect.fail("Expected RetrievalError => UnsupportedUriSchemeError");
@@ -21,7 +21,7 @@ describe("JSON Browser", () => {
     describe("Custom URI scheme plugin", () => {
       beforeEach(() => {
         addUriSchemePlugin("foo", {
-          retrieve: async (uri) => {
+          retrieve: async (uri) => { // eslint-disable-line @typescript-eslint/require-await
             const stream = new Readable();
             stream.push(fixtureDocument);
             stream.push(null);
@@ -39,11 +39,11 @@ describe("JSON Browser", () => {
         removeUriSchemePlugin("application/foo");
       });
 
-      it("addUriSchemePlugin", async () => {
+      test("addUriSchemePlugin", async () => {
         await get("foo:something");
       });
 
-      it("removeUriSchemePlugin", async () => {
+      test("removeUriSchemePlugin", async () => {
         removeUriSchemePlugin("foo");
 
         try {

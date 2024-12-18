@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach, expect } from "vitest";
+import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { get, step, value } from "../index.js";
 import type { Browser } from "../index.js";
@@ -11,7 +11,7 @@ describe("JSON Browser", () => {
 
     const testDomain = "https://example.com";
 
-    beforeEach(async () => {
+    beforeEach(() => {
       mockAgent = new MockAgent();
       mockAgent.disableNetConnect();
       setGlobalDispatcher(mockAgent);
@@ -21,7 +21,7 @@ describe("JSON Browser", () => {
       await mockAgent.close();
     });
 
-    it("value", async () => {
+    test("value", async () => {
       const path = "/subject";
       const jref = `{ "foo": 42 }`;
 
@@ -38,7 +38,7 @@ describe("JSON Browser", () => {
       expect(value(foo)).to.equal(42);
     });
 
-    it("local reference to value", async () => {
+    test("local reference to value", async () => {
       const path = "/subject";
       const jref = `{
   "foo": 42,
@@ -58,7 +58,7 @@ describe("JSON Browser", () => {
       expect(value(foo)).to.equal(42);
     });
 
-    it("local reference to local reference to value", async () => {
+    test("local reference to local reference to value", async () => {
       const path = "/subject";
       const jref = `{
   "foo": 42,
@@ -79,7 +79,7 @@ describe("JSON Browser", () => {
       expect(value(foo)).to.equal(42);
     });
 
-    it("local reference to external reference to value", async () => {
+    test("local reference to external reference to value", async () => {
       const subjectPath = "/subject";
       const subjectJref = `{
   "bar": { "$ref": "/external#/foo" },
@@ -106,7 +106,7 @@ describe("JSON Browser", () => {
       expect(value(foo)).to.equal(42);
     });
 
-    it("external reference to value", async () => {
+    test("external reference to value", async () => {
       const subjectPath = "/subject";
       const subjectJref = `{
   "bar": { "$ref": "/external#/foo" }
@@ -133,7 +133,7 @@ describe("JSON Browser", () => {
       expect(value(foo)).to.equal(42);
     });
 
-    it("external reference to local reference to value", async () => {
+    test("external reference to local reference to value", async () => {
       const subjectPath = "/subject";
       const subjectJref = `{
   "baz": { "$ref": "/external#/bar" }

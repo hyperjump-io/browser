@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach, expect } from "vitest";
+import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { get } from "../index.js";
 import { Reference } from "../jref/index.js";
@@ -19,7 +19,7 @@ describe("JSON Browser", () => {
       await mockAgent.close();
     });
 
-    it("follow references", async () => {
+    test("follow references", async () => {
       const path = "/foo";
       const fragment = "/bar";
       const href = "#/foo";
@@ -44,7 +44,7 @@ describe("JSON Browser", () => {
       expect(browser.document.root).to.eql({ foo: 42, bar: new Reference(href) });
     });
 
-    it("relative to browser", async () => {
+    test("relative to browser", async () => {
       const path = "/foo";
       const href = "/bar";
       const foo = `{
@@ -70,7 +70,7 @@ describe("JSON Browser", () => {
       expect(browser.document.root).to.eql("bar");
     });
 
-    it("fragment-only relative to browser", async () => {
+    test("fragment-only relative to browser", async () => {
       const path = "/foo";
       const fragment = "/foo";
       const href = "#/foo";

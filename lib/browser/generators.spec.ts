@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach, expect } from "vitest";
+import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { get, value, iter, keys, values, entries } from "../index.js";
 import type { Browser } from "../index.js";
@@ -19,7 +19,7 @@ describe("JSON Browser", () => {
       await mockAgent.close();
     });
 
-    it("iter", async () => {
+    test("iter", async () => {
       const jref = `[1, { "$ref": "/external" }, { "$ref": "#/1" }]`;
       const external = "2";
 
@@ -45,7 +45,7 @@ describe("JSON Browser", () => {
       expect((await generator.next()).done).to.equal(true);
     });
 
-    it("keys", async () => {
+    test("keys", async () => {
       const jref = `{
         "a": 1,
         "b": { "$ref": "/external" },
@@ -65,7 +65,7 @@ describe("JSON Browser", () => {
       expect(generator.next().done).to.equal(true);
     });
 
-    it("values", async () => {
+    test("values", async () => {
       const jref = `{
         "a": 1,
         "b": { "$ref": "/external" },
@@ -95,7 +95,7 @@ describe("JSON Browser", () => {
       expect((await generator.next()).done).to.equal(true);
     });
 
-    it("entries", async () => {
+    test("entries", async () => {
       const jref = `{
         "a": 1,
         "b": { "$ref": "/external" },

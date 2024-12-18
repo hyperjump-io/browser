@@ -1,10 +1,8 @@
 .github/
-.eslintrc.json
+eslint.config.js
 **/*.spec.ts
 tsconfig.json
 lib/jref/SPECIFICATION.md
 scratch/
 TODO
-rollup.config.js
-dist/
 lib/urn-scheme-plugin.js

@@ -1,11 +1,11 @@
-import { describe, it, beforeEach, afterEach, expect } from "vitest";
+import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { addMediaTypePlugin, removeMediaTypePlugin, setMediaTypeQuality } from "../index.js";
 import { acceptableMediaTypes } from "./media-types.js";
 
 
 describe("JSON Browser", () => {
   describe("media types", () => {
-    it("default", () => {
+    test("default", () => {
       const accept = acceptableMediaTypes() as string;
       expect(accept).to.equal("application/reference+json, */*; q=0.001");
     });
@@ -13,14 +13,14 @@ describe("JSON Browser", () => {
     describe("media type plugin without quality", () => {
       beforeEach(() => {
         addMediaTypePlugin("application/foo", {
-          parse: async () => {
+          parse: async () => { // eslint-disable-line @typescript-eslint/require-await
             return {
               baseUri: "https://example.com/foo",
               root: null,
               anchorLocation: (fragment) => fragment ?? ""
             };
           },
-          fileMatcher: async (path) => path.endsWith(".foo")
+          fileMatcher: async (path) => path.endsWith(".foo") // eslint-disable-line @typescript-eslint/require-await
         });
       });
 
@@ -28,18 +28,18 @@ describe("JSON Browser", () => {
         removeMediaTypePlugin("application/foo");
       });
 
-      it("addMediaTypePlugin", () => {
+      test("addMediaTypePlugin", () => {
         const accept = acceptableMediaTypes() as string;
         expect(accept).to.equal("application/reference+json, application/foo, */*; q=0.001");
       });
 
-      it("removeMediaTypePlugin", () => {
+      test("removeMediaTypePlugin", () => {
         removeMediaTypePlugin("application/foo");
         const accept = acceptableMediaTypes() as string;
         expect(accept).to.equal("application/reference+json, */*; q=0.001");
       });
 
-      it("setMediaTypeQuality", () => {
+      test("setMediaTypeQuality", () => {
         setMediaTypeQuality("application/foo", 0.9);
         const accept = acceptableMediaTypes() as string;
         expect(accept).to.equal("application/reference+json, application/foo; q=0.9, */*; q=0.001");
@@ -49,14 +49,14 @@ describe("JSON Browser", () => {
     describe("media type plugin with quality", () => {
       beforeEach(() => {
         addMediaTypePlugin("application/foo", {
-          parse: async () => {
+          parse: async () => { // eslint-disable-line @typescript-eslint/require-await
             return {
               baseUri: "https://exmple.com/foo",
               root: null,
               anchorLocation: (fragment) => fragment ?? ""
             };
           },
-          fileMatcher: async (path) => path.endsWith(".foo"),
+          fileMatcher: async (path) => path.endsWith(".foo"), // eslint-disable-line @typescript-eslint/require-await
           quality: 0.8
         });
       });
@@ -65,12 +65,12 @@ describe("JSON Browser", () => {
         removeMediaTypePlugin("application/foo");
       });
 
-      it("addMediaTypePlugin", () => {
+      test("addMediaTypePlugin", () => {
         const accept = acceptableMediaTypes() as string;
         expect(accept).to.equal("application/reference+json, application/foo; q=0.8, */*; q=0.001");
       });
 
-      it("setMediaTypeQuality", () => {
+      test("setMediaTypeQuality", () => {
         setMediaTypeQuality("application/foo", 0.9);
         const accept = acceptableMediaTypes() as string;
         expect(accept).to.equal("application/reference+json, application/foo; q=0.9, */*; q=0.001");
