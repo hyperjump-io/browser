@@ -18,10 +18,12 @@
   },
   "type": "module",
   "exports": {
-    "rejson": "./src/json/index.js"
+    "rejson": "./src/json/index.js",
+    "jref": "./src/jref/index.js"
   },
   "bin": {
-    "rejson": "./src/json/rejson-cli.js"
+    "rejson": "./src/json/rejson-cli.js",
+    "jref": "./src/jref/jref-cli.js"
   },
   "scripts": {
     "lint": "eslint src",
