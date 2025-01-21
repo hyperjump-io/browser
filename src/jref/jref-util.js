@@ -1,5 +1,6 @@
 import { VFileMessage } from "vfile-message";
 import { jsonLexer, place } from "../json/json-lexer.js";
+import { pointerGet as jsonPointerGet } from "../json/jsonast-util.js";
 
 /**
  * @import { Parent, Position } from "unist"
@@ -266,3 +267,5 @@ const stringifyObject = (node, space, depth) => {
   }
   return result + padding + "}";
 };
+
+export const pointerGet = /** @type (pointer: string, tree: JrefNode) => JrefNode */ (jsonPointerGet);

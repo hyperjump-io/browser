@@ -239,3 +239,48 @@ const stringifyObject = (node, space, depth) => {
   }
   return result + padding + "}";
 };
+
+/** @type (pointer: string, tree: JsonNode) => JsonNode */
+export const pointerGet = (pointer, tree) => {
+  let node = tree;
+  for (const segment of pointerSegments(pointer)) {
+    switch (node.jsonType) {
+      case "object":
+        for (const propertyNode of node.children) {
+          if (propertyNode.children[0].value === segment) {
+            node = propertyNode.children[1];
+          }
+        }
+        break;
+      case "array":
+        const index = segment === "-" ? node.children.length : parseInt(segment);
+        node = node.children[index];
+      default:
+        throw Error("Can't index into scalar value");
+    }
+  }
+
+  return node;
+};
+
+/** @type (pointer: string) => Generator<string> */
+const pointerSegments = function* (pointer) {
+  if (pointer.length > 0 && !pointer.startsWith("/")) {
+    throw Error("Invalid JSON Pointer");
+  }
+
+  let segmentStart = 1;
+  let segmentEnd = 0;
+
+  while (segmentEnd < pointer.length) {
+    const position = pointer.indexOf("/", segmentStart);
+    segmentEnd = position === -1 ? pointer.length : position;
+    const segment = pointer.slice(segmentStart, segmentEnd);
+    segmentStart = segmentEnd + 1;
+
+    yield unescape(segment);
+  }
+};
+
+/** @type (segment: string) => string */
+const unescape = (segment) => segment.toString().replace(/~1/g, "/").replace(/~0/g, "~");
