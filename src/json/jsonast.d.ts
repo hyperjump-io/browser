@@ -71,12 +71,14 @@ export interface JsonObjectNode<T = JsonNode> {
   position?: Position;
 };
 
-type JsonNode = JsonObjectNode
+export type JsonNode = JsonObjectNode
   | JsonArrayNode
   | JsonStringNode
   | JsonNumberNode
   | JsonBooleanNode
   | JsonNullNode;
+
+export type JsonCompatible<A> = JsonObjectNode<A> | JsonArrayNode<A> | JsonStringNode | JsonNumberNode | JsonBooleanNode | JsonNullNode;
 
 export type JsonDocumentNode = {
   type: "json-document";

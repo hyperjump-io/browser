@@ -7,7 +7,7 @@ import { jsonLexer, place } from "./json-lexer.js";
  * @import {
  *   JsonArrayNode,
  *   JsonBooleanNode,
- *   JsonDocumentNode,
+ *   JsonCompatible,
  *   JsonNode,
  *   JsonNullNode,
  *   JsonNumberNode,
@@ -21,7 +21,7 @@ import { jsonLexer, place } from "./json-lexer.js";
 
 /**
  * @template [A = JsonNode]
- * @typedef {(node: JsonNullNode | JsonBooleanNode | JsonNumberNode | JsonStringNode | JsonArrayNode<A> | JsonObjectNode<A>) => A} Reviver
+ * @typedef {(node: JsonCompatible<A>) => A} Reviver
  */
 
 /** @type Reviver<any> */
@@ -195,24 +195,33 @@ const tokenPosition = (startToken, endToken) => {
   };
 };
 
-/** @type (tree: JsonDocumentNode, space?: string) => string */
-export const toJson = (tree, space = "  ") => {
-  return stringifyValue(tree.children[0], space, 1) + "\n";
+/**
+ * @template [A = JsonNode]
+ * @typedef {(key: string | undefined, value: A) => JsonCompatible<A>} Replacer
+ */
+
+/** @type Replacer<any> */
+const defaultReplacer = (_key, node) => node; // eslint-disable-line @typescript-eslint/no-unsafe-return
+
+/** @type <A>(node: A, replacer?: Replacer<A>, space?: string) => string */
+export const toJson = (node, replacer = defaultReplacer, space = "  ") => {
+  const replacedNode = replacer.call(undefined, undefined, node);
+  return stringifyValue(replacedNode, replacer, space, 1) + "\n";
 };
 
-/** @type (node: JsonNode, space: string, depth: number) => string */
-const stringifyValue = (node, space, depth) => {
+/** @type <A>(node: JsonCompatible<A>, replacer: Replacer<A>, space: string, depth: number) => string */
+const stringifyValue = (node, replacer, space, depth) => {
   if (node.jsonType === "array") {
-    return stringifyArray(node, space, depth);
+    return stringifyArray(node, replacer, space, depth);
   } else if (node.jsonType === "object") {
-    return stringifyObject(node, space, depth);
+    return stringifyObject(node, replacer, space, depth);
   } else {
     return JSON.stringify(node.value);
   }
 };
 
-/** @type (node: JsonArrayNode, space: string, depth: number) => string */
-const stringifyArray = (node, space, depth) => {
+/** @type <A>(node: JsonArrayNode<A>, replacer: Replacer<A>, space: string, depth: number) => string */
+const stringifyArray = (node, replacer, space, depth) => {
   if (node.children.length === 0) {
     return "[]";
   }
@@ -221,7 +230,8 @@ const stringifyArray = (node, space, depth) => {
 
   let result = "[" + padding + space;
   for (let index = 0; index < node.children.length; index++) {
-    const stringifiedValue = stringifyValue(node.children[index], space, depth + 1);
+    const itemNode = replacer.call(node, `${index}`, node.children[index]);
+    const stringifiedValue = stringifyValue(itemNode, replacer, space, depth + 1);
     result += stringifiedValue ?? "null";
     if (index + 1 < node.children.length) {
       result += `,${padding}${space}`;
@@ -230,8 +240,8 @@ const stringifyArray = (node, space, depth) => {
   return result + padding + "]";
 };
 
-/** @type (node: JsonObjectNode, space: string, depth: number) => string */
-const stringifyObject = (node, space, depth) => {
+/** @type <A>(node: JsonObjectNode<A>, replacer: Replacer<A>, space: string, depth: number) => string */
+const stringifyObject = (node, replacer, space, depth) => {
   if (node.children.length === 0) {
     return "{}";
   }
@@ -243,7 +253,8 @@ const stringifyObject = (node, space, depth) => {
   for (let index = 0; index < node.children.length; index++) {
     const propertyNode = node.children[index];
     const [keyNode, valueNode] = propertyNode.children;
-    const stringifiedValue = stringifyValue(valueNode, space, depth + 1);
+    const replacedValueNode = replacer.call(node, keyNode.value, valueNode);
+    const stringifiedValue = stringifyValue(replacedValueNode, replacer, space, depth + 1);
     if (stringifiedValue !== undefined) {
       result += JSON.stringify(keyNode.value) + ":" + colonSpacing + stringifiedValue;
       if (node.children[index + 1]) {
