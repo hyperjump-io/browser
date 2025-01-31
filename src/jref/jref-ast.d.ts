@@ -28,5 +28,7 @@ export type JrefNode = JsonObjectNode<JrefNode>
 export type JrefDocumentNode = {
   type: "jref-document";
   children: JrefNode[];
+  uri: string;
+  fragmentKind: "json-pointer";
   data?: Data;
 };
