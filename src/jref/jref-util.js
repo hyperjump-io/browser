@@ -1,14 +1,8 @@
-import { fromJson, pointerGet as jsonPointerGet } from "../json/jsonast-util.js";
+import { fromJson, pointerGet as jsonPointerGet, toJson } from "../json/jsonast-util.js";
 
 /**
- * @import {
- *   JsonArrayNode,
- *   JsonObjectNode
- * } from "../json/jsonast.d.ts"
- * @import {
- *   JrefDocumentNode,
- *   JrefNode
- * } from "./jref-ast.d.ts"
+ * @import { JsonObjectNode } from "../json/jsonast.d.ts"
+ * @import { JrefNode } from "./jref-ast.d.ts"
  */
 
 
@@ -42,66 +36,45 @@ const isReference = (objectNode) => {
   }
 };
 
-/** @type (tree: JrefDocumentNode, space?: string) => string */
-export const toJref = (tree, space = "  ") => {
-  return stringifyValue(tree.children[0], space, 1) + "\n";
-};
+/**
+ * @typedef {(key: string | undefined, value: JrefNode) => JrefNode} Replacer
+ */
 
-/** @type (node: JrefNode, space: string, depth: number) => string */
-const stringifyValue = (node, space, depth) => {
-  if (node.type === "jref-reference") {
-    const buffer = space ? " " : "";
-    return `{${buffer}"$ref":${buffer}${JSON.stringify(node.value)}${buffer}}`;
-  } else if (node.jsonType === "array") {
-    return stringifyArray(node, space, depth);
-  } else if (node.jsonType === "object") {
-    return stringifyObject(node, space, depth);
-  } else {
-    return JSON.stringify(node.value);
-  }
-};
+/** @type Replacer */
+const defaultReplacer = (_key, node) => node;
 
-/** @type (node: JsonArrayNode<JrefNode>, space: string, depth: number) => string */
-const stringifyArray = (node, space, depth) => {
-  if (node.children.length === 0) {
-    return "[]";
-  }
+/** @type (node: JrefNode, replacer?: Replacer, space?: string) => string */
+export const toJref = (node, replacer = defaultReplacer, space = "  ") => {
+  return toJson(node, (key, node) => {
+    node = replacer.call(this, key, node);
 
-  const padding = space ? `\n${space.repeat(depth - 1)}` : "";
-
-  let result = "[" + padding + space;
-  for (let index = 0; index < node.children.length; index++) {
-    const stringifiedValue = stringifyValue(node.children[index], space, depth + 1);
-    result += stringifiedValue ?? "null";
-    if (index + 1 < node.children.length) {
-      result += `,${padding}${space}`;
+    if (node.type === "jref-reference") {
+      /** @type JsonObjectNode<JrefNode> */
+      const referenceNode = {
+        type: "json",
+        jsonType: "object",
+        children: [
+          {
+            type: "json-property",
+            children: [
+              {
+                type: "json-property-name",
+                value: "$ref"
+              },
+              {
+                type: "json",
+                jsonType: "string",
+                value: node.value
+              }
+            ]
+          }
+        ]
+      };
+      return referenceNode;
+    } else {
+      return node;
     }
-  }
-  return result + padding + "]";
-};
-
-/** @type (node: JsonObjectNode<JrefNode>, space: string, depth: number) => string */
-const stringifyObject = (node, space, depth) => {
-  if (node.children.length === 0) {
-    return "{}";
-  }
-
-  const padding = space ? `\n${space.repeat(depth - 1)}` : "";
-  const colonSpacing = space ? " " : "";
-
-  let result = "{" + padding + space;
-  for (let index = 0; index < node.children.length; index++) {
-    const propertyNode = node.children[index];
-    const [keyNode, valueNode] = propertyNode.children;
-    const stringifiedValue = stringifyValue(valueNode, space, depth + 1);
-    if (stringifiedValue !== undefined) {
-      result += JSON.stringify(keyNode.value) + ":" + colonSpacing + stringifiedValue;
-      if (node.children[index + 1]) {
-        result += `,${padding}${space}`;
-      }
-    }
-  }
-  return result + padding + "}";
+  }, space) + "\n";
 };
 
 export const pointerGet = /** @type (pointer: string, tree: JrefNode) => JrefNode */ (jsonPointerGet);
