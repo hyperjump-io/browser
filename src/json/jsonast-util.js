@@ -2,38 +2,43 @@ import { VFileMessage } from "vfile-message";
 import { jsonLexer, place } from "./json-lexer.js";
 
 /**
- * @import { Parent, Position } from "unist"
+ * @import { Node, Position } from "unist"
  * @import { JsonLexer, JsonToken } from "./json-lexer.js"
  * @import {
  *   JsonArrayNode,
+ *   JsonBooleanNode,
  *   JsonDocumentNode,
  *   JsonNode,
+ *   JsonNullNode,
+ *   JsonNumberNode,
  *   JsonObjectNode,
  *   JsonPropertyNameNode,
- *   JsonPropertyNode
+ *   JsonPropertyNode,
+ *   JsonStringNode
  * } from "./jsonast.d.ts"
  */
 
 
-/** @type (json: string) => JsonDocumentNode */
-export const fromJson = (json) => {
+/**
+ * @template [A = JsonNode]
+ * @typedef {(node: JsonNullNode | JsonBooleanNode | JsonNumberNode | JsonStringNode | JsonArrayNode<A> | JsonObjectNode<A>) => A} Reviver
+ */
+
+/** @type Reviver<any> */
+const defaultReviver = (value) => value;
+
+/** @type <A = JsonNode>(json: string, reviver?: Reviver<A>) => A */
+export const fromJson = (json, reviver = defaultReviver) => {
   const lexer = jsonLexer(json);
 
-  /** @type JsonDocumentNode */
-  const jsonDocument = {
-    type: "json-document",
-    children: []
-  };
-
   const token = nextToken(lexer);
-  const jsonValue = parseValue(token, lexer);
-  jsonDocument.children.push(jsonValue);
+  const jsonValue = parseValue(token, lexer, reviver);
 
   if (!lexer.next().done) {
     throw syntaxError("Additional tokens found");
   }
 
-  return jsonDocument;
+  return jsonValue;
 };
 
 /** @type (lexer: JsonLexer) => JsonToken */
@@ -55,24 +60,31 @@ const syntaxError = (message, token) => {
   });
 };
 
-/** @type (token: JsonToken, lexer: JsonLexer) => JsonNode */
-const parseValue = (token, lexer) => {
+/** @type <A>(token: JsonToken, lexer: JsonLexer, reviver: Reviver<A>) => A */
+const parseValue = (token, lexer, reviver) => {
+  let node;
+
   switch (token.type) {
     case "null":
     case "boolean":
     case "number":
     case "string":
-      return parseScalar(token);
+      node = parseScalar(token);
+      break;
     case "[":
-      return parseArray(token, lexer);
+      node = parseArray(token, lexer, reviver);
+      break;
     case "{":
-      return parseObject(token, lexer);
+      node = parseObject(token, lexer, reviver);
+      break;
     default:
       throw syntaxError("Expected a JSON value", token);
   }
+
+  return reviver(node);
 };
 
-/** @type (token: JsonToken<"null" | "boolean" | "number" | "string">) => JsonNode */
+/** @type (token: JsonToken<"null" | "boolean" | "number" | "string">) => JsonNullNode | JsonBooleanNode | JsonNumberNode | JsonStringNode */
 const parseScalar = (token) => {
   return {
     type: "json",
@@ -82,8 +94,8 @@ const parseScalar = (token) => {
   };
 };
 
-/** @type (token: JsonToken, lexer: JsonLexer) => JsonPropertyNode */
-const parseProperty = (token, lexer) => {
+/** @type <T>(token: JsonToken, lexer: JsonLexer, reviver: Reviver<T>) => JsonPropertyNode<T> */
+const parseProperty = (token, lexer, reviver) => {
   if (token.type !== "string") {
     throw syntaxError("Expected a propertry", token);
   }
@@ -99,20 +111,23 @@ const parseProperty = (token, lexer) => {
     throw syntaxError("Expected :", token);
   }
 
-  const valueNode = parseValue(nextToken(lexer), lexer);
+  const valueNode = parseValue(nextToken(lexer), lexer, reviver);
 
   return {
     type: "json-property",
-    children: [keyNode, valueNode],
-    position: {
-      start: /** @type Position */ (keyNode.position).start,
-      end: /** @type Position */ (valueNode.position).end
-    }
+    children: [keyNode, valueNode]
   };
 };
 
-/** @type <A extends Parent>(parseChild: (token: JsonToken, lexer: JsonLexer) => A["children"][number], endToken: string) => (lexer: JsonLexer, node: A) => A */
-const parseCommaSeparated = (parseChild, endToken) => (lexer, node) => {
+/**
+ * @template A
+ * @typedef {Node & { children: A[] }} ParentNode
+ */
+
+/**
+ * @type <A extends ParentNode<B>, B>(parseChild: <C>(token: JsonToken, lexer: JsonLexer, reviver: Reviver<C>) => B, endToken: string) => <C>(lexer: JsonLexer, node: A, reviver: Reviver<C>) => A
+ */
+const parseCommaSeparated = (parseChild, endToken) => (lexer, node, reviver) => {
   while (true) {
     let token = nextToken(lexer);
 
@@ -129,36 +144,35 @@ const parseCommaSeparated = (parseChild, endToken) => (lexer, node) => {
       }
     }
 
-    const childNode = parseChild(token, lexer);
+    const childNode = parseChild(token, lexer, reviver);
     node.children.push(childNode);
-    /** @type Position */ (node.position).end = /** @type Position */ (childNode.position).end;
   }
 };
 
-/** @type (arrayToken: JsonToken<"[">, lexer: JsonLexer) => JsonArrayNode */
-const parseArray = (openToken, lexer) => {
+/** @type <A>(openToken: JsonToken, lexer: JsonLexer, reviver: Reviver<A>) => JsonArrayNode<A> */
+const parseArray = (openToken, lexer, reviver) => {
   return parseItems(lexer, {
     type: "json",
     jsonType: "array",
     children: [],
     position: tokenPosition(openToken)
-  });
+  }, reviver);
 };
 
-/** @type (lexer: JsonLexer, node: JsonArrayNode) => JsonArrayNode */
+/** @type <A>(lexer: JsonLexer, node: JsonArrayNode<A>, reviver: Reviver<A>) => JsonArrayNode<A> */
 const parseItems = parseCommaSeparated(parseValue, "]");
 
-/** @type (objectToken: JsonToken<"{">, lexer: JsonLexer) => JsonObjectNode */
-const parseObject = (openToken, lexer) => {
+/** @type <A>(openToken: JsonToken, lexer: JsonLexer, reviver: Reviver<A>) => JsonObjectNode<A> */
+const parseObject = (openToken, lexer, reviver) => {
   return parseProperties(lexer, {
     type: "json",
     jsonType: "object",
     children: [],
     position: tokenPosition(openToken)
-  });
+  }, reviver);
 };
 
-/** @type (lexer: JsonLexer, node: JsonObjectNode) => JsonObjectNode */
+/** @type <U>(lexer: JsonLexer, node: JsonObjectNode<U>, reviver: Reviver<U>) => JsonObjectNode<U> */
 const parseProperties = parseCommaSeparated(parseProperty, "}");
 
 /** @type (startToken: JsonToken, endToken?: JsonToken) => Position */
@@ -278,9 +292,9 @@ const pointerSegments = function* (pointer) {
     const segment = pointer.slice(segmentStart, segmentEnd);
     segmentStart = segmentEnd + 1;
 
-    yield unescape(segment);
+    yield unescapePointerSegment(segment);
   }
 };
 
 /** @type (segment: string) => string */
-const unescape = (segment) => segment.toString().replace(/~1/g, "/").replace(/~0/g, "~");
+const unescapePointerSegment = (segment) => segment.toString().replace(/~1/g, "/").replace(/~0/g, "~");
