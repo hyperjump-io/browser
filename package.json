@@ -18,8 +18,9 @@
   },
   "type": "module",
   "exports": {
-    "rejson": "./src/json/index.js",
-    "jref": "./src/jref/index.js"
+    ".": "./src/hyperjump/index.js",
+    "./rejson": "./src/json/index.js",
+    "./jref": "./src/jref/index.js"
   },
   "bin": {
     "rejson": "./src/json/rejson-cli.js",
@@ -35,18 +36,23 @@
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "*",
+    "@types/content-type": "^1.1.8",
     "@types/moo": "^0.5.9",
     "@types/node": "*",
+    "@types/type-is": "^1.6.6",
     "@typescript-eslint/eslint-plugin": "*",
     "@typescript-eslint/parser": "*",
     "eslint-import-resolver-typescript": "*",
     "eslint-plugin-import": "*",
     "typescript-eslint": "*",
+    "undici": "^7.3.0",
     "vitest": "*"
   },
   "dependencies": {
     "@hyperjump/uri": "^1.3.0",
+    "content-type": "^1.0.5",
     "moo": "^0.5.2",
+    "type-is": "^1.6.18",
     "unified": "^11.0.5",
     "unified-args": "^11.0.1",
     "vfile": "^6.0.3"
