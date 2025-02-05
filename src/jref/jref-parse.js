@@ -15,12 +15,21 @@ export function jrefParse() {
   /** @type (document: string, file: VFile) => JrefDocumentNode */
   this.parser = function (document, file) {
     try {
-      return {
+      const uri = pathToFileURL(file.path).toString();
+      /** @type JrefDocumentNode */
+      const jrefDocument = {
         type: "jref-document",
-        children: [fromJref(document)],
-        uri: pathToFileURL(file.path).toString(),
+        children: [],
+        uri: uri,
         fragmentKind: "json-pointer"
       };
+
+      const node = fromJref(document, uri);
+      if (node) {
+        jrefDocument.children.push(node);
+      }
+
+      return jrefDocument;
     } catch (error) {
       if (error instanceof VFileMessage) {
         return file.fail(error.message, /** @type Options */ (error));

@@ -19,6 +19,7 @@ import { toJref } from "./jref-util.js";
 export function jrefStringify(options) {
   /** @type (tree: Node) => string */
   this.compiler = (tree) => {
-    return toJref(/** @type JrefDocumentNode */ (tree).children[0], options?.replacer, options?.space);
+    const jrefDocument = /** @type JrefDocumentNode */ (tree);
+    return toJref(jrefDocument.children[0], jrefDocument.uri, options?.replacer, options?.space) + "\n";
   };
 }

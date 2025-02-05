@@ -80,6 +80,8 @@ export type JsonNode = JsonObjectNode
 
 export type JsonCompatible<A> = JsonObjectNode<A> | JsonArrayNode<A> | JsonStringNode | JsonNumberNode | JsonBooleanNode | JsonNullNode;
 
+export type JsonType = "null" | "boolean" | "number" | "string" | "array" | "object";
+
 export type JsonDocumentNode = {
   type: "json-document";
   children: JsonNode[];

@@ -1,8 +1,8 @@
 import moo from "moo";
+import { VFileMessage } from "vfile-message";
 
 /**
- * @import { Token } from "moo"
- * @import { Point } from "unist"
+ * @import { Lexer, Token } from "moo"
  */
 
 
@@ -13,10 +13,6 @@ import moo from "moo";
 /**
  * @template {JsonTokenType} [T=JsonTokenType]
  * @typedef {{ [K in T]: Token & { type: K }; }[T]} JsonToken
- */
-
-/**
- * @typedef {Generator<JsonToken>} JsonLexer
  */
 
 // String
@@ -39,38 +35,70 @@ const number = `-?${int}(?:${frac})?(?:${exp})?`;
 // Whitespace
 const whitespace = `(?:(?:\\r?\\n)|[ \\t])+`;
 
-const lexer = moo.compile({
-  WS: { match: new RegExp(whitespace, "u"), lineBreaks: true },
-  boolean: ["true", "false"],
-  null: "null",
-  number: { match: new RegExp(number, "u") },
-  string: { match: new RegExp(string, "u") },
-  "{": "{",
-  "}": "}",
-  "[": "[",
-  "]": "]",
-  ":": ":",
-  ",": ",",
-  error: moo.error
-});
+export class JsonLexer {
+  /** @type Lexer */
+  #lexer;
 
-/** @type (json: string) => JsonLexer */
-export const jsonLexer = function* (json) {
-  for (const token of lexer.reset(json)) {
-    if (token.type === "WS") {
-      continue;
+  /** @type Generator<JsonToken<JsonTokenType>, void, undefined> */
+  #iterator;
+
+  /**
+   * @param {string} json
+   */
+  constructor(json) {
+    this.#lexer = moo.compile({
+      WS: { match: new RegExp(whitespace, "u"), lineBreaks: true },
+      boolean: ["true", "false"],
+      null: "null",
+      number: { match: new RegExp(number, "u") },
+      string: { match: new RegExp(string, "u") },
+      "{": "{",
+      "}": "}",
+      "[": "[",
+      "]": "]",
+      ":": ":",
+      ",": ",",
+      error: moo.error
+    });
+
+    this.#iterator = (function * (lexer) {
+      for (const token of lexer.reset(json)) {
+        if (token.type === "WS") {
+          continue;
+        }
+
+        yield /** @type JsonToken */ (token);
+      }
+    }(this.#lexer));
+  }
+
+  /** @type (lexer: JsonLexer) => JsonToken */
+  nextToken() {
+    const result = this.#iterator.next();
+    if (result.done) {
+      throw this.syntaxError("No more tokens");
     }
 
-    yield /** @type JsonToken */ (token);
-  }
-};
-
-/** @type (token?: Token) => Point */
-export const place = (token) => {
-  return {
-    // @ts-expect-error Line exists in the lexer but isn't included in the type
-    line: token?.line ?? lexer.line, // eslint-disable-line @typescript-eslint/no-unsafe-assignment
-    // @ts-expect-error Line exists in the lexer but isn't included in the type
-    column: token?.col ?? lexer.col // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+    return result.value;
   };
-};
+
+  done() {
+    if (!this.#iterator.next().done) {
+      throw this.syntaxError("Additional tokens found");
+    }
+  }
+
+  /** @type (message: string, token?: JsonToken) => VFileMessage */
+  syntaxError(message, token) {
+    throw new VFileMessage(message, {
+      source: "json",
+      ruleId: "syntax-error",
+      place: {
+        // @ts-expect-error Line exists in the lexer but isn't included in the type
+        line: token?.line ?? this.#lexer.line, // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+        // @ts-expect-error Line exists in the lexer but isn't included in the type
+        column: token?.col ?? this.#lexer.col // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+      }
+    });
+  };
+}

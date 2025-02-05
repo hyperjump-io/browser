@@ -13,6 +13,7 @@ import {
 export interface JrefReferenceNode {
   type: "jref-reference";
   value: string;
+  documentUri?: string;
   data?: Data;
   position?: Position;
 };

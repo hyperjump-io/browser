@@ -1,9 +1,8 @@
-import { VFileMessage } from "vfile-message";
-import { jsonLexer, place } from "./json-lexer.js";
+import { JsonLexer } from "./json-lexer.js";
 
 /**
  * @import { Node, Position } from "unist"
- * @import { JsonLexer, JsonToken } from "./json-lexer.js"
+ * @import { JsonToken } from "./json-lexer.js"
  * @import {
  *   JsonArrayNode,
  *   JsonBooleanNode,
@@ -21,47 +20,26 @@ import { jsonLexer, place } from "./json-lexer.js";
 
 /**
  * @template [A = JsonNode]
- * @typedef {(node: JsonCompatible<A>) => A} Reviver
+ * @typedef {(node: JsonCompatible<A>, key: string | undefined) => A | undefined} Reviver
  */
 
 /** @type Reviver<any> */
 const defaultReviver = (value) => value;
 
-/** @type <A = JsonNode>(json: string, reviver?: Reviver<A>) => A */
+/** @type <A = JsonNode>(json: string, reviver?: Reviver<A>) => A | undefined */
 export const fromJson = (json, reviver = defaultReviver) => {
-  const lexer = jsonLexer(json);
+  const lexer = new JsonLexer(json);
 
-  const token = nextToken(lexer);
-  const jsonValue = parseValue(token, lexer, reviver);
+  const token = lexer.nextToken(lexer);
+  const jsonValue = parseValue(token, lexer, undefined, reviver);
 
-  if (!lexer.next().done) {
-    throw syntaxError("Additional tokens found");
-  }
+  lexer.done();
 
   return jsonValue;
 };
 
-/** @type (lexer: JsonLexer) => JsonToken */
-const nextToken = (lexer) => {
-  const result = lexer.next();
-  if (result.done) {
-    throw syntaxError("No more tokens");
-  }
-
-  return result.value;
-};
-
-/** @type (message: string, token?: JsonToken) => VFileMessage */
-const syntaxError = (message, token) => {
-  throw new VFileMessage(message, {
-    source: "json",
-    ruleId: "syntax-error",
-    place: place(token)
-  });
-};
-
-/** @type <A>(token: JsonToken, lexer: JsonLexer, reviver: Reviver<A>) => A */
-const parseValue = (token, lexer, reviver) => {
+/** @type <A>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: Reviver<A>) => A | undefined */
+const parseValue = (token, lexer, key, reviver) => {
   let node;
 
   switch (token.type) {
@@ -78,10 +56,10 @@ const parseValue = (token, lexer, reviver) => {
       node = parseObject(token, lexer, reviver);
       break;
     default:
-      throw syntaxError("Expected a JSON value", token);
+      throw lexer.syntaxError("Expected a JSON value", token);
   }
 
-  return reviver(node);
+  return reviver(node, key);
 };
 
 /** @type (token: JsonToken<"null" | "boolean" | "number" | "string">) => JsonNullNode | JsonBooleanNode | JsonNumberNode | JsonStringNode */
@@ -94,10 +72,10 @@ const parseScalar = (token) => {
   };
 };
 
-/** @type <T>(token: JsonToken, lexer: JsonLexer, reviver: Reviver<T>) => JsonPropertyNode<T> */
-const parseProperty = (token, lexer, reviver) => {
+/** @type <T>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: Reviver<T>) => JsonPropertyNode<T> | undefined */
+const parseProperty = (token, lexer, _key, reviver) => {
   if (token.type !== "string") {
-    throw syntaxError("Expected a propertry", token);
+    throw lexer.syntaxError("Expected a propertry", token);
   }
 
   /** @type JsonPropertyNameNode */
@@ -107,11 +85,14 @@ const parseProperty = (token, lexer, reviver) => {
     position: tokenPosition(token)
   };
 
-  if (nextToken(lexer).type !== ":") {
-    throw syntaxError("Expected :", token);
+  if (lexer.nextToken(lexer).type !== ":") {
+    throw lexer.syntaxError("Expected :", token);
   }
 
-  const valueNode = parseValue(nextToken(lexer), lexer, reviver);
+  const valueNode = parseValue(lexer.nextToken(lexer), lexer, keyNode.value, reviver);
+  if (!valueNode) {
+    return;
+  }
 
   return {
     type: "json-property",
@@ -125,27 +106,29 @@ const parseProperty = (token, lexer, reviver) => {
  */
 
 /**
- * @type <A extends ParentNode<B>, B>(parseChild: <C>(token: JsonToken, lexer: JsonLexer, reviver: Reviver<C>) => B, endToken: string) => <C>(lexer: JsonLexer, node: A, reviver: Reviver<C>) => A
+ * @type <A extends ParentNode<B>, B>(parseChild: <C>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: Reviver<C>) => B, endToken: string) => <C>(lexer: JsonLexer, node: A, reviver: Reviver<C>) => A
  */
 const parseCommaSeparated = (parseChild, endToken) => (lexer, node, reviver) => {
-  while (true) {
-    let token = nextToken(lexer);
+  for (let index = 0; true; index++) {
+    let token = lexer.nextToken(lexer);
 
     if (token.type === endToken) {
       /** @type Position */ (node.position).end = tokenPosition(token).end;
       return node;
     }
 
-    if (node.children.length > 0) {
+    if (index > 0) {
       if (token.type === ",") {
-        token = nextToken(lexer);
+        token = lexer.nextToken(lexer);
       } else {
-        throw syntaxError(`Expected , or ${endToken}`, token);
+        throw lexer.syntaxError(`Expected , or ${endToken}`, token);
       }
     }
 
-    const childNode = parseChild(token, lexer, reviver);
-    node.children.push(childNode);
+    const childNode = parseChild(token, lexer, `${index}`, reviver);
+    if (childNode) {
+      node.children.push(childNode);
+    }
   }
 };
 
@@ -206,7 +189,7 @@ const defaultReplacer = (_key, node) => node; // eslint-disable-line @typescript
 /** @type <A>(node: A, replacer?: Replacer<A>, space?: string) => string */
 export const toJson = (node, replacer = defaultReplacer, space = "  ") => {
   const replacedNode = replacer.call(undefined, undefined, node);
-  return stringifyValue(replacedNode, replacer, space, 1) + "\n";
+  return stringifyValue(replacedNode, replacer, space, 1);
 };
 
 /** @type <A>(node: JsonCompatible<A>, replacer: Replacer<A>, space: string, depth: number) => string */
@@ -265,21 +248,26 @@ const stringifyObject = (node, replacer, space, depth) => {
   return result + padding + "}";
 };
 
-/** @type (pointer: string, tree: JsonNode) => JsonNode */
+/** @type (pointer: string, tree: JsonNode) => JsonNode | undefined */
 export const pointerGet = (pointer, tree) => {
   let node = tree;
-  for (const segment of pointerSegments(pointer)) {
+  segments: for (const segment of pointerSegments(pointer)) {
     switch (node.jsonType) {
       case "object":
         for (const propertyNode of node.children) {
           if (propertyNode.children[0].value === segment) {
             node = propertyNode.children[1];
+            continue segments;
           }
         }
-        break;
+        return;
       case "array":
         const index = segment === "-" ? node.children.length : parseInt(segment);
         node = node.children[index];
+        if (!node) {
+          return;
+        }
+        break;
       default:
         throw Error("Can't index into scalar value");
     }

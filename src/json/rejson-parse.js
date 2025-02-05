@@ -14,10 +14,18 @@ export function rejsonParse() {
   /** @type (document: string, file: VFile) => JsonDocumentNode */
   this.parser = function (document, file) {
     try {
-      return {
+      /** @type JsonDocumentNode */
+      const jsonDocument = {
         type: "json-document",
-        children: [fromJson(document)]
+        children: []
       };
+
+      const node = fromJson(document);
+      if (node) {
+        jsonDocument.children.push(node);
+      }
+
+      return jsonDocument;
     } catch (error) {
       if (error instanceof VFileMessage) {
         return file.fail(error.message, /** @type Options */ (error));

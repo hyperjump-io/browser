@@ -1,3 +1,4 @@
+import { resolveIri, toRelativeIri } from "@hyperjump/uri";
 import { fromJson, pointerGet as jsonPointerGet, toJson } from "../json/jsonast-util.js";
 
 /**
@@ -6,21 +7,33 @@ import { fromJson, pointerGet as jsonPointerGet, toJson } from "../json/jsonast-
  */
 
 
-/** @type (jref: string) => JrefNode */
-export const fromJref = (jref) => {
-  return fromJson(jref, (node) => {
+/**
+ * @template [A = JrefNode]
+ * @typedef {(node: JrefNode, key?: string) => A | undefined} Reviver
+ */
+
+/** @type Reviver<any> */
+const defaultReviver = (value) => value;
+
+/** @type (jref: string, uri: string, reviver?: Reviver) => JrefNode | undefined */
+export const fromJref = (jref, uri, reviver = defaultReviver) => {
+  return fromJson(jref, (node, key) => {
+    /** @type JrefNode */
+    let jrefNode = node;
+
     if (node.jsonType === "object") {
       const href = isReference(node);
       if (href) {
-        return {
+        jrefNode = {
           type: "jref-reference",
-          value: href,
+          value: resolveIri(href, uri),
+          documentUri: uri,
           position: node.position
         };
       }
     }
 
-    return node;
+    return reviver(jrefNode, key);
   });
 };
 
@@ -43,8 +56,8 @@ const isReference = (objectNode) => {
 /** @type Replacer */
 const defaultReplacer = (_key, node) => node;
 
-/** @type (node: JrefNode, replacer?: Replacer, space?: string) => string */
-export const toJref = (node, replacer = defaultReplacer, space = "  ") => {
+/** @type (node: JrefNode, uri: string, replacer?: Replacer, space?: string) => string */
+export const toJref = (node, uri, replacer = defaultReplacer, space = "  ") => {
   return toJson(node, (key, node) => {
     node = replacer.call(this, key, node);
 
@@ -64,7 +77,7 @@ export const toJref = (node, replacer = defaultReplacer, space = "  ") => {
               {
                 type: "json",
                 jsonType: "string",
-                value: node.value
+                value: toRelativeIri(uri, node.value)
               }
             ]
           }
@@ -74,7 +87,7 @@ export const toJref = (node, replacer = defaultReplacer, space = "  ") => {
     } else {
       return node;
     }
-  }, space) + "\n";
+  }, space);
 };
 
-export const pointerGet = /** @type (pointer: string, tree: JrefNode) => JrefNode */ (jsonPointerGet);
+export const pointerGet = /** @type (pointer: string, tree: JrefNode) => JrefNode | undefined */ (jsonPointerGet);

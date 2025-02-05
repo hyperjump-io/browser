@@ -45,6 +45,7 @@
     "vitest": "*"
   },
   "dependencies": {
+    "@hyperjump/uri": "^1.3.0",
     "moo": "^0.5.2",
     "unified": "^11.0.5",
     "unified-args": "^11.0.1",
