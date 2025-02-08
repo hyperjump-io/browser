@@ -2,7 +2,7 @@ import { fromJson } from "../../json/jsonast-util.js";
 
 /**
  * @import { MediaTypePlugin } from "./media-type-plugin.d.ts"
- * @import { JsonDocumentNode } from "../../json/jsonast.js"
+ * @import { JsonDocumentNode, JsonNode } from "../../json/jsonast.js"
  */
 
 
@@ -20,18 +20,12 @@ export class JsonMediaTypePlugin {
 
   /** @type MediaTypePlugin<JsonDocumentNode>["parse"] */
   async parse(response) {
-    /** @type JsonDocumentNode */
-    const jsonDocument = {
+    return {
       type: "json-document",
-      children: []
+      children: [
+        /** @type JsonNode */ (fromJson(await response.text()))
+      ]
     };
-
-    const node = fromJson(await response.text());
-    if (node) {
-      jsonDocument.children.push(node);
-    }
-
-    return jsonDocument;
   }
 
   /** @type MediaTypePlugin<JsonDocumentNode>["fileMatcher"] */

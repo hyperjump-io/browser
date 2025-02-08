@@ -6,7 +6,7 @@ import { HttpUriSchemePlugin } from "./uri-schemes/http-scheme-plugin.js";
 import { FileUriSchemePlugin } from "./uri-schemes/file-scheme-plugin.js";
 import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
 import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
-import { pointerGet } from "../jref/jref-util.js";
+import { pointerGet, pointerStep } from "../jref/jref-util.js";
 
 /**
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
@@ -61,7 +61,7 @@ export class Hyperjump {
     this.addMediaTypePlugin("application/reference+json", new JrefMediaTypePlugin());
   }
 
-  /** @type (uri: string, options?: FetchOptions) => Promise<JsonCompatible<JrefNode> | undefined> */
+  /** @type (uri: string, options?: FetchOptions) => Promise<JsonCompatible<JrefNode>> */
   async get(uri, options) {
     const baseUri = contextUri();
     uri = resolveIri(uri, baseUri);
@@ -76,7 +76,7 @@ export class Hyperjump {
 
     if (!document) {
       try {
-        const response = await this.#retrieve(uri, baseUri);
+        const response = await this.retrieve(uri, baseUri);
         document = await this.#parseResponse(response);
         uri = response.url + (fragment === undefined ? "" : `#${fragment}`);
       } catch (error) {
@@ -87,19 +87,17 @@ export class Hyperjump {
       this.#cache[id] = document;
     }
 
-    if (document.children[0]) {
-      if (document.anchors && fragment !== undefined) {
-        fragment = document.anchors[fragment] ?? fragment;
-      }
-      const cursor = document.fragmentKind === "json-pointer" ? fragment : "";
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      const node = document.children[0] ? pointerGet(cursor ?? "", document.children[0]) : undefined;
-
-      return this.#followReferences(node);
+    if (document.anchors && fragment !== undefined) {
+      fragment = document.anchors[fragment] ?? fragment;
     }
+    const cursor = document.fragmentKind === "json-pointer" ? fragment : "";
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const node = pointerGet(cursor ?? "", document.children[0], document.uri);
+    return await this.#followReferences(node);
   }
 
-  /** @type (node: JrefNode | undefined) => Promise<JsonCompatible<JrefNode> | undefined> */
+  /** @type (node: JrefNode) => Promise<JsonCompatible<JrefNode>> */
   async #followReferences(node) {
     if (node?.type === "jref-reference") {
       return this.get(node.value, { referencedFrom: node.documentUri });
@@ -119,7 +117,7 @@ export class Hyperjump {
   }
 
   /** @type (uri: string, baseUri: string) => Promise<Response> */
-  async #retrieve(uri, baseUri) {
+  async retrieve(uri, baseUri) {
     uri = resolveIri(uri, baseUri);
     const { scheme } = parseIri(uri);
 
@@ -207,9 +205,9 @@ export class Hyperjump {
     }
   }
 
-  /** @type (node: JsonCompatible<JrefNode>) => JsonType | "undefined" */
+  /** @type (node: JsonCompatible<JrefNode>) => JsonType */
   typeOf(node) {
-    return node.jsonType ?? "undefined";
+    return node.jsonType;
   }
 
   /** @type (key: string, node: JsonCompatible<JrefNode>) => boolean */
@@ -237,24 +235,12 @@ export class Hyperjump {
     }
   }
 
-  /** @type (key: string, node: JsonCompatible<JrefNode>) => Promise<JsonCompatible<JrefNode> | undefined> */
+  /** @type (key: string, node: JsonCompatible<JrefNode>) => Promise<JsonCompatible<JrefNode>> */
   async step(key, node) {
-    switch (node.jsonType) {
-      case "object":
-        for (const propertyNode of node.children) {
-          if (propertyNode.children[0].value === key) {
-            return this.#followReferences(propertyNode.children[1]);
-          }
-        }
-        return;
-      case "array":
-        return this.#followReferences(node.children[+key]);
-      default:
-        throw Error("Can't index into a primitive value");
-    }
+    return await this.#followReferences(pointerStep(key, node));
   }
 
-  /** @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<JsonCompatible<JrefNode> | undefined, void, unknown> */
+  /** @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<JsonCompatible<JrefNode>, void, unknown> */
   async * iter(node) {
     if (node.jsonType === "array") {
       for (const itemNode of node.children) {
@@ -272,7 +258,7 @@ export class Hyperjump {
     }
   }
 
-  /** @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<JsonCompatible<JrefNode> | undefined, void, unknown> */
+  /** @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<JsonCompatible<JrefNode>, void, unknown> */
   async * values(node) {
     if (node.jsonType === "object") {
       for (const propertyNode of node.children) {
@@ -281,7 +267,7 @@ export class Hyperjump {
     }
   }
 
-  /** @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<[string, JsonCompatible<JrefNode> | undefined], void, unknown> */
+  /** @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<[string, JsonCompatible<JrefNode>], void, unknown> */
   async * entries(node) {
     if (node.jsonType === "object") {
       for (const propertyNode of node.children) {

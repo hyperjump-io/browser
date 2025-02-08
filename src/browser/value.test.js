@@ -31,7 +31,7 @@ describe("JSON Browser", () => {
       const uri = `${testDomain}${path}`;
       const subject = await browser.get(uri);
 
-      expect(browser.value(/** @type NonNullable<any> */ (subject))).to.eql(42);
+      expect(browser.value(subject)).to.eql(42);
     });
 
     test("with pointer", async () => {
@@ -45,7 +45,7 @@ describe("JSON Browser", () => {
       const browser = new Hyperjump();
       const subject = await browser.get(`${testDomain}${path}#/foo`);
 
-      expect(browser.value(/** @type NonNullable<any> */ (subject))).to.equal(42);
+      expect(browser.value(subject)).to.equal(42);
     });
 
     test("with pointer to reference", async () => {
@@ -66,7 +66,7 @@ describe("JSON Browser", () => {
       const browser = new Hyperjump();
       const subject = await browser.get(`${testDomain}${path}#/bar`);
 
-      expect(browser.value(/** @type NonNullable<any> */ (subject))).to.equal(42);
+      expect(browser.value(subject)).to.equal(42);
     });
   });
 });

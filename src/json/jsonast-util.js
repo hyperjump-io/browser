@@ -248,29 +248,40 @@ const stringifyObject = (node, replacer, space, depth) => {
   return result + padding + "}";
 };
 
-/** @type (pointer: string, tree: JsonNode) => JsonNode | undefined */
-export const pointerGet = (pointer, tree) => {
-  let node = tree;
-  segments: for (const segment of pointerSegments(pointer)) {
-    switch (node.jsonType) {
-      case "object":
-        for (const propertyNode of node.children) {
-          if (propertyNode.children[0].value === segment) {
-            node = propertyNode.children[1];
-            continue segments;
-          }
+/** @type (segment: string, node: JsonNode, uri?: string) => JsonNode */
+export const pointerStep = (segment, node, uri = "#") => {
+  switch (node.jsonType) {
+    case "object": {
+      for (const propertyNode of node.children) {
+        if (propertyNode.children[0].value === segment) {
+          return propertyNode.children[1];
         }
-        return;
-      case "array":
-        const index = segment === "-" ? node.children.length : parseInt(segment);
-        node = node.children[index];
-        if (!node) {
-          return;
-        }
-        break;
-      default:
-        throw Error("Can't index into scalar value");
+      }
+      const uriMessage = uri ? ` at ${uri}` : "";
+      throw new JsonPointerError(`Property '${segment}' doesn't exist${uriMessage}`);
     }
+    case "array": {
+      const index = segment === "-" ? node.children.length : parseInt(segment);
+      if (!node.children[index]) {
+        const uriMessage = uri ? ` at ${uri}` : "";
+        throw new JsonPointerError(`Index '${index}' doesn't exist${uriMessage}`);
+      }
+      return node.children[index];
+    }
+    default: {
+      const uriMessage = uri ? ` at ${uri}` : "";
+      throw new JsonPointerError(`Can't index into scalar value${uriMessage}`);
+    }
+  }
+};
+
+/** @type (pointer: string, tree: JsonNode, documentUri?: string) => JsonNode */
+export const pointerGet = (pointer, tree, documentUri) => {
+  let currentPointer = "";
+  let node = tree;
+  for (const segment of pointerSegments(pointer)) {
+    currentPointer += "/" + escapePointerSegment(segment);
+    node = pointerStep(segment, node, `${documentUri}#${currentPointer}`);
   }
 
   return node;
@@ -297,3 +308,16 @@ const pointerSegments = function* (pointer) {
 
 /** @type (segment: string) => string */
 const unescapePointerSegment = (segment) => segment.toString().replace(/~1/g, "/").replace(/~0/g, "~");
+
+/** @type (segment: string) => string */
+const escapePointerSegment = (segment) => segment.toString().replace(/~/g, "~0").replace(/\//g, "~1");
+
+export class JsonPointerError extends Error {
+  /**
+   * @param {string} [message]
+   */
+  constructor(message = undefined) {
+    super(message);
+    this.name = this.constructor.name;
+  }
+}

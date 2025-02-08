@@ -41,7 +41,7 @@ describe("JSON Browser", () => {
       const browser = new Hyperjump();
       const subject = await browser.get(uri);
 
-      expect(toJref(/** @type NonNullable<any> */ (subject), uri)).to.eql(jref);
+      expect(toJref(subject, uri)).to.eql(jref);
     });
 
     test("follow fragment-only reference", async () => {
@@ -63,7 +63,7 @@ describe("JSON Browser", () => {
       const browser = new Hyperjump();
       const subject = await browser.get(`${uri}#/bar`);
 
-      expect(toJref(/** @type NonNullable<any> */ (subject), uri)).to.eql(`42`);
+      expect(toJref(subject, uri)).to.eql(`42`);
     });
 
     test("follow reference to another document", async () => {
@@ -87,7 +87,7 @@ describe("JSON Browser", () => {
       const browser = new Hyperjump();
       const subject = await browser.get(uri);
 
-      expect(toJref(/** @type NonNullable<any> */ (subject), uri)).to.eql(`"bar"`);
+      expect(toJref(subject, uri)).to.eql(`"bar"`);
     });
 
     test("follow a reference to another document with a fragment", async () => {
@@ -113,7 +113,7 @@ describe("JSON Browser", () => {
       const browser = new Hyperjump();
       const subject = await browser.get(uri);
 
-      expect(toJref(/** @type NonNullable<any> */ (subject), uri)).to.eql(`24`);
+      expect(toJref(subject, uri)).to.eql(`24`);
     });
   });
 });

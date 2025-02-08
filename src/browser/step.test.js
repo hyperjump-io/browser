@@ -3,11 +3,6 @@ import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump } from "./index.js";
 import { toJref } from "../jref/jref-util.js";
 
-/**
- * @import { JsonCompatible } from "../json/jsonast.d.ts"
- * @import { JrefNode } from "../jref/jref-ast.d.ts"
- */
-
 
 describe("JSON Browser", () => {
   describe("step", () => {
@@ -37,9 +32,9 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump();
       const subject = await hyperjump.get(uri);
-      const foo = await hyperjump.step("foo", /** @type NonNullable<any> */ (subject));
+      const foo = await hyperjump.step("foo", subject);
 
-      expect(toJref(/** @type NonNullable<any> */ (foo), uri)).to.eql(`42`);
+      expect(toJref(foo, uri)).to.eql(`42`);
     });
 
     test("local reference to value", async () => {
@@ -56,9 +51,9 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump();
       const subject = await hyperjump.get(uri);
-      const foo = await hyperjump.step("bar", /** @type NonNullable<any> */ (subject));
+      const foo = await hyperjump.step("bar", subject);
 
-      expect(toJref(/** @type NonNullable<any> */ (foo), uri)).to.eql(`42`);
+      expect(toJref(foo, uri)).to.eql(`42`);
     });
 
     test("local reference to local reference to value", async () => {
@@ -76,9 +71,9 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump();
       const subject = await hyperjump.get(uri);
-      const foo = await hyperjump.step("baz", /** @type NonNullable<any> */ (subject));
+      const foo = await hyperjump.step("baz", subject);
 
-      expect(toJref(/** @type NonNullable<any> */ (foo), uri)).to.eql(`42`);
+      expect(toJref(foo, uri)).to.eql(`42`);
     });
 
     test("local reference to external reference to value", async () => {
@@ -102,9 +97,9 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump();
       const subject = await hyperjump.get(uri);
-      const foo = await hyperjump.step("baz", /** @type NonNullable<any> */ (subject));
+      const foo = await hyperjump.step("baz", subject);
 
-      expect(toJref(/** @type NonNullable<any> */ (foo), uri)).to.eql(`42`);
+      expect(toJref(foo, uri)).to.eql(`42`);
     });
 
     test("external reference to value", async () => {
@@ -128,9 +123,9 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: externalPath })
         .reply(200, externalJref, { headers: { "content-type": "application/reference+json" } });
 
-      const foo = await hyperjump.step("bar", /** @type NonNullable<any> */ (subject));
+      const foo = await hyperjump.step("bar", subject);
 
-      expect(toJref(/** @type NonNullable<any> */ (foo), uri)).to.eql(`42`);
+      expect(toJref(foo, uri)).to.eql(`42`);
     });
 
     test("external reference to local reference to value", async () => {
@@ -157,9 +152,9 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: externalPath })
         .reply(200, externalJref, { headers: { "content-type": "application/reference+json" } });
 
-      const foo = await hyperjump.step("baz", /** @type NonNullable<any> */ (subject));
+      const foo = await hyperjump.step("baz", subject);
 
-      expect(toJref(/** @type NonNullable<any> */ (foo), uri)).to.eql(`42`);
+      expect(toJref(foo, uri)).to.eql(`42`);
     });
   });
 });

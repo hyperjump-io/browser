@@ -1,5 +1,10 @@
 import { resolveIri, toRelativeIri } from "@hyperjump/uri";
-import { fromJson, pointerGet as jsonPointerGet, toJson } from "../json/jsonast-util.js";
+import {
+  fromJson,
+  pointerGet as jsonPointerGet,
+  pointerStep as jsonPointerStep,
+  toJson
+} from "../json/jsonast-util.js";
 
 /**
  * @import { JsonObjectNode } from "../json/jsonast.d.ts"
@@ -90,4 +95,5 @@ export const toJref = (node, uri, replacer = defaultReplacer, space = "  ") => {
   }, space);
 };
 
-export const pointerGet = /** @type (pointer: string, tree: JrefNode) => JrefNode | undefined */ (jsonPointerGet);
+export const pointerGet = /** @type (pointer: string, tree: JrefNode, documentUri?: string) => JrefNode */ (jsonPointerGet);
+export const pointerStep = /** @type (segment: string, tree: JrefNode, uri?: string) => JrefNode */ (jsonPointerStep);

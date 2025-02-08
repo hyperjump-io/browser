@@ -2,7 +2,7 @@ import { fromJref } from "../../jref/jref-util.js";
 
 /**
  * @import { MediaTypePlugin } from "./media-type-plugin.d.ts"
- * @import { JrefDocumentNode } from "../../jref/jref-ast.d.ts"
+ * @import { JrefDocumentNode, JrefNode } from "../../jref/jref-ast.d.ts"
  */
 
 
@@ -20,20 +20,14 @@ export class JrefMediaTypePlugin {
 
   /** @type MediaTypePlugin<JrefDocumentNode>["parse"] */
   async parse(response) {
-    /** @type JrefDocumentNode */
-    const jrefDocument = {
+    return {
       type: "jref-document",
-      children: [],
+      children: [
+        /** @type JrefNode */ (fromJref(await response.text(), response.url))
+      ],
       uri: response.url,
       fragmentKind: "json-pointer"
     };
-
-    const node = fromJref(await response.text(), response.url);
-    if (node) {
-      jrefDocument.children.push(node);
-    }
-
-    return jrefDocument;
   }
 
   /** @type MediaTypePlugin<JrefDocumentNode>["fileMatcher"] */

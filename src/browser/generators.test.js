@@ -39,21 +39,16 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/external" })
         .reply(200, external, { headers: { "content-type": "application/reference+json" } });
 
-      // Remove when caching is implemented
-      mockAgent.get(testDomain)
-        .intercept({ method: "GET", path: "/external" })
-        .reply(200, external, { headers: { "content-type": "application/reference+json" } });
-
       const hyperjump = new Hyperjump();
       const subject = await hyperjump.get(uri);
-      const generator = hyperjump.iter(/** @type NonNullable<any> */ (subject));
+      const generator = hyperjump.iter(subject);
 
-      const first = /** @type JsonCompatible<JrefNode> */ ((await generator.next()).value);
-      expect(toJref(first, uri)).to.equal(`1`);
-      const second = /** @type JsonCompatible<JrefNode> */ ((await generator.next()).value);
-      expect(toJref(second, uri)).to.equal(`2`);
-      const third = /** @type JsonCompatible<JrefNode> */ ((await generator.next()).value);
-      expect(toJref(third, uri)).to.equal(`2`);
+      const first = await generator.next();
+      expect(toJref(/** @type NonNullable<any> */ (first.value), uri)).to.equal(`1`);
+      const second = await generator.next();
+      expect(toJref(/** @type NonNullable<any> */ (second.value), uri)).to.equal(`2`);
+      const third = await generator.next();
+      expect(toJref(/** @type NonNullable<any> */ (third.value), uri)).to.equal(`2`);
       expect((await generator.next()).done).to.equal(true);
     });
 
@@ -70,7 +65,7 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump();
       const subject = await hyperjump.get(`${testDomain}/subject`);
-      const generator = hyperjump.keys(/** @type NonNullable<any> */ (subject));
+      const generator = hyperjump.keys(subject);
 
       expect(generator.next().value).to.equal("a");
       expect(generator.next().value).to.equal("b");
@@ -95,21 +90,16 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/external" })
         .reply(200, external, { headers: { "content-type": "application/reference+json" } });
 
-      // Remove when caching is implemented
-      mockAgent.get(testDomain)
-        .intercept({ method: "GET", path: "/external" })
-        .reply(200, external, { headers: { "content-type": "application/reference+json" } });
-
       const hyperjump = new Hyperjump();
       const subject = await hyperjump.get(uri);
-      const generator = hyperjump.values(/** @type NonNullable<any> */ (subject));
+      const generator = hyperjump.values(subject);
 
-      const first = /** @type JsonCompatible<JrefNode> */ ((await generator.next()).value);
-      expect(toJref(first, uri)).to.equal(`1`);
-      const second = /** @type JsonCompatible<JrefNode> */ ((await generator.next()).value);
-      expect(toJref(second, uri)).to.equal(`2`);
-      const third = /** @type JsonCompatible<JrefNode> */ ((await generator.next()).value);
-      expect(toJref(third, uri)).to.equal(`2`);
+      const first = await generator.next();
+      expect(toJref(/** @type NonNullable<any> */ (first.value), uri)).to.equal(`1`);
+      const second = await generator.next();
+      expect(toJref(/** @type NonNullable<any> */ (second.value), uri)).to.equal(`2`);
+      const third = await generator.next();
+      expect(toJref(/** @type NonNullable<any> */ (third.value), uri)).to.equal(`2`);
       expect((await generator.next()).done).to.equal(true);
     });
 
@@ -130,25 +120,20 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/external" })
         .reply(200, external, { headers: { "content-type": "application/reference+json" } });
 
-      // Remove when caching is implemented
-      mockAgent.get(testDomain)
-        .intercept({ method: "GET", path: "/external" })
-        .reply(200, external, { headers: { "content-type": "application/reference+json" } });
-
       const hyperjump = new Hyperjump();
       const subject = await hyperjump.get(uri);
-      const generator = hyperjump.entries(/** @type NonNullable<any> */ (subject));
+      const generator = hyperjump.entries(subject);
 
       const a = /** @type [string, JsonCompatible<JrefNode>] */ ((await generator.next()).value);
-      expect(a[0]).to.eql("a");
+      expect(a[0]).to.equal("a");
       expect(toJref(a[1], uri)).to.equal(`1`);
 
       const b = /** @type [string, JsonCompatible<JrefNode>] */ ((await generator.next()).value);
-      expect(b[0]).to.eql("b");
+      expect(b[0]).to.equal("b");
       expect(toJref(b[1], uri)).to.equal(`2`);
 
       const c = /** @type [string, JsonCompatible<JrefNode>] */ ((await generator.next()).value);
-      expect(c[0]).to.eql("c");
+      expect(c[0]).to.equal("c");
       expect(toJref(c[1], uri)).to.equal(`2`);
 
       expect((await generator.next()).done).to.equal(true);

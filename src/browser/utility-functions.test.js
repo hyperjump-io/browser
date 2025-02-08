@@ -26,7 +26,7 @@ describe("JSON Browser", () => {
   describe("object has property", () => {
     const hyperjump = new Hyperjump();
 
-    /** @type JsonCompatible<JrefNode> | undefined  */
+    /** @type JsonCompatible<JrefNode> */
     let node;
 
     beforeEach(async () => {
@@ -60,7 +60,7 @@ describe("JSON Browser", () => {
     const hyperjump = new Hyperjump();
     const subject = await hyperjump.get(`${testDomain}/foo`);
 
-    expect(hyperjump.length(/** @type NonNullable<any> */ (subject))).to.eql(1);
+    expect(hyperjump.length(subject)).to.eql(1);
   });
 
   describe("object has property", () => {
@@ -84,37 +84,37 @@ describe("JSON Browser", () => {
 
     test("null", async () => {
       const subject = await hyperjump.get(`${testDomain}/foo#/null`);
-      expect(hyperjump.typeOf(/** @type NonNullable<any> */ (subject))).to.eql("null");
+      expect(hyperjump.typeOf(subject)).to.eql("null");
     });
 
     test("true", async () => {
       const subject = await hyperjump.get(`${testDomain}/foo#/true`);
-      expect(hyperjump.typeOf(/** @type NonNullable<any> */ (subject))).to.eql("boolean");
+      expect(hyperjump.typeOf(subject)).to.eql("boolean");
     });
 
     test("false", async () => {
       const subject = await hyperjump.get(`${testDomain}/foo#/false`);
-      expect(hyperjump.typeOf(/** @type NonNullable<any> */ (subject))).to.eql("boolean");
+      expect(hyperjump.typeOf(subject)).to.eql("boolean");
     });
 
     test("number", async () => {
       const subject = await hyperjump.get(`${testDomain}/foo#/number`);
-      expect(hyperjump.typeOf(/** @type NonNullable<any> */ (subject))).to.eql("number");
+      expect(hyperjump.typeOf(subject)).to.eql("number");
     });
 
     test("string", async () => {
       const subject = await hyperjump.get(`${testDomain}/foo#/string`);
-      expect(hyperjump.typeOf(/** @type NonNullable<any> */ (subject))).to.eql("string");
+      expect(hyperjump.typeOf(subject)).to.eql("string");
     });
 
     test("array", async () => {
       const subject = await hyperjump.get(`${testDomain}/foo#/array`);
-      expect(hyperjump.typeOf(/** @type NonNullable<any> */ (subject))).to.eql("array");
+      expect(hyperjump.typeOf(subject)).to.eql("array");
     });
 
     test("object", async () => {
       const subject = await hyperjump.get(`${testDomain}/foo#/object`);
-      expect(hyperjump.typeOf(/** @type NonNullable<any> */ (subject))).to.eql("object");
+      expect(hyperjump.typeOf(subject)).to.eql("object");
     });
   });
 });

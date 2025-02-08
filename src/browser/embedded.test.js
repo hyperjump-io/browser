@@ -74,7 +74,7 @@ describe("JSON Browser", () => {
       const uri = `${testDomain}/main#/foo`;
       const subject = await hyperjump.get(uri);
 
-      expect(toJref(/** @type NonNullable<any> */ (subject), uri)).to.equal(`42`);
+      expect(toJref(subject, uri)).to.equal(`42`);
     });
 
     test("getting the main document from an embedded document", async () => {
@@ -93,7 +93,7 @@ describe("JSON Browser", () => {
       const uri = `${testDomain}/main#/foo`;
       const subject = await hyperjump.get(uri);
 
-      expect(toJref(/** @type NonNullable<any> */ (subject), uri)).to.equal(`42`);
+      expect(toJref(subject, uri)).to.equal(`42`);
     });
 
     test("getting an embedded document from an embedded document", async () => {
@@ -112,7 +112,7 @@ describe("JSON Browser", () => {
       const uri = `${testDomain}/main#/foo`;
       const subject = await hyperjump.get(uri);
 
-      expect(toJref(/** @type NonNullable<any> */ (subject), uri)).to.equal(`42`);
+      expect(toJref(subject, uri)).to.equal(`42`);
     });
 
     test("a cached document takes precence over an embedded document", async () => {
@@ -141,7 +141,7 @@ describe("JSON Browser", () => {
       const uri = `${testDomain}/main#/foo`;
       const subject = await hyperjump.get(uri);
 
-      expect(toJref(/** @type NonNullable<any> */ (subject), uri)).to.equal(`42`);
+      expect(toJref(subject, uri)).to.equal(`42`);
     });
   });
 });
