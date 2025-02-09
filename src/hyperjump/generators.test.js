@@ -1,11 +1,11 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump } from "./index.js";
-import { toJref } from "../jref/jref-util.js";
+import { toJref } from "../jref/index.js";
 
 /**
- * @import { JrefNode } from "../jref/jref-ast.d.ts"
- * @import { JsonCompatible } from "../json/jsonast.d.ts"
+ * @import { JrefNode } from "../jref/index.js"
+ * @import { JsonCompatible } from "../json/index.js"
  */
 
 

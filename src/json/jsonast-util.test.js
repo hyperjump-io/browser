@@ -2,8 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, test, expect } from "vitest";
 import { VFileMessage } from "vfile-message";
-import { rejson } from "./rejson.js";
-import { rejsonStringify } from "./rejson-stringify.js";
+import { rejson, rejsonStringify } from "./index.js";
 
 
 describe("jsonast-util", async () => {

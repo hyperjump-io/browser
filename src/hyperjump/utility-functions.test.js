@@ -3,8 +3,8 @@ import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump } from "./index.js";
 
 /**
- * @import { JsonCompatible } from "../json/jsonast.d.ts"
- * @import { JrefNode } from "../jref/jref-ast.d.ts"
+ * @import { JsonCompatible } from "../json/index.js"
+ * @import { JrefNode } from "../jref/index.js"
  */
 
 

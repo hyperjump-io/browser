@@ -199,6 +199,7 @@ export class Hyperjump {
     switch (node.jsonType) {
       case "object":
       case "array":
+        // TODO: Handle structured values
         throw Error("Can't get the value of a structured value.");
       default:
         return node.value;

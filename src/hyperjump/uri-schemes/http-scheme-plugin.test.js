@@ -1,7 +1,7 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump, RetrievalError } from "../index.js";
-import { toJref } from "../../jref/jref-util.js";
+import { toJref } from "../../jref/index.js";
 
 
 describe("JSON Browser", () => {

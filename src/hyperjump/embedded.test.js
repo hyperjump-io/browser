@@ -2,10 +2,10 @@ import { describe, test, beforeEach, afterEach, expect, beforeAll, afterAll } fr
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { toAbsoluteIri } from "@hyperjump/uri";
 import { Hyperjump } from "./index.js";
-import { fromJref, toJref } from "../jref/jref-util.js";
+import { fromJref, toJref } from "../jref/index.js";
 
 /**
- * @import { DocumentNode } from "./media-types/media-type-plugin.d.ts"
+ * @import { DocumentNode } from "./index.js"
  */
 
 

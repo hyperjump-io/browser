@@ -1,7 +1,13 @@
 {
   "extends": "./tsconfig.json",
   "include": ["src/**/*"],
-  "exclude": ["**/*.test.js"],
+  "exclude": [
+    "**/*.test.js",
+    "src/hyperjump/media-types/media-type-plugin.js",
+    "src/hyperjump/uri-schemes/uri-scheme-plugin.js",
+    "src/json/jsonast.js",
+    "src/jref/jref-ast.js"
+  ],
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,
