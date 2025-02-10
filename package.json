@@ -31,6 +31,7 @@
     "test": "vitest --watch=false",
     "coverage": "vitest run --coverage",
     "type-check": "tsc --noEmit",
+    "docs": "typedoc",
     "prepack": "tsc --project tsconfig.build.json",
     "postpack": "node ./bin/postpack.js"
   },
@@ -44,6 +45,7 @@
     "@typescript-eslint/parser": "*",
     "eslint-import-resolver-typescript": "*",
     "eslint-plugin-import": "*",
+    "typedoc": "^0.27.6",
     "typescript-eslint": "*",
     "undici": "^7.3.0",
     "vitest": "*"
