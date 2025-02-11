@@ -1,8 +1,8 @@
 import { fromJref } from "../../jref/jref-util.js";
 
 /**
- * @import { MediaTypePlugin } from "./media-type-plugin.d.ts"
- * @import { JrefDocumentNode, JrefNode } from "../../jref/jref-ast.d.ts"
+ * @import { MediaTypePlugin } from "./media-type-plugin.js"
+ * @import { JrefDocumentNode } from "../../jref/jref-ast.js"
  */
 
 
@@ -22,9 +22,7 @@ export class JrefMediaTypePlugin {
   async parse(response) {
     return {
       type: "jref-document",
-      children: [
-        /** @type JrefNode */ (fromJref(await response.text(), response.url))
-      ],
+      children: [fromJref(await response.text(), response.url)],
       uri: response.url,
       fragmentKind: "json-pointer"
     };

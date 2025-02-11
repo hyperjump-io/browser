@@ -4,7 +4,7 @@ import { jrefStringify } from "./jref-stringify.js";
 
 /**
  * @import { Processor } from "unified"
- * @import { JrefDocumentNode } from "./jref-ast.d.ts"
+ * @import { JrefDocumentNode } from "./jref-ast.js"
  */
 
 

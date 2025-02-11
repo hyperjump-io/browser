@@ -5,7 +5,7 @@ import { fromJson } from "./jsonast-util.js";
  * @import { Plugin } from "unified"
  * @import { VFile } from "vfile"
  * @import { Options } from "vfile-message"
- * @import { JsonDocumentNode } from "./jsonast.d.ts"
+ * @import { JsonDocumentNode } from "./jsonast.js"
  */
 
 
@@ -14,18 +14,10 @@ export function rejsonParse() {
   /** @type (document: string, file: VFile) => JsonDocumentNode */
   this.parser = function (document, file) {
     try {
-      /** @type JsonDocumentNode */
-      const jsonDocument = {
+      return {
         type: "json-document",
-        children: []
+        children: [fromJson(document)]
       };
-
-      const node = fromJson(document);
-      if (node) {
-        jsonDocument.children.push(node);
-      }
-
-      return jsonDocument;
     } catch (error) {
       if (error instanceof VFileMessage) {
         return file.fail(error.message, /** @type Options */ (error));

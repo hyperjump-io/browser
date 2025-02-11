@@ -3,7 +3,7 @@ import { toJson } from "./jsonast-util.js";
 /**
  * @import { Plugin } from "unified"
  * @import { Node } from "unist"
- * @import { JsonDocumentNode } from "./jsonast.d.ts"
+ * @import { JsonDocumentNode } from "./jsonast.js"
  * @import { Replacer } from "./jsonast-util.js"
  */
 

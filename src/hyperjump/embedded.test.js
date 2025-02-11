@@ -6,6 +6,8 @@ import { fromJref, toJref } from "../jref/index.js";
 
 /**
  * @import { DocumentNode } from "./index.js"
+ * @import { JrefNode } from "../jref/index.js"
+ * @import { Reviver } from "../jref/index.js"
  */
 
 
@@ -16,22 +18,25 @@ describe("JSON Browser", () => {
     const testMediaType = "application/prs.hyperjump-embedded-test";
 
     beforeAll(() => {
-      /** @type (uri: string, text: string, embedded?: Record<string, any>) => DocumentNode */
+      /** @type (uri: string, text: string, embedded?: Record<string, DocumentNode>) => DocumentNode */
       const parseToDocument = (uri, text, embedded = {}) => {
+        /** @type Reviver<JrefNode | undefined> */
+        const embeddedReviver = (node, key) => {
+          if (key === "$embedded" && node.type === "json" && node.jsonType === "object") {
+            for (const propertyNode of node.children) {
+              const embeddedUri = toAbsoluteIri(propertyNode.children[0].value);
+              const embeddedJref = toJref(propertyNode.children[1], uri);
+              embedded[embeddedUri] = parseToDocument(embeddedUri, embeddedJref, embedded);
+            }
+            return;
+          } else {
+            return node;
+          }
+        };
+
         return {
           uri: uri,
-          children: [fromJref(text, uri, (node, key) => {
-            if (key === "$embedded" && node.type === "json" && node.jsonType === "object") {
-              for (const propertyNode of node.children) {
-                const embeddedUri = toAbsoluteIri(propertyNode.children[0].value);
-                const embeddedJref = toJref(propertyNode.children[1], uri);
-                embedded[embeddedUri] = parseToDocument(embeddedUri, embeddedJref, embedded);
-              }
-              return;
-            } else {
-              return node;
-            }
-          })],
+          children: [fromJref(text, uri, embeddedReviver)],
           fragmentKind: "json-pointer",
           embedded: embedded
         };

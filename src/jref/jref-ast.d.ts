@@ -2,6 +2,7 @@ import type { Data, Position } from "unist";
 import {
   JsonArrayNode,
   JsonBooleanNode,
+  JsonCompatible,
   JsonNullNode,
   JsonNumberNode,
   JsonObjectNode,
@@ -25,6 +26,8 @@ export type JrefNode = JsonObjectNode<JrefNode>
   | JsonBooleanNode
   | JsonNullNode
   | JrefReferenceNode;
+
+export type JrefCompatible<A> = JsonCompatible<A> | JrefReferenceNode;
 
 export type JrefDocumentNode = {
   type: "jref-document";

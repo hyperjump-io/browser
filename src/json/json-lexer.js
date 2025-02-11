@@ -72,7 +72,7 @@ export class JsonLexer {
     }(this.#lexer));
   }
 
-  /** @type (lexer: JsonLexer) => JsonToken */
+  /** @type () => JsonToken */
   nextToken() {
     const result = this.#iterator.next();
     if (result.done) {

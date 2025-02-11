@@ -1,8 +1,8 @@
 import { fromJson } from "../../json/jsonast-util.js";
 
 /**
- * @import { MediaTypePlugin } from "./media-type-plugin.d.ts"
- * @import { JsonDocumentNode, JsonNode } from "../../json/jsonast.js"
+ * @import { MediaTypePlugin } from "./media-type-plugin.js"
+ * @import { JsonDocumentNode } from "../../json/jsonast.js"
  */
 
 
@@ -22,9 +22,7 @@ export class JsonMediaTypePlugin {
   async parse(response) {
     return {
       type: "json-document",
-      children: [
-        /** @type JsonNode */ (fromJson(await response.text()))
-      ]
+      children: [fromJson(await response.text())]
     };
   }
 

@@ -7,42 +7,39 @@ import {
 } from "../json/jsonast-util.js";
 
 /**
- * @import { JsonObjectNode } from "../json/jsonast.d.ts"
- * @import { JrefNode } from "./jref-ast.d.ts"
+ * @import { JsonObjectNode } from "../json/jsonast.js"
+ * @import { JrefCompatible, JrefNode } from "./jref-ast.js"
  */
 
 
 /**
- * @template [A = JrefNode]
- * @typedef {(node: JrefNode, key?: string) => A | undefined} Reviver
+ * @template {JrefNode | undefined} A
+ * @typedef {(node: JrefCompatible<NonNullable<A>>, key?: string) => A} Reviver
  */
 
 /** @type Reviver<any> */
 const defaultReviver = (value) => value;
 
-/** @type (jref: string, uri: string, reviver?: Reviver) => JrefNode | undefined */
+/** @type <A extends JrefNode | undefined = JrefNode>(jref: string, uri: string, reviver?: Reviver<A>) => A */
 export const fromJref = (jref, uri, reviver = defaultReviver) => {
   return fromJson(jref, (node, key) => {
-    /** @type JrefNode */
-    let jrefNode = node;
-
     if (node.jsonType === "object") {
       const href = isReference(node);
       if (href) {
-        jrefNode = {
+        return reviver({
           type: "jref-reference",
           value: resolveIri(href, uri),
           documentUri: uri,
           position: node.position
-        };
+        }, key);
       }
     }
 
-    return reviver(jrefNode, key);
+    return reviver(node, key);
   });
 };
 
-/** @type (node: JsonObjectNode<JrefNode>) => string | undefined */
+/** @type <A extends JrefNode>(node: JsonObjectNode<A>) => string | undefined */
 const isReference = (objectNode) => {
   for (const propertyNode of objectNode.children) {
     if (propertyNode.children[0].value === "$ref") {
@@ -55,16 +52,16 @@ const isReference = (objectNode) => {
 };
 
 /**
- * @typedef {(key: string | undefined, value: JrefNode) => JrefNode} Replacer
+ * @typedef {(value: JrefNode, key?: string) => JrefNode} Replacer
  */
 
 /** @type Replacer */
-const defaultReplacer = (_key, node) => node;
+const defaultReplacer = (node) => node;
 
 /** @type (node: JrefNode, uri: string, replacer?: Replacer, space?: string) => string */
-export const toJref = (node, uri, replacer = defaultReplacer, space = "  ") => {
-  return toJson(node, (key, node) => {
-    node = replacer.call(this, key, node);
+export const toJref = (node, uri, replacer = defaultReplacer, space = "") => {
+  return toJson(node, (node, key) => {
+    node = replacer(node, key);
 
     if (node.type === "jref-reference") {
       /** @type JsonObjectNode<JrefNode> */

@@ -3,7 +3,7 @@ import { toJref } from "./jref-util.js";
 /**
  * @import { Plugin } from "unified"
  * @import { Node } from "unist"
- * @import { JrefDocumentNode } from "./jref-ast.d.ts"
+ * @import { JrefDocumentNode } from "./jref-ast.js"
  * @import { Replacer } from "./jref-util.js"
  */
 

@@ -41,7 +41,7 @@ describe("JSON Browser", () => {
       const browser = new Hyperjump();
       const subject = await browser.get(uri);
 
-      expect(toJref(subject, uri)).to.eql(jref);
+      expect(toJref(subject, uri, undefined, "  ")).to.eql(jref);
     });
 
     test("follow fragment-only reference", async () => {

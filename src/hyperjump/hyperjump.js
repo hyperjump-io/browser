@@ -9,10 +9,10 @@ import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
 import { pointerGet, pointerStep } from "../jref/jref-util.js";
 
 /**
- * @import { JrefNode } from "../jref/jref-ast.d.ts"
- * @import { JsonCompatible, JsonType } from "../json/jsonast.d.ts"
- * @import { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.d.ts"
- * @import { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.d.ts"
+ * @import { JrefNode } from "../jref/jref-ast.js"
+ * @import { JsonCompatible, JsonType } from "../json/jsonast.js"
+ * @import { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.js"
+ * @import { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.js"
  */
 
 

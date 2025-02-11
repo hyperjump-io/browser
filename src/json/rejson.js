@@ -4,7 +4,7 @@ import { rejsonStringify } from "./rejson-stringify.js";
 
 /**
  * @import { Processor } from "unified"
- * @import { JsonDocumentNode } from "./jsonast.d.ts"
+ * @import { JsonDocumentNode } from "./jsonast.js"
  */
 
 

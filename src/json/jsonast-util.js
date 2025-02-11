@@ -14,23 +14,23 @@ import { JsonLexer } from "./json-lexer.js";
  *   JsonPropertyNameNode,
  *   JsonPropertyNode,
  *   JsonStringNode
- * } from "./jsonast.d.ts"
+ * } from "./jsonast.js"
  */
 
 
 /**
- * @template [A = JsonNode]
- * @typedef {(node: JsonCompatible<A>, key: string | undefined) => A | undefined} Reviver
+ * @template A
+ * @typedef {(node: JsonCompatible<NonNullable<A>>, key?: string) => A} Reviver
  */
 
 /** @type Reviver<any> */
 const defaultReviver = (value) => value;
 
-/** @type <A = JsonNode>(json: string, reviver?: Reviver<A>) => A | undefined */
+/** @type <A = JsonNode>(json: string, reviver?: Reviver<A>) => A */
 export const fromJson = (json, reviver = defaultReviver) => {
   const lexer = new JsonLexer(json);
 
-  const token = lexer.nextToken(lexer);
+  const token = lexer.nextToken();
   const jsonValue = parseValue(token, lexer, undefined, reviver);
 
   lexer.done();
@@ -38,7 +38,7 @@ export const fromJson = (json, reviver = defaultReviver) => {
   return jsonValue;
 };
 
-/** @type <A>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: Reviver<A>) => A | undefined */
+/** @type <A>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: Reviver<A>) => A */
 const parseValue = (token, lexer, key, reviver) => {
   let node;
 
@@ -72,7 +72,7 @@ const parseScalar = (token) => {
   };
 };
 
-/** @type <T>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: Reviver<T>) => JsonPropertyNode<T> | undefined */
+/** @type <A>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: Reviver<A>) => JsonPropertyNode<A> | undefined */
 const parseProperty = (token, lexer, _key, reviver) => {
   if (token.type !== "string") {
     throw lexer.syntaxError("Expected a propertry", token);
@@ -85,11 +85,11 @@ const parseProperty = (token, lexer, _key, reviver) => {
     position: tokenPosition(token)
   };
 
-  if (lexer.nextToken(lexer).type !== ":") {
+  if (lexer.nextToken().type !== ":") {
     throw lexer.syntaxError("Expected :", token);
   }
 
-  const valueNode = parseValue(lexer.nextToken(lexer), lexer, keyNode.value, reviver);
+  const valueNode = parseValue(lexer.nextToken(), lexer, keyNode.value, reviver);
   if (!valueNode) {
     return;
   }
@@ -106,11 +106,11 @@ const parseProperty = (token, lexer, _key, reviver) => {
  */
 
 /**
- * @type <A extends ParentNode<B>, B>(parseChild: <C>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: Reviver<C>) => B, endToken: string) => <C>(lexer: JsonLexer, node: A, reviver: Reviver<C>) => A
+ * @type <A extends ParentNode<B>, B>(parseChild: <C>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: Reviver<C>) => B, endToken: string) => <C>(lexer: JsonLexer, node: A, reviver: Reviver<C>) => NonNullable<A>
  */
 const parseCommaSeparated = (parseChild, endToken) => (lexer, node, reviver) => {
   for (let index = 0; true; index++) {
-    let token = lexer.nextToken(lexer);
+    let token = lexer.nextToken();
 
     if (token.type === endToken) {
       /** @type Position */ (node.position).end = tokenPosition(token).end;
@@ -119,7 +119,7 @@ const parseCommaSeparated = (parseChild, endToken) => (lexer, node, reviver) => 
 
     if (index > 0) {
       if (token.type === ",") {
-        token = lexer.nextToken(lexer);
+        token = lexer.nextToken();
       } else {
         throw lexer.syntaxError(`Expected , or ${endToken}`, token);
       }
@@ -132,7 +132,7 @@ const parseCommaSeparated = (parseChild, endToken) => (lexer, node, reviver) => 
   }
 };
 
-/** @type <A>(openToken: JsonToken, lexer: JsonLexer, reviver: Reviver<A>) => JsonArrayNode<A> */
+/** @type <A>(openToken: JsonToken, lexer: JsonLexer, reviver: Reviver<A>) => JsonArrayNode<NonNullable<A>> */
 const parseArray = (openToken, lexer, reviver) => {
   return parseItems(lexer, {
     type: "json",
@@ -142,10 +142,10 @@ const parseArray = (openToken, lexer, reviver) => {
   }, reviver);
 };
 
-/** @type <A>(lexer: JsonLexer, node: JsonArrayNode<A>, reviver: Reviver<A>) => JsonArrayNode<A> */
+/** @type <A>(lexer: JsonLexer, node: JsonArrayNode<NonNullable<A>>, reviver: Reviver<A>) => JsonArrayNode<NonNullable<A>> */
 const parseItems = parseCommaSeparated(parseValue, "]");
 
-/** @type <A>(openToken: JsonToken, lexer: JsonLexer, reviver: Reviver<A>) => JsonObjectNode<A> */
+/** @type <A>(openToken: JsonToken, lexer: JsonLexer, reviver: Reviver<A>) => JsonObjectNode<NonNullable<A>> */
 const parseObject = (openToken, lexer, reviver) => {
   return parseProperties(lexer, {
     type: "json",
@@ -155,7 +155,7 @@ const parseObject = (openToken, lexer, reviver) => {
   }, reviver);
 };
 
-/** @type <U>(lexer: JsonLexer, node: JsonObjectNode<U>, reviver: Reviver<U>) => JsonObjectNode<U> */
+/** @type <A>(lexer: JsonLexer, node: JsonObjectNode<NonNullable<A>>, reviver: Reviver<A>) => JsonObjectNode<NonNullable<A>> */
 const parseProperties = parseCommaSeparated(parseProperty, "}");
 
 /** @type (startToken: JsonToken, endToken?: JsonToken) => Position */
@@ -172,34 +172,35 @@ const tokenPosition = (startToken, endToken) => {
     },
     end: {
       line: endToken.line,
-      column: endToken.col,
-      offset: endToken.offset
+      column: endToken.col + endToken.text.length,
+      offset: endToken.offset + endToken.text.length
     }
   };
 };
 
 /**
  * @template [A = JsonNode]
- * @typedef {(key: string | undefined, value: A) => JsonCompatible<A>} Replacer
+ * @typedef {(node: A, key?: string) => JsonCompatible<A>} Replacer
  */
 
 /** @type Replacer<any> */
-const defaultReplacer = (_key, node) => node; // eslint-disable-line @typescript-eslint/no-unsafe-return
+const defaultReplacer = (node) => node; // eslint-disable-line @typescript-eslint/no-unsafe-return
 
 /** @type <A>(node: A, replacer?: Replacer<A>, space?: string) => string */
-export const toJson = (node, replacer = defaultReplacer, space = "  ") => {
-  const replacedNode = replacer.call(undefined, undefined, node);
+export const toJson = (node, replacer = defaultReplacer, space = "") => {
+  const replacedNode = replacer(node);
   return stringifyValue(replacedNode, replacer, space, 1);
 };
 
 /** @type <A>(node: JsonCompatible<A>, replacer: Replacer<A>, space: string, depth: number) => string */
 const stringifyValue = (node, replacer, space, depth) => {
-  if (node.jsonType === "array") {
-    return stringifyArray(node, replacer, space, depth);
-  } else if (node.jsonType === "object") {
-    return stringifyObject(node, replacer, space, depth);
-  } else {
-    return JSON.stringify(node.value);
+  switch (node.jsonType) {
+    case "array":
+      return stringifyArray(node, replacer, space, depth);
+    case "object":
+      return stringifyObject(node, replacer, space, depth);
+    default:
+      return JSON.stringify(node.value);
   }
 };
 
@@ -213,7 +214,7 @@ const stringifyArray = (node, replacer, space, depth) => {
 
   let result = "[" + padding + space;
   for (let index = 0; index < node.children.length; index++) {
-    const itemNode = replacer.call(node, `${index}`, node.children[index]);
+    const itemNode = replacer(node.children[index], `${index}`);
     const stringifiedValue = stringifyValue(itemNode, replacer, space, depth + 1);
     result += stringifiedValue ?? "null";
     if (index + 1 < node.children.length) {
@@ -236,7 +237,7 @@ const stringifyObject = (node, replacer, space, depth) => {
   for (let index = 0; index < node.children.length; index++) {
     const propertyNode = node.children[index];
     const [keyNode, valueNode] = propertyNode.children;
-    const replacedValueNode = replacer.call(node, keyNode.value, valueNode);
+    const replacedValueNode = replacer(valueNode, keyNode.value);
     const stringifiedValue = stringifyValue(replacedValueNode, replacer, space, depth + 1);
     if (stringifiedValue !== undefined) {
       result += JSON.stringify(keyNode.value) + ":" + colonSpacing + stringifiedValue;

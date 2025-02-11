@@ -18,14 +18,15 @@ describe("jsonast-util", async () => {
     if (entry.name.startsWith("y_")) {
       test(`${entry.name.substring(2)} without spaces`, async () => {
         const processed = await rejson()
-          .use(rejsonStringify, { space: "" })
           .process(json);
         const expected = JSON.stringify(JSON.parse(json)) + "\n";
         expect(processed.toString()).to.eql(expected);
       });
 
       test(`${entry.name.substring(2)} with spaces`, async () => {
-        const processed = await rejson().process(json);
+        const processed = await rejson()
+          .use(rejsonStringify, { space: "  " })
+          .process(json);
         const expected = JSON.stringify(JSON.parse(json), null, "  ") + "\n";
         expect(processed.toString()).to.eql(expected);
       });

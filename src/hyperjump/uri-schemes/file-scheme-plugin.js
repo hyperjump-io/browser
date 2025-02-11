@@ -6,7 +6,7 @@ import { Readable } from "node:stream";
 
 /**
  * @import { Hyperjump } from "../index.js"
- * @import { UriSchemePlugin } from "./uri-scheme-plugin.d.ts"
+ * @import { UriSchemePlugin } from "./uri-scheme-plugin.js"
  */
 
 
