@@ -22,12 +22,12 @@ export class FileUriSchemePlugin {
   }
 
   /** @type UriSchemePlugin["retrieve"] */
-  async retrieve(uri, baseUri) {
-    const { scheme } = parseIri(baseUri);
+  async retrieve(uri, options) {
+    if (options.referencedFrom) {
+      const { scheme } = parseIri(options.referencedFrom);
 
-    if (baseUri) {
       if (scheme !== "file") {
-        throw Error(`Accessing a file (${uri}) from a non-filesystem document (${baseUri}) is not allowed`);
+        throw Error(`Accessing a file (${uri}) from a non-filesystem context (${options.referencedFrom}) is not allowed`);
       }
     }
 

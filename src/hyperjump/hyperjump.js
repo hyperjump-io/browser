@@ -24,7 +24,7 @@ import { pointerGet, pointerStep } from "../jref/jref-util.js";
 /**
  * @typedef {{
  *   referencedFrom?: string;
- * }} FetchOptions
+ * }} GetOptions
  */
 
 export class Hyperjump {
@@ -39,6 +39,9 @@ export class Hyperjump {
   /** @type Record<string, MediaTypePlugin<DocumentNode>> */
   #mediaTypePlugins;
 
+  /** @type GetOptions */
+  #defaultGetOptions;
+
   /**
    * @param {HyperjumpConfig} [config]
    */
@@ -49,6 +52,8 @@ export class Hyperjump {
 
     this.#uriSchemePlugins = {};
     this.#mediaTypePlugins = {};
+
+    this.#defaultGetOptions = {};
 
     // Load default URI scheme plugins
     const httpUriSchemePlugin = new HttpUriSchemePlugin(this);
@@ -61,10 +66,9 @@ export class Hyperjump {
     this.addMediaTypePlugin("application/reference+json", new JrefMediaTypePlugin());
   }
 
-  /** @type (uri: string, options?: FetchOptions) => Promise<JsonCompatible<JrefNode>> */
-  async get(uri, options) {
-    const baseUri = contextUri();
-    uri = resolveIri(uri, baseUri);
+  /** @type (uri: string, options?: GetOptions) => Promise<JsonCompatible<JrefNode>> */
+  async get(uri, options = this.#defaultGetOptions) {
+    uri = resolveIri(uri, options.referencedFrom ?? contextUri());
     const id = toAbsoluteIri(uri);
     let { fragment } = parseIri(uri);
 
@@ -76,12 +80,11 @@ export class Hyperjump {
 
     if (!document) {
       try {
-        const response = await this.retrieve(uri, baseUri);
+        const response = await this.retrieve(uri, options);
         document = await this.#parseResponse(response);
         uri = response.url + (fragment === undefined ? "" : `#${fragment}`);
       } catch (error) {
-        const referencedMessage = options?.referencedFrom ? ` Referenced from '${options.referencedFrom}'.` : "";
-        throw new RetrievalError(`Unable to load resource '${uri}'.${referencedMessage}`, { cause: error });
+        throw new RetrievalError(`Unable to load resource '${uri}'`, { cause: error });
       }
 
       this.#cache[id] = document;
@@ -116,16 +119,15 @@ export class Hyperjump {
     delete this.#uriSchemePlugins[scheme];
   }
 
-  /** @type (uri: string, baseUri: string) => Promise<Response> */
-  async retrieve(uri, baseUri) {
-    uri = resolveIri(uri, baseUri);
+  /** @type (uri: string, options: GetOptions) => Promise<Response> */
+  async retrieve(uri, options) {
     const { scheme } = parseIri(uri);
 
     if (!(scheme in this.#uriSchemePlugins)) {
       throw new UnsupportedUriSchemeError(scheme, `The '${scheme}:' URI scheme is not supported. Use the 'addUriSchemePlugin' function to add support for '${scheme}:' URIs.`);
     }
 
-    return this.#uriSchemePlugins[scheme].retrieve(uri, baseUri);
+    return this.#uriSchemePlugins[scheme].retrieve(uri, options);
   }
 
   acceptableMediaTypes() {

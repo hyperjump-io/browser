@@ -105,7 +105,7 @@ const h = new Hyperjump();
 
 // Add support for the `urn:` scheme
 class UrnSchemePlugin {
-  async retrieve(urn, baseUri) {
+  async retrieve(urn, options) {
     let { nid, nss, query, fragment } = parseUrn(urn);
     nid = nid.toLowerCase();
 
@@ -117,7 +117,7 @@ class UrnSchemePlugin {
     uri += query ? "?" + query : "";
     uri += fragment ? "#" + fragment : "";
 
-    return await h.retrieve(uri, baseUri);
+    return await h.retrieve(uri, options);
   }
 }
 h.addUriSchemePlugin("urn", new UrnSchemePlugin());
