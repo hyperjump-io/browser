@@ -21,8 +21,9 @@ describe("JSON Browser", () => {
         hyperjump.addMediaTypePlugin("application/foo", {
           parse: async () => { // eslint-disable-line @typescript-eslint/require-await
             return {
-              uri: "https://example.com/foo",
-              children: []
+              type: "foo-document",
+              children: [],
+              uri: "https://example.com/foo"
             };
           },
           uriMatcher: async (uri) => uri.endsWith(".foo") // eslint-disable-line @typescript-eslint/require-await
@@ -61,8 +62,9 @@ describe("JSON Browser", () => {
         hyperjump.addMediaTypePlugin("application/foo", {
           parse: async () => { // eslint-disable-line @typescript-eslint/require-await
             return {
-              uri: "https://exmple.com/foo",
-              children: []
+              type: "foo-document",
+              children: [],
+              uri: "https://exmple.com/foo"
             };
           },
           uriMatcher: async (uri) => uri.endsWith(".foo"), // eslint-disable-line @typescript-eslint/require-await
@@ -101,8 +103,9 @@ describe("JSON Browser", () => {
         hyperjump.addMediaTypePlugin("application/*+foo", {
           parse: async () => { // eslint-disable-line @typescript-eslint/require-await
             return {
-              uri: "https://exmple.com/foo",
-              children: []
+              type: "foo-document",
+              children: [],
+              uri: "https://exmple.com/foo"
             };
           },
           uriMatcher: async (uri) => uri.endsWith(".foo") // eslint-disable-line @typescript-eslint/require-await

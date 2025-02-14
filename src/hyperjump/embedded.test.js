@@ -35,8 +35,9 @@ describe("JSON Browser", () => {
         };
 
         return {
-          uri: uri,
+          type: "embedded-document",
           children: [fromJref(text, uri, embeddedReviver)],
+          uri: uri,
           fragmentKind: "json-pointer",
           embedded: embedded
         };
