@@ -43,7 +43,7 @@ describe("JSON Browser", () => {
       };
       hyperjump.addMediaTypePlugin(testMediaType, {
         parse: async (response) => parseToDocument(response.url, await response.text()),
-        fileMatcher: async (path) => path.endsWith(".embedded") // eslint-disable-line @typescript-eslint/require-await
+        uriMatcher: async (uri) => uri.endsWith(".embedded") // eslint-disable-line @typescript-eslint/require-await
       });
     });
 

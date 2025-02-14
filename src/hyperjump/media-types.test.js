@@ -25,7 +25,7 @@ describe("JSON Browser", () => {
               children: []
             };
           },
-          fileMatcher: async (path) => path.endsWith(".foo") // eslint-disable-line @typescript-eslint/require-await
+          uriMatcher: async (uri) => uri.endsWith(".foo") // eslint-disable-line @typescript-eslint/require-await
         });
       });
 
@@ -65,7 +65,7 @@ describe("JSON Browser", () => {
               children: []
             };
           },
-          fileMatcher: async (path) => path.endsWith(".foo"), // eslint-disable-line @typescript-eslint/require-await
+          uriMatcher: async (uri) => uri.endsWith(".foo"), // eslint-disable-line @typescript-eslint/require-await
           quality: 0.8
         });
       });
@@ -105,7 +105,7 @@ describe("JSON Browser", () => {
               children: []
             };
           },
-          fileMatcher: async (path) => path.endsWith(".foo") // eslint-disable-line @typescript-eslint/require-await
+          uriMatcher: async (uri) => uri.endsWith(".foo") // eslint-disable-line @typescript-eslint/require-await
         });
 
         mockAgent = new MockAgent();

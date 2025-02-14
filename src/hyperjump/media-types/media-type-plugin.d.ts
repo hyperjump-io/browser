@@ -12,6 +12,6 @@ export type DocumentNode = {
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export interface MediaTypePlugin<T extends DocumentNode> {
   parse: (response: Response) => Promise<T>;
-  fileMatcher: (path: string) => Promise<boolean>;
+  uriMatcher: (uri: string) => Promise<boolean>;
   quality?: number;
 };

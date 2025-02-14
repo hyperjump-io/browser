@@ -39,7 +39,7 @@ export class FileUriSchemePlugin {
       responseUri = pathToFileURL(await readlink(filePath)).toString();
     }
 
-    const contentType = await this.#hyperjump.getFileMediaType(responseUri);
+    const contentType = await this.#hyperjump.getMediaType(responseUri);
     const stream = /** @type ReadableStream<Uint8Array> */ (Readable.toWeb(createReadStream(filePath)));
     const response = new Response(stream, {
       headers: { "Content-Type": contentType }

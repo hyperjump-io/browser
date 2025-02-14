@@ -153,15 +153,15 @@ export class Hyperjump {
     return accept;
   }
 
-  /** @type (path: string) => Promise<string> */
-  async getFileMediaType(path) {
+  /** @type (uri: string) => Promise<string> */
+  async getMediaType(uri) {
     for (const contentType in this.#mediaTypePlugins) {
-      if (await this.#mediaTypePlugins[contentType].fileMatcher(path)) {
+      if (await this.#mediaTypePlugins[contentType].uriMatcher(uri)) {
         return contentType;
       }
     }
 
-    throw new UnknownMediaTypeError(`The media type of the file at '${path}' could not be determined. Use the 'addMediaTypePlugin' function to add support for this media type.`);
+    throw new UnknownMediaTypeError(`The media type of the file at '${uri}' could not be determined. Use the 'addMediaTypePlugin' function to add support for this media type.`);
   }
 
   /** @type <T extends DocumentNode>(contentType: string, plugin: MediaTypePlugin<T>) => void */

@@ -28,8 +28,8 @@ export class JrefMediaTypePlugin {
     };
   }
 
-  /** @type MediaTypePlugin<JrefDocumentNode>["fileMatcher"] */
-  async fileMatcher(path) { // eslint-disable-line @typescript-eslint/require-await
-    return /[^/]\.jref$/.test(path);
+  /** @type MediaTypePlugin<JrefDocumentNode>["uriMatcher"] */
+  async uriMatcher(uri) { // eslint-disable-line @typescript-eslint/require-await
+    return /[^/]\.jref$/.test(uri);
   }
 }

@@ -26,8 +26,8 @@ export class JsonMediaTypePlugin {
     };
   }
 
-  /** @type MediaTypePlugin<JsonDocumentNode>["fileMatcher"] */
-  async fileMatcher(path) { // eslint-disable-line @typescript-eslint/require-await
-    return /[^/]\.json$/.test(path);
+  /** @type MediaTypePlugin<JsonDocumentNode>["uriMatcher"] */
+  async uriMatcher(uri) { // eslint-disable-line @typescript-eslint/require-await
+    return /[^/]\.json$/.test(uri);
   }
 }
