@@ -1,12 +1,12 @@
 import { parseIri, resolveIri, toAbsoluteIri } from "@hyperjump/uri";
 import { parse as parseContentType } from "content-type";
-import { match as mediaTypeMatch } from "type-is";
 import { contextUri } from "./context-uri.js";
 import { HttpUriSchemePlugin } from "./uri-schemes/http-scheme-plugin.js";
 import { FileUriSchemePlugin } from "./uri-schemes/file-scheme-plugin.js";
 import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
 import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
 import { pointerGet, pointerStep } from "../jref/jref-util.js";
+import { mimeMatch } from "./utilities.js";
 
 /**
  * @import { JrefNode } from "../jref/jref-ast.js"
@@ -62,8 +62,8 @@ export class Hyperjump {
     this.addUriSchemePlugin("file", new FileUriSchemePlugin(this));
 
     // Load default MediaType plugins
-    this.addMediaTypePlugin("application/json", new JsonMediaTypePlugin(0.5));
     this.addMediaTypePlugin("application/reference+json", new JrefMediaTypePlugin());
+    this.addMediaTypePlugin("application/json", new JsonMediaTypePlugin());
   }
 
   /** @type (uri: string, options?: GetOptions) => Promise<JsonCompatible<JrefNode>> */
@@ -188,7 +188,7 @@ export class Hyperjump {
 
     const contentType = parseContentType(contentTypeText);
     for (const pattern in this.#mediaTypePlugins) {
-      if (mediaTypeMatch(pattern, contentType.type)) {
+      if (mimeMatch(pattern, contentType.type)) {
         return this.#mediaTypePlugins[pattern].parse(response);
       }
     }

@@ -8,7 +8,6 @@ import { fromJson } from "../../json/jsonast-util.js";
 
 /** @implements MediaTypePlugin<JsonDocumentNode> */
 export class JsonMediaTypePlugin {
-  /** @type number | undefined */
   quality;
 
   /**
