@@ -18,6 +18,8 @@ export class FileUriSchemePlugin {
    * @param {Hyperjump} hyperjump
    */
   constructor(hyperjump) {
+    this.schemes = ["file"];
+
     this.#hyperjump = hyperjump;
   }
 
@@ -39,7 +41,7 @@ export class FileUriSchemePlugin {
       responseUri = pathToFileURL(await readlink(filePath)).toString();
     }
 
-    const contentType = await this.#hyperjump.getMediaType(responseUri);
+    const contentType = this.#hyperjump.getMediaType(responseUri);
     const stream = /** @type ReadableStream<Uint8Array> */ (Readable.toWeb(createReadStream(filePath)));
     const response = new Response(stream, {
       headers: { "Content-Type": contentType }

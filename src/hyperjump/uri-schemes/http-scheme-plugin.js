@@ -13,6 +13,8 @@ export class HttpUriSchemePlugin {
    * @param {Hyperjump} hyperjump
    */
   constructor(hyperjump) {
+    this.schemes = ["http", "https"];
+
     this.#hyperjump = hyperjump;
     this.#successStatus = new Set([200, 203]);
   }

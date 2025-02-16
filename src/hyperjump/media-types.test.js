@@ -18,15 +18,16 @@ describe("JSON Browser", () => {
       beforeEach(() => {
         hyperjump = new Hyperjump();
 
-        hyperjump.addMediaTypePlugin("application/foo", {
+        hyperjump.addMediaTypePlugin({
+          mediaType: "application/foo",
+          extensions: [".foo"],
           parse: async () => { // eslint-disable-line @typescript-eslint/require-await
             return {
               type: "foo-document",
               children: [],
               uri: "https://example.com/foo"
             };
-          },
-          uriMatcher: async (uri) => uri.endsWith(".foo") // eslint-disable-line @typescript-eslint/require-await
+          }
         });
       });
 
@@ -59,16 +60,17 @@ describe("JSON Browser", () => {
       beforeEach(() => {
         hyperjump = new Hyperjump();
 
-        hyperjump.addMediaTypePlugin("application/foo", {
+        hyperjump.addMediaTypePlugin({
+          mediaType: "application/foo",
+          extensions: [".foo"],
+          quality: 0.8,
           parse: async () => { // eslint-disable-line @typescript-eslint/require-await
             return {
               type: "foo-document",
               children: [],
               uri: "https://exmple.com/foo"
             };
-          },
-          uriMatcher: async (uri) => uri.endsWith(".foo"), // eslint-disable-line @typescript-eslint/require-await
-          quality: 0.8
+          }
         });
       });
 

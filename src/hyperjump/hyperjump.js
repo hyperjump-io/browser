@@ -56,14 +56,12 @@ export class Hyperjump {
     this.#defaultGetOptions = {};
 
     // Load default URI scheme plugins
-    const httpUriSchemePlugin = new HttpUriSchemePlugin(this);
-    this.addUriSchemePlugin("http", httpUriSchemePlugin);
-    this.addUriSchemePlugin("https", httpUriSchemePlugin);
-    this.addUriSchemePlugin("file", new FileUriSchemePlugin(this));
+    this.addUriSchemePlugin(new HttpUriSchemePlugin(this));
+    this.addUriSchemePlugin(new FileUriSchemePlugin(this));
 
     // Load default MediaType plugins
-    this.addMediaTypePlugin("application/reference+json", new JrefMediaTypePlugin());
-    this.addMediaTypePlugin("application/json", new JsonMediaTypePlugin());
+    this.addMediaTypePlugin(new JrefMediaTypePlugin());
+    this.addMediaTypePlugin(new JsonMediaTypePlugin());
   }
 
   /** @type (uri: string, options?: GetOptions) => Promise<JsonCompatible<JrefNode>> */
@@ -109,9 +107,11 @@ export class Hyperjump {
     }
   }
 
-  /** @type (scheme: string, plugin: UriSchemePlugin) => void */
-  addUriSchemePlugin(scheme, plugin) {
-    this.#uriSchemePlugins[scheme] = plugin;
+  /** @type (plugin: UriSchemePlugin) => void */
+  addUriSchemePlugin(plugin) {
+    for (const scheme of plugin.schemes) {
+      this.#uriSchemePlugins[scheme] = plugin;
+    }
   }
 
   /** @type (scheme: string) => void */
@@ -153,20 +153,24 @@ export class Hyperjump {
     return accept;
   }
 
-  /** @type (uri: string) => Promise<string> */
-  async getMediaType(uri) {
+  /** @type (uri: string) => string */
+  getMediaType(uri) {
     for (const contentType in this.#mediaTypePlugins) {
-      if (await this.#mediaTypePlugins[contentType].uriMatcher(uri)) {
-        return contentType;
+      for (const extension of this.#mediaTypePlugins[contentType].extensions) {
+        if (uri.endsWith(extension)) {
+          if (extension.startsWith("/") || extension.startsWith(".") && uri[uri.length - extension.length - 1] !== "/") {
+            return contentType;
+          }
+        }
       }
     }
 
     throw new UnknownMediaTypeError(`The media type of the file at '${uri}' could not be determined. Use the 'addMediaTypePlugin' function to add support for this media type.`);
   }
 
-  /** @type <T extends DocumentNode>(contentType: string, plugin: MediaTypePlugin<T>) => void */
-  addMediaTypePlugin(contentType, plugin) {
-    this.#mediaTypePlugins[contentType] = plugin;
+  /** @type <T extends DocumentNode>(plugin: MediaTypePlugin<T>) => void */
+  addMediaTypePlugin(plugin) {
+    this.#mediaTypePlugins[plugin.mediaType] = plugin;
   }
 
   /** @type (contentType: string) => void */

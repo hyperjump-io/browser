@@ -8,13 +8,9 @@ import { fromJson } from "../../json/jsonast-util.js";
 
 /** @implements MediaTypePlugin<JsonDocumentNode> */
 export class JsonMediaTypePlugin {
-  quality;
-
-  /**
-   * @param {number} [quality]
-   */
-  constructor(quality) {
-    this.quality = quality;
+  constructor() {
+    this.mediaType = "application/json";
+    this.extensions = [".json"];
   }
 
   /** @type MediaTypePlugin<JsonDocumentNode>["parse"] */
@@ -23,10 +19,5 @@ export class JsonMediaTypePlugin {
       type: "json-document",
       children: [fromJson(await response.text())]
     };
-  }
-
-  /** @type MediaTypePlugin<JsonDocumentNode>["uriMatcher"] */
-  async uriMatcher(uri) { // eslint-disable-line @typescript-eslint/require-await
-    return /[^/]\.json$/.test(uri);
   }
 }

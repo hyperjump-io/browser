@@ -42,9 +42,10 @@ describe("JSON Browser", () => {
           embedded: embedded
         };
       };
-      hyperjump.addMediaTypePlugin(testMediaType, {
-        parse: async (response) => parseToDocument(response.url, await response.text()),
-        uriMatcher: async (uri) => uri.endsWith(".embedded") // eslint-disable-line @typescript-eslint/require-await
+      hyperjump.addMediaTypePlugin({
+        mediaType: testMediaType,
+        extensions: [".embedded"],
+        parse: async (response) => parseToDocument(response.url, await response.text())
       });
     });
 
