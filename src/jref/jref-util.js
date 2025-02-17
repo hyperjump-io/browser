@@ -52,7 +52,7 @@ const isReference = (objectNode) => {
 };
 
 /**
- * @typedef {(value: JrefNode, key?: string) => JrefNode} Replacer
+ * @typedef {(value: JrefNode, key?: string) => JrefNode | undefined} Replacer
  */
 
 /** @type Replacer */
@@ -61,9 +61,11 @@ const defaultReplacer = (node) => node;
 /** @type (node: JrefNode, uri: string, replacer?: Replacer, space?: string) => string */
 export const toJref = (node, uri, replacer = defaultReplacer, space = "") => {
   return toJson(node, (node, key) => {
-    node = replacer(node, key);
+    const replacedNode = replacer(node, key);
 
-    if (node.type === "jref-reference") {
+    if (!replacedNode) {
+      return;
+    } else if (replacedNode.type === "jref-reference") {
       /** @type JsonObjectNode<JrefNode> */
       const referenceNode = {
         type: "json",
@@ -79,7 +81,7 @@ export const toJref = (node, uri, replacer = defaultReplacer, space = "") => {
               {
                 type: "json",
                 jsonType: "string",
-                value: toRelativeIri(uri, node.value)
+                value: toRelativeIri(uri, replacedNode.value)
               }
             ]
           }
@@ -87,7 +89,7 @@ export const toJref = (node, uri, replacer = defaultReplacer, space = "") => {
       };
       return referenceNode;
     } else {
-      return node;
+      return replacedNode;
     }
   }, space);
 };

@@ -180,7 +180,7 @@ const tokenPosition = (startToken, endToken) => {
 
 /**
  * @template [A = JsonNode]
- * @typedef {(node: A, key?: string) => JsonCompatible<A>} Replacer
+ * @typedef {(node: A, key?: string) => JsonCompatible<A> | undefined} Replacer
  */
 
 /** @type Replacer<any> */
@@ -189,7 +189,7 @@ const defaultReplacer = (node) => node; // eslint-disable-line @typescript-eslin
 /** @type <A>(node: A, replacer?: Replacer<A>, space?: string) => string */
 export const toJson = (node, replacer = defaultReplacer, space = "") => {
   const replacedNode = replacer(node);
-  return stringifyValue(replacedNode, replacer, space, 1);
+  return replacedNode ? stringifyValue(replacedNode, replacer, space, 1) : "";
 };
 
 /** @type <A>(node: JsonCompatible<A>, replacer: Replacer<A>, space: string, depth: number) => string */
@@ -215,10 +215,12 @@ const stringifyArray = (node, replacer, space, depth) => {
   let result = "[" + padding + space;
   for (let index = 0; index < node.children.length; index++) {
     const itemNode = replacer(node.children[index], `${index}`);
-    const stringifiedValue = stringifyValue(itemNode, replacer, space, depth + 1);
-    result += stringifiedValue ?? "null";
-    if (index + 1 < node.children.length) {
-      result += `,${padding}${space}`;
+    if (itemNode !== undefined) {
+      const stringifiedValue = stringifyValue(itemNode, replacer, space, depth + 1);
+      result += stringifiedValue ?? "null";
+      if (index + 1 < node.children.length) {
+        result += `,${padding}${space}`;
+      }
     }
   }
   return result + padding + "]";
@@ -238,8 +240,8 @@ const stringifyObject = (node, replacer, space, depth) => {
     const propertyNode = node.children[index];
     const [keyNode, valueNode] = propertyNode.children;
     const replacedValueNode = replacer(valueNode, keyNode.value);
-    const stringifiedValue = stringifyValue(replacedValueNode, replacer, space, depth + 1);
-    if (stringifiedValue !== undefined) {
+    if (replacedValueNode !== undefined) {
+      const stringifiedValue = stringifyValue(replacedValueNode, replacer, space, depth + 1);
       result += JSON.stringify(keyNode.value) + ":" + colonSpacing + stringifiedValue;
       if (node.children[index + 1]) {
         result += `,${padding}${space}`;
