@@ -10,7 +10,11 @@ import { Readable } from "node:stream";
  */
 
 
-/** @implements UriSchemePlugin */
+/**
+ * Supports the `file:` URI scheme. Media type is determined by file extensions.
+ *
+ * @implements UriSchemePlugin
+ */
 export class FileUriSchemePlugin {
   #hyperjump;
 

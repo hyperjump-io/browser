@@ -1,3 +1,7 @@
+/**
+ * @module hyperjump
+ */
+
 export * from "./hyperjump.js";
 // eslint-disable-next-line import/extensions
 export * from "./uri-schemes/uri-scheme-plugin.js";

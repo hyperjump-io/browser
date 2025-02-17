@@ -4,7 +4,12 @@
  */
 
 
-/** @implements UriSchemePlugin */
+/**
+ * Support the `http:` and `https:` URI schemes. Sends an Accept header
+ * representng all registered media types.
+ *
+ * @implements UriSchemePlugin
+ */
 export class HttpUriSchemePlugin {
   #hyperjump;
   #successStatus;
@@ -19,7 +24,10 @@ export class HttpUriSchemePlugin {
     this.#successStatus = new Set([200, 203]);
   }
 
-  /** @type UriSchemePlugin["retrieve"] */
+  /**
+   * @type UriSchemePlugin["retrieve"]
+   * @throws &nbsp;{@link HttpError}
+   */
   async retrieve(uri) {
     const response = await fetch(uri, {
       headers: { Accept: this.#hyperjump.acceptableMediaTypes() }

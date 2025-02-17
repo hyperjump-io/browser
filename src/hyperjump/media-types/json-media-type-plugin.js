@@ -6,7 +6,13 @@ import { fromJson } from "../../json/jsonast-util.js";
  */
 
 
-/** @implements MediaTypePlugin<JsonDocumentNode> */
+/**
+ * Supports JSON
+ * - Media type: application/json
+ * - Extensions: .json
+ *
+ * @implements MediaTypePlugin<JsonDocumentNode>
+ */
 export class JsonMediaTypePlugin {
   constructor() {
     this.mediaType = "application/json";

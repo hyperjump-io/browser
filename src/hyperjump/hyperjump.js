@@ -13,6 +13,7 @@ import { mimeMatch } from "./utilities.js";
  * @import { JsonCompatible, JsonType } from "../json/jsonast.js"
  * @import { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.js"
  * @import { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.js"
+ * @import { JsonPointerError } from "../json/jsonast-util.js"
  */
 
 
@@ -28,6 +29,7 @@ import { mimeMatch } from "./utilities.js";
  */
 
 export class Hyperjump {
+  // TODO: Add config to enable schemes and media types
   #config;
 
   /** @type Record<string, DocumentNode> */
@@ -64,7 +66,22 @@ export class Hyperjump {
     this.addMediaTypePlugin(new JsonMediaTypePlugin());
   }
 
-  /** @type (uri: string, options?: GetOptions) => Promise<JsonCompatible<JrefNode>> */
+  /**
+   * Retrieve a document located at the given URI. URIs can be relative if a
+   * base URI can be determined. On the server-side, the base URI is the CWD. In
+   * browser, the base URI is the URI of the page.
+   *
+   * @see Use {@link Hyperjump.addUriSchemePlugin} to add support for additional
+   * URI schemes.
+   * @see Support for {@link JrefMediaTypePlugin | JRef} and
+   * {@link JsonMediaTypePlugin | JSON} is built in. Use
+   * {@link Hyperjump.addMediaTypePlugin} to add support for additional media
+   * types.
+   *
+   * @type (uri: string, options?: GetOptions) => Promise<JsonCompatible<JrefNode>>
+   * @throws &nbsp;{@link RetrievalError}
+   * @throws &nbsp;{@link JsonPointerError}
+   */
   async get(uri, options = this.#defaultGetOptions) {
     uri = resolveIri(uri, options.referencedFrom ?? contextUri());
     const id = toAbsoluteIri(uri);
@@ -107,19 +124,39 @@ export class Hyperjump {
     }
   }
 
-  /** @type (plugin: UriSchemePlugin) => void */
+  /**
+   * Add support for a
+   * {@link https://www.rfc-editor.org/rfc/rfc3986#section-3.1 | URI scheme}.
+   * Support for the {@link HttpUriSchemePlugin | `http(s):`} and
+   * {@link FileUriSchemePlugin | `file:`} URI schemes are enabled by default.
+   *
+   * @type (plugin: UriSchemePlugin) => void
+   */
   addUriSchemePlugin(plugin) {
     for (const scheme of plugin.schemes) {
       this.#uriSchemePlugins[scheme] = plugin;
     }
   }
 
-  /** @type (scheme: string) => void */
+  /**
+   * This is mostly useful for disabling a scheme that's enabled by default.
+   *
+   * @type (scheme: string) => void
+   */
   removeUriSchemePlugin(scheme) {
     delete this.#uriSchemePlugins[scheme];
   }
 
-  /** @type (uri: string, options: GetOptions) => Promise<Response> */
+  /**
+   * Unless you're using it in a {@link UriSchemePlugin.retrieve} method, this
+   * is not the method you're looking for. It's used internally to fetch a
+   * resource before processing it based on its media type. You might use it for
+   * implementing {@link UriSchemePlugin}s for URI schemes that don't have
+   * locating semantics (such as `urn:`) and instead map to another URI where
+   * the resource can be retrieved from. See the example in the README.
+   *
+   * @type (uri: string, options: GetOptions) => Promise<Response>
+   */
   async retrieve(uri, options) {
     const { scheme } = parseIri(uri);
 
@@ -130,6 +167,11 @@ export class Hyperjump {
     return this.#uriSchemePlugins[scheme].retrieve(uri, options);
   }
 
+  /**
+   * Constructs an `Accept` header based on the registered media types.
+   *
+   * @type () => string
+   */
   acceptableMediaTypes() {
     let accept = "";
 
@@ -153,7 +195,12 @@ export class Hyperjump {
     return accept;
   }
 
-  /** @type (uri: string) => string */
+  /**
+   * Returns the media type of the resource based on its URI. This is usually
+   * based on the extension and configured by {@link MediaTypePlugin}s.
+   *
+   * @type (uri: string) => string
+   */
   getMediaType(uri) {
     for (const contentType in this.#mediaTypePlugins) {
       for (const extension of this.#mediaTypePlugins[contentType].extensions) {
@@ -168,17 +215,34 @@ export class Hyperjump {
     throw new UnknownMediaTypeError(`The media type of the file at '${uri}' could not be determined. Use the 'addMediaTypePlugin' function to add support for this media type.`);
   }
 
-  /** @type <T extends DocumentNode>(plugin: MediaTypePlugin<T>) => void */
+  /**
+   * Add support for a media tpe. Support for the
+   * {@link JrefMediaTypePlugin | `JRef`} and
+   * {@link JsonMediaTypePlugin | `JSON`} media types are enabled by default.
+   *
+   * @type <T extends DocumentNode>(plugin: MediaTypePlugin<T>) => void
+   */
   addMediaTypePlugin(plugin) {
     this.#mediaTypePlugins[plugin.mediaType] = plugin;
   }
 
-  /** @type (contentType: string) => void */
+  /**
+   * This is mostly useful for disabling a scheme that's enabled by default.
+   *
+   * @type (contentType: string) => void
+   */
   removeMediaTypePlugin(contentType) {
     delete this.#mediaTypePlugins[contentType];
   }
 
-  /** @type (contentType: string, quality: number) => void */
+  /**
+   * Set the
+   * {@link https://developer.mozilla.org/en-US/docs/Glossary/Quality_values | quality}
+   * that will be used in the Accept header of requests to indicate to servers
+   * which media types are preferred over others.
+   *
+   * @type (contentType: string, quality: number) => void
+   */
   setMediaTypeQuality(contentType, quality) {
     this.#mediaTypePlugins[contentType].quality = quality;
   }
@@ -242,12 +306,22 @@ export class Hyperjump {
     }
   }
 
-  /** @type (key: string, node: JsonCompatible<JrefNode>) => Promise<JsonCompatible<JrefNode>> */
+  /**
+   * This is like indexing into an object or array. It will follow any
+   * references it encounters so it always returns a JSON compatible value.
+   *
+   * @type (key: string, node: JsonCompatible<JrefNode>) => Promise<JsonCompatible<JrefNode>>
+   */
   async step(key, node) {
     return await this.#followReferences(pointerStep(key, node));
   }
 
-  /** @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<JsonCompatible<JrefNode>, void, unknown> */
+  /**
+   * Iterate over an array node. It will follow any references it encounters so
+   * it always yields JSON compatible values.
+   *
+   * @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<JsonCompatible<JrefNode>, void, unknown>
+   */
   async * iter(node) {
     if (node.jsonType === "array") {
       for (const itemNode of node.children) {
@@ -265,7 +339,12 @@ export class Hyperjump {
     }
   }
 
-  /** @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<JsonCompatible<JrefNode>, void, unknown> */
+  /**
+   * Iterate over the values of an object. It will follow any references it
+   * encounters so it always yields JSON compatible values.
+   *
+   * @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<JsonCompatible<JrefNode>, void, unknown>
+   */
   async * values(node) {
     if (node.jsonType === "object") {
       for (const propertyNode of node.children) {
@@ -274,7 +353,12 @@ export class Hyperjump {
     }
   }
 
-  /** @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<[string, JsonCompatible<JrefNode>], void, unknown> */
+  /**
+   * Iterate over key/value pairs of an object. It will follow any references it
+   * encounters so it always yields JSON compatible values.
+   *
+   * @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<[string, JsonCompatible<JrefNode>], void, unknown>
+   */
   async * entries(node) {
     if (node.jsonType === "object") {
       for (const propertyNode of node.children) {

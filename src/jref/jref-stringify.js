@@ -15,7 +15,14 @@ import { toJref } from "./jref-util.js";
  * }} JrefStringifyOptions
  */
 
-/** @type Plugin<[JrefStringifyOptions?], JrefDocumentNode, string> */
+/**
+ * Stringifies a JRef AST to JRef. Includes {@link Replacer} and `space` options
+ * similar to the standard
+ * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify | JSON.stringify}
+ * function.
+ *
+ * @type Plugin<[JrefStringifyOptions?], JrefDocumentNode, string>
+ */
 export function jrefStringify(options) {
   /** @type (tree: Node) => string */
   this.compiler = (tree) => {

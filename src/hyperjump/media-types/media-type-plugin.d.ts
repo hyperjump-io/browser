@@ -13,6 +13,10 @@ export type DocumentNode = {
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export interface MediaTypePlugin<T extends DocumentNode> {
   mediaType: string;
+  /**
+   * Extensions start with `.` (Example: `.jref`).
+   * Filenames start with `/` (Example: `/.bowerrc`)
+   */
   extensions: string[];
   quality?: number;
   parse: (response: Response) => Promise<T>;

@@ -26,7 +26,13 @@ import { JsonLexer } from "./json-lexer.js";
 /** @type Reviver<any> */
 const defaultReviver = (value) => value;
 
-/** @type <A = JsonNode>(json: string, reviver?: Reviver<A>) => A */
+/**
+ * Parse a JSON string into a JSON AST. Includes a reviver option similar to
+ * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse | JSON.parse}.
+ *
+ * @type <A = JsonNode>(json: string, reviver?: Reviver<A>) => A
+ * @throws SynatxError
+ */
 export const fromJson = (json, reviver = defaultReviver) => {
   const lexer = new JsonLexer(json);
 
@@ -186,7 +192,13 @@ const tokenPosition = (startToken, endToken) => {
 /** @type Replacer<any> */
 const defaultReplacer = (node) => node; // eslint-disable-line @typescript-eslint/no-unsafe-return
 
-/** @type <A>(node: A, replacer?: Replacer<A>, space?: string) => string */
+/**
+ * Stringify a JsonNode to a JSON string. Includes options for a
+ * {@link Replacer} and `space` like
+ * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify | JSON.stringify}.
+ *
+ * @type <A>(node: A, replacer?: Replacer<A>, space?: string) => string
+ */
 export const toJson = (node, replacer = defaultReplacer, space = "") => {
   const replacedNode = replacer(node);
   return replacedNode ? stringifyValue(replacedNode, replacer, space, 1) : "";
@@ -251,7 +263,12 @@ const stringifyObject = (node, replacer, space, depth) => {
   return result + padding + "}";
 };
 
-/** @type (segment: string, node: JsonNode, uri?: string) => JsonNode */
+/**
+ * Index into an object or array JsonNode.
+ *
+ * @type (segment: string, node: JsonNode, uri?: string) => JsonNode
+ * @throws &nbsp;{@link JsonPointerError}
+ */
 export const pointerStep = (segment, node, uri = "#") => {
   switch (node.jsonType) {
     case "object": {
@@ -278,7 +295,11 @@ export const pointerStep = (segment, node, uri = "#") => {
   }
 };
 
-/** @type (pointer: string, tree: JsonNode, documentUri?: string) => JsonNode */
+/**
+ * Get a JsonNode using a JSON Pointer.
+ *
+ * @type (pointer: string, tree: JsonNode, documentUri?: string) => JsonNode
+ */
 export const pointerGet = (pointer, tree, documentUri) => {
   let currentPointer = "";
   let node = tree;

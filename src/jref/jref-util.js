@@ -20,7 +20,12 @@ import {
 /** @type Reviver<any> */
 const defaultReviver = (value) => value;
 
-/** @type <A extends JrefNode | undefined = JrefNode>(jref: string, uri: string, reviver?: Reviver<A>) => A */
+/**
+ * Parse a JRef string into a JRef AST. Includes a reviver option similar to
+ * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse | JSON.parse}.
+ *
+ * @type <A extends JrefNode | undefined = JrefNode>(jref: string, uri: string, reviver?: Reviver<A>) => A
+ */
 export const fromJref = (jref, uri, reviver = defaultReviver) => {
   return fromJson(jref, (node, key) => {
     if (node.jsonType === "object") {
@@ -58,7 +63,13 @@ const isReference = (objectNode) => {
 /** @type Replacer */
 const defaultReplacer = (node) => node;
 
-/** @type (node: JrefNode, uri: string, replacer?: Replacer, space?: string) => string */
+/**
+ * Stringify a JrefNode to a JRef string. Includes options for a
+ * {@link Replacer} and `space` like
+ * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify | JSON.stringify}.
+ *
+ * @type (node: JrefNode, uri: string, replacer?: Replacer, space?: string) => string
+ */
 export const toJref = (node, uri, replacer = defaultReplacer, space = "") => {
   return toJson(node, (node, key) => {
     const replacedNode = replacer(node, key);
@@ -94,5 +105,12 @@ export const toJref = (node, uri, replacer = defaultReplacer, space = "") => {
   }, space);
 };
 
-export const pointerGet = /** @type (pointer: string, tree: JrefNode, documentUri?: string) => JrefNode */ (jsonPointerGet);
+/**
+ * Index into an object or array JsonNode. Reference nodes are not followed.
+ */
 export const pointerStep = /** @type (segment: string, tree: JrefNode, uri?: string) => JrefNode */ (jsonPointerStep);
+
+/**
+ * Get a JrefNode using a JSON Pointer. Reference nodes are not followed.
+ */
+export const pointerGet = /** @type (pointer: string, tree: JrefNode, documentUri?: string) => JrefNode */ (jsonPointerGet);

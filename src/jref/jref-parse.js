@@ -17,7 +17,14 @@ import { fromJref } from "./jref-util.js";
  * }} JrefParseOptions
  */
 
-/** @type Plugin<[JrefParseOptions?], string, JrefDocumentNode> */
+/**
+ * Parses JRef to a JRef AST. Includes {@link Reviver} option similar to the
+ * standard
+ * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse | JSON.parse}
+ * function.
+ *
+ * @type Plugin<[JrefParseOptions?], string, JrefDocumentNode>
+ */
 export function jrefParse(options) {
   /** @type (document: string, file: VFile) => JrefDocumentNode */
   this.parser = function (document, file) {

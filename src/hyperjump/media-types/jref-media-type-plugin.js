@@ -6,7 +6,13 @@ import { fromJref } from "../../jref/jref-util.js";
  */
 
 
-/** @implements MediaTypePlugin<JrefDocumentNode> */
+/**
+ * Supports JRef
+ * - Media type: application/reference+json
+ * - Extensions: .jref
+ *
+ * @implements MediaTypePlugin<JrefDocumentNode>
+ */
 export class JrefMediaTypePlugin {
   constructor() {
     this.mediaType = "application/reference+json";

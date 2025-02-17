@@ -16,7 +16,14 @@ import { fromJson } from "./jsonast-util.js";
  * }} JsonParseOptions
  */
 
-/** @type Plugin<[JsonParseOptions?], string, JsonDocumentNode> */
+/**
+ * Parses JSON to a JSON AST. Includes {@link Reviver} option similar to the
+ * standard
+ * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse | JSON.parse}
+ * function.
+ *
+ * @type Plugin<[JsonParseOptions?], string, JsonDocumentNode>
+ */
 export function rejsonParse(options) {
   /** @type (document: string, file: VFile) => JsonDocumentNode */
   this.parser = function (document, file) {
