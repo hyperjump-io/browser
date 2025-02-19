@@ -12,7 +12,6 @@ export default tseslint.config(
     arrowParens: true,
     braceStyle: "1tbs",
     commaDangle: "never",
-    flat: true,
     jsx: false,
     quotes: "double",
     semi: true

@@ -28,6 +28,8 @@ import { mimeMatch } from "./utilities.js";
  * }} GetOptions
  */
 
+// TODO: Support filters
+
 export class Hyperjump {
   // TODO: Add config to enable schemes and media types
   #config;
@@ -83,11 +85,11 @@ export class Hyperjump {
    * @throws &nbsp;{@link JsonPointerError}
    */
   async get(uri, options = this.#defaultGetOptions) {
-    uri = resolveIri(uri, options.referencedFrom ?? contextUri());
+    uri = resolveIri(uri, contextUri());
     const id = toAbsoluteIri(uri);
     let { fragment } = parseIri(uri);
 
-    // TODO: Cached and registered should be decoupled
+    // TODO: How should cache work?
 
     const cachedDocument = this.#cache[id];
     const embeddedDocument = options?.referencedFrom ? this.#cache[options.referencedFrom].embedded?.[id] : undefined;

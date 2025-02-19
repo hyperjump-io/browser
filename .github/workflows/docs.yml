@@ -2,8 +2,8 @@ name: Deploy Documentation
 
 on:
   push:
-    tags:
-      - "v*.*.*"
+    branches:
+      - "v2"
   workflow_dispatch:
 
 jobs:

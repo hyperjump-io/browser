@@ -20,7 +20,7 @@ args({
   description: "CLI to process JRef",
   extensions: ["jref"],
   ignoreName: ".jrefignore",
-  name: "rejref",
+  name: "jref",
   packageField: "jrefConfig",
   pluginPrefix: "jref",
   processor: jref,

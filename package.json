@@ -37,16 +37,16 @@
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "*",
-    "@types/content-type": "^1.1.8",
-    "@types/moo": "^0.5.9",
+    "@types/content-type": "*",
+    "@types/moo": "*",
     "@types/node": "*",
     "@typescript-eslint/eslint-plugin": "*",
     "@typescript-eslint/parser": "*",
     "eslint-import-resolver-typescript": "*",
     "eslint-plugin-import": "*",
-    "typedoc": "^0.27.6",
+    "typedoc": "*",
     "typescript-eslint": "*",
-    "undici": "^7.3.0",
+    "undici": "*",
     "vitest": "*"
   },
   "dependencies": {
