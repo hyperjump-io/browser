@@ -1,8 +1,32 @@
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { describe, test, expect } from "vitest";
+import { describe, test, expect, beforeEach } from "vitest";
 import { VFileMessage } from "vfile-message";
-import { rejson, rejsonStringify } from "./index.js";
+import {
+  fromJson,
+  toJson,
+  rejson,
+  rejsonStringify,
+  jsonObjectHas,
+  jsonTypeOf,
+  jsonArrayIter,
+  jsonObjectKeys,
+  jsonObjectValues,
+  jsonObjectEntries,
+  jsonValue
+} from "./index.js";
+
+/**
+ * @import {
+ *   JsonArrayNode,
+ *   JsonBooleanNode,
+ *   JsonNode,
+ *   JsonNullNode,
+ *   JsonNumberNode,
+ *   JsonObjectNode,
+ *   JsonStringNode
+ * } from "./index.js"
+ */
 
 
 describe("jsonast-util", async () => {
@@ -36,4 +60,215 @@ describe("jsonast-util", async () => {
       });
     }
   }
+
+  describe("value", () => {
+    test("null", () => {
+      const node = fromJson(`null`);
+      if (jsonTypeOf(node, "null")) {
+        /** @type null */
+        const subject = jsonValue(node);
+        expect(subject).to.equal(null);
+      } else {
+        expect.fail();
+      }
+    });
+
+    test("boolean", () => {
+      const node = fromJson(`true`);
+      if (jsonTypeOf(node, "boolean")) {
+        /** @type boolean */
+        const subject = jsonValue(node);
+        expect(subject).to.equal(true);
+      } else {
+        expect.fail();
+      }
+    });
+
+    test("number", () => {
+      const node = fromJson(`42`);
+      if (jsonTypeOf(node, "number")) {
+        /** @type number */
+        const subject = jsonValue(node);
+        expect(subject).to.equal(42);
+      } else {
+        expect.fail();
+      }
+    });
+
+    test("string", () => {
+      const node = fromJson(`"foo"`);
+      if (jsonTypeOf(node, "string")) {
+        /** @type string */
+        const subject = jsonValue(node);
+        expect(subject).to.equal("foo");
+      } else {
+        expect.fail();
+      }
+    });
+
+    test("array", () => {
+      const node = fromJson(`["foo", 42]`);
+      expect(() => jsonValue(node)).to.throw();
+    });
+
+    test("object", () => {
+      const node = fromJson(`{ "foo": 42 }`);
+      expect(() => jsonValue(node)).to.throw();
+    });
+
+    test("unknown", () => {
+      const node = fromJson(`42`);
+      expect(jsonValue(node)).to.equal(42);
+    });
+  });
+
+  describe("object has property", () => {
+    /** @type JsonNode */
+    let subject;
+
+    beforeEach(() => {
+      subject = fromJson(`{
+        "foo": 42
+      }`);
+    });
+
+    test("true", () => {
+      expect(jsonObjectHas("foo", subject)).to.equal(true);
+    });
+
+    test("false", () => {
+      expect(jsonObjectHas("bar", subject)).to.equal(false);
+    });
+  });
+
+  describe("typeOf", () => {
+    test("null", () => {
+      const subject = fromJson(`null`);
+      if (jsonTypeOf(subject, "null")) {
+        /** @type JsonNullNode */
+        const _typeCheck = subject;
+      } else {
+        expect.fail();
+      }
+    });
+
+    test("true", () => {
+      const subject = fromJson(`true`);
+      if (jsonTypeOf(subject, "boolean")) {
+        /** @type JsonBooleanNode */
+        const _typeCheck = subject;
+      } else {
+        expect.fail();
+      }
+    });
+
+    test("false", () => {
+      const subject = fromJson(`false`);
+      if (jsonTypeOf(subject, "boolean")) {
+        /** @type JsonBooleanNode */
+        const _typeCheck = subject;
+      } else {
+        expect.fail();
+      }
+    });
+
+    test("number", () => {
+      const subject = fromJson(`42`);
+      if (jsonTypeOf(subject, "number")) {
+        /** @type JsonNumberNode */
+        const _typeCheck = subject;
+      } else {
+        expect.fail();
+      }
+    });
+
+    test("string", () => {
+      const subject = fromJson(`"foo"`);
+      if (jsonTypeOf(subject, "string")) {
+        /** @type JsonStringNode */
+        const _typeCheck = subject;
+      } else {
+        expect.fail();
+      }
+    });
+
+    test("array", () => {
+      const subject = fromJson(`["foo", 42]`);
+      if (jsonTypeOf(subject, "array")) {
+        /** @type JsonArrayNode */
+        const _typeCheck = subject;
+      } else {
+        expect.fail();
+      }
+    });
+
+    test("object", () => {
+      const subject = fromJson(`{ "foo": 42 }`);
+      if (jsonTypeOf(subject, "object")) {
+        /** @type JsonObjectNode */
+        const _typeCheck = subject;
+      } else {
+        expect.fail();
+      }
+    });
+  });
+
+  test("iter", () => {
+    const subject = fromJson(`[1, 2]`);
+
+    const generator = jsonArrayIter(subject);
+
+    const first = generator.next();
+    expect(toJson(first.value)).to.equal(`1`);
+    const second = generator.next();
+    expect(toJson(second.value)).to.equal(`2`);
+    expect((generator.next()).done).to.equal(true);
+  });
+
+  test("keys", () => {
+    const subject = fromJson(`{
+      "a": 1,
+      "b": 2
+    }`);
+
+    const generator = jsonObjectKeys(subject);
+
+    expect(generator.next().value).to.equal("a");
+    expect(generator.next().value).to.equal("b");
+    expect(generator.next().done).to.equal(true);
+  });
+
+  test("values", () => {
+    const subject = fromJson(`{
+      "a": 1,
+      "b": 2
+    }`);
+
+    const generator = jsonObjectValues(subject);
+
+    const first = generator.next();
+    expect(toJson(first.value)).to.equal(`1`);
+    const second = generator.next();
+    expect(toJson(second.value)).to.equal(`2`);
+    expect((generator.next()).done).to.equal(true);
+  });
+
+  test("entries", () => {
+    const subject = fromJson(`{
+      "a": 1,
+      "b": 2
+    }`);
+
+    const generator = jsonObjectEntries(subject);
+
+    const a = /** @type [string, JsonNode] */ ((generator.next()).value);
+    expect(a[0]).to.equal("a");
+    expect(toJson(a[1])).to.equal(`1`);
+
+    const b = /** @type [string, JsonNode] */ ((generator.next()).value);
+    expect(b[0]).to.equal("b");
+    expect(toJson(b[1])).to.equal(`2`);
+
+    expect(generator.next().done).to.equal(true);
+  });
 });

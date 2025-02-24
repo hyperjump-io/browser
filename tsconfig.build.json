@@ -6,6 +6,7 @@
     "src/hyperjump/media-types/media-type-plugin.js",
     "src/hyperjump/uri-schemes/uri-scheme-plugin.js",
     "src/json/jsonast.js",
+    "src/json/types.js",
     "src/jref/jref-ast.js"
   ],
   "compilerOptions": {

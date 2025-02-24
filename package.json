@@ -1,6 +1,6 @@
 {
   "name": "@hyperjump/browser",
-  "version": "2.0.0",
+  "version": "2.0.0-dev",
   "description": "A client for working with JSON Reference (`$ref`) documents",
   "keywords": [
     "$ref",
@@ -19,7 +19,7 @@
   "type": "module",
   "exports": {
     ".": "./src/hyperjump/index.js",
-    "./rejson": "./src/json/index.js",
+    "./json": "./src/json/index.js",
     "./jref": "./src/jref/index.js"
   },
   "bin": {

@@ -15,6 +15,7 @@ import { JsonLexer } from "./json-lexer.js";
  *   JsonPropertyNode,
  *   JsonStringNode
  * } from "./jsonast.js"
+ * @import { JsonTypeOf, JsonValue } from "./types.js"
  */
 
 
@@ -335,6 +336,72 @@ const unescapePointerSegment = (segment) => segment.toString().replace(/~1/g, "/
 
 /** @type (segment: string) => string */
 const escapePointerSegment = (segment) => segment.toString().replace(/~/g, "~0").replace(/\//g, "~1");
+
+// eslint-disable-next-line @stylistic/no-extra-parens
+export const jsonValue = /** @type JsonValue */ ((node) => {
+  switch (node.jsonType) {
+    case "object":
+    case "array":
+      // TODO: Handle structured values
+      throw Error("Can't get the value of a structured value.");
+    default:
+      return node.value;
+  }
+});
+
+// eslint-disable-next-line @stylistic/no-extra-parens
+export const jsonTypeOf = /** @type JsonTypeOf */ ((node, type) => {
+  return node.jsonType === type;
+});
+
+/** @type (key: string, node: JsonNode) => boolean */
+export const jsonObjectHas = (key, node) => {
+  if (node.jsonType === "object") {
+    for (const property of node.children) {
+      if (property.children[0].value === key) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
+/** @type (node: JsonNode) => Generator<JsonNode, void, unknown> */
+export const jsonArrayIter = function* (node) {
+  if (node.jsonType === "array") {
+    for (const itemNode of node.children) {
+      yield itemNode;
+    }
+  }
+};
+
+/** @type (node: JsonNode) => Generator<string, undefined, string> */
+export const jsonObjectKeys = function* (node) {
+  if (node.jsonType === "object") {
+    for (const propertyNode of node.children) {
+      yield propertyNode.children[0].value;
+    }
+  }
+};
+
+/** @type (node: JsonNode) => Generator<JsonNode, void, unknown> */
+export const jsonObjectValues = function* (node) {
+  if (node.jsonType === "object") {
+    for (const propertyNode of node.children) {
+      yield propertyNode.children[1];
+    }
+  }
+};
+
+/** @type (node: JsonNode) => Generator<[string, JsonNode], void, unknown> */
+export const jsonObjectEntries = function* (node) {
+  if (node.jsonType === "object") {
+    for (const propertyNode of node.children) {
+      yield [propertyNode.children[0].value, propertyNode.children[1]];
+    }
+  }
+};
 
 export class JsonPointerError extends Error {
   /**

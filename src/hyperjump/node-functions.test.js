@@ -42,11 +42,11 @@ describe("JSON Browser", () => {
     });
 
     test("true", () => {
-      expect(node && hyperjump.has("foo", node)).to.eql(true);
+      expect(hyperjump.has("foo", node)).to.eql(true);
     });
 
     test("false", () => {
-      expect(node && hyperjump.has("bar", node)).to.eql(false);
+      expect(hyperjump.has("bar", node)).to.eql(false);
     });
   });
 
@@ -63,7 +63,7 @@ describe("JSON Browser", () => {
     expect(hyperjump.length(subject)).to.eql(1);
   });
 
-  describe("object has property", () => {
+  describe("typeOf", () => {
     const hyperjump = new Hyperjump();
 
     beforeEach(() => {
