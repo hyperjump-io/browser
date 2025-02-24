@@ -61,7 +61,7 @@ describe("jsonast-util", async () => {
     }
   }
 
-  describe("value", () => {
+  describe("type/value and type narrowing", () => {
     test("null", () => {
       const node = fromJson(`null`);
       if (jsonTypeOf(node, "null")) {
@@ -108,17 +108,14 @@ describe("jsonast-util", async () => {
 
     test("array", () => {
       const node = fromJson(`["foo", 42]`);
+      expect(jsonTypeOf(node, "array")).to.equal(true);
       expect(() => jsonValue(node)).to.throw();
     });
 
     test("object", () => {
       const node = fromJson(`{ "foo": 42 }`);
+      expect(jsonTypeOf(node, "object")).to.equal(true);
       expect(() => jsonValue(node)).to.throw();
-    });
-
-    test("unknown", () => {
-      const node = fromJson(`42`);
-      expect(jsonValue(node)).to.equal(42);
     });
   });
 
@@ -138,78 +135,6 @@ describe("jsonast-util", async () => {
 
     test("false", () => {
       expect(jsonObjectHas("bar", subject)).to.equal(false);
-    });
-  });
-
-  describe("typeOf", () => {
-    test("null", () => {
-      const subject = fromJson(`null`);
-      if (jsonTypeOf(subject, "null")) {
-        /** @type JsonNullNode */
-        const _typeCheck = subject;
-      } else {
-        expect.fail();
-      }
-    });
-
-    test("true", () => {
-      const subject = fromJson(`true`);
-      if (jsonTypeOf(subject, "boolean")) {
-        /** @type JsonBooleanNode */
-        const _typeCheck = subject;
-      } else {
-        expect.fail();
-      }
-    });
-
-    test("false", () => {
-      const subject = fromJson(`false`);
-      if (jsonTypeOf(subject, "boolean")) {
-        /** @type JsonBooleanNode */
-        const _typeCheck = subject;
-      } else {
-        expect.fail();
-      }
-    });
-
-    test("number", () => {
-      const subject = fromJson(`42`);
-      if (jsonTypeOf(subject, "number")) {
-        /** @type JsonNumberNode */
-        const _typeCheck = subject;
-      } else {
-        expect.fail();
-      }
-    });
-
-    test("string", () => {
-      const subject = fromJson(`"foo"`);
-      if (jsonTypeOf(subject, "string")) {
-        /** @type JsonStringNode */
-        const _typeCheck = subject;
-      } else {
-        expect.fail();
-      }
-    });
-
-    test("array", () => {
-      const subject = fromJson(`["foo", 42]`);
-      if (jsonTypeOf(subject, "array")) {
-        /** @type JsonArrayNode */
-        const _typeCheck = subject;
-      } else {
-        expect.fail();
-      }
-    });
-
-    test("object", () => {
-      const subject = fromJson(`{ "foo": 42 }`);
-      if (jsonTypeOf(subject, "object")) {
-        /** @type JsonObjectNode */
-        const _typeCheck = subject;
-      } else {
-        expect.fail();
-      }
     });
   });
 

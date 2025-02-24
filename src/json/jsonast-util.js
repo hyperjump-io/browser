@@ -354,7 +354,7 @@ export const jsonTypeOf = /** @type JsonTypeOf */ ((node, type) => {
   return node.jsonType === type;
 });
 
-/** @type (key: string, node: JsonNode) => boolean */
+/** @type (key: string, node: JsonCompatible<any>) => boolean */
 export const jsonObjectHas = (key, node) => {
   if (node.jsonType === "object") {
     for (const property of node.children) {
@@ -367,7 +367,7 @@ export const jsonObjectHas = (key, node) => {
   return false;
 };
 
-/** @type (node: JsonNode) => Generator<JsonNode, void, unknown> */
+/** @type <A>(node: JsonCompatible<A>) => Generator<A, void, unknown> */
 export const jsonArrayIter = function* (node) {
   if (node.jsonType === "array") {
     for (const itemNode of node.children) {
@@ -376,7 +376,7 @@ export const jsonArrayIter = function* (node) {
   }
 };
 
-/** @type (node: JsonNode) => Generator<string, undefined, string> */
+/** @type (node: JsonCompatible<any>) => Generator<string, undefined, string> */
 export const jsonObjectKeys = function* (node) {
   if (node.jsonType === "object") {
     for (const propertyNode of node.children) {
@@ -385,7 +385,7 @@ export const jsonObjectKeys = function* (node) {
   }
 };
 
-/** @type (node: JsonNode) => Generator<JsonNode, void, unknown> */
+/** @type <A>(node: JsonCompatible<A>) => Generator<A, void, unknown> */
 export const jsonObjectValues = function* (node) {
   if (node.jsonType === "object") {
     for (const propertyNode of node.children) {
@@ -394,7 +394,7 @@ export const jsonObjectValues = function* (node) {
   }
 };
 
-/** @type (node: JsonNode) => Generator<[string, JsonNode], void, unknown> */
+/** @type <A>(node: JsonCompatible<A>) => Generator<[string, A], void, unknown> */
 export const jsonObjectEntries = function* (node) {
   if (node.jsonType === "object") {
     for (const propertyNode of node.children) {

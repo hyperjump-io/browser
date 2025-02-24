@@ -50,20 +50,7 @@ describe("JSON Browser", () => {
     });
   });
 
-  test("length of array", async () => {
-    const jref = `[42]`;
-
-    mockAgent.get(testDomain)
-      .intercept({ method: "GET", path: "/foo" })
-      .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
-
-    const hyperjump = new Hyperjump();
-    const subject = await hyperjump.get(`${testDomain}/foo`);
-
-    expect(hyperjump.length(subject)).to.eql(1);
-  });
-
-  describe("typeOf", () => {
+  describe("typeOf/value and type narrowing", () => {
     const hyperjump = new Hyperjump();
 
     beforeEach(() => {
@@ -83,38 +70,70 @@ describe("JSON Browser", () => {
     });
 
     test("null", async () => {
-      const subject = await hyperjump.get(`${testDomain}/foo#/null`);
-      expect(hyperjump.typeOf(subject)).to.eql("null");
+      const node = await hyperjump.get(`${testDomain}/foo#/null`);
+      if (hyperjump.typeOf(node, "null")) {
+        /** @type null */
+        const subject = hyperjump.value(node);
+        expect(subject).to.equal(null);
+      } else {
+        expect.fail();
+      }
     });
 
     test("true", async () => {
-      const subject = await hyperjump.get(`${testDomain}/foo#/true`);
-      expect(hyperjump.typeOf(subject)).to.eql("boolean");
+      const node = await hyperjump.get(`${testDomain}/foo#/true`);
+      if (hyperjump.typeOf(node, "boolean")) {
+        /** @type boolean */
+        const subject = hyperjump.value(node);
+        expect(subject).to.equal(true);
+      } else {
+        expect.fail();
+      }
     });
 
     test("false", async () => {
-      const subject = await hyperjump.get(`${testDomain}/foo#/false`);
-      expect(hyperjump.typeOf(subject)).to.eql("boolean");
+      const node = await hyperjump.get(`${testDomain}/foo#/false`);
+      if (hyperjump.typeOf(node, "boolean")) {
+        /** @type boolean */
+        const subject = hyperjump.value(node);
+        expect(subject).to.equal(false);
+      } else {
+        expect.fail();
+      }
     });
 
     test("number", async () => {
-      const subject = await hyperjump.get(`${testDomain}/foo#/number`);
-      expect(hyperjump.typeOf(subject)).to.eql("number");
+      const node = await hyperjump.get(`${testDomain}/foo#/number`);
+      if (hyperjump.typeOf(node, "number")) {
+        /** @type number */
+        const subject = hyperjump.value(node);
+        expect(subject).to.equal(42);
+      } else {
+        expect.fail();
+      }
     });
 
     test("string", async () => {
-      const subject = await hyperjump.get(`${testDomain}/foo#/string`);
-      expect(hyperjump.typeOf(subject)).to.eql("string");
+      const node = await hyperjump.get(`${testDomain}/foo#/string`);
+      if (hyperjump.typeOf(node, "string")) {
+        /** @type string */
+        const subject = hyperjump.value(node);
+        expect(subject).to.equal("foo");
+      } else {
+        expect.fail();
+      }
     });
 
     test("array", async () => {
-      const subject = await hyperjump.get(`${testDomain}/foo#/array`);
-      expect(hyperjump.typeOf(subject)).to.eql("array");
+      const node = await hyperjump.get(`${testDomain}/foo#/array`);
+      expect(hyperjump.typeOf(node, "array")).to.equal(true);
+      expect(() => hyperjump.value(node)).to.throw();
     });
 
     test("object", async () => {
-      const subject = await hyperjump.get(`${testDomain}/foo#/object`);
-      expect(hyperjump.typeOf(subject)).to.eql("object");
+      const node = await hyperjump.get(`${testDomain}/foo#/object`);
+      expect(hyperjump.typeOf(node, "object")).to.equal(true);
+      expect(() => hyperjump.value(node)).to.throw();
     });
   });
 });

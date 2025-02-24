@@ -1,28 +1,29 @@
 import {
   JsonArrayNode,
   JsonBooleanNode,
-  JsonNode,
+  JsonCompatible,
   JsonNullNode,
   JsonNumberNode,
   JsonObjectNode,
   JsonStringNode
 } from "./jsonast.d.ts";
 
+
 export type JsonTypeOf = (
-  ((node: JsonNode, type: "null") => node is JsonNullNode) &
-  ((node: JsonNode, type: "boolean") => node is JsonBooleanNode) &
-  ((node: JsonNode, type: "number") => node is JsonNumberNode) &
-  ((node: JsonNode, type: "string") => node is JsonStringNode) &
-  ((node: JsonNode, type: "array") => node is JsonArrayNode) &
-  ((node: JsonNode, type: "object") => node is JsonObjectNode)
+  (<A>(node: JsonCompatible<A>, type: "null") => node is JsonNullNode) &
+  (<A>(node: JsonCompatible<A>, type: "boolean") => node is JsonBooleanNode) &
+  (<A>(node: JsonCompatible<A>, type: "number") => node is JsonNumberNode) &
+  (<A>(node: JsonCompatible<A>, type: "string") => node is JsonStringNode) &
+  (<A>(node: JsonCompatible<A>, type: "array") => node is JsonArrayNode<A>) &
+  (<A>(node: JsonCompatible<A>, type: "object") => node is JsonObjectNode<A>)
 );
 
 export type JsonValue = (
-  ((node: JsonNullNode) => null) &
-  ((node: JsonBooleanNode) => boolean) &
-  ((node: JsonNumberNode) => number) &
-  ((node: JsonStringNode) => string) &
-  ((node: JsonArrayNode) => unknown[]) &
-  ((node: JsonObjectNode) => Record<string, unknown>) &
-  ((node: JsonNode) => unknown)
+  (<_A>(node: JsonNullNode) => null) &
+  (<_A>(node: JsonBooleanNode) => boolean) &
+  (<_A>(node: JsonNumberNode) => number) &
+  (<_A>(node: JsonStringNode) => string) &
+  (<A>(node: JsonArrayNode<A>) => unknown[]) &
+  (<A>(node: JsonObjectNode<A>) => Record<string, unknown>) &
+  (<A>(node: JsonCompatible<A>) => unknown)
 );
