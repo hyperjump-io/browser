@@ -4,13 +4,12 @@ import { jrefStringify } from "./jref-stringify.js";
 
 /**
  * @import { Processor } from "unified"
- * @import { JrefDocumentNode } from "./jref-ast.js"
+ * @import * as API from "./jref.d.ts"
  */
 
 
-/** @type Processor<JrefDocumentNode, undefined, undefined, JrefDocumentNode, string> */
-// @ts-expect-error I don't know how to appease TS in this case
-export const jref = unified()
+/** @type API.jref */
+export const jref = /** @type Processor<any, any, any, any, any> */ (unified()
   .use(jrefParse)
   .use(jrefStringify)
-  .freeze();
+  .freeze());

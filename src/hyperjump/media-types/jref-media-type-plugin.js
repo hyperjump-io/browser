@@ -1,25 +1,18 @@
 import { fromJref } from "../../jref/jref-util.js";
 
 /**
- * @import { MediaTypePlugin } from "./media-type-plugin.js"
- * @import { JrefDocumentNode } from "../../jref/jref-ast.js"
+ * @import * as API from "./jref-media-type-plugin.d.ts"
  */
 
 
-/**
- * Supports JRef
- * - Media type: application/reference+json
- * - Extensions: .jref
- *
- * @implements MediaTypePlugin<JrefDocumentNode>
- */
+/** @implements API.JrefMediaTypePlugin */
 export class JrefMediaTypePlugin {
   constructor() {
     this.mediaType = "application/reference+json";
     this.extensions = [".jref"];
   }
 
-  /** @type MediaTypePlugin<JrefDocumentNode>["parse"] */
+  /** @type API.JrefMediaTypePlugin["parse"] */
   async parse(response) {
     return {
       type: "jref-document",

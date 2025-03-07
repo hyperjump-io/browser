@@ -3,28 +3,14 @@ import { VFileMessage } from "vfile-message";
 import { fromJref } from "./jref-util.js";
 
 /**
- * @import { Plugin } from "unified"
  * @import { VFile } from "vfile"
  * @import { Options } from "vfile-message"
- * @import { JrefDocumentNode, JrefNode } from "./jref-ast.js"
- * @import { Reviver } from "./jref-util.js"
+ * @import { JrefDocumentNode } from "./jref-ast.js"
+ * @import * as API from "./jref-parse.d.ts"
  */
 
 
-/**
- * @typedef {{
- *   reviver?: Reviver<JrefNode | undefined>;
- * }} JrefParseOptions
- */
-
-/**
- * Parses JRef to a JRef AST. Includes {@link Reviver} option similar to the
- * standard
- * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse | JSON.parse}
- * function.
- *
- * @type Plugin<[JrefParseOptions?], string, JrefDocumentNode>
- */
+/** @type API.jrefParse */
 export function jrefParse(options) {
   /** @type (document: string, file: VFile) => JrefDocumentNode */
   this.parser = function (document, file) {

@@ -1,28 +1,13 @@
 import { toJref } from "./jref-util.js";
 
 /**
- * @import { Plugin } from "unified"
  * @import { Node } from "unist"
  * @import { JrefDocumentNode } from "./jref-ast.js"
- * @import { Replacer } from "./jref-util.js"
+ * @import * as API from "./jref-stringify.d.ts"
  */
 
 
-/**
- * @typedef {{
- *   replacer?: Replacer;
- *   space?: string;
- * }} JrefStringifyOptions
- */
-
-/**
- * Stringifies a JRef AST to JRef. Includes {@link Replacer} and `space` options
- * similar to the standard
- * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify | JSON.stringify}
- * function.
- *
- * @type Plugin<[JrefStringifyOptions?], JrefDocumentNode, string>
- */
+/** @type API.jrefStringify */
 export function jrefStringify(options) {
   /** @type (tree: Node) => string */
   this.compiler = (tree) => {

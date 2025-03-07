@@ -15,25 +15,14 @@ import { JsonLexer } from "./json-lexer.js";
  *   JsonPropertyNode,
  *   JsonStringNode
  * } from "./jsonast.js"
- * @import { JsonTypeOf, JsonValue } from "./types.js"
+ * @import * as API from "./jsonast-util.d.ts"
  */
 
 
-/**
- * @template A
- * @typedef {(node: JsonCompatible<NonNullable<A>>, key?: string) => A} Reviver
- */
-
-/** @type Reviver<any> */
+/** @type API.Reviver<any> */
 const defaultReviver = (value) => value;
 
-/**
- * Parse a JSON string into a JSON AST. Includes a reviver option similar to
- * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse | JSON.parse}.
- *
- * @type <A = JsonNode>(json: string, reviver?: Reviver<A>) => A
- * @throws SynatxError
- */
+/** @type API.fromJson */
 export const fromJson = (json, reviver = defaultReviver) => {
   const lexer = new JsonLexer(json);
 
@@ -45,7 +34,7 @@ export const fromJson = (json, reviver = defaultReviver) => {
   return jsonValue;
 };
 
-/** @type <A>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: Reviver<A>) => A */
+/** @type <A>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: API.Reviver<A>) => A */
 const parseValue = (token, lexer, key, reviver) => {
   let node;
 
@@ -79,7 +68,7 @@ const parseScalar = (token) => {
   };
 };
 
-/** @type <A>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: Reviver<A>) => JsonPropertyNode<A> | undefined */
+/** @type <A>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: API.Reviver<A>) => JsonPropertyNode<A> | undefined */
 const parseProperty = (token, lexer, _key, reviver) => {
   if (token.type !== "string") {
     throw lexer.syntaxError("Expected a propertry", token);
@@ -113,7 +102,7 @@ const parseProperty = (token, lexer, _key, reviver) => {
  */
 
 /**
- * @type <A extends ParentNode<B>, B>(parseChild: <C>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: Reviver<C>) => B, endToken: string) => <C>(lexer: JsonLexer, node: A, reviver: Reviver<C>) => NonNullable<A>
+ * @type <A extends ParentNode<B>, B>(parseChild: <C>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: API.Reviver<C>) => B, endToken: string) => <C>(lexer: JsonLexer, node: A, reviver: API.Reviver<C>) => NonNullable<A>
  */
 const parseCommaSeparated = (parseChild, endToken) => (lexer, node, reviver) => {
   for (let index = 0; true; index++) {
@@ -139,7 +128,7 @@ const parseCommaSeparated = (parseChild, endToken) => (lexer, node, reviver) => 
   }
 };
 
-/** @type <A>(openToken: JsonToken, lexer: JsonLexer, reviver: Reviver<A>) => JsonArrayNode<NonNullable<A>> */
+/** @type <A>(openToken: JsonToken, lexer: JsonLexer, reviver: API.Reviver<A>) => JsonArrayNode<NonNullable<A>> */
 const parseArray = (openToken, lexer, reviver) => {
   return parseItems(lexer, {
     type: "json",
@@ -149,10 +138,10 @@ const parseArray = (openToken, lexer, reviver) => {
   }, reviver);
 };
 
-/** @type <A>(lexer: JsonLexer, node: JsonArrayNode<NonNullable<A>>, reviver: Reviver<A>) => JsonArrayNode<NonNullable<A>> */
+/** @type <A>(lexer: JsonLexer, node: JsonArrayNode<NonNullable<A>>, reviver: API.Reviver<A>) => JsonArrayNode<NonNullable<A>> */
 const parseItems = parseCommaSeparated(parseValue, "]");
 
-/** @type <A>(openToken: JsonToken, lexer: JsonLexer, reviver: Reviver<A>) => JsonObjectNode<NonNullable<A>> */
+/** @type <A>(openToken: JsonToken, lexer: JsonLexer, reviver: API.Reviver<A>) => JsonObjectNode<NonNullable<A>> */
 const parseObject = (openToken, lexer, reviver) => {
   return parseProperties(lexer, {
     type: "json",
@@ -162,7 +151,7 @@ const parseObject = (openToken, lexer, reviver) => {
   }, reviver);
 };
 
-/** @type <A>(lexer: JsonLexer, node: JsonObjectNode<NonNullable<A>>, reviver: Reviver<A>) => JsonObjectNode<NonNullable<A>> */
+/** @type <A>(lexer: JsonLexer, node: JsonObjectNode<NonNullable<A>>, reviver: API.Reviver<A>) => JsonObjectNode<NonNullable<A>> */
 const parseProperties = parseCommaSeparated(parseProperty, "}");
 
 /** @type (startToken: JsonToken, endToken?: JsonToken) => Position */
@@ -193,13 +182,7 @@ const tokenPosition = (startToken, endToken) => {
 /** @type Replacer<any> */
 const defaultReplacer = (node) => node; // eslint-disable-line @typescript-eslint/no-unsafe-return
 
-/**
- * Stringify a JsonNode to a JSON string. Includes options for a
- * {@link Replacer} and `space` like
- * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify | JSON.stringify}.
- *
- * @type <A>(node: A, replacer?: Replacer<A>, space?: string) => string
- */
+/** @type API.toJson */
 export const toJson = (node, replacer = defaultReplacer, space = "") => {
   const replacedNode = replacer(node);
   return replacedNode ? stringifyValue(replacedNode, replacer, space, 1) : "";
@@ -264,12 +247,7 @@ const stringifyObject = (node, replacer, space, depth) => {
   return result + padding + "}";
 };
 
-/**
- * Index into an object or array JsonNode.
- *
- * @type (segment: string, node: JsonNode, uri?: string) => JsonNode
- * @throws &nbsp;{@link JsonPointerError}
- */
+/** @type API.pointerStep */
 export const pointerStep = (segment, node, uri = "#") => {
   switch (node.jsonType) {
     case "object": {
@@ -296,11 +274,7 @@ export const pointerStep = (segment, node, uri = "#") => {
   }
 };
 
-/**
- * Get a JsonNode using a JSON Pointer.
- *
- * @type (pointer: string, tree: JsonNode, documentUri?: string) => JsonNode
- */
+/** @type API.pointerGet */
 export const pointerGet = (pointer, tree, documentUri) => {
   let currentPointer = "";
   let node = tree;
@@ -338,7 +312,7 @@ const unescapePointerSegment = (segment) => segment.toString().replace(/~1/g, "/
 const escapePointerSegment = (segment) => segment.toString().replace(/~/g, "~0").replace(/\//g, "~1");
 
 // eslint-disable-next-line @stylistic/no-extra-parens
-export const jsonValue = /** @type JsonValue */ ((node) => {
+export const jsonValue = /** @type API.jsonValue */ ((node) => {
   switch (node.jsonType) {
     case "object":
     case "array":
@@ -350,11 +324,11 @@ export const jsonValue = /** @type JsonValue */ ((node) => {
 });
 
 // eslint-disable-next-line @stylistic/no-extra-parens
-export const jsonTypeOf = /** @type JsonTypeOf */ ((node, type) => {
+export const jsonTypeOf = /** @type API.jsonTypeOf */ ((node, type) => {
   return node.jsonType === type;
 });
 
-/** @type (key: string, node: JsonCompatible<any>) => boolean */
+/** @type API.jsonObjectHas */
 export const jsonObjectHas = (key, node) => {
   if (node.jsonType === "object") {
     for (const property of node.children) {
@@ -367,7 +341,7 @@ export const jsonObjectHas = (key, node) => {
   return false;
 };
 
-/** @type <A>(node: JsonCompatible<A>) => Generator<A, void, unknown> */
+/** @type API.jsonArrayIter */
 export const jsonArrayIter = function* (node) {
   if (node.jsonType === "array") {
     for (const itemNode of node.children) {
@@ -376,7 +350,7 @@ export const jsonArrayIter = function* (node) {
   }
 };
 
-/** @type (node: JsonCompatible<any>) => Generator<string, undefined, string> */
+/** @type API.jsonObjectKeys */
 export const jsonObjectKeys = function* (node) {
   if (node.jsonType === "object") {
     for (const propertyNode of node.children) {
@@ -385,7 +359,7 @@ export const jsonObjectKeys = function* (node) {
   }
 };
 
-/** @type <A>(node: JsonCompatible<A>) => Generator<A, void, unknown> */
+/** @type API.jsonObjectValues */
 export const jsonObjectValues = function* (node) {
   if (node.jsonType === "object") {
     for (const propertyNode of node.children) {
@@ -394,7 +368,7 @@ export const jsonObjectValues = function* (node) {
   }
 };
 
-/** @type <A>(node: JsonCompatible<A>) => Generator<[string, A], void, unknown> */
+/** @type API.jsonObjectEntries */
 export const jsonObjectEntries = function* (node) {
   if (node.jsonType === "object") {
     for (const propertyNode of node.children) {
@@ -403,6 +377,7 @@ export const jsonObjectEntries = function* (node) {
   }
 };
 
+/** @implements API.JsonPointerError */
 export class JsonPointerError extends Error {
   /**
    * @param {string} [message]

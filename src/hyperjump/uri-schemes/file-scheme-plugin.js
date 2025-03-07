@@ -6,15 +6,11 @@ import { Readable } from "node:stream";
 
 /**
  * @import { Hyperjump } from "../index.js"
- * @import { UriSchemePlugin } from "./uri-scheme-plugin.js"
+ * @import * as API from "./file-scheme-plugin.d.ts"
  */
 
 
-/**
- * Supports the `file:` URI scheme. Media type is determined by file extensions.
- *
- * @implements UriSchemePlugin
- */
+/** @implements API.FileUriSchemePlugin */
 export class FileUriSchemePlugin {
   #hyperjump;
 
@@ -27,7 +23,7 @@ export class FileUriSchemePlugin {
     this.#hyperjump = hyperjump;
   }
 
-  /** @type UriSchemePlugin["retrieve"] */
+  /** @type API.FileUriSchemePlugin["retrieve"] */
   async retrieve(uri, options) {
     if (options.referencedFrom) {
       const { scheme } = parseIri(options.referencedFrom);

@@ -1,25 +1,18 @@
 import { fromJson } from "../../json/jsonast-util.js";
 
 /**
- * @import { MediaTypePlugin } from "./media-type-plugin.js"
- * @import { JsonDocumentNode } from "../../json/jsonast.js"
+ * @import * as API from "./json-media-type-plugin.d.ts"
  */
 
 
-/**
- * Supports JSON
- * - Media type: application/json
- * - Extensions: .json
- *
- * @implements MediaTypePlugin<JsonDocumentNode>
- */
+/** @implements API.JsonMediaTypePlugin */
 export class JsonMediaTypePlugin {
   constructor() {
     this.mediaType = "application/json";
     this.extensions = [".json"];
   }
 
-  /** @type MediaTypePlugin<JsonDocumentNode>["parse"] */
+  /** @type API.JsonMediaTypePlugin["parse"] */
   async parse(response) {
     return {
       type: "json-document",

@@ -1,4 +1,5 @@
 {
+  "exclude": ["./docs"],
   "compilerOptions": {
     "module": "Node16",
     "target": "es2023",
