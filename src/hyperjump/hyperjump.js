@@ -287,7 +287,7 @@ export class Hyperjump {
    *
    * @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<JsonCompatible<JrefNode>, void, unknown>
    */
-  async * iter(node) {
+  async* iter(node) {
     if (node.jsonType === "array") {
       for (const itemNode of node.children) {
         yield this.#followReferences(itemNode);
@@ -303,7 +303,7 @@ export class Hyperjump {
    *
    * @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<JsonCompatible<JrefNode>, void, unknown>
    */
-  async * values(node) {
+  async* values(node) {
     if (node.jsonType === "object") {
       for (const propertyNode of node.children) {
         yield this.#followReferences(propertyNode.children[1]);
@@ -317,7 +317,7 @@ export class Hyperjump {
    *
    * @type (node: JsonCompatible<JrefNode>) => AsyncGenerator<[string, JsonCompatible<JrefNode>], void, unknown>
    */
-  async * entries(node) {
+  async* entries(node) {
     if (node.jsonType === "object") {
       for (const propertyNode of node.children) {
         yield [propertyNode.children[0].value, await this.#followReferences(propertyNode.children[1])];

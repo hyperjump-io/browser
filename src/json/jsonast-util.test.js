@@ -17,15 +17,7 @@ import {
 } from "./index.js";
 
 /**
- * @import {
- *   JsonArrayNode,
- *   JsonBooleanNode,
- *   JsonNode,
- *   JsonNullNode,
- *   JsonNumberNode,
- *   JsonObjectNode,
- *   JsonStringNode
- * } from "./index.js"
+ * @import { JsonNode } from "./index.js"
  */
 
 

@@ -61,7 +61,7 @@ export class JsonLexer {
       error: moo.error
     });
 
-    this.#iterator = (function * (lexer) {
+    this.#iterator = (function* (lexer) {
       for (const token of lexer.reset(json)) {
         if (token.type === "WS") {
           continue;

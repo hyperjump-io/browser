@@ -1,4 +1,4 @@
-import { GetOptions } from "../hyperjump.js"; // eslint-disable-line import/named
+import { GetOptions } from "../hyperjump.js";
 
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
