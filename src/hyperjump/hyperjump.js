@@ -14,7 +14,7 @@ import { mimeMatch } from "./utilities.js";
  * @import { JsonCompatible } from "../json/jsonast.js"
  * @import { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.js"
  * @import { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.js"
- * @import * as API from "./hyperjump.d.ts";
+ * @import * as API from "./hyperjump.d.ts"
  */
 
 
