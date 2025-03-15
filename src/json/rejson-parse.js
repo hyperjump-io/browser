@@ -2,7 +2,6 @@ import { VFileMessage } from "vfile-message";
 import { fromJson } from "./jsonast-util.js";
 
 /**
- * @import { VFile } from "vfile"
  * @import { Options } from "vfile-message"
  * @import { JsonDocumentNode } from "./jsonast.js"
  * @import * as API from "./rejson-parse.d.ts"
@@ -11,7 +10,6 @@ import { fromJson } from "./jsonast-util.js";
 
 /** @type API.rejsonParse */
 export function rejsonParse(options) {
-  /** @type (document: string, file: VFile) => JsonDocumentNode */
   this.parser = function (document, file) {
     try {
       /** @type JsonDocumentNode */

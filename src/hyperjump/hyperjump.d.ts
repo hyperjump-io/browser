@@ -11,7 +11,7 @@ export type GetOptions = {
   referencedFrom?: string;
 };
 
-export class Hyperjump {
+export class Hyperjump<T extends JrefNode = JrefNode> {
   constructor(config?: HyperjumpConfig);
 
   /**
@@ -29,7 +29,7 @@ export class Hyperjump {
    * @throws {@link RetrievalError}
    * @throws {@link json.JsonPointerError}
    */
-  get: (uri: string, options?: GetOptions) => Promise<JsonCompatible<JrefNode>>;
+  get: (uri: string, options?: GetOptions) => Promise<JsonCompatible<T>>;
 
   /**
    * Add support for a
@@ -94,13 +94,13 @@ export class Hyperjump {
    * This is like indexing into an object or array. It will follow any
    * references it encounters so it always returns a JSON compatible value.
    */
-  step: (key: string, node: JsonCompatible<JrefNode>) => Promise<JsonCompatible<JrefNode>>;
+  step: (key: string, node: JsonCompatible<T>) => Promise<JsonCompatible<T>>;
 
   /**
    * Iterate over an array node. It will follow any references it encounters so
    * it always yields JSON compatible values.
    */
-  iter: (node: JsonCompatible<JrefNode>) => AsyncGenerator<JsonCompatible<JrefNode>, void, unknown>;
+  iter: (node: JsonCompatible<T>) => AsyncGenerator<JsonCompatible<T>, void, unknown>;
 
   keys: typeof jsonObjectKeys;
 
@@ -108,13 +108,13 @@ export class Hyperjump {
    * Iterate over the values of an object. It will follow any references it
    * encounters so it always yields JSON compatible values.
    */
-  values: (node: JsonCompatible<JrefNode>) => AsyncGenerator<JsonCompatible<JrefNode>, void, unknown>;
+  values: (node: JsonCompatible<T>) => AsyncGenerator<JsonCompatible<T>, void, unknown>;
 
   /**
    * Iterate over key/value pairs of an object. It will follow any references it
    * encounters so it always yields JSON compatible values.
    */
-  entries: (node: JsonCompatible<JrefNode>) => AsyncGenerator<[string, JsonCompatible<JrefNode>], void, unknown>;
+  entries: (node: JsonCompatible<T>) => AsyncGenerator<[string, JsonCompatible<T>], void, unknown>;
 }
 
 export class RetrievalError extends Error {

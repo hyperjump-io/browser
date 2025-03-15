@@ -15,7 +15,7 @@ export class FileUriSchemePlugin {
   #hyperjump;
 
   /**
-   * @param {Hyperjump} hyperjump
+   * @param {Hyperjump<any>} hyperjump
    */
   constructor(hyperjump) {
     this.schemes = ["file"];

@@ -3,7 +3,6 @@ import { VFileMessage } from "vfile-message";
 import { fromJref } from "./jref-util.js";
 
 /**
- * @import { VFile } from "vfile"
  * @import { Options } from "vfile-message"
  * @import { JrefDocumentNode } from "./jref-ast.js"
  * @import * as API from "./jref-parse.d.ts"
@@ -12,7 +11,6 @@ import { fromJref } from "./jref-util.js";
 
 /** @type API.jrefParse */
 export function jrefParse(options) {
-  /** @type (document: string, file: VFile) => JrefDocumentNode */
   this.parser = function (document, file) {
     try {
       const uri = pathToFileURL(file.path).toString();

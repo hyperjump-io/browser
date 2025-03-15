@@ -1,6 +1,5 @@
 /**
  * @import { Hyperjump } from "../index.js"
- * @import { UriSchemePlugin } from "./uri-scheme-plugin.js"
  * @import * as API from "./http-scheme-plugin.d.ts"
  */
 
@@ -11,7 +10,7 @@ export class HttpUriSchemePlugin {
   #successStatus;
 
   /**
-   * @param {Hyperjump} hyperjump
+   * @param {Hyperjump<any>} hyperjump
    */
   constructor(hyperjump) {
     this.schemes = ["http", "https"];
