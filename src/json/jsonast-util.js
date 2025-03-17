@@ -174,6 +174,78 @@ const tokenPosition = (startToken, endToken) => {
   };
 };
 
+/** @type API.fromJs */
+export const fromJs = (js) => {
+  switch (typeof js) {
+    case "boolean":
+      return {
+        type: "json",
+        jsonType: "boolean",
+        value: js
+      };
+
+    case "number":
+      return {
+        type: "json",
+        jsonType: "number",
+        value: js
+      };
+
+    case "string":
+      return {
+        type: "json",
+        jsonType: "string",
+        value: js
+      };
+
+    case "object":
+      if (js === null) {
+        return {
+          type: "json",
+          jsonType: "null",
+          value: js
+        };
+      }
+
+      if (Array.isArray(js)) {
+        return {
+          type: "json",
+          jsonType: "array",
+          children: js.map(fromJs)
+        };
+      }
+
+      if (Object.getPrototypeOf(js) === Object.prototype) {
+        /** @type JsonPropertyNode[] */
+        const properties = [];
+        for (const key in js) {
+          properties.push({
+            type: "json-property",
+            children: [
+              {
+                type: "json-property-name",
+                value: key
+              },
+              fromJs(js[key])
+            ]
+          });
+        }
+
+        return {
+          type: "json",
+          jsonType: "object",
+          children: properties
+        };
+      }
+
+      const type = js.constructor?.name ?? "*anonymous*";
+      throw TypeError(`Not a JSON compatible type: ${type}`);
+
+    default:
+      throw TypeError(`Not a JSON compatible type: ${typeof js}`);
+  }
+};
+
 /**
  * @template [A = JsonNode]
  * @typedef {(node: A, key?: string) => JsonCompatible<A> | undefined} Replacer

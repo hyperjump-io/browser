@@ -16,9 +16,14 @@ export type Reviver<A> = (node: JsonCompatible<NonNullable<A>>, key?: string) =>
  * Parse a JSON string into a JSON AST. Includes a reviver option similar to
  * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse | JSON.parse}.
  *
- * @throws SynatxError
+ * @throws SynataxError
  */
 export const fromJson: <A = JsonNode>(json: string, reviver?: Reviver<A>) => A;
+
+/**
+ * Parse a JSON compatible JavaScript value into a JSON AST.
+ */
+export const fromJs: (js: Json) => JsonNode;
 
 export type Replacer<A = JsonNode> = (node: A, key?: string) => JsonCompatible<A> | undefined;
 
