@@ -87,3 +87,5 @@ export type JsonDocumentNode = {
   children: JsonNode[];
   data?: Data;
 };
+
+export type Json = null | boolean | number | string | Json[] | { [property: string]: Json };

@@ -2,7 +2,7 @@ import type { JsonCompatible } from "../json/jsonast.d.ts";
 import type { JrefNode } from "../jref/jref-ast.d.ts";
 import type { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.d.ts";
 import type { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.d.ts";
-import { jsonObjectHas, jsonObjectKeys, jsonTypeOf, jsonValue } from "../json/jsonast-util.js";
+import type { jsonObjectHas, jsonObjectKeys, jsonTypeOf, jsonValue } from "../json/jsonast-util.js";
 
 
 export type HyperjumpConfig = object;

@@ -1,4 +1,5 @@
 import {
+  Json,
   JsonArrayNode,
   JsonBooleanNode,
   JsonCompatible,
@@ -45,8 +46,8 @@ export const jsonValue: (
   (<_A>(node: JsonBooleanNode) => boolean) &
   (<_A>(node: JsonNumberNode) => number) &
   (<_A>(node: JsonStringNode) => string) &
-  (<A>(node: JsonArrayNode<A>) => unknown[]) &
-  (<A>(node: JsonObjectNode<A>) => Record<string, unknown>) &
+  (<A>(node: JsonArrayNode<A>) => Json[]) &
+  (<A>(node: JsonObjectNode<A>) => Record<string, Json>) &
   (<A>(node: JsonCompatible<A>) => unknown)
 );
 
