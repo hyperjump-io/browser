@@ -156,9 +156,7 @@ const parseProperties = parseCommaSeparated(parseProperty, "}");
 
 /** @type (startToken: JsonToken, endToken?: JsonToken) => Position */
 const tokenPosition = (startToken, endToken) => {
-  if (!endToken) {
-    endToken = startToken;
-  }
+  endToken ??= startToken;
 
   return {
     start: {

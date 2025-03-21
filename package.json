@@ -37,8 +37,6 @@
     "@types/content-type": "*",
     "@types/moo": "*",
     "@types/node": "*",
-    "@typescript-eslint/eslint-plugin": "*",
-    "@typescript-eslint/parser": "*",
     "eslint-import-resolver-typescript": "*",
     "eslint-plugin-import": "*",
     "typedoc": "*",
