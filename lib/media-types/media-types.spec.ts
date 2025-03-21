@@ -78,12 +78,12 @@ describe("JSON Browser", () => {
       });
     });
 
-    describe("Wildcard media type plugins", () => {
+    describe("Wildcard content types", () => {
       const testDomain = "https://example.com";
       let mockAgent: MockAgent;
 
       beforeEach(() => {
-        addMediaTypePlugin("application/*+foo", {
+        addMediaTypePlugin("application/foo", {
           parse: async () => { // eslint-disable-line @typescript-eslint/require-await
             return {
               baseUri: "https://exmple.com/foo",

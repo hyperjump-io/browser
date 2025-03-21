@@ -1,5 +1,5 @@
 export type JRef = null | boolean | string | number | Reference | JRefObject | JRef[];
-export type JRefObject = { // eslint-disable-line @typescript-eslint/consistent-indexed-object-style
+export type JRefObject = {
   [property: string]: JRef;
 };
 
