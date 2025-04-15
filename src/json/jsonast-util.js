@@ -7,7 +7,6 @@ import { JsonLexer } from "./json-lexer.js";
  *   JsonArrayNode,
  *   JsonBooleanNode,
  *   JsonCompatible,
- *   JsonNode,
  *   JsonNullNode,
  *   JsonNumberNode,
  *   JsonObjectNode,
@@ -244,12 +243,7 @@ export const fromJs = (js) => {
   }
 };
 
-/**
- * @template [A = JsonNode]
- * @typedef {(node: A, key?: string) => JsonCompatible<A> | undefined} Replacer
- */
-
-/** @type Replacer<any> */
+/** @type API.Replacer<any> */
 const defaultReplacer = (node) => node; // eslint-disable-line @typescript-eslint/no-unsafe-return
 
 /** @type API.toJson */
@@ -258,7 +252,7 @@ export const toJson = (node, replacer = defaultReplacer, space = "") => {
   return replacedNode ? stringifyValue(replacedNode, replacer, space, 1) : "";
 };
 
-/** @type <A>(node: JsonCompatible<A>, replacer: Replacer<A>, space: string, depth: number) => string */
+/** @type <A>(node: JsonCompatible<A>, replacer: API.Replacer<A>, space: string, depth: number) => string */
 const stringifyValue = (node, replacer, space, depth) => {
   switch (node.jsonType) {
     case "array":
@@ -270,7 +264,7 @@ const stringifyValue = (node, replacer, space, depth) => {
   }
 };
 
-/** @type <A>(node: JsonArrayNode<A>, replacer: Replacer<A>, space: string, depth: number) => string */
+/** @type <A>(node: JsonArrayNode<A>, replacer: API.Replacer<A>, space: string, depth: number) => string */
 const stringifyArray = (node, replacer, space, depth) => {
   if (node.children.length === 0) {
     return "[]";
@@ -292,7 +286,7 @@ const stringifyArray = (node, replacer, space, depth) => {
   return result + padding + "]";
 };
 
-/** @type <A>(node: JsonObjectNode<A>, replacer: Replacer<A>, space: string, depth: number) => string */
+/** @type <A>(node: JsonObjectNode<A>, replacer: API.Replacer<A>, space: string, depth: number) => string */
 const stringifyObject = (node, replacer, space, depth) => {
   if (node.children.length === 0) {
     return "{}";

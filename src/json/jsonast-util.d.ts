@@ -10,7 +10,7 @@ import {
   JsonStringNode
 } from "./jsonast.d.ts";
 
-export type Reviver<A> = (node: JsonCompatible<NonNullable<A>>, key?: string) => A;
+export type Reviver<A = JsonNode> = (node: JsonCompatible<NonNullable<A>>, key?: string) => A;
 
 /**
  * Parse a JSON string into a JSON AST. Includes a reviver option similar to

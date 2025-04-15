@@ -7,8 +7,8 @@ import {
 } from "../json/jsonast-util.js";
 
 /**
- * @import { JsonObjectNode } from "../json/jsonast.js"
- * @import { JrefNode } from "./jref-ast.js"
+ * @import { JsonNode, JsonObjectNode } from "../json/jsonast.d.ts"
+ * @import { JrefNode } from "./jref-ast.d.ts"
  * @import * as API from "./jref-util.d.ts"
  */
 
@@ -35,11 +35,16 @@ export const fromJref = (jref, uri, reviver = defaultReviver) => {
   });
 };
 
-/** @type <A extends JrefNode>(node: JsonObjectNode<A>) => string | undefined */
+/** @type <A>(node: JsonObjectNode<A>) => string | undefined */
 const isReference = (objectNode) => {
   for (const propertyNode of objectNode.children) {
     if (propertyNode.children[0].value === "$ref") {
-      const valueNode = propertyNode.children[1];
+      const unknownValueNode = propertyNode.children[1];
+      if (!unknownValueNode || typeof unknownValueNode !== "object") {
+        continue;
+      }
+      /** @type JsonNode */
+      const valueNode = /** @type any */ (unknownValueNode);
       if (valueNode.type === "json" && valueNode.jsonType === "string") {
         return valueNode.value;
       }

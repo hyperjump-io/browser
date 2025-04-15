@@ -3,7 +3,8 @@ import { fromJref, toJref } from "./jref-util.js";
 import { resolveIri } from "@hyperjump/uri";
 
 /**
- * @import { JrefNode } from "../jref/jref-ast.js"
+ * @import { JrefNode } from "./jref-ast.d.ts"
+ * @import { Reviver } from "./jref-util.d.ts"
  */
 
 
@@ -275,7 +276,8 @@ describe("JRef", () => {
 
     describe("reviver", () => {
       test("convert properties that start with 'i' to integers", () => {
-        const subject = fromJref(`{ "foo": 42, "iBar": "42", "baz": { "$ref": "./foo" } }`, testContext, (node, key) => {
+        /** @type Reviver<JrefNode> */
+        const reviver = (node, key) => {
           if (key?.startsWith("i") && node.type === "json" && node.jsonType === "string") {
             return {
               ...node,
@@ -285,7 +287,8 @@ describe("JRef", () => {
           } else {
             return node;
           }
-        });
+        };
+        const subject = fromJref(`{ "foo": 42, "iBar": "42", "baz": { "$ref": "./foo" } }`, testContext, reviver);
         expect(toJref(subject, testContext)).to.equal(`{"foo":42,"iBar":42,"baz":{"$ref":"foo"}}`);
       });
     });

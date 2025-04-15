@@ -1,13 +1,13 @@
 import { JrefCompatible, JrefNode } from "./jref-ast.d.ts";
 
 
-export type Reviver<A extends JrefNode | undefined> = (node: JrefCompatible<NonNullable<A>>, key?: string) => A;
+export type Reviver<A = JrefNode> = (node: JrefCompatible<NonNullable<A>>, key?: string) => A;
 
 /**
  * Parse a JRef string into a JRef AST. Includes a reviver option similar to
  * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse | JSON.parse}.
  */
-export const fromJref: <A extends JrefNode | undefined = JrefNode>(jref: string, uri: string, reviver?: Reviver<A>) => A;
+export const fromJref: <A = JrefNode>(jref: string, uri: string, reviver?: Reviver<A>) => A;
 
 export type Replacer = (value: JrefNode, key?: string) => JrefNode | undefined;
 

@@ -78,7 +78,12 @@ export type JsonNode = JsonObjectNode
   | JsonBooleanNode
   | JsonNullNode;
 
-export type JsonCompatible<A> = JsonObjectNode<A> | JsonArrayNode<A> | JsonStringNode | JsonNumberNode | JsonBooleanNode | JsonNullNode;
+export type JsonCompatible<A> = JsonObjectNode<A>
+  | JsonArrayNode<A>
+  | JsonStringNode
+  | JsonNumberNode
+  | JsonBooleanNode
+  | JsonNullNode;
 
 export type JsonType = "null" | "boolean" | "number" | "string" | "array" | "object";
 
