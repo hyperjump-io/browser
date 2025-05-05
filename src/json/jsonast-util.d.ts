@@ -69,7 +69,7 @@ export const jsonObjectHas: <A>(key: string, node: JsonCompatible<A>) => boolean
 
 export const jsonArrayIter: <A>(node: JsonCompatible<A>) => Generator<A, void, unknown>;
 
-export const jsonObjectKeys: <A>(node: JsonCompatible<A>) => Generator<string, undefined, string>;
+export const jsonObjectKeys: <A>(node: JsonCompatible<A>) => Generator<string, void, unknown>;
 
 export const jsonObjectValues: <A>(node: JsonCompatible<A>) => Generator<A, void, unknown>;
 
