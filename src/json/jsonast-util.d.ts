@@ -7,7 +7,8 @@ import {
   JsonNullNode,
   JsonNumberNode,
   JsonObjectNode,
-  JsonStringNode
+  JsonStringNode,
+  JsonType
 } from "./jsonast.d.ts";
 
 export type Reviver<A = JsonNode> = (node: JsonCompatible<NonNullable<A>>, key?: string) => A;
@@ -62,7 +63,8 @@ export const jsonTypeOf: (
   (<A>(node: JsonCompatible<A>, type: "number") => node is JsonNumberNode) &
   (<A>(node: JsonCompatible<A>, type: "string") => node is JsonStringNode) &
   (<A>(node: JsonCompatible<A>, type: "array") => node is JsonArrayNode<A>) &
-  (<A>(node: JsonCompatible<A>, type: "object") => node is JsonObjectNode<A>)
+  (<A>(node: JsonCompatible<A>, type: "object") => node is JsonObjectNode<A>) &
+  (<A>(node: JsonCompatible<A>, type: JsonType) => boolean)
 );
 
 export const jsonObjectHas: <A>(key: string, node: JsonCompatible<A>) => boolean;
