@@ -54,7 +54,7 @@ export const jsonValue: (
   (<_A>(node: JsonStringNode) => string) &
   (<A>(node: JsonArrayNode<A>) => Json[]) &
   (<A>(node: JsonObjectNode<A>) => Record<string, Json>) &
-  (<A>(node: JsonCompatible<A>) => unknown)
+  (<A>(node: JsonCompatible<A>) => Json)
 );
 
 export const jsonTypeOf: (
