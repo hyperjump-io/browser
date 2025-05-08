@@ -387,11 +387,6 @@ export const jsonValue = /** @type API.jsonValue */ ((node) => {
   }
 });
 
-// eslint-disable-next-line @stylistic/no-extra-parens
-export const jsonTypeOf = /** @type API.jsonTypeOf */ ((node, type) => {
-  return node.jsonType === type;
-});
-
 /** @type API.jsonObjectHas */
 export const jsonObjectHas = (key, node) => {
   if (node.jsonType === "object") {

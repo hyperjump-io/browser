@@ -6,7 +6,7 @@ import { FileUriSchemePlugin } from "./uri-schemes/file-scheme-plugin.js";
 import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
 import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
 import { pointerGet, pointerStep } from "../jref/jref-util.js";
-import { jsonObjectHas, jsonObjectKeys, jsonTypeOf, jsonValue } from "../json/jsonast-util.js";
+import { jsonObjectHas, jsonObjectKeys, jsonValue } from "../json/jsonast-util.js";
 import { mimeMatch } from "./utilities.js";
 
 /**
@@ -201,7 +201,6 @@ export class Hyperjump {
   }
 
   value = jsonValue;
-  typeOf = jsonTypeOf;
   has = jsonObjectHas;
 
   /** @type API.Hyperjump<T>["step"] */

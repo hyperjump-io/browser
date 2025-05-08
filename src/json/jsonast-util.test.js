@@ -8,7 +8,6 @@ import {
   rejson,
   rejsonStringify,
   jsonObjectHas,
-  jsonTypeOf,
   jsonArrayIter,
   jsonObjectKeys,
   jsonObjectValues,
@@ -56,57 +55,35 @@ describe("jsonast-util", async () => {
   describe("type/value and type narrowing", () => {
     test("null", () => {
       const node = fromJson(`null`);
-      if (jsonTypeOf(node, "null")) {
-        /** @type null */
-        const subject = jsonValue(node);
-        expect(subject).to.equal(null);
-      } else {
-        expect.fail();
-      }
+      const subject = jsonValue(node);
+      expect(subject).to.equal(null);
     });
 
     test("boolean", () => {
       const node = fromJson(`true`);
-      if (jsonTypeOf(node, "boolean")) {
-        /** @type boolean */
-        const subject = jsonValue(node);
-        expect(subject).to.equal(true);
-      } else {
-        expect.fail();
-      }
+      const subject = jsonValue(node);
+      expect(subject).to.equal(true);
     });
 
     test("number", () => {
       const node = fromJson(`42`);
-      if (jsonTypeOf(node, "number")) {
-        /** @type number */
-        const subject = jsonValue(node);
-        expect(subject).to.equal(42);
-      } else {
-        expect.fail();
-      }
+      const subject = jsonValue(node);
+      expect(subject).to.equal(42);
     });
 
     test("string", () => {
       const node = fromJson(`"foo"`);
-      if (jsonTypeOf(node, "string")) {
-        /** @type string */
-        const subject = jsonValue(node);
-        expect(subject).to.equal("foo");
-      } else {
-        expect.fail();
-      }
+      const subject = jsonValue(node);
+      expect(subject).to.equal("foo");
     });
 
     test("array", () => {
       const node = fromJson(`["foo", 42]`);
-      expect(jsonTypeOf(node, "array")).to.equal(true);
       expect(() => jsonValue(node)).to.throw();
     });
 
     test("object", () => {
       const node = fromJson(`{ "foo": 42 }`);
-      expect(jsonTypeOf(node, "object")).to.equal(true);
       expect(() => jsonValue(node)).to.throw();
     });
   });
