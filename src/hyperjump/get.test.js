@@ -1,7 +1,7 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump } from "./index.js";
-import { toJref } from "../jref/index.js";
+import { toJson } from "../json/jsonast-util.js";
 
 
 describe("JSON Browser", () => {
@@ -41,7 +41,7 @@ describe("JSON Browser", () => {
       const browser = new Hyperjump();
       const subject = await browser.get(uri);
 
-      expect(toJref(subject, uri, undefined, "  ")).to.eql(jref);
+      expect(toJson(subject, undefined, "  ")).to.eql(jref);
     });
 
     test("follow fragment-only reference", async () => {
@@ -63,7 +63,7 @@ describe("JSON Browser", () => {
       const browser = new Hyperjump();
       const subject = await browser.get(`${uri}#/bar`);
 
-      expect(toJref(subject, uri)).to.eql(`42`);
+      expect(toJson(subject)).to.eql(`42`);
     });
 
     test("follow reference to another document", async () => {
@@ -87,7 +87,7 @@ describe("JSON Browser", () => {
       const browser = new Hyperjump();
       const subject = await browser.get(uri);
 
-      expect(toJref(subject, uri)).to.eql(`"bar"`);
+      expect(toJson(subject)).to.eql(`"bar"`);
     });
 
     test("follow a reference to another document with a fragment", async () => {
@@ -113,7 +113,7 @@ describe("JSON Browser", () => {
       const browser = new Hyperjump();
       const subject = await browser.get(uri);
 
-      expect(toJref(subject, uri)).to.eql(`24`);
+      expect(toJson(subject)).to.eql(`24`);
     });
   });
 });

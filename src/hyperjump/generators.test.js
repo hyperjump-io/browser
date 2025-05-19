@@ -1,12 +1,7 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump } from "./index.js";
-import { toJref } from "../jref/index.js";
-
-/**
- * @import { JrefNode } from "../jref/index.js"
- * @import { JsonCompatible } from "../json/index.js"
- */
+import { toJson } from "../json/jsonast-util.js";
 
 
 describe("JSON Browser", () => {
@@ -44,11 +39,11 @@ describe("JSON Browser", () => {
       const generator = hyperjump.iter(subject);
 
       const first = await generator.next();
-      expect(toJref(/** @type NonNullable<any> */ (first.value), uri)).to.equal(`1`);
+      expect(first.value && toJson(first.value)).to.equal(`1`);
       const second = await generator.next();
-      expect(toJref(/** @type NonNullable<any> */ (second.value), uri)).to.equal(`2`);
+      expect(second.value && toJson(second.value)).to.equal(`2`);
       const third = await generator.next();
-      expect(toJref(/** @type NonNullable<any> */ (third.value), uri)).to.equal(`2`);
+      expect(third.value && toJson(third.value)).to.equal(`2`);
       expect((await generator.next()).done).to.equal(true);
     });
 
@@ -95,11 +90,11 @@ describe("JSON Browser", () => {
       const generator = hyperjump.values(subject);
 
       const first = await generator.next();
-      expect(toJref(/** @type NonNullable<any> */ (first.value), uri)).to.equal(`1`);
+      expect(first.value && toJson(first.value)).to.equal(`1`);
       const second = await generator.next();
-      expect(toJref(/** @type NonNullable<any> */ (second.value), uri)).to.equal(`2`);
+      expect(second.value && toJson(second.value)).to.equal(`2`);
       const third = await generator.next();
-      expect(toJref(/** @type NonNullable<any> */ (third.value), uri)).to.equal(`2`);
+      expect(third.value && toJson(third.value)).to.equal(`2`);
       expect((await generator.next()).done).to.equal(true);
     });
 
@@ -124,17 +119,17 @@ describe("JSON Browser", () => {
       const subject = await hyperjump.get(uri);
       const generator = hyperjump.entries(subject);
 
-      const a = /** @type [string, JsonCompatible<JrefNode>] */ ((await generator.next()).value);
-      expect(a[0]).to.equal("a");
-      expect(toJref(a[1], uri)).to.equal(`1`);
+      const a = await generator.next();
+      expect(a.value && a.value[0]).to.equal("a");
+      expect(a.value && toJson(a.value[1])).to.equal(`1`);
 
-      const b = /** @type [string, JsonCompatible<JrefNode>] */ ((await generator.next()).value);
-      expect(b[0]).to.equal("b");
-      expect(toJref(b[1], uri)).to.equal(`2`);
+      const b = await generator.next();
+      expect(b.value && b.value[0]).to.equal("b");
+      expect(b.value && toJson(b.value[1])).to.equal(`2`);
 
-      const c = /** @type [string, JsonCompatible<JrefNode>] */ ((await generator.next()).value);
-      expect(c[0]).to.equal("c");
-      expect(toJref(c[1], uri)).to.equal(`2`);
+      const c = await generator.next();
+      expect(c.value && c.value[0]).to.equal("c");
+      expect(c.value && toJson(c.value[1])).to.equal(`2`);
 
       expect((await generator.next()).done).to.equal(true);
     });

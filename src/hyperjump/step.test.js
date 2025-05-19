@@ -1,7 +1,7 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump } from "./index.js";
-import { toJref } from "../jref/index.js";
+import { toJson } from "../json/jsonast-util.js";
 
 
 describe("JSON Browser", () => {
@@ -34,7 +34,7 @@ describe("JSON Browser", () => {
       const subject = await hyperjump.get(uri);
       const foo = await hyperjump.step("foo", subject);
 
-      expect(toJref(foo, uri)).to.eql(`42`);
+      expect(toJson(foo)).to.eql(`42`);
     });
 
     test("local reference to value", async () => {
@@ -53,7 +53,7 @@ describe("JSON Browser", () => {
       const subject = await hyperjump.get(uri);
       const foo = await hyperjump.step("bar", subject);
 
-      expect(toJref(foo, uri)).to.eql(`42`);
+      expect(toJson(foo)).to.eql(`42`);
     });
 
     test("local reference to local reference to value", async () => {
@@ -73,7 +73,7 @@ describe("JSON Browser", () => {
       const subject = await hyperjump.get(uri);
       const foo = await hyperjump.step("baz", subject);
 
-      expect(toJref(foo, uri)).to.eql(`42`);
+      expect(toJson(foo)).to.eql(`42`);
     });
 
     test("local reference to external reference to value", async () => {
@@ -99,7 +99,7 @@ describe("JSON Browser", () => {
       const subject = await hyperjump.get(uri);
       const foo = await hyperjump.step("baz", subject);
 
-      expect(toJref(foo, uri)).to.eql(`42`);
+      expect(toJson(foo)).to.eql(`42`);
     });
 
     test("external reference to value", async () => {
@@ -125,7 +125,7 @@ describe("JSON Browser", () => {
 
       const foo = await hyperjump.step("bar", subject);
 
-      expect(toJref(foo, uri)).to.eql(`42`);
+      expect(toJson(foo)).to.eql(`42`);
     });
 
     test("external reference to local reference to value", async () => {
@@ -154,7 +154,7 @@ describe("JSON Browser", () => {
 
       const foo = await hyperjump.step("baz", subject);
 
-      expect(toJref(foo, uri)).to.eql(`42`);
+      expect(toJson(foo)).to.eql(`42`);
     });
   });
 });

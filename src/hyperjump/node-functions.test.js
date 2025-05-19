@@ -3,8 +3,8 @@ import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump } from "./index.js";
 
 /**
- * @import { JsonCompatible } from "../json/index.js"
- * @import { JrefNode } from "../jref/index.js"
+ * @import { JsonNode } from "../json/index.js"
+ * @import { JrefJrefNode } from "../jref/index.js"
  */
 
 
@@ -26,7 +26,7 @@ describe("JSON Browser", () => {
   describe("object has property", () => {
     const hyperjump = new Hyperjump();
 
-    /** @type JsonCompatible<JrefNode> */
+    /** @type JsonNode<JrefJrefNode> */
     let node;
 
     beforeEach(async () => {

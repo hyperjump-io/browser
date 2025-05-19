@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump, RetrievalError } from "../index.js";
-import { toJref } from "../../jref/index.js";
+import { toJson } from "../../json/jsonast-util.js";
 
 
 describe("JSON Browser", () => {
@@ -117,7 +117,7 @@ describe("JSON Browser", () => {
           const hyperjump = new Hyperjump();
           const subject = await hyperjump.get(mainPath);
 
-          expect(toJref(/** @type NonNullable<any> */ (subject), uri)).to.equal(`42`);
+          expect(toJson(subject)).to.equal(`42`);
         });
       });
 
@@ -130,7 +130,7 @@ describe("JSON Browser", () => {
           const hyperjump = new Hyperjump();
           const subject = await hyperjump.get(`${path}#/foo`);
 
-          expect(toJref(/** @type NonNullable<any> */ (subject), `${testUri}/foo.jref`)).to.equal(`42`);
+          expect(toJson(subject)).to.equal(`42`);
         });
 
         test("full path", async () => {
@@ -141,7 +141,7 @@ describe("JSON Browser", () => {
           const hyperjump = new Hyperjump();
           const subject = await hyperjump.get(`${path}#/foo`);
 
-          expect(toJref(/** @type NonNullable<any> */ (subject), `${testUri}/foo.jref`)).to.equal(`42`);
+          expect(toJson(subject)).to.equal(`42`);
         });
 
         test("full URI with authority", async () => {
@@ -152,7 +152,7 @@ describe("JSON Browser", () => {
           const hyperjump = new Hyperjump();
           const subject = await hyperjump.get(`file://${path}#/foo`);
 
-          expect(toJref(/** @type NonNullable<any> */ (subject), `${testUri}/foo.jref`)).to.equal(`42`);
+          expect(toJson(subject)).to.equal(`42`);
         });
 
         test("full URI without authority", async () => {
@@ -163,7 +163,7 @@ describe("JSON Browser", () => {
           const hyperjump = new Hyperjump();
           const subject = await hyperjump.get(`file:${path}#/foo`);
 
-          expect(toJref(/** @type NonNullable<any> */ (subject), `${testUri}/foo.jref`)).to.equal(`42`);
+          expect(toJson(subject)).to.equal(`42`);
         });
       });
 
@@ -177,7 +177,7 @@ describe("JSON Browser", () => {
         const hyperjump = new Hyperjump();
         const subject = await hyperjump.get(`${path}#/foo`);
 
-        expect(toJref(/** @type NonNullable<any> */ (subject), `${testUri}/foo.jref`)).to.equal(`42`);
+        expect(toJson(subject)).to.equal(`42`);
       });
     });
   });

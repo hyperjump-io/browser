@@ -1,7 +1,7 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump, RetrievalError } from "../index.js";
-import { toJref } from "../../jref/index.js";
+import { toJson } from "../../json/jsonast-util.js";
 
 
 describe("JSON Browser", () => {
@@ -94,7 +94,7 @@ describe("JSON Browser", () => {
           const hyperjump = new Hyperjump();
           const subject = await hyperjump.get(`${uri}#/foo`);
 
-          expect(toJref(/** @type NonNullable<any> */ (subject), uri)).to.equal(`42`);
+          expect(toJson(subject)).to.equal(`42`);
         });
       });
 
@@ -117,7 +117,7 @@ describe("JSON Browser", () => {
           const hyperjump = new Hyperjump();
           const subject = await hyperjump.get(`${uri}#/foo`);
 
-          expect(toJref(/** @type NonNullable<any> */ (subject), location)).to.equal(`42`);
+          expect(toJson(subject)).to.equal(`42`);
         });
       });
 
@@ -163,7 +163,7 @@ describe("JSON Browser", () => {
         const hyperjump = new Hyperjump();
         const subject = await hyperjump.get(`${uri}#/foo`);
 
-        expect(toJref(/** @type NonNullable<any> */ (subject), location)).to.equal(`42`);
+        expect(toJson(subject)).to.equal(`42`);
       });
 
       // There isn't a way to make this pass in the browser do to limitations of the Fetch spec.
@@ -185,7 +185,7 @@ describe("JSON Browser", () => {
         const hyperjump = new Hyperjump();
         const subject = await hyperjump.get(uri);
 
-        expect(toJref(/** @type NonNullable<any> */ (subject), location)).to.equal(`42`);
+        expect(toJson(subject)).to.equal(`42`);
       });
 
       // There isn't a way to make this pass in the browser do to limitations of the Fetch spec.
@@ -210,7 +210,7 @@ describe("JSON Browser", () => {
         const hyperjump = new Hyperjump();
         const subject = await hyperjump.get(`${uri}#/bar`);
 
-        expect(toJref(/** @type NonNullable<any> */ (subject), location)).to.equal(`42`);
+        expect(toJson(subject)).to.equal(`42`);
       });
 
       [201, 202, 204, 205, 206, 300, 304].forEach((status) => {

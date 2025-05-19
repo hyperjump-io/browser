@@ -1,10 +1,10 @@
 import { Plugin } from "unified";
-import { JsonDocumentNode, JsonNode } from "./jsonast.d.ts";
+import { JsonDocumentNode, JsonJsonNode } from "./jsonast.d.ts";
 import { Reviver } from "./jsonast-util.d.ts";
 
 
 export type JsonParseOptions = {
-  reviver?: Reviver<JsonNode | undefined>;
+  reviver?: Reviver<JsonJsonNode>;
 };
 
 /**

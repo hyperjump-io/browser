@@ -1,6 +1,6 @@
 import { Plugin } from "unified";
 import { JrefDocumentNode } from "./jref-ast.d.ts";
-import { Replacer } from "./jref-util.js";
+import { Replacer } from "../json/jsonast-util.js";
 
 
 export type JrefStringifyOptions = {

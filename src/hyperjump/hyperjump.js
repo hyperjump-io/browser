@@ -5,13 +5,12 @@ import { HttpUriSchemePlugin } from "./uri-schemes/http-scheme-plugin.js";
 import { FileUriSchemePlugin } from "./uri-schemes/file-scheme-plugin.js";
 import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
 import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
-import { pointerGet, pointerStep } from "../jref/jref-util.js";
-import { jsonObjectHas, jsonObjectKeys, jsonValue } from "../json/jsonast-util.js";
+import { jsonObjectHas, jsonObjectKeys, jsonValue, pointerGet, pointerStep } from "../json/jsonast-util.js";
 import { mimeMatch } from "./utilities.js";
 
 /**
- * @import { JrefNode } from "../jref/jref-ast.js"
- * @import { JsonCompatible } from "../json/jsonast.js"
+ * @import { JrefJrefNode, JrefNode } from "../jref/jref-ast.js"
+ * @import { JsonNode } from "../json/jsonast.js"
  * @import { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.js"
  * @import { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.js"
  * @import * as API from "./hyperjump.d.ts"
@@ -22,7 +21,7 @@ import { mimeMatch } from "./utilities.js";
 // TODO: Support filters
 
 /**
- * @template {JrefNode} [T=JrefNode]
+ * @template {JrefNode<any>} [T=JrefJrefNode]
  * @implements API.Hyperjump<T>
  */
 export class Hyperjump {
@@ -72,7 +71,7 @@ export class Hyperjump {
     // TODO: How should cache work?
 
     const cachedDocument = this.#cache[id];
-    const embeddedDocument = options?.referencedFrom ? this.#cache[options.referencedFrom].embedded?.[id] : undefined;
+    const embeddedDocument = options.referencedFrom ? this.#cache[options.referencedFrom]?.embedded?.[id] : undefined;
     let document = cachedDocument ?? embeddedDocument;
 
     if (!document) {
@@ -97,12 +96,12 @@ export class Hyperjump {
     return await this.#followReferences(node);
   }
 
-  /** @type (node: T) => Promise<JsonCompatible<T>> */
+  /** @type (node: T) => Promise<JsonNode<T>> */
   async #followReferences(node) {
-    if (node?.type === "jref-reference") {
-      return this.get(node.value, { referencedFrom: node.documentUri });
+    if ("jrefType" in node) {
+      return this.get(node.href, { referencedFrom: node.documentUri });
     } else {
-      return /** @type JsonCompatible<T> */ (node);
+      return /** @type JsonNode<T> */ (node);
     }
   }
 

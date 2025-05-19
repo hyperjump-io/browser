@@ -2,12 +2,11 @@ import { describe, test, beforeEach, afterEach, expect, beforeAll, afterAll } fr
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { toAbsoluteIri } from "@hyperjump/uri";
 import { Hyperjump } from "./index.js";
-import { fromJref, toJref } from "../jref/index.js";
+import { fromJref } from "../jref/index.js";
+import { toJson } from "../json/jsonast-util.js";
 
 /**
  * @import { DocumentNode } from "./index.js"
- * @import { JrefNode } from "../jref/index.js"
- * @import { Reviver } from "../jref/index.js"
  */
 
 
@@ -20,23 +19,22 @@ describe("JSON Browser", () => {
     beforeAll(() => {
       /** @type (uri: string, text: string, embedded?: Record<string, DocumentNode>) => DocumentNode */
       const parseToDocument = (uri, text, embedded = {}) => {
-        /** @type Reviver<JrefNode | undefined> */
-        const embeddedReviver = (node, key) => {
-          if (key === "$embedded" && node.type === "json" && node.jsonType === "object") {
+        const rootNode = fromJref(text, uri, (node, key) => {
+          if (key === "$embedded" && node.jsonType === "object") {
             for (const propertyNode of node.children) {
               const embeddedUri = toAbsoluteIri(propertyNode.children[0].value);
-              const embeddedJref = toJref(propertyNode.children[1], uri);
+              const embeddedJref = toJson(propertyNode.children[1]);
               embedded[embeddedUri] = parseToDocument(embeddedUri, embeddedJref, embedded);
             }
             return;
           } else {
             return node;
           }
-        };
+        });
 
         return {
           type: "embedded-document",
-          children: [fromJref(text, uri, embeddedReviver)],
+          children: [rootNode],
           uri: uri,
           fragmentKind: "json-pointer",
           embedded: embedded
@@ -81,7 +79,7 @@ describe("JSON Browser", () => {
       const uri = `${testDomain}/main#/foo`;
       const subject = await hyperjump.get(uri);
 
-      expect(toJref(subject, uri)).to.equal(`42`);
+      expect(toJson(subject)).to.equal(`42`);
     });
 
     test("getting the main document from an embedded document", async () => {
@@ -100,7 +98,7 @@ describe("JSON Browser", () => {
       const uri = `${testDomain}/main#/foo`;
       const subject = await hyperjump.get(uri);
 
-      expect(toJref(subject, uri)).to.equal(`42`);
+      expect(toJson(subject)).to.equal(`42`);
     });
 
     test("getting an embedded document from an embedded document", async () => {
@@ -119,7 +117,7 @@ describe("JSON Browser", () => {
       const uri = `${testDomain}/main#/foo`;
       const subject = await hyperjump.get(uri);
 
-      expect(toJref(subject, uri)).to.equal(`42`);
+      expect(toJson(subject)).to.equal(`42`);
     });
 
     test("a cached document takes precence over an embedded document", async () => {
@@ -148,7 +146,7 @@ describe("JSON Browser", () => {
       const uri = `${testDomain}/main#/foo`;
       const subject = await hyperjump.get(uri);
 
-      expect(toJref(subject, uri)).to.equal(`42`);
+      expect(toJson(subject)).to.equal(`42`);
     });
   });
 });

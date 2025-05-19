@@ -1,10 +1,11 @@
 import { describe, test, expect } from "vitest";
-import { fromJref, toJref } from "./jref-util.js";
+import { fromJref } from "./jref-util.js";
 import { resolveIri } from "@hyperjump/uri";
+import { toJson } from "../json/jsonast-util.js";
 
 /**
- * @import { JrefNode } from "./jref-ast.d.ts"
- * @import { Reviver } from "./jref-util.d.ts"
+ * @import { JrefJrefNode } from "./jref-ast.d.ts"
+ * @import { JsonNode } from "../json/jsonast.d.ts"
  */
 
 
@@ -16,7 +17,7 @@ describe("JRef", () => {
       test("null", () => {
         const subject = fromJref(`null`, testContext);
         expect(subject).to.eql({
-          type: "json",
+          type: "jref",
           jsonType: "null",
           value: null,
           position: {
@@ -29,7 +30,7 @@ describe("JRef", () => {
       test("true", () => {
         const subject = fromJref(`true`, testContext);
         expect(subject).to.eql({
-          type: "json",
+          type: "jref",
           jsonType: "boolean",
           value: true,
           position: {
@@ -42,7 +43,7 @@ describe("JRef", () => {
       test("false", () => {
         const subject = fromJref(`false`, testContext);
         expect(subject).to.eql({
-          type: "json",
+          type: "jref",
           jsonType: "boolean",
           value: false,
           position: {
@@ -55,7 +56,7 @@ describe("JRef", () => {
       test("integers", () => {
         const subject = fromJref(`1`, testContext);
         expect(subject).to.eql({
-          type: "json",
+          type: "jref",
           jsonType: "number",
           value: 1,
           position: {
@@ -68,7 +69,7 @@ describe("JRef", () => {
       test("real numbers", () => {
         const subject = fromJref(`1.34`, testContext);
         expect(subject).to.eql({
-          type: "json",
+          type: "jref",
           jsonType: "number",
           value: 1.34,
           position: {
@@ -81,7 +82,7 @@ describe("JRef", () => {
       test("negative numbers", () => {
         const subject = fromJref(`-1.34`, testContext);
         expect(subject).to.eql({
-          type: "json",
+          type: "jref",
           jsonType: "number",
           value: -1.34,
           position: {
@@ -94,7 +95,7 @@ describe("JRef", () => {
       test("exponential numbers", () => {
         const subject = fromJref(`-1e34`, testContext);
         expect(subject).to.eql({
-          type: "json",
+          type: "jref",
           jsonType: "number",
           value: -1e34,
           position: {
@@ -107,8 +108,35 @@ describe("JRef", () => {
       test("reference", () => {
         const subject = fromJref(`{ "$ref": "./foo" }`, testContext);
         expect(subject).to.eql({
-          type: "jref-reference",
-          value: resolveIri("./foo", testContext),
+          type: "jref",
+          jrefType: "jref-reference",
+          jsonType: "object",
+          children: [
+            {
+              type: "json-property",
+              children: [
+                {
+                  type: "json-property-name",
+                  jsonType: "string",
+                  value: "$ref",
+                  position: {
+                    start: { line: 1, column: 3, offset: 2 },
+                    end: { line: 1, column: 9, offset: 8 }
+                  }
+                },
+                {
+                  type: "jref",
+                  jsonType: "string",
+                  value: "./foo",
+                  position: {
+                    start: { line: 1, column: 11, offset: 10 },
+                    end: { line: 1, column: 18, offset: 17 }
+                  }
+                }
+              ]
+            }
+          ],
+          href: resolveIri("./foo", testContext),
           documentUri: testContext,
           position: {
             start: { line: 1, column: 1, offset: 0 },
@@ -122,7 +150,7 @@ describe("JRef", () => {
       test("empty", () => {
         const subject = fromJref(`[]`, testContext);
         expect(subject).to.eql({
-          type: "json",
+          type: "jref",
           jsonType: "array",
           children: [],
           position: {
@@ -137,11 +165,11 @@ describe("JRef", () => {
   "foo"
 ]`, testContext);
         expect(subject).to.eql({
-          type: "json",
+          type: "jref",
           jsonType: "array",
           children: [
             {
-              type: "json",
+              type: "jref",
               jsonType: "string",
               value: "foo",
               position: {
@@ -162,12 +190,39 @@ describe("JRef", () => {
   { "$ref": "./foo" }
 ]`, testContext);
         expect(subject).to.eql({
-          type: "json",
+          type: "jref",
           jsonType: "array",
           children: [
             {
-              type: "jref-reference",
-              value: resolveIri("./foo", testContext),
+              type: "jref",
+              jrefType: "jref-reference",
+              jsonType: "object",
+              children: [
+                {
+                  type: "json-property",
+                  children: [
+                    {
+                      type: "json-property-name",
+                      jsonType: "string",
+                      value: "$ref",
+                      position: {
+                        start: { line: 2, column: 5, offset: 6 },
+                        end: { line: 2, column: 11, offset: 12 }
+                      }
+                    },
+                    {
+                      type: "jref",
+                      jsonType: "string",
+                      value: "./foo",
+                      position: {
+                        start: { line: 2, column: 13, offset: 14 },
+                        end: { line: 2, column: 20, offset: 21 }
+                      }
+                    }
+                  ]
+                }
+              ],
+              href: resolveIri("./foo", testContext),
               documentUri: testContext,
               position: {
                 start: { line: 2, column: 3, offset: 4 },
@@ -187,7 +242,7 @@ describe("JRef", () => {
       test("empty", () => {
         const subject = fromJref(`{}`, testContext);
         expect(subject).to.eql({
-          type: "json",
+          type: "jref",
           jsonType: "object",
           children: [],
           position: {
@@ -202,7 +257,7 @@ describe("JRef", () => {
   "foo": 42
 }`, testContext);
         expect(subject).to.eql({
-          type: "json",
+          type: "jref",
           jsonType: "object",
           children: [
             {
@@ -210,6 +265,7 @@ describe("JRef", () => {
               children: [
                 {
                   type: "json-property-name",
+                  jsonType: "string",
                   value: "foo",
                   position: {
                     start: { line: 2, column: 3, offset: 4 },
@@ -217,7 +273,7 @@ describe("JRef", () => {
                   }
                 },
                 {
-                  type: "json",
+                  type: "jref",
                   jsonType: "number",
                   value: 42,
                   position: {
@@ -240,7 +296,7 @@ describe("JRef", () => {
   "foo": { "$ref": "./foo" }
 }`, testContext);
         expect(subject).to.eql({
-          type: "json",
+          type: "jref",
           jsonType: "object",
           children: [
             {
@@ -248,6 +304,7 @@ describe("JRef", () => {
               children: [
                 {
                   type: "json-property-name",
+                  jsonType: "string",
                   value: "foo",
                   position: {
                     start: { line: 2, column: 3, offset: 4 },
@@ -255,8 +312,35 @@ describe("JRef", () => {
                   }
                 },
                 {
-                  type: "jref-reference",
-                  value: resolveIri("./foo", testContext),
+                  type: "jref",
+                  jrefType: "jref-reference",
+                  jsonType: "object",
+                  children: [
+                    {
+                      type: "json-property",
+                      children: [
+                        {
+                          type: "json-property-name",
+                          jsonType: "string",
+                          value: "$ref",
+                          position: {
+                            start: { line: 2, column: 12, offset: 13 },
+                            end: { line: 2, column: 18, offset: 19 }
+                          }
+                        },
+                        {
+                          type: "jref",
+                          jsonType: "string",
+                          value: "./foo",
+                          position: {
+                            start: { line: 2, column: 20, offset: 21 },
+                            end: { line: 2, column: 27, offset: 28 }
+                          }
+                        }
+                      ]
+                    }
+                  ],
+                  href: resolveIri("./foo", testContext),
                   documentUri: testContext,
                   position: {
                     start: { line: 2, column: 10, offset: 11 },
@@ -276,9 +360,8 @@ describe("JRef", () => {
 
     describe("reviver", () => {
       test("convert properties that start with 'i' to integers", () => {
-        /** @type Reviver<JrefNode> */
-        const reviver = (node, key) => {
-          if (key?.startsWith("i") && node.type === "json" && node.jsonType === "string") {
+        const subject = fromJref(`{ "foo": 42, "iBar": "42", "baz": { "$ref": "./foo" } }`, testContext, (node, key) => {
+          if (key?.startsWith("i") && node.jsonType === "string") {
             return {
               ...node,
               jsonType: "number",
@@ -287,9 +370,8 @@ describe("JRef", () => {
           } else {
             return node;
           }
-        };
-        const subject = fromJref(`{ "foo": 42, "iBar": "42", "baz": { "$ref": "./foo" } }`, testContext, reviver);
-        expect(toJref(subject, testContext)).to.equal(`{"foo":42,"iBar":42,"baz":{"$ref":"foo"}}`);
+        });
+        expect(toJson(/** @type JsonNode<JrefJrefNode> */ (subject))).to.equal(`{"foo":42,"iBar":42,"baz":{"$ref":"./foo"}}`);
       });
     });
   });
@@ -297,128 +379,165 @@ describe("JRef", () => {
   describe("stringify", () => {
     describe("scalars", () => {
       test("null", () => {
-        /** @type JrefNode */
+        /** @type JrefJrefNode */
         const node = {
-          type: "json",
+          type: "jref",
           jsonType: "null",
           value: null
         };
-        const subject = toJref(node, testContext);
+        const subject = toJson(node);
         expect(subject).to.equal(`null`);
       });
 
       test("boolean", () => {
-        /** @type JrefNode */
+        /** @type JrefJrefNode */
         const node = {
-          type: "json",
+          type: "jref",
           jsonType: "boolean",
           value: true
         };
-        const subject = toJref(node, testContext);
+        const subject = toJson(node);
         expect(subject).to.equal(`true`);
       });
 
       test("number", () => {
-        /** @type JrefNode */
+        /** @type JrefJrefNode */
         const node = {
-          type: "json",
+          type: "jref",
           jsonType: "number",
           value: 42
         };
-        const subject = toJref(node, testContext);
+        const subject = toJson(node);
         expect(subject).to.equal(`42`);
       });
 
       test("reference", () => {
-        /** @type JrefNode */
+        /** @type JrefJrefNode */
         const node = {
-          type: "jref-reference",
-          value: resolveIri("./foo", testContext),
+          type: "jref",
+          jrefType: "jref-reference",
+          jsonType: "object",
+          children: [
+            {
+              type: "json-property",
+              children: [
+                {
+                  type: "json-property-name",
+                  jsonType: "string",
+                  value: "$ref"
+                },
+                {
+                  type: "jref",
+                  jsonType: "string",
+                  value: "./foo"
+                }
+              ]
+            }
+          ],
+          href: resolveIri("./foo", testContext),
           documentUri: testContext
         };
-        const subject = toJref(node, testContext);
-        expect(subject).to.equal(`{"$ref":"foo"}`);
+        const subject = toJson(node);
+        expect(subject).to.equal(`{"$ref":"./foo"}`);
       });
     });
 
     describe("array", () => {
       test("empty", () => {
-        /** @type JrefNode */
+        /** @type JrefJrefNode */
         const node = {
-          type: "json",
+          type: "jref",
           jsonType: "array",
           children: []
         };
-        const subject = toJref(node, testContext);
+        const subject = toJson(node);
         expect(subject).to.eql(`[]`);
       });
 
       test("non-empty", () => {
-        /** @type JrefNode */
+        /** @type JrefJrefNode */
         const node = {
-          type: "json",
+          type: "jref",
           jsonType: "array",
           children: [
             {
-              type: "json",
+              type: "jref",
               jsonType: "string",
               value: "foo"
             },
             {
-              type: "json",
+              type: "jref",
               jsonType: "number",
               value: 42
             }
           ]
         };
-        const subject = toJref(node, testContext);
+        const subject = toJson(node);
         expect(subject).to.eql(`["foo",42]`);
       });
 
       test("reference", () => {
-        /** @type JrefNode */
+        /** @type JrefJrefNode */
         const node = {
-          type: "json",
+          type: "jref",
           jsonType: "array",
           children: [
             {
-              type: "json",
+              type: "jref",
               jsonType: "string",
               value: "foo"
             },
             {
-              type: "jref-reference",
-              value: resolveIri("./foo", testContext),
+              type: "jref",
+              jsonType: "object",
+              children: [
+                {
+                  type: "json-property",
+                  children: [
+                    {
+                      type: "json-property-name",
+                      jsonType: "string",
+                      value: "$ref"
+                    },
+                    {
+                      type: "jref",
+                      jsonType: "string",
+                      value: "./foo"
+                    }
+                  ]
+                }
+              ],
+              href: resolveIri("./foo", testContext),
               documentUri: testContext
             },
             {
-              type: "json",
+              type: "jref",
               jsonType: "number",
               value: 42
             }
           ]
         };
-        const subject = toJref(node, testContext);
-        expect(subject).to.be.equal(`["foo",{"$ref":"foo"},42]`);
+        const subject = toJson(node);
+        expect(subject).to.be.equal(`["foo",{"$ref":"./foo"},42]`);
       });
     });
 
     describe("object", () => {
       test("empty", () => {
-        /** @type JrefNode */
+        /** @type JrefJrefNode */
         const node = {
-          type: "json",
+          type: "jref",
           jsonType: "object",
           children: []
         };
-        const subject = toJref(node, testContext);
+        const subject = toJson(node);
         expect(subject).to.eql(`{}`);
       });
 
       test("non-empty", () => {
-        /** @type JrefNode */
+        /** @type JrefJrefNode */
         const node = {
-          type: "json",
+          type: "jref",
           jsonType: "object",
           children: [
             {
@@ -426,10 +545,11 @@ describe("JRef", () => {
               children: [
                 {
                   type: "json-property-name",
+                  jsonType: "string",
                   value: "foo"
                 },
                 {
-                  type: "json",
+                  type: "jref",
                   jsonType: "number",
                   value: 42
                 }
@@ -437,14 +557,14 @@ describe("JRef", () => {
             }
           ]
         };
-        const subject = toJref(node, testContext);
+        const subject = toJson(node);
         expect(subject).to.eql(`{"foo":42}`);
       });
 
       test("reference", () => {
-        /** @type JrefNode */
+        /** @type JrefJrefNode */
         const node = {
-          type: "json",
+          type: "jref",
           jsonType: "object",
           children: [
             {
@@ -452,10 +572,11 @@ describe("JRef", () => {
               children: [
                 {
                   type: "json-property-name",
+                  jsonType: "string",
                   value: "foo"
                 },
                 {
-                  type: "json",
+                  type: "jref",
                   jsonType: "number",
                   value: 42
                 }
@@ -466,27 +587,46 @@ describe("JRef", () => {
               children: [
                 {
                   type: "json-property-name",
+                  jsonType: "string",
                   value: "bar"
                 },
                 {
-                  type: "jref-reference",
-                  value: resolveIri("./foo", testContext),
+                  type: "jref",
+                  jsonType: "object",
+                  children: [
+                    {
+                      type: "json-property",
+                      children: [
+                        {
+                          type: "json-property-name",
+                          jsonType: "string",
+                          value: "$ref"
+                        },
+                        {
+                          type: "jref",
+                          jsonType: "string",
+                          value: "./foo"
+                        }
+                      ]
+                    }
+                  ],
+                  href: resolveIri("./foo", testContext),
                   documentUri: testContext
                 }
               ]
             }
           ]
         };
-        const subject = toJref(node, testContext);
-        expect(subject).to.equal(`{"foo":42,"bar":{"$ref":"foo"}}`);
+        const subject = toJson(node);
+        expect(subject).to.equal(`{"foo":42,"bar":{"$ref":"./foo"}}`);
       });
     });
 
     describe("replacer", () => {
       test("convert properties that start with 'i' to strings", () => {
-        /** @type JrefNode */
+        /** @type JrefJrefNode */
         const node = {
-          type: "json",
+          type: "jref",
           jsonType: "object",
           children: [
             {
@@ -494,10 +634,11 @@ describe("JRef", () => {
               children: [
                 {
                   type: "json-property-name",
+                  jsonType: "string",
                   value: "foo"
                 },
                 {
-                  type: "json",
+                  type: "jref",
                   jsonType: "number",
                   value: 42
                 }
@@ -508,10 +649,11 @@ describe("JRef", () => {
               children: [
                 {
                   type: "json-property-name",
+                  jsonType: "string",
                   value: "iBar"
                 },
                 {
-                  type: "json",
+                  type: "jref",
                   jsonType: "number",
                   value: 42
                 }
@@ -522,19 +664,38 @@ describe("JRef", () => {
               children: [
                 {
                   type: "json-property-name",
+                  jsonType: "string",
                   value: "baz"
                 },
                 {
-                  type: "jref-reference",
-                  value: resolveIri("./foo", testContext),
+                  type: "jref",
+                  jsonType: "object",
+                  children: [
+                    {
+                      type: "json-property",
+                      children: [
+                        {
+                          type: "json-property-name",
+                          jsonType: "string",
+                          value: "$ref"
+                        },
+                        {
+                          type: "jref",
+                          jsonType: "string",
+                          value: "./foo"
+                        }
+                      ]
+                    }
+                  ],
+                  href: resolveIri("./foo", testContext),
                   documentUri: testContext
                 }
               ]
             }
           ]
         };
-        const subject = toJref(node, testContext, (node, key) => {
-          if (key?.startsWith("i") && node.type === "json" && node.jsonType === "number") {
+        const subject = toJson(node, (node, key) => {
+          if (key?.startsWith("i") && node.jsonType === "number") {
             return {
               ...node,
               jsonType: "string",
@@ -544,15 +705,15 @@ describe("JRef", () => {
             return node;
           }
         });
-        expect(subject).to.equal(`{"foo":42,"iBar":"42","baz":{"$ref":"foo"}}`);
+        expect(subject).to.equal(`{"foo":42,"iBar":"42","baz":{"$ref":"./foo"}}`);
       });
     });
 
     describe("space", () => {
       test("pretty print", () => {
-        /** @type JrefNode */
+        /** @type JrefJrefNode */
         const node = {
-          type: "json",
+          type: "jref",
           jsonType: "object",
           children: [
             {
@@ -560,10 +721,11 @@ describe("JRef", () => {
               children: [
                 {
                   type: "json-property-name",
+                  jsonType: "string",
                   value: "foo"
                 },
                 {
-                  type: "json",
+                  type: "jref",
                   jsonType: "number",
                   value: 42
                 }
@@ -574,22 +736,41 @@ describe("JRef", () => {
               children: [
                 {
                   type: "json-property-name",
+                  jsonType: "string",
                   value: "bar"
                 },
                 {
-                  type: "jref-reference",
-                  value: resolveIri("./foo", testContext),
+                  type: "jref",
+                  jsonType: "object",
+                  children: [
+                    {
+                      type: "json-property",
+                      children: [
+                        {
+                          type: "json-property-name",
+                          jsonType: "string",
+                          value: "$ref"
+                        },
+                        {
+                          type: "jref",
+                          jsonType: "string",
+                          value: "./foo"
+                        }
+                      ]
+                    }
+                  ],
+                  href: resolveIri("./foo", testContext),
                   documentUri: testContext
                 }
               ]
             }
           ]
         };
-        const subject = toJref(node, testContext, undefined, "  ");
+        const subject = toJson(node, undefined, "  ");
         expect(subject).to.equal(`{
   "foo": 42,
   "bar": {
-    "$ref": "foo"
+    "$ref": "./foo"
   }
 }`);
       });
