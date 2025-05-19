@@ -20,14 +20,14 @@ export type Reviver<T = JsonNode<any> | undefined> = <A>(node: JsonNode<JsonNode
  * @throws SynataxError
  */
 export const fromJson: {
-  (json: string): JsonJsonNode;
-  <R extends Reviver | undefined>(json: string, reviver: R): R extends undefined ? JsonJsonNode : ReturnType<R>;
+  (json: string, location?: string): JsonJsonNode;
+  <R extends Reviver | undefined>(json: string, location: string | undefined, reviver: R): R extends undefined ? JsonJsonNode : ReturnType<R>;
 };
 
 /**
  * Parse a JSON compatible JavaScript value into a JSON AST.
  */
-export const fromJs: (js: Json) => JsonJsonNode;
+export const fromJs: (js: Json, location?: string) => JsonJsonNode;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Replacer = <A>(node: JsonNode<A>, key?: string) => JsonNode<any> | undefined;

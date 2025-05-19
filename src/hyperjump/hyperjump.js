@@ -99,7 +99,7 @@ export class Hyperjump {
   /** @type (node: T) => Promise<JsonNode<T>> */
   async #followReferences(node) {
     if ("jrefType" in node) {
-      return this.get(node.href, { referencedFrom: node.documentUri });
+      return this.get(node.href, { referencedFrom: toAbsoluteIri(node.location) });
     } else {
       return /** @type JsonNode<T> */ (node);
     }

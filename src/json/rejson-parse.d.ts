@@ -4,6 +4,7 @@ import { Reviver } from "./jsonast-util.d.ts";
 
 
 export type JsonParseOptions = {
+  location?: string;
   reviver?: Reviver<JsonJsonNode>;
 };
 

@@ -18,7 +18,7 @@ export function rejsonParse(options) {
         children: []
       };
 
-      const jsonNode = fromJson(document, options?.reviver);
+      const jsonNode = fromJson(document, options?.location, options?.reviver);
       if (jsonNode) {
         jsonDocumentNode.children.push(jsonNode);
       }

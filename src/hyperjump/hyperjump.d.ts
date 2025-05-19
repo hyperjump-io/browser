@@ -1,5 +1,5 @@
 import type { JsonNode } from "../json/jsonast.d.ts";
-import type { JrefNode } from "../jref/jref-ast.d.ts";
+import type { JrefNode, JrefJrefNode } from "../jref/jref-ast.d.ts";
 import type { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.d.ts";
 import type { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.d.ts";
 import type { jsonObjectHas, jsonObjectKeys, jsonValue } from "../json/jsonast-util.js";
@@ -11,7 +11,8 @@ export type GetOptions = {
   referencedFrom?: string;
 };
 
-export class Hyperjump<T extends JrefNode = JrefNode> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export class Hyperjump<T extends JrefNode<any> = JrefJrefNode> {
   constructor(config?: HyperjumpConfig);
 
   /**
@@ -29,7 +30,7 @@ export class Hyperjump<T extends JrefNode = JrefNode> {
    * @throws {@link RetrievalError}
    * @throws {@link json.JsonPointerError}
    */
-  get: (uri: string, options?: GetOptions) => Promise<JsonNode<T>>;
+  get: (uri: string, options?: GetOptions) => Promise<T & JsonNode<T>>;
 
   /**
    * Add support for a
@@ -93,13 +94,13 @@ export class Hyperjump<T extends JrefNode = JrefNode> {
    * This is like indexing into an object or array. It will follow any
    * references it encounters so it always returns a JSON compatible value.
    */
-  step: (key: string, node: JsonNode<T>) => Promise<JsonNode<T>>;
+  step: (key: string, node: JsonNode<T>) => Promise<T & JsonNode<T>>;
 
   /**
    * Iterate over an array node. It will follow any references it encounters so
    * it always yields JSON compatible values.
    */
-  iter: (node: JsonNode<T>) => AsyncGenerator<JsonNode<T>, void, unknown>;
+  iter: (node: JsonNode<T>) => AsyncGenerator<T & JsonNode<T>, void, unknown>;
 
   keys: typeof jsonObjectKeys;
 
@@ -107,13 +108,13 @@ export class Hyperjump<T extends JrefNode = JrefNode> {
    * Iterate over the values of an object. It will follow any references it
    * encounters so it always yields JSON compatible values.
    */
-  values: (node: JsonNode<T>) => AsyncGenerator<JsonNode<T>, void, unknown>;
+  values: (node: JsonNode<T>) => AsyncGenerator<T & JsonNode<T>, void, unknown>;
 
   /**
    * Iterate over key/value pairs of an object. It will follow any references it
    * encounters so it always yields JSON compatible values.
    */
-  entries: (node: JsonNode<T>) => AsyncGenerator<[string, JsonNode<T>], void, unknown>;
+  entries: (node: JsonNode<T>) => AsyncGenerator<[string, T & JsonNode<T>], void, unknown>;
 }
 
 export class RetrievalError extends Error {

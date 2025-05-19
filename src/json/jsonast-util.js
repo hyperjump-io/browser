@@ -1,3 +1,4 @@
+import * as JsonPointer from "@hyperjump/json-pointer";
 import { JsonLexer } from "./json-lexer.js";
 
 /**
@@ -38,19 +39,19 @@ const defaultReviver = (value) => value;
  *
  * @type API.fromJson
  */
-export const fromJson = (json, reviver = defaultReviver) => {
+export const fromJson = (json, location = "", reviver = defaultReviver) => {
   const lexer = new JsonLexer(json);
 
   const token = lexer.nextToken();
-  const jsonValue = parseValue(token, lexer, undefined, reviver);
+  const jsonValue = parseValue(token, lexer, undefined, reviver, `${location}#`);
 
   lexer.done();
 
   return jsonValue;
 };
 
-/** @type (token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: API.Reviver) => JsonNode<any> | undefined */
-const parseValue = (token, lexer, key, reviver) => {
+/** @type (token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: API.Reviver, location: string) => JsonNode<any> | undefined */
+const parseValue = (token, lexer, key, reviver, location) => {
   let node;
 
   switch (token.type) {
@@ -58,13 +59,13 @@ const parseValue = (token, lexer, key, reviver) => {
     case "boolean":
     case "number":
     case "string":
-      node = parseScalar(token);
+      node = parseScalar(token, location);
       break;
     case "[":
-      node = parseArray(token, lexer, reviver);
+      node = parseArray(token, lexer, reviver, location);
       break;
     case "{":
-      node = parseObject(token, lexer, reviver);
+      node = parseObject(token, lexer, reviver, location);
       break;
     default:
       throw lexer.syntaxError("Expected a JSON value", token);
@@ -73,18 +74,19 @@ const parseValue = (token, lexer, key, reviver) => {
   return reviver(node, key);
 };
 
-/** @type (token: JsonToken<"null" | "boolean" | "number" | "string">) => JsonNullNode | JsonBooleanNode | JsonNumberNode | JsonStringNode */
-const parseScalar = (token) => {
+/** @type (token: JsonToken<"null" | "boolean" | "number" | "string">, location: string) => JsonNullNode | JsonBooleanNode | JsonNumberNode | JsonStringNode */
+const parseScalar = (token, location) => {
   return {
     type: "json",
     jsonType: token.type,
     value: JSON.parse(token.value), // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+    location: location,
     position: tokenPosition(token)
   };
 };
 
-/** @type (token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: API.Reviver) => JsonPropertyNode<JsonNode<any>> | undefined */
-const parseProperty = (token, lexer, _key, reviver) => {
+/** @type (token: JsonToken, lexer: JsonLexer, key: string, reviver: API.Reviver, location: string) => JsonPropertyNode<JsonNode<any>> | undefined */
+const parseProperty = (token, lexer, _key, reviver, location) => {
   if (token.type !== "string") {
     throw lexer.syntaxError("Expected a propertry", token);
   }
@@ -101,7 +103,7 @@ const parseProperty = (token, lexer, _key, reviver) => {
     throw lexer.syntaxError("Expected :", token);
   }
 
-  const valueNode = parseValue(lexer.nextToken(), lexer, keyNode.value, reviver);
+  const valueNode = parseValue(lexer.nextToken(), lexer, keyNode.value, reviver, JsonPointer.append(keyNode.value, location));
   if (!valueNode) {
     return;
   }
@@ -122,17 +124,19 @@ const parseProperty = (token, lexer, _key, reviver) => {
  *   parseChild: (
  *     token: JsonToken,
  *     lexer: JsonLexer,
- *     key: string | undefined,
- *     reviver: API.Reviver
+ *     key: string,
+ *     reviver: API.Reviver,
+ *     location: string
  *   ) => B | undefined,
  *   endToken: string
  * ) => (
  *   lexer: JsonLexer,
  *   node: A,
- *   reviver: API.Reviver
+ *   reviver: API.Reviver,
+ *   location: string
  * ) => A
  */
-const parseCommaSeparated = (parseChild, endToken) => (lexer, node, reviver) => {
+const parseCommaSeparated = (parseChild, endToken) => (lexer, node, reviver, location) => {
   for (let index = 0; true; index++) {
     let token = lexer.nextToken();
 
@@ -149,37 +153,44 @@ const parseCommaSeparated = (parseChild, endToken) => (lexer, node, reviver) => 
       }
     }
 
-    const childNode = parseChild(token, lexer, `${index}`, reviver);
+    const childNode = parseChild(token, lexer, `${index}`, reviver, location);
     if (childNode) {
       node.children.push(childNode);
     }
   }
 };
 
-/** @type (openToken: JsonToken, lexer: JsonLexer, reviver: API.Reviver) => JsonArrayNode<any> */
-const parseArray = (openToken, lexer, reviver) => {
+/** @type (openToken: JsonToken, lexer: JsonLexer, reviver: API.Reviver, location: string) => JsonArrayNode<any> */
+const parseArray = (openToken, lexer, reviver, location) => {
   return parseItems(lexer, {
     type: "json",
     jsonType: "array",
     children: [],
+    location: location,
     position: tokenPosition(openToken)
-  }, reviver);
+  }, reviver, location);
 };
 
-/** @type (lexer: JsonLexer, node: JsonArrayNode<any>, reviver: API.Reviver) => JsonArrayNode<any> */
-const parseItems = parseCommaSeparated(parseValue, "]");
+/** @type (token: JsonToken, lexer: JsonLexer, key: string, reviver: API.Reviver, location: string) => JsonNode<any> | undefined */
+const parseItem = (token, lexer, key, reviver, location) => {
+  return parseValue(token, lexer, key, reviver, JsonPointer.append(key, location));
+};
 
-/** @type (openToken: JsonToken, lexer: JsonLexer, reviver: API.Reviver) => JsonObjectNode<any> */
-const parseObject = (openToken, lexer, reviver) => {
+/** @type (lexer: JsonLexer, node: JsonArrayNode<any>, reviver: API.Reviver, location: string) => JsonArrayNode<any> */
+const parseItems = parseCommaSeparated(parseItem, "]");
+
+/** @type (openToken: JsonToken, lexer: JsonLexer, reviver: API.Reviver, location: string) => JsonObjectNode<any> */
+const parseObject = (openToken, lexer, reviver, location) => {
   return parseProperties(lexer, {
     type: "json",
     jsonType: "object",
     children: [],
+    location: location,
     position: tokenPosition(openToken)
-  }, reviver);
+  }, reviver, location);
 };
 
-/** @type (lexer: JsonLexer, node: JsonObjectNode<any>, reviver: API.Reviver) => JsonObjectNode<any> */
+/** @type (lexer: JsonLexer, node: JsonObjectNode<any>, reviver: API.Reviver, location: string) => JsonObjectNode<any> */
 const parseProperties = parseCommaSeparated(parseProperty, "}");
 
 /** @type (startToken: JsonToken, endToken?: JsonToken) => Position */
@@ -201,27 +212,30 @@ const tokenPosition = (startToken, endToken) => {
 };
 
 /** @type API.fromJs */
-export const fromJs = (js) => {
+export const fromJs = (js, location = "#") => {
   switch (typeof js) {
     case "boolean":
       return {
         type: "json",
         jsonType: "boolean",
-        value: js
+        value: js,
+        location: location
       };
 
     case "number":
       return {
         type: "json",
         jsonType: "number",
-        value: js
+        value: js,
+        location: location
       };
 
     case "string":
       return {
         type: "json",
         jsonType: "string",
-        value: js
+        value: js,
+        location: location
       };
 
     case "object":
@@ -229,7 +243,8 @@ export const fromJs = (js) => {
         return {
           type: "json",
           jsonType: "null",
-          value: js
+          value: js,
+          location: location
         };
       }
 
@@ -237,7 +252,8 @@ export const fromJs = (js) => {
         return {
           type: "json",
           jsonType: "array",
-          children: js.map(fromJs)
+          children: js.map((item, index) => fromJs(item, JsonPointer.append(`${index}`, location))),
+          location: location
         };
       }
 
@@ -253,7 +269,7 @@ export const fromJs = (js) => {
                 jsonType: "string",
                 value: key
               },
-              fromJs(js[key])
+              fromJs(js[key], JsonPointer.append(key, location))
             ]
           });
         }
@@ -261,7 +277,8 @@ export const fromJs = (js) => {
         return {
           type: "json",
           jsonType: "object",
-          children: properties
+          children: properties,
+          location: location
         };
       }
 

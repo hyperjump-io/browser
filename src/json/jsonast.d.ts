@@ -5,6 +5,7 @@ export type JsonNullNode = {
   type: string;
   jsonType: "null";
   value: null;
+  location: string;
   data?: Data;
   position?: Position;
 };
@@ -13,6 +14,7 @@ export type JsonBooleanNode = {
   type: string;
   jsonType: "boolean";
   value: boolean;
+  location: string;
   data?: Data;
   position?: Position;
 };
@@ -21,6 +23,7 @@ export type JsonNumberNode = {
   type: string;
   jsonType: "number";
   value: number;
+  location: string;
   data?: Data;
   position?: Position;
 };
@@ -29,6 +32,7 @@ export type JsonStringNode = {
   type: string;
   jsonType: "string";
   value: string;
+  location: string;
   data?: Data;
   position?: Position;
 };
@@ -37,6 +41,7 @@ export type JsonArrayNode<T = JsonJsonNode> = {
   type: string;
   jsonType: "array";
   children: T[];
+  location: string;
   data?: Data;
   position?: Position;
 };
@@ -60,6 +65,7 @@ export type JsonObjectNode<T = JsonJsonNode> = {
   type: string;
   jsonType: "object";
   children: JsonPropertyNode<T>[];
+  location: string;
   data?: Data;
   position?: Position;
 };

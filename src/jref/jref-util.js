@@ -37,14 +37,13 @@ const defaultReviver = (value) => value;
  * @type API.fromJref
  */
 export const fromJref = (jref, uri, reviver = defaultReviver) => {
-  return fromJson(jref, (node, key) => {
+  return fromJson(jref, uri, (node, key) => {
     const jrefNode = /** @type JsonNode<JrefJrefNode> */ (node);
 
     const returned = { uri: "" };
     if (isReference(jrefNode, returned)) {
       jrefNode.jrefType = "jref-reference";
       jrefNode.href = resolveIri(returned.uri, uri);
-      jrefNode.documentUri = uri;
     }
 
     node.type = "jref";

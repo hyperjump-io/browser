@@ -13,7 +13,6 @@ import {
 export interface JrefReferenceNode {
   jrefType: "jref-reference";
   href: string;
-  documentUri: string;
 };
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
