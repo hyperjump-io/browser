@@ -1,17 +1,14 @@
-import type { JrefNode } from "../../jref/jrefast.d.ts";
-
-
-export type DocumentNode = {
+export type DocumentNode<A> = {
   type: string;
-  children: JrefNode[];
+  children: A[];
   uri?: string;
-  embedded?: Record<string, DocumentNode>;
+  embedded?: Record<string, DocumentNode<A>>;
   anchors?: Record<string, string>;
   fragmentKind?: string;
 };
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
-export interface MediaTypePlugin<T extends DocumentNode> {
+export interface MediaTypePlugin<T extends DocumentNode<unknown>> {
   mediaType: string;
   /**
    * Extensions start with `.` (Example: `.jref`).

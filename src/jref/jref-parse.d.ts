@@ -4,7 +4,7 @@ import { Reviver } from "./jref-util.js";
 
 
 export type JrefParseOptions = {
-  reviver?: Reviver<JrefJrefNode>;
+  reviver?: Reviver<JrefJrefNode, JrefJrefNode>;
 };
 
 /**

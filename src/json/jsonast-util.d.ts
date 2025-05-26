@@ -1,4 +1,4 @@
-import {
+import type {
   Json,
   JsonArrayNode,
   JsonBooleanNode,
@@ -10,8 +10,16 @@ import {
   JsonStringNode
 } from "./jsonast.d.ts";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Reviver<T = JsonNode<any> | undefined> = <A>(node: JsonNode<JsonNode<A>>, key?: string) => T;
+export type ParsedJsonNode<A> = { type: "json" } & (
+  JsonObjectNode<JsonNode<A>>
+  | JsonArrayNode<JsonNode<A>>
+  | JsonStringNode
+  | JsonNumberNode
+  | JsonBooleanNode
+  | JsonNullNode
+);
+
+export type Reviver<A, R extends JsonNode<A> | undefined> = (node: ParsedJsonNode<A>, key?: string) => R;
 
 /**
  * Parse a JSON string into a JSON AST. Includes a reviver option similar to
@@ -19,37 +27,33 @@ export type Reviver<T = JsonNode<any> | undefined> = <A>(node: JsonNode<JsonNode
  *
  * @throws SynataxError
  */
-export const fromJson: {
-  (json: string, location?: string): JsonJsonNode;
-  <R extends Reviver | undefined>(json: string, location: string | undefined, reviver: R): R extends undefined ? JsonJsonNode : ReturnType<R>;
-};
+export const fromJson: <A = { type: "json" }, R = JsonNode<A>>(json: string, location?: string, reviver?: Reviver<A, R>) => R;
 
 /**
  * Parse a JSON compatible JavaScript value into a JSON AST.
  */
 export const fromJs: (js: Json, location?: string) => JsonJsonNode;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Replacer = <A>(node: JsonNode<A>, key?: string) => JsonNode<any> | undefined;
+export type Replacer = (node: JsonNode<unknown>, key?: string) => JsonNode<unknown> | undefined;
 
 /**
  * Stringify a JsonNode to a JSON string. Includes options for a
  * {@link Replacer} and `space` like
  * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify | JSON.stringify}.
  */
-export const toJson: <A>(node: JsonNode<A>, replacer?: Replacer, space?: string) => string;
+export const toJson: (node: JsonNode<unknown>, replacer?: Replacer, space?: string) => string;
 
 /**
  * Index into an object or array JsonNode.
  *
  * @throws {@link JsonPointerError}
  */
-export const pointerStep: <A>(segment: string, node: JsonNode<A>, uri?: string) => A;
+export const pointerStep: <A>(segment: string, node: JsonNode<A>, uri?: string) => JsonNode<A>;
 
 /**
  * Get a JsonNode using a JSON Pointer.
  */
-export const pointerGet: (pointer: string, tree: JsonJsonNode, documentUri?: string) => JsonJsonNode;
+export const pointerGet: <A>(pointer: string, tree: JsonNode<A>, documentUri?: string) => JsonNode<A>;
 
 export const jsonValue: (
   (<_A>(node: JsonNullNode) => null) &
@@ -63,13 +67,13 @@ export const jsonValue: (
 
 export const jsonObjectHas: <A>(key: string, node: JsonNode<A>) => boolean;
 
-export const jsonArrayIter: <A>(node: JsonNode<A>) => Generator<A, void, unknown>;
+export const jsonArrayIter: <A>(node: JsonNode<A>) => Generator<JsonNode<A>, void, unknown>;
 
 export const jsonObjectKeys: <A>(node: JsonNode<A>) => Generator<string, void, unknown>;
 
-export const jsonObjectValues: <A>(node: JsonNode<A>) => Generator<A, void, unknown>;
+export const jsonObjectValues: <A>(node: JsonNode<A>) => Generator<JsonNode<A>, void, unknown>;
 
-export const jsonObjectEntries: <A>(node: JsonNode<A>) => Generator<[string, A], void, unknown>;
+export const jsonObjectEntries: <A>(node: JsonNode<A>) => Generator<[string, JsonNode<A>], void, unknown>;
 
 export class JsonPointerError extends Error {
   constructor(message?: string);

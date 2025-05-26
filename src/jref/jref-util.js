@@ -2,22 +2,18 @@ import { resolveIri } from "@hyperjump/uri";
 import { fromJson } from "../json/jsonast-util.js";
 
 /**
- * @import {
- *   JsonNode
- * } from "../json/jsonast.d.ts"
- * @import {
- *   JrefJrefNode,
- *   JrefJrefReferenceNode,
- *   JrefNode
- * } from "./jref-ast.d.ts"
+ * @import { JrefJrefNode, JrefNode } from "./jref-ast.d.ts"
  * @import * as API from "./jref-util.d.ts"
  */
 
 
-/** @type API.Reviver */
+/** @type API.Reviver<any, any> */
 const defaultReviver = (value) => value;
 
 /**
+ * @template [A={ type: "jref" }]
+ * @template {JrefNode<A> | undefined} [B=JrefNode<A>]
+ *
  * @overload
  * @param {string} jref
  * @param {string} uri
@@ -26,44 +22,39 @@ const defaultReviver = (value) => value;
  * @overload
  * @param {string} jref
  * @param {string} uri
- * @param {API.Reviver} reviver
+ * @param {API.Reviver<A>} reviver
  * @returns {JrefNode<any> | undefined}
  *
  * @param {string} jref
  * @param {string} uri
- * @param {API.Reviver} [reviver]
- * @returns {JrefJrefNode | JrefNode<any> | undefined}
+ * @param {API.Reviver<A, B>} [reviver]
+ * @returns {JrefJrefNode | JrefNode<A> | undefined}
  *
  * @type API.fromJref
  */
 export const fromJref = (jref, uri, reviver = defaultReviver) => {
   return fromJson(jref, uri, (node, key) => {
-    const jrefNode = /** @type JsonNode<JrefJrefNode> */ (node);
+    const jrefNode = /** @type API.ParsedJrefNode<A & ({ jrefType: "json" } | { jrefType: "reference"; href: string })> */ ({
+      ...node,
+      type: "jref",
+      jrefType: "json"
+    });
 
-    const returned = { uri: "" };
-    if (isReference(jrefNode, returned)) {
-      jrefNode.jrefType = "jref-reference";
-      jrefNode.href = resolveIri(returned.uri, uri);
-    }
-
-    node.type = "jref";
-    return reviver(node, key);
-  });
-};
-
-/** @type (node: JsonNode<JrefJrefNode>, returned: { uri: string }) => node is JrefJrefReferenceNode */
-const isReference = (node, returned) => {
-  if (node.jsonType === "object") {
-    for (const propertyNode of node.children) {
-      if (propertyNode.children[0].value === "$ref") {
-        const valueNode = propertyNode.children[1];
-        if (valueNode.jsonType === "string") {
-          returned.uri = valueNode.value;
-          return true;
+    if (jrefNode.jsonType === "object") {
+      for (const propertyNode of jrefNode.children) {
+        if (propertyNode.children[0].value === "$ref") {
+          const valueNode = propertyNode.children[1];
+          if (valueNode.jsonType === "string") {
+            Object.assign(jrefNode, {
+              jrefType: "reference",
+              href: resolveIri(valueNode.value, uri)
+            });
+            break;
+          }
         }
       }
     }
-  }
 
-  return false;
+    return reviver(jrefNode, key);
+  });
 };

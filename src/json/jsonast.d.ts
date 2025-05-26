@@ -37,10 +37,10 @@ export type JsonStringNode = {
   position?: Position;
 };
 
-export type JsonArrayNode<T = JsonJsonNode> = {
+export type JsonArrayNode<T> = {
   type: string;
   jsonType: "array";
-  children: T[];
+  children: JsonNode<T>[];
   location: string;
   data?: Data;
   position?: Position;
@@ -54,14 +54,14 @@ export type JsonPropertyNameNode = {
   position?: Position;
 };
 
-export type JsonPropertyNode<T = JsonJsonNode> = {
+export type JsonPropertyNode<T> = {
   type: "json-property";
-  children: [JsonPropertyNameNode, T];
+  children: [JsonPropertyNameNode, JsonNode<T>];
   data?: Data;
   position?: Position;
 };
 
-export type JsonObjectNode<T = JsonJsonNode> = {
+export type JsonObjectNode<T> = {
   type: string;
   jsonType: "object";
   children: JsonPropertyNode<T>[];
@@ -70,55 +70,22 @@ export type JsonObjectNode<T = JsonJsonNode> = {
   position?: Position;
 };
 
-export type JsonNode<A> = JsonObjectNode<A>
+export type JsonNode<A> = A & (
+  JsonObjectNode<A>
   | JsonArrayNode<A>
   | JsonStringNode
   | JsonNumberNode
   | JsonBooleanNode
-  | JsonNullNode;
+  | JsonNullNode
+);
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
-export interface JsonJsonNullNode extends JsonNullNode {
-  type: "json";
-};
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
-export interface JsonJsonBooleanNode extends JsonBooleanNode {
-  type: "json";
-};
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
-export interface JsonJsonNumberNode extends JsonNumberNode {
-  type: "json";
-};
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
-export interface JsonJsonStringNode extends JsonStringNode {
-  type: "json";
-};
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
-export interface JsonJsonArrayNode extends JsonArrayNode {
-  type: "json";
-};
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
-export interface JsonJsonObjectNode extends JsonObjectNode {
-  type: "json";
-};
-
-export type JsonJsonNode = JsonJsonObjectNode
-  | JsonJsonArrayNode
-  | JsonJsonStringNode
-  | JsonJsonNumberNode
-  | JsonJsonBooleanNode
-  | JsonJsonNullNode;
+export type JsonJsonNode = JsonNode<{ type: "json" }>;
 
 export type JsonType = "null" | "boolean" | "number" | "string" | "array" | "object";
 
 export type JsonDocumentNode = {
   type: "json-document";
-  children: JsonJsonNode[];
+  children: JsonNode<{}>[];
   data?: Data;
 };
 

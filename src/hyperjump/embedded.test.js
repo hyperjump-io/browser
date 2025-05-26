@@ -6,7 +6,7 @@ import { fromJref } from "../jref/index.js";
 import { toJson } from "../json/jsonast-util.js";
 
 /**
- * @import { DocumentNode } from "./index.js"
+ * @import { JrefJrefNode } from "../jref/jref-ast.js"
  */
 
 
@@ -17,8 +17,27 @@ describe("JSON Browser", () => {
     const testMediaType = "application/prs.hyperjump-embedded-test";
 
     beforeAll(() => {
-      /** @type (uri: string, text: string, embedded?: Record<string, DocumentNode>) => DocumentNode */
+      /**
+       * @typedef {{
+       *   type: "embedded-document";
+       *   children: JrefJrefNode[];
+       *   uri: string;
+       *   fragmentKind: "json-pointer";
+       *   embedded?: Record<string, EmbeddedDocumentNode>;
+       * }} EmbeddedDocumentNode
+       */
+
+      /** @type (uri: string, text: string, embedded?: Record<string, EmbeddedDocumentNode>) => EmbeddedDocumentNode */
       const parseToDocument = (uri, text, embedded = {}) => {
+        /** @type EmbeddedDocumentNode */
+        const embeddedDocument = {
+          type: "embedded-document",
+          children: [],
+          uri: uri,
+          fragmentKind: "json-pointer",
+          embedded: embedded
+        };
+
         const rootNode = fromJref(text, uri, (node, key) => {
           if (key === "$embedded" && node.jsonType === "object") {
             for (const propertyNode of node.children) {
@@ -32,13 +51,11 @@ describe("JSON Browser", () => {
           }
         });
 
-        return {
-          type: "embedded-document",
-          children: [rootNode],
-          uri: uri,
-          fragmentKind: "json-pointer",
-          embedded: embedded
-        };
+        if (rootNode) {
+          embeddedDocument.children.push(rootNode);
+        }
+
+        return embeddedDocument;
       };
       hyperjump.addMediaTypePlugin({
         mediaType: testMediaType,

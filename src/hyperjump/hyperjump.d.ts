@@ -1,5 +1,5 @@
 import type { JsonNode } from "../json/jsonast.d.ts";
-import type { JrefNode, JrefJrefNode } from "../jref/jref-ast.d.ts";
+import type { JrefJrefNode } from "../jref/jref-ast.d.ts";
 import type { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.d.ts";
 import type { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.d.ts";
 import type { jsonObjectHas, jsonObjectKeys, jsonValue } from "../json/jsonast-util.js";
@@ -11,8 +11,7 @@ export type GetOptions = {
   referencedFrom?: string;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export class Hyperjump<T extends JrefNode<any> = JrefJrefNode> {
+export class Hyperjump<T extends JrefNode<{}> = JrefJrefNode> {
   constructor(config?: HyperjumpConfig);
 
   /**
@@ -30,7 +29,7 @@ export class Hyperjump<T extends JrefNode<any> = JrefJrefNode> {
    * @throws {@link RetrievalError}
    * @throws {@link json.JsonPointerError}
    */
-  get: (uri: string, options?: GetOptions) => Promise<T & JsonNode<T>>;
+  get: (uri: string, options?: GetOptions) => Promise<JsonNode<T>>;
 
   /**
    * Add support for a
@@ -72,7 +71,7 @@ export class Hyperjump<T extends JrefNode<any> = JrefJrefNode> {
    * {@link hyperjump.JsonMediaTypePlugin | `JSON`} media types are enabled by
    * default.
    */
-  addMediaTypePlugin: <T extends DocumentNode>(plugin: MediaTypePlugin<T>) => void;
+  addMediaTypePlugin: <A extends DocumentNode<T>>(plugin: MediaTypePlugin<A>) => void;
 
   /**
    * This is mostly useful for disabling a scheme that's enabled by default.
@@ -94,13 +93,13 @@ export class Hyperjump<T extends JrefNode<any> = JrefJrefNode> {
    * This is like indexing into an object or array. It will follow any
    * references it encounters so it always returns a JSON compatible value.
    */
-  step: (key: string, node: JsonNode<T>) => Promise<T & JsonNode<T>>;
+  step: (key: string, node: JsonNode<T>) => Promise<JsonNode<T>>;
 
   /**
    * Iterate over an array node. It will follow any references it encounters so
    * it always yields JSON compatible values.
    */
-  iter: (node: JsonNode<T>) => AsyncGenerator<T & JsonNode<T>, void, unknown>;
+  iter: (node: JsonNode<T>) => AsyncGenerator<JsonNode<T>, void, unknown>;
 
   keys: typeof jsonObjectKeys;
 
@@ -108,13 +107,13 @@ export class Hyperjump<T extends JrefNode<any> = JrefJrefNode> {
    * Iterate over the values of an object. It will follow any references it
    * encounters so it always yields JSON compatible values.
    */
-  values: (node: JsonNode<T>) => AsyncGenerator<T & JsonNode<T>, void, unknown>;
+  values: (node: JsonNode<T>) => AsyncGenerator<JsonNode<T>, void, unknown>;
 
   /**
    * Iterate over key/value pairs of an object. It will follow any references it
    * encounters so it always yields JSON compatible values.
    */
-  entries: (node: JsonNode<T>) => AsyncGenerator<[string, T & JsonNode<T>], void, unknown>;
+  entries: (node: JsonNode<T>) => AsyncGenerator<[string, JsonNode<T>], void, unknown>;
 }
 
 export class RetrievalError extends Error {

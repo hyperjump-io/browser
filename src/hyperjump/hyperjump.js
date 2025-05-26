@@ -21,20 +21,20 @@ import { mimeMatch } from "./utilities.js";
 // TODO: Support filters
 
 /**
- * @template {JrefNode<any>} [T=JrefJrefNode]
+ * @template {JrefNode<unknown>} [T=JrefJrefNode]
  * @implements API.Hyperjump<T>
  */
 export class Hyperjump {
   // TODO: Add config to enable schemes and media types
   #config;
 
-  /** @type Record<string, DocumentNode> */
+  /** @type Record<string, DocumentNode<T>> */
   #cache;
 
   /** @type Record<string, UriSchemePlugin> */
   #uriSchemePlugins;
 
-  /** @type Record<string, MediaTypePlugin<DocumentNode>> */
+  /** @type Record<string, MediaTypePlugin<DocumentNode<T>>> */
   #mediaTypePlugins;
 
   /** @type API.GetOptions */
@@ -91,14 +91,13 @@ export class Hyperjump {
     }
     const cursor = document.fragmentKind === "json-pointer" ? fragment : "";
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const node = /** @type T */ (pointerGet(cursor ?? "", document.children[0], document.uri));
+    const node = pointerGet(cursor ?? "", document.children[0], document.uri);
     return await this.#followReferences(node);
   }
 
-  /** @type (node: T) => Promise<JsonNode<T>> */
+  /** @type (node: JrefNode<T>) => Promise<JsonNode<T>> */
   async #followReferences(node) {
-    if ("jrefType" in node) {
+    if (node.jrefType === "reference") {
       return this.get(node.href, { referencedFrom: toAbsoluteIri(node.location) });
     } else {
       return /** @type JsonNode<T> */ (node);
@@ -182,7 +181,7 @@ export class Hyperjump {
     this.#mediaTypePlugins[contentType].quality = quality;
   }
 
-  /** @type (response: Response) => Promise<DocumentNode> */
+  /** @type (response: Response) => Promise<DocumentNode<T>> */
   #parseResponse(response) {
     const contentTypeText = response.headers.get("content-type");
     if (contentTypeText === null) {
@@ -204,7 +203,7 @@ export class Hyperjump {
 
   /** @type API.Hyperjump<T>["step"] */
   async step(key, node) {
-    return await this.#followReferences(/** @type T */ (pointerStep(key, node)));
+    return await this.#followReferences(pointerStep(key, node));
   }
 
   /** @type API.Hyperjump<T>["iter"] */

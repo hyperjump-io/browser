@@ -19,6 +19,7 @@ describe("JRef", () => {
         expect(subject).to.eql({
           type: "jref",
           jsonType: "null",
+          jrefType: "json",
           value: null,
           location: `${testContext}#`,
           position: {
@@ -33,6 +34,7 @@ describe("JRef", () => {
         expect(subject).to.eql({
           type: "jref",
           jsonType: "boolean",
+          jrefType: "json",
           value: true,
           location: `${testContext}#`,
           position: {
@@ -47,6 +49,7 @@ describe("JRef", () => {
         expect(subject).to.eql({
           type: "jref",
           jsonType: "boolean",
+          jrefType: "json",
           value: false,
           location: `${testContext}#`,
           position: {
@@ -61,6 +64,7 @@ describe("JRef", () => {
         expect(subject).to.eql({
           type: "jref",
           jsonType: "number",
+          jrefType: "json",
           value: 1,
           location: `${testContext}#`,
           position: {
@@ -75,6 +79,7 @@ describe("JRef", () => {
         expect(subject).to.eql({
           type: "jref",
           jsonType: "number",
+          jrefType: "json",
           value: 1.34,
           location: `${testContext}#`,
           position: {
@@ -89,6 +94,7 @@ describe("JRef", () => {
         expect(subject).to.eql({
           type: "jref",
           jsonType: "number",
+          jrefType: "json",
           value: -1.34,
           location: `${testContext}#`,
           position: {
@@ -103,6 +109,7 @@ describe("JRef", () => {
         expect(subject).to.eql({
           type: "jref",
           jsonType: "number",
+          jrefType: "json",
           value: -1e34,
           location: `${testContext}#`,
           position: {
@@ -116,8 +123,8 @@ describe("JRef", () => {
         const subject = fromJref(`{ "$ref": "./foo" }`, testContext);
         expect(subject).to.eql({
           type: "jref",
-          jrefType: "jref-reference",
           jsonType: "object",
+          jrefType: "reference",
           children: [
             {
               type: "json-property",
@@ -134,6 +141,7 @@ describe("JRef", () => {
                 {
                   type: "jref",
                   jsonType: "string",
+                  jrefType: "json",
                   value: "./foo",
                   location: `${testContext}#/$ref`,
                   position: {
@@ -160,6 +168,7 @@ describe("JRef", () => {
         expect(subject).to.eql({
           type: "jref",
           jsonType: "array",
+          jrefType: "json",
           children: [],
           location: `${testContext}#`,
           position: {
@@ -176,10 +185,12 @@ describe("JRef", () => {
         expect(subject).to.eql({
           type: "jref",
           jsonType: "array",
+          jrefType: "json",
           children: [
             {
               type: "jref",
               jsonType: "string",
+              jrefType: "json",
               value: "foo",
               location: `${testContext}#/0`,
               position: {
@@ -203,11 +214,12 @@ describe("JRef", () => {
         expect(subject).to.eql({
           type: "jref",
           jsonType: "array",
+          jrefType: "json",
           children: [
             {
               type: "jref",
-              jrefType: "jref-reference",
               jsonType: "object",
+              jrefType: "reference",
               children: [
                 {
                   type: "json-property",
@@ -224,6 +236,7 @@ describe("JRef", () => {
                     {
                       type: "jref",
                       jsonType: "string",
+                      jrefType: "json",
                       value: "./foo",
                       location: `${testContext}#/0/$ref`,
                       position: {
@@ -257,6 +270,7 @@ describe("JRef", () => {
         expect(subject).to.eql({
           type: "jref",
           jsonType: "object",
+          jrefType: "json",
           children: [],
           location: `${testContext}#`,
           position: {
@@ -273,6 +287,7 @@ describe("JRef", () => {
         expect(subject).to.eql({
           type: "jref",
           jsonType: "object",
+          jrefType: "json",
           children: [
             {
               type: "json-property",
@@ -289,6 +304,7 @@ describe("JRef", () => {
                 {
                   type: "jref",
                   jsonType: "number",
+                  jrefType: "json",
                   value: 42,
                   location: `${testContext}#/foo`,
                   position: {
@@ -314,6 +330,7 @@ describe("JRef", () => {
         expect(subject).to.eql({
           type: "jref",
           jsonType: "object",
+          jrefType: "json",
           children: [
             {
               type: "json-property",
@@ -329,8 +346,8 @@ describe("JRef", () => {
                 },
                 {
                   type: "jref",
-                  jrefType: "jref-reference",
                   jsonType: "object",
+                  jrefType: "reference",
                   children: [
                     {
                       type: "json-property",
@@ -347,6 +364,7 @@ describe("JRef", () => {
                         {
                           type: "jref",
                           jsonType: "string",
+                          jrefType: "json",
                           value: "./foo",
                           location: `${testContext}#/foo/$ref`,
                           position: {
@@ -401,6 +419,7 @@ describe("JRef", () => {
         const node = {
           type: "jref",
           jsonType: "null",
+          jrefType: "json",
           value: null,
           location: "#"
         };
@@ -413,6 +432,7 @@ describe("JRef", () => {
         const node = {
           type: "jref",
           jsonType: "boolean",
+          jrefType: "json",
           value: true,
           location: ""
         };
@@ -425,6 +445,7 @@ describe("JRef", () => {
         const node = {
           type: "jref",
           jsonType: "number",
+          jrefType: "json",
           value: 42,
           location: ""
         };
@@ -436,7 +457,7 @@ describe("JRef", () => {
         /** @type JrefJrefNode */
         const node = {
           type: "jref",
-          jrefType: "jref-reference",
+          jrefType: "reference",
           jsonType: "object",
           children: [
             {
@@ -450,6 +471,7 @@ describe("JRef", () => {
                 {
                   type: "jref",
                   jsonType: "string",
+                  jrefType: "json",
                   value: "./foo",
                   location: "#/$ref"
                 }
@@ -470,6 +492,7 @@ describe("JRef", () => {
         const node = {
           type: "jref",
           jsonType: "array",
+          jrefType: "json",
           children: [],
           location: "#"
         };
@@ -482,16 +505,19 @@ describe("JRef", () => {
         const node = {
           type: "jref",
           jsonType: "array",
+          jrefType: "json",
           children: [
             {
               type: "jref",
               jsonType: "string",
+              jrefType: "json",
               value: "foo",
               location: "#/0"
             },
             {
               type: "jref",
               jsonType: "number",
+              jrefType: "json",
               value: 42,
               location: "#/1"
             }
@@ -507,16 +533,19 @@ describe("JRef", () => {
         const node = {
           type: "jref",
           jsonType: "array",
+          jrefType: "json",
           children: [
             {
               type: "jref",
               jsonType: "string",
+              jrefType: "json",
               value: "foo",
               location: "#/0"
             },
             {
               type: "jref",
               jsonType: "object",
+              jrefType: "reference",
               children: [
                 {
                   type: "json-property",
@@ -529,6 +558,7 @@ describe("JRef", () => {
                     {
                       type: "jref",
                       jsonType: "string",
+                      jrefType: "json",
                       value: "./foo",
                       location: "#/$ref"
                     }
@@ -541,6 +571,7 @@ describe("JRef", () => {
             {
               type: "jref",
               jsonType: "number",
+              jrefType: "json",
               value: 42,
               location: "#/2"
             }
@@ -558,6 +589,7 @@ describe("JRef", () => {
         const node = {
           type: "jref",
           jsonType: "object",
+          jrefType: "json",
           children: [],
           location: "#"
         };
@@ -570,6 +602,7 @@ describe("JRef", () => {
         const node = {
           type: "jref",
           jsonType: "object",
+          jrefType: "json",
           children: [
             {
               type: "json-property",
@@ -582,6 +615,7 @@ describe("JRef", () => {
                 {
                   type: "jref",
                   jsonType: "number",
+                  jrefType: "json",
                   value: 42,
                   location: "#/foo"
                 }
@@ -599,6 +633,7 @@ describe("JRef", () => {
         const node = {
           type: "jref",
           jsonType: "object",
+          jrefType: "json",
           children: [
             {
               type: "json-property",
@@ -611,6 +646,7 @@ describe("JRef", () => {
                 {
                   type: "jref",
                   jsonType: "number",
+                  jrefType: "json",
                   value: 42,
                   location: "#/foo"
                 }
@@ -627,6 +663,7 @@ describe("JRef", () => {
                 {
                   type: "jref",
                   jsonType: "object",
+                  jrefType: "reference",
                   children: [
                     {
                       type: "json-property",
@@ -639,6 +676,7 @@ describe("JRef", () => {
                         {
                           type: "jref",
                           jsonType: "string",
+                          jrefType: "json",
                           value: "./foo",
                           location: "#/$ref"
                         }
@@ -664,6 +702,7 @@ describe("JRef", () => {
         const node = {
           type: "jref",
           jsonType: "object",
+          jrefType: "json",
           children: [
             {
               type: "json-property",
@@ -676,6 +715,7 @@ describe("JRef", () => {
                 {
                   type: "jref",
                   jsonType: "number",
+                  jrefType: "json",
                   value: 42,
                   location: "#/foo"
                 }
@@ -692,6 +732,7 @@ describe("JRef", () => {
                 {
                   type: "jref",
                   jsonType: "number",
+                  jrefType: "json",
                   value: 42,
                   location: "#/iBar"
                 }
@@ -708,6 +749,7 @@ describe("JRef", () => {
                 {
                   type: "jref",
                   jsonType: "object",
+                  jrefType: "reference",
                   children: [
                     {
                       type: "json-property",
@@ -720,6 +762,7 @@ describe("JRef", () => {
                         {
                           type: "jref",
                           jsonType: "string",
+                          jrefType: "json",
                           value: "./foo",
                           location: "#/$ref"
                         }
@@ -755,6 +798,7 @@ describe("JRef", () => {
         const node = {
           type: "jref",
           jsonType: "object",
+          jrefType: "json",
           children: [
             {
               type: "json-property",
@@ -767,6 +811,7 @@ describe("JRef", () => {
                 {
                   type: "jref",
                   jsonType: "number",
+                  jrefType: "json",
                   value: 42,
                   location: "#/foo"
                 }
@@ -783,6 +828,7 @@ describe("JRef", () => {
                 {
                   type: "jref",
                   jsonType: "object",
+                  jrefType: "reference",
                   children: [
                     {
                       type: "json-property",
@@ -795,6 +841,7 @@ describe("JRef", () => {
                         {
                           type: "jref",
                           jsonType: "string",
+                          jrefType: "json",
                           value: "./foo",
                           location: "#/$ref"
                         }
