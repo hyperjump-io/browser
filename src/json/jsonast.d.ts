@@ -70,7 +70,7 @@ export type JsonObjectNode<T> = {
   position?: Position;
 };
 
-export type JsonNode<A> = A & (
+export type JsonNode<A = { type: "json" }> = A & (
   JsonObjectNode<A>
   | JsonArrayNode<A>
   | JsonStringNode
@@ -79,13 +79,11 @@ export type JsonNode<A> = A & (
   | JsonNullNode
 );
 
-export type JsonJsonNode = JsonNode<{ type: "json" }>;
-
 export type JsonType = "null" | "boolean" | "number" | "string" | "array" | "object";
 
 export type JsonDocumentNode = {
   type: "json-document";
-  children: JsonNode<{}>[];
+  children: JsonNode[];
   data?: Data;
 };
 

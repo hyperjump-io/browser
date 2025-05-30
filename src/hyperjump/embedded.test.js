@@ -6,7 +6,7 @@ import { fromJref } from "../jref/index.js";
 import { toJson } from "../json/jsonast-util.js";
 
 /**
- * @import { JrefJrefNode } from "../jref/jref-ast.js"
+ * @import { JrefNode } from "../jref/jref-ast.js"
  */
 
 
@@ -20,7 +20,7 @@ describe("JSON Browser", () => {
       /**
        * @typedef {{
        *   type: "embedded-document";
-       *   children: JrefJrefNode[];
+       *   children: JrefNode[];
        *   uri: string;
        *   fragmentKind: "json-pointer";
        *   embedded?: Record<string, EmbeddedDocumentNode>;

@@ -16,7 +16,7 @@ import {
 } from "./index.js";
 
 /**
- * @import { JsonJsonNode } from "./index.js"
+ * @import { JsonNode } from "./index.js"
  */
 
 
@@ -89,7 +89,7 @@ describe("jsonast-util", async () => {
   });
 
   describe("object has property", () => {
-    /** @type JsonJsonNode */
+    /** @type JsonNode */
     let subject;
 
     beforeEach(() => {
@@ -155,11 +155,11 @@ describe("jsonast-util", async () => {
 
     const generator = jsonObjectEntries(subject);
 
-    const a = /** @type [string, JsonJsonNode] */ ((generator.next()).value);
+    const a = /** @type [string, JsonNode] */ ((generator.next()).value);
     expect(a[0]).to.equal("a");
     expect(toJson(a[1])).to.equal(`1`);
 
-    const b = /** @type [string, JsonJsonNode] */ ((generator.next()).value);
+    const b = /** @type [string, JsonNode] */ ((generator.next()).value);
     expect(b[0]).to.equal("b");
     expect(toJson(b[1])).to.equal(`2`);
 

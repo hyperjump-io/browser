@@ -4,8 +4,7 @@ import { resolveIri } from "@hyperjump/uri";
 import { toJson } from "../json/jsonast-util.js";
 
 /**
- * @import { JrefJrefNode } from "./jref-ast.d.ts"
- * @import { JsonNode } from "../json/jsonast.d.ts"
+ * @import { JrefNode } from "./jref-ast.d.ts"
  */
 
 
@@ -17,9 +16,8 @@ describe("JRef", () => {
       test("null", () => {
         const subject = fromJref(`null`, testContext);
         expect(subject).to.eql({
-          type: "jref",
+          type: "json",
           jsonType: "null",
-          jrefType: "json",
           value: null,
           location: `${testContext}#`,
           position: {
@@ -32,9 +30,8 @@ describe("JRef", () => {
       test("true", () => {
         const subject = fromJref(`true`, testContext);
         expect(subject).to.eql({
-          type: "jref",
+          type: "json",
           jsonType: "boolean",
-          jrefType: "json",
           value: true,
           location: `${testContext}#`,
           position: {
@@ -47,9 +44,8 @@ describe("JRef", () => {
       test("false", () => {
         const subject = fromJref(`false`, testContext);
         expect(subject).to.eql({
-          type: "jref",
+          type: "json",
           jsonType: "boolean",
-          jrefType: "json",
           value: false,
           location: `${testContext}#`,
           position: {
@@ -62,9 +58,8 @@ describe("JRef", () => {
       test("integers", () => {
         const subject = fromJref(`1`, testContext);
         expect(subject).to.eql({
-          type: "jref",
+          type: "json",
           jsonType: "number",
-          jrefType: "json",
           value: 1,
           location: `${testContext}#`,
           position: {
@@ -77,9 +72,8 @@ describe("JRef", () => {
       test("real numbers", () => {
         const subject = fromJref(`1.34`, testContext);
         expect(subject).to.eql({
-          type: "jref",
+          type: "json",
           jsonType: "number",
-          jrefType: "json",
           value: 1.34,
           location: `${testContext}#`,
           position: {
@@ -92,9 +86,8 @@ describe("JRef", () => {
       test("negative numbers", () => {
         const subject = fromJref(`-1.34`, testContext);
         expect(subject).to.eql({
-          type: "jref",
+          type: "json",
           jsonType: "number",
-          jrefType: "json",
           value: -1.34,
           location: `${testContext}#`,
           position: {
@@ -107,9 +100,8 @@ describe("JRef", () => {
       test("exponential numbers", () => {
         const subject = fromJref(`-1e34`, testContext);
         expect(subject).to.eql({
-          type: "jref",
+          type: "json",
           jsonType: "number",
-          jrefType: "json",
           value: -1e34,
           location: `${testContext}#`,
           position: {
@@ -122,9 +114,8 @@ describe("JRef", () => {
       test("reference", () => {
         const subject = fromJref(`{ "$ref": "./foo" }`, testContext);
         expect(subject).to.eql({
-          type: "jref",
+          type: "reference",
           jsonType: "object",
-          jrefType: "reference",
           children: [
             {
               type: "json-property",
@@ -139,9 +130,8 @@ describe("JRef", () => {
                   }
                 },
                 {
-                  type: "jref",
+                  type: "json",
                   jsonType: "string",
-                  jrefType: "json",
                   value: "./foo",
                   location: `${testContext}#/$ref`,
                   position: {
@@ -166,9 +156,8 @@ describe("JRef", () => {
       test("empty", () => {
         const subject = fromJref(`[]`, testContext);
         expect(subject).to.eql({
-          type: "jref",
+          type: "json",
           jsonType: "array",
-          jrefType: "json",
           children: [],
           location: `${testContext}#`,
           position: {
@@ -183,14 +172,12 @@ describe("JRef", () => {
   "foo"
 ]`, testContext);
         expect(subject).to.eql({
-          type: "jref",
+          type: "json",
           jsonType: "array",
-          jrefType: "json",
           children: [
             {
-              type: "jref",
+              type: "json",
               jsonType: "string",
-              jrefType: "json",
               value: "foo",
               location: `${testContext}#/0`,
               position: {
@@ -212,14 +199,12 @@ describe("JRef", () => {
   { "$ref": "./foo" }
 ]`, testContext);
         expect(subject).to.eql({
-          type: "jref",
+          type: "json",
           jsonType: "array",
-          jrefType: "json",
           children: [
             {
-              type: "jref",
+              type: "reference",
               jsonType: "object",
-              jrefType: "reference",
               children: [
                 {
                   type: "json-property",
@@ -234,9 +219,8 @@ describe("JRef", () => {
                       }
                     },
                     {
-                      type: "jref",
+                      type: "json",
                       jsonType: "string",
-                      jrefType: "json",
                       value: "./foo",
                       location: `${testContext}#/0/$ref`,
                       position: {
@@ -268,9 +252,8 @@ describe("JRef", () => {
       test("empty", () => {
         const subject = fromJref(`{}`, testContext);
         expect(subject).to.eql({
-          type: "jref",
+          type: "json",
           jsonType: "object",
-          jrefType: "json",
           children: [],
           location: `${testContext}#`,
           position: {
@@ -285,9 +268,8 @@ describe("JRef", () => {
   "foo": 42
 }`, testContext);
         expect(subject).to.eql({
-          type: "jref",
+          type: "json",
           jsonType: "object",
-          jrefType: "json",
           children: [
             {
               type: "json-property",
@@ -302,9 +284,8 @@ describe("JRef", () => {
                   }
                 },
                 {
-                  type: "jref",
+                  type: "json",
                   jsonType: "number",
-                  jrefType: "json",
                   value: 42,
                   location: `${testContext}#/foo`,
                   position: {
@@ -328,9 +309,8 @@ describe("JRef", () => {
   "foo": { "$ref": "./foo" }
 }`, testContext);
         expect(subject).to.eql({
-          type: "jref",
+          type: "json",
           jsonType: "object",
-          jrefType: "json",
           children: [
             {
               type: "json-property",
@@ -345,9 +325,8 @@ describe("JRef", () => {
                   }
                 },
                 {
-                  type: "jref",
+                  type: "reference",
                   jsonType: "object",
-                  jrefType: "reference",
                   children: [
                     {
                       type: "json-property",
@@ -362,9 +341,8 @@ describe("JRef", () => {
                           }
                         },
                         {
-                          type: "jref",
+                          type: "json",
                           jsonType: "string",
-                          jrefType: "json",
                           value: "./foo",
                           location: `${testContext}#/foo/$ref`,
                           position: {
@@ -407,7 +385,7 @@ describe("JRef", () => {
             return node;
           }
         });
-        expect(toJson(/** @type JsonNode<JrefJrefNode> */ (subject))).to.equal(`{"foo":42,"iBar":42,"baz":{"$ref":"./foo"}}`);
+        expect(toJson(subject)).to.equal(`{"foo":42,"iBar":42,"baz":{"$ref":"./foo"}}`);
       });
     });
   });
@@ -415,11 +393,10 @@ describe("JRef", () => {
   describe("stringify", () => {
     describe("scalars", () => {
       test("null", () => {
-        /** @type JrefJrefNode */
+        /** @type JrefNode */
         const node = {
-          type: "jref",
+          type: "json",
           jsonType: "null",
-          jrefType: "json",
           value: null,
           location: "#"
         };
@@ -428,11 +405,10 @@ describe("JRef", () => {
       });
 
       test("boolean", () => {
-        /** @type JrefJrefNode */
+        /** @type JrefNode */
         const node = {
-          type: "jref",
+          type: "json",
           jsonType: "boolean",
-          jrefType: "json",
           value: true,
           location: ""
         };
@@ -441,11 +417,10 @@ describe("JRef", () => {
       });
 
       test("number", () => {
-        /** @type JrefJrefNode */
+        /** @type JrefNode */
         const node = {
-          type: "jref",
+          type: "json",
           jsonType: "number",
-          jrefType: "json",
           value: 42,
           location: ""
         };
@@ -454,10 +429,9 @@ describe("JRef", () => {
       });
 
       test("reference", () => {
-        /** @type JrefJrefNode */
+        /** @type JrefNode */
         const node = {
-          type: "jref",
-          jrefType: "reference",
+          type: "reference",
           jsonType: "object",
           children: [
             {
@@ -469,9 +443,8 @@ describe("JRef", () => {
                   value: "$ref"
                 },
                 {
-                  type: "jref",
+                  type: "json",
                   jsonType: "string",
-                  jrefType: "json",
                   value: "./foo",
                   location: "#/$ref"
                 }
@@ -488,11 +461,10 @@ describe("JRef", () => {
 
     describe("array", () => {
       test("empty", () => {
-        /** @type JrefJrefNode */
+        /** @type JrefNode */
         const node = {
-          type: "jref",
+          type: "json",
           jsonType: "array",
-          jrefType: "json",
           children: [],
           location: "#"
         };
@@ -501,23 +473,20 @@ describe("JRef", () => {
       });
 
       test("non-empty", () => {
-        /** @type JrefJrefNode */
+        /** @type JrefNode */
         const node = {
-          type: "jref",
+          type: "json",
           jsonType: "array",
-          jrefType: "json",
           children: [
             {
-              type: "jref",
+              type: "json",
               jsonType: "string",
-              jrefType: "json",
               value: "foo",
               location: "#/0"
             },
             {
-              type: "jref",
+              type: "json",
               jsonType: "number",
-              jrefType: "json",
               value: 42,
               location: "#/1"
             }
@@ -529,23 +498,20 @@ describe("JRef", () => {
       });
 
       test("reference", () => {
-        /** @type JrefJrefNode */
+        /** @type JrefNode */
         const node = {
-          type: "jref",
+          type: "json",
           jsonType: "array",
-          jrefType: "json",
           children: [
             {
-              type: "jref",
+              type: "json",
               jsonType: "string",
-              jrefType: "json",
               value: "foo",
               location: "#/0"
             },
             {
-              type: "jref",
+              type: "reference",
               jsonType: "object",
-              jrefType: "reference",
               children: [
                 {
                   type: "json-property",
@@ -556,9 +522,8 @@ describe("JRef", () => {
                       value: "$ref"
                     },
                     {
-                      type: "jref",
+                      type: "json",
                       jsonType: "string",
-                      jrefType: "json",
                       value: "./foo",
                       location: "#/$ref"
                     }
@@ -569,9 +534,8 @@ describe("JRef", () => {
               href: resolveIri("./foo", testContext)
             },
             {
-              type: "jref",
+              type: "json",
               jsonType: "number",
-              jrefType: "json",
               value: 42,
               location: "#/2"
             }
@@ -585,11 +549,10 @@ describe("JRef", () => {
 
     describe("object", () => {
       test("empty", () => {
-        /** @type JrefJrefNode */
+        /** @type JrefNode */
         const node = {
-          type: "jref",
+          type: "json",
           jsonType: "object",
-          jrefType: "json",
           children: [],
           location: "#"
         };
@@ -598,11 +561,10 @@ describe("JRef", () => {
       });
 
       test("non-empty", () => {
-        /** @type JrefJrefNode */
+        /** @type JrefNode */
         const node = {
-          type: "jref",
+          type: "json",
           jsonType: "object",
-          jrefType: "json",
           children: [
             {
               type: "json-property",
@@ -613,9 +575,8 @@ describe("JRef", () => {
                   value: "foo"
                 },
                 {
-                  type: "jref",
+                  type: "json",
                   jsonType: "number",
-                  jrefType: "json",
                   value: 42,
                   location: "#/foo"
                 }
@@ -629,11 +590,10 @@ describe("JRef", () => {
       });
 
       test("reference", () => {
-        /** @type JrefJrefNode */
+        /** @type JrefNode */
         const node = {
-          type: "jref",
+          type: "json",
           jsonType: "object",
-          jrefType: "json",
           children: [
             {
               type: "json-property",
@@ -644,9 +604,8 @@ describe("JRef", () => {
                   value: "foo"
                 },
                 {
-                  type: "jref",
+                  type: "json",
                   jsonType: "number",
-                  jrefType: "json",
                   value: 42,
                   location: "#/foo"
                 }
@@ -661,9 +620,8 @@ describe("JRef", () => {
                   value: "bar"
                 },
                 {
-                  type: "jref",
+                  type: "reference",
                   jsonType: "object",
-                  jrefType: "reference",
                   children: [
                     {
                       type: "json-property",
@@ -674,9 +632,8 @@ describe("JRef", () => {
                           value: "$ref"
                         },
                         {
-                          type: "jref",
+                          type: "json",
                           jsonType: "string",
-                          jrefType: "json",
                           value: "./foo",
                           location: "#/$ref"
                         }
@@ -698,11 +655,10 @@ describe("JRef", () => {
 
     describe("replacer", () => {
       test("convert properties that start with 'i' to strings", () => {
-        /** @type JrefJrefNode */
+        /** @type JrefNode */
         const node = {
-          type: "jref",
+          type: "json",
           jsonType: "object",
-          jrefType: "json",
           children: [
             {
               type: "json-property",
@@ -713,9 +669,8 @@ describe("JRef", () => {
                   value: "foo"
                 },
                 {
-                  type: "jref",
+                  type: "json",
                   jsonType: "number",
-                  jrefType: "json",
                   value: 42,
                   location: "#/foo"
                 }
@@ -730,9 +685,8 @@ describe("JRef", () => {
                   value: "iBar"
                 },
                 {
-                  type: "jref",
+                  type: "json",
                   jsonType: "number",
-                  jrefType: "json",
                   value: 42,
                   location: "#/iBar"
                 }
@@ -747,9 +701,8 @@ describe("JRef", () => {
                   value: "baz"
                 },
                 {
-                  type: "jref",
+                  type: "reference",
                   jsonType: "object",
-                  jrefType: "reference",
                   children: [
                     {
                       type: "json-property",
@@ -760,9 +713,8 @@ describe("JRef", () => {
                           value: "$ref"
                         },
                         {
-                          type: "jref",
+                          type: "json",
                           jsonType: "string",
-                          jrefType: "json",
                           value: "./foo",
                           location: "#/$ref"
                         }
@@ -794,11 +746,10 @@ describe("JRef", () => {
 
     describe("space", () => {
       test("pretty print", () => {
-        /** @type JrefJrefNode */
+        /** @type JrefNode */
         const node = {
-          type: "jref",
+          type: "json",
           jsonType: "object",
-          jrefType: "json",
           children: [
             {
               type: "json-property",
@@ -809,9 +760,8 @@ describe("JRef", () => {
                   value: "foo"
                 },
                 {
-                  type: "jref",
+                  type: "json",
                   jsonType: "number",
-                  jrefType: "json",
                   value: 42,
                   location: "#/foo"
                 }
@@ -826,9 +776,8 @@ describe("JRef", () => {
                   value: "bar"
                 },
                 {
-                  type: "jref",
+                  type: "reference",
                   jsonType: "object",
-                  jrefType: "reference",
                   children: [
                     {
                       type: "json-property",
@@ -839,17 +788,16 @@ describe("JRef", () => {
                           value: "$ref"
                         },
                         {
-                          type: "jref",
+                          type: "json",
                           jsonType: "string",
-                          jrefType: "json",
                           value: "./foo",
                           location: "#/$ref"
                         }
                       ]
                     }
                   ],
-                  location: "#/bar",
-                  href: resolveIri("./foo", testContext)
+                  href: resolveIri("./foo", testContext),
+                  location: "#/bar"
                 }
               ]
             }

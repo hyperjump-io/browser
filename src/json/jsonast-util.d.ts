@@ -2,7 +2,6 @@ import type {
   Json,
   JsonArrayNode,
   JsonBooleanNode,
-  JsonJsonNode,
   JsonNode,
   JsonNullNode,
   JsonNumberNode,
@@ -10,16 +9,7 @@ import type {
   JsonStringNode
 } from "./jsonast.d.ts";
 
-export type ParsedJsonNode<A> = { type: "json" } & (
-  JsonObjectNode<JsonNode<A>>
-  | JsonArrayNode<JsonNode<A>>
-  | JsonStringNode
-  | JsonNumberNode
-  | JsonBooleanNode
-  | JsonNullNode
-);
-
-export type Reviver<A, R extends JsonNode<A> | undefined> = (node: ParsedJsonNode<A>, key?: string) => R;
+export type Reviver<A extends object, R extends JsonNode<A> | undefined> = (node: JsonNode<A>, key?: string) => R;
 
 /**
  * Parse a JSON string into a JSON AST. Includes a reviver option similar to
@@ -27,12 +17,12 @@ export type Reviver<A, R extends JsonNode<A> | undefined> = (node: ParsedJsonNod
  *
  * @throws SynataxError
  */
-export const fromJson: <A = { type: "json" }, R = JsonNode<A>>(json: string, location?: string, reviver?: Reviver<A, R>) => R;
+export const fromJson: <A extends object = { type: "json" }, R extends JsonNode<A> | undefined = JsonNode<A>>(json: string, location?: string, reviver?: Reviver<A, R>) => R;
 
 /**
  * Parse a JSON compatible JavaScript value into a JSON AST.
  */
-export const fromJs: (js: Json, location?: string) => JsonJsonNode;
+export const fromJs: (js: Json, location?: string) => JsonNode;
 
 export type Replacer = (node: JsonNode<unknown>, key?: string) => JsonNode<unknown> | undefined;
 

@@ -6,7 +6,6 @@ import { JsonLexer } from "./json-lexer.js";
  * @import { JsonToken } from "./json-lexer.js"
  * @import {
  *   JsonArrayNode,
- *   JsonJsonNode,
  *   JsonNode,
  *   JsonObjectNode,
  *   JsonPropertyNameNode,
@@ -16,28 +15,10 @@ import { JsonLexer } from "./json-lexer.js";
  */
 
 
-/** @type API.Reviver<any, any> */
+/** @type API.Reviver<object, any> */
 const defaultReviver = (value) => value;
 
-/**
- * @template [A={ type: "json" }]
- * @template {JsonNode<A> | undefined} [B=JsonNode<A>]
- *
- * @overload
- * @param {string} json
- * @returns {JsonJsonNode}
- *
- * @overload
- * @param {string} json
- * @param {API.Reviver} reviver
- * @returns {JsonNode<any> | undefined}
- *
- * @param {string} json
- * @param {API.Reviver<A, B>} [reviver]
- * @returns {JsonJsonNode | JsonNode<A> | undefined}
- *
- * @type API.fromJson
- */
+/** @type API.fromJson */
 export const fromJson = (json, location = "", reviver = defaultReviver) => {
   const lexer = new JsonLexer(json);
 
@@ -50,12 +31,12 @@ export const fromJson = (json, location = "", reviver = defaultReviver) => {
 };
 
 /**
- * @template A
+ * @template {object} A
  *
  * @type <B extends JsonNode<A> | undefined>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: API.Reviver<A, B>, location: string) => B
  */
 const parseValue = (token, lexer, key, reviver, location) => {
-  /** @type {API.ParsedJsonNode<A>} */
+  /** @type {JsonNode<A>} */
   let node;
 
   switch (token.type) {
@@ -78,7 +59,7 @@ const parseValue = (token, lexer, key, reviver, location) => {
   return reviver(node, key);
 };
 
-/** @type (token: JsonToken<"null" | "boolean" | "number" | "string">, location: string) => JsonJsonNode */
+/** @type (token: JsonToken<"null" | "boolean" | "number" | "string">, location: string) => JsonNode */
 const parseScalar = (token, location) => {
   return {
     type: "json",
@@ -89,7 +70,7 @@ const parseScalar = (token, location) => {
   };
 };
 
-/** @type <A, B extends JsonNode<A> | undefined>(token: JsonToken, lexer: JsonLexer, key: string, reviver: API.Reviver<A, B>, location: string) => JsonPropertyNode<JsonNode<A>> | undefined */
+/** @type <A extends object, B extends JsonNode<A> | undefined>(token: JsonToken, lexer: JsonLexer, key: string, reviver: API.Reviver<A, B>, location: string) => JsonPropertyNode<JsonNode<A>> | undefined */
 const parseProperty = (token, lexer, _key, reviver, location) => {
   if (token.type !== "string") {
     throw lexer.syntaxError("Expected a propertry", token);
@@ -153,7 +134,7 @@ const parseCommaSeparated = (parseChild, endToken) => (lexer, node, reviver, loc
   }
 };
 
-/** @type <A, B extends JsonNode<A> | undefined>(openToken: JsonToken, lexer: JsonLexer, reviver: API.Reviver<A, B>, location: string) => API.ParsedJsonNode<A> */
+/** @type <A extends object, B extends JsonNode<A> | undefined>(openToken: JsonToken, lexer: JsonLexer, reviver: API.Reviver<A, B>, location: string) => JsonNode<A> */
 const parseArray = (openToken, lexer, reviver, location) => {
   return parseItems(lexer, {
     type: "json",
@@ -164,15 +145,15 @@ const parseArray = (openToken, lexer, reviver, location) => {
   }, reviver, location);
 };
 
-/** @type <A, B extends JsonNode<A> | undefined>(token: JsonToken, lexer: JsonLexer, key: string, reviver: API.Reviver<A, B>, location: string) => B */
+/** @type <A extends object, B extends JsonNode<A> | undefined>(token: JsonToken, lexer: JsonLexer, key: string, reviver: API.Reviver<A, B>, location: string) => B */
 const parseItem = (token, lexer, key, reviver, location) => {
   return parseValue(token, lexer, key, reviver, JsonPointer.append(key, location));
 };
 
-/** @type <A, B extends JsonNode<A> | undefined>(lexer: JsonLexer, node: { type: "json" } & JsonArrayNode<JsonNode<A>>, reviver: API.Reviver<A, B>, location: string) => API.ParsedJsonNode<A> */
+/** @type <A extends object, B extends JsonNode<A> | undefined>(lexer: JsonLexer, node: { type: "json" } & JsonArrayNode<JsonNode<A>>, reviver: API.Reviver<A, B>, location: string) => JsonNode<A> */
 const parseItems = parseCommaSeparated(parseItem, "]");
 
-/** @type <A, B extends JsonNode<A> | undefined>(openToken: JsonToken, lexer: JsonLexer, reviver: API.Reviver<A, B>, location: string) => API.ParsedJsonNode<A> */
+/** @type <A extends object, B extends JsonNode<A> | undefined>(openToken: JsonToken, lexer: JsonLexer, reviver: API.Reviver<A, B>, location: string) => JsonNode<A> */
 const parseObject = (openToken, lexer, reviver, location) => {
   return parseProperties(lexer, {
     type: "json",
@@ -183,7 +164,7 @@ const parseObject = (openToken, lexer, reviver, location) => {
   }, reviver, location);
 };
 
-/** @type <A, B extends JsonNode<A> | undefined>(lexer: JsonLexer, node: { type: "json" } & JsonObjectNode<JsonNode<A>>, reviver: API.Reviver<A, B>, location: string) => API.ParsedJsonNode<A> */
+/** @type <A extends object, B extends JsonNode<A> | undefined>(lexer: JsonLexer, node: { type: "json" } & JsonObjectNode<JsonNode<A>>, reviver: API.Reviver<A, B>, location: string) => JsonNode<A> */
 const parseProperties = parseCommaSeparated(parseProperty, "}");
 
 /** @type (startToken: JsonToken, endToken?: JsonToken) => Position */
@@ -251,7 +232,7 @@ export const fromJs = (js, location = "#") => {
       }
 
       if (Object.getPrototypeOf(js) === Object.prototype) {
-        /** @type JsonPropertyNode<JsonJsonNode>[] */
+        /** @type JsonPropertyNode<JsonNode>[] */
         const properties = [];
         for (const key in js) {
           properties.push({

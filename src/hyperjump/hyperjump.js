@@ -9,8 +9,7 @@ import { jsonObjectHas, jsonObjectKeys, jsonValue, pointerGet, pointerStep } fro
 import { mimeMatch } from "./utilities.js";
 
 /**
- * @import { JrefJrefNode, JrefNode } from "../jref/jref-ast.js"
- * @import { JsonNode } from "../json/jsonast.js"
+ * @import { JrefNode } from "../jref/jref-ast.js"
  * @import { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.js"
  * @import { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.js"
  * @import * as API from "./hyperjump.d.ts"
@@ -21,20 +20,19 @@ import { mimeMatch } from "./utilities.js";
 // TODO: Support filters
 
 /**
- * @template {JrefNode<unknown>} [T=JrefJrefNode]
- * @implements API.Hyperjump<T>
+ * @implements API.Hyperjump<JrefNode>
  */
 export class Hyperjump {
   // TODO: Add config to enable schemes and media types
   #config;
 
-  /** @type Record<string, DocumentNode<T>> */
+  /** @type Record<string, DocumentNode> */
   #cache;
 
   /** @type Record<string, UriSchemePlugin> */
   #uriSchemePlugins;
 
-  /** @type Record<string, MediaTypePlugin<DocumentNode<T>>> */
+  /** @type Record<string, MediaTypePlugin<DocumentNode>> */
   #mediaTypePlugins;
 
   /** @type API.GetOptions */
@@ -62,7 +60,7 @@ export class Hyperjump {
     this.addMediaTypePlugin(new JsonMediaTypePlugin());
   }
 
-  /** @type API.Hyperjump<T>["get"] */
+  /** @type API.Hyperjump<JrefNode>["get"] */
   async get(uri, options = this.#defaultGetOptions) {
     uri = resolveIri(uri, contextUri());
     const id = toAbsoluteIri(uri);
@@ -95,28 +93,28 @@ export class Hyperjump {
     return await this.#followReferences(node);
   }
 
-  /** @type (node: JrefNode<T>) => Promise<JsonNode<T>> */
+  /** @type (node: JrefNode) => Promise<JrefNode> */
   async #followReferences(node) {
-    if (node.jrefType === "reference") {
+    if (node.type === "reference") {
       return this.get(node.href, { referencedFrom: toAbsoluteIri(node.location) });
     } else {
-      return /** @type JsonNode<T> */ (node);
+      return node;
     }
   }
 
-  /** @type API.Hyperjump<T>["addUriSchemePlugin"] */
+  /** @type API.Hyperjump<JrefNode>["addUriSchemePlugin"] */
   addUriSchemePlugin(plugin) {
     for (const scheme of plugin.schemes) {
       this.#uriSchemePlugins[scheme] = plugin;
     }
   }
 
-  /** @type API.Hyperjump<T>["removeUriSchemePlugin"] */
+  /** @type API.Hyperjump<JrefNode>["removeUriSchemePlugin"] */
   removeUriSchemePlugin(scheme) {
     delete this.#uriSchemePlugins[scheme];
   }
 
-  /** @type API.Hyperjump<T>["retrieve"] */
+  /** @type API.Hyperjump<JrefNode>["retrieve"] */
   async retrieve(uri, options) {
     const { scheme } = parseIri(uri);
 
@@ -127,7 +125,7 @@ export class Hyperjump {
     return this.#uriSchemePlugins[scheme].retrieve(uri, options);
   }
 
-  /** @type API.Hyperjump<T>["acceptableMediaTypes"] */
+  /** @type API.Hyperjump<JrefNode>["acceptableMediaTypes"] */
   acceptableMediaTypes() {
     let accept = "";
 
@@ -151,7 +149,7 @@ export class Hyperjump {
     return accept;
   }
 
-  /** @type API.Hyperjump<T>["getMediaType"] */
+  /** @type API.Hyperjump<JrefNode>["getMediaType"] */
   getMediaType(uri) {
     for (const contentType in this.#mediaTypePlugins) {
       for (const extension of this.#mediaTypePlugins[contentType].extensions) {
@@ -166,22 +164,22 @@ export class Hyperjump {
     throw new UnknownMediaTypeError(`The media type of the file at '${uri}' could not be determined. Use the 'addMediaTypePlugin' function to add support for this media type.`);
   }
 
-  /** @type API.Hyperjump<T>["addMediaTypePlugin"] */
+  /** @type API.Hyperjump<JrefNode>["addMediaTypePlugin"] */
   addMediaTypePlugin(plugin) {
     this.#mediaTypePlugins[plugin.mediaType] = plugin;
   }
 
-  /** @type API.Hyperjump<T>["removeMediaTypePlugin"] */
+  /** @type API.Hyperjump<JrefNode>["removeMediaTypePlugin"] */
   removeMediaTypePlugin(contentType) {
     delete this.#mediaTypePlugins[contentType];
   }
 
-  /** @type API.Hyperjump<T>["setMediaTypeQuality"] */
+  /** @type API.Hyperjump<JrefNode>["setMediaTypeQuality"] */
   setMediaTypeQuality(contentType, quality) {
     this.#mediaTypePlugins[contentType].quality = quality;
   }
 
-  /** @type (response: Response) => Promise<DocumentNode<T>> */
+  /** @type (response: Response) => Promise<DocumentNode> */
   #parseResponse(response) {
     const contentTypeText = response.headers.get("content-type");
     if (contentTypeText === null) {
@@ -201,12 +199,12 @@ export class Hyperjump {
   value = jsonValue;
   has = jsonObjectHas;
 
-  /** @type API.Hyperjump<T>["step"] */
+  /** @type API.Hyperjump<JrefNode>["step"] */
   async step(key, node) {
     return await this.#followReferences(pointerStep(key, node));
   }
 
-  /** @type API.Hyperjump<T>["iter"] */
+  /** @type API.Hyperjump<JrefNode>["iter"] */
   async* iter(node) {
     if (node.jsonType === "array") {
       for (const itemNode of node.children) {
@@ -217,7 +215,7 @@ export class Hyperjump {
 
   keys = jsonObjectKeys;
 
-  /** @type API.Hyperjump<T>["values"] */
+  /** @type API.Hyperjump<JrefNode>["values"] */
   async* values(node) {
     if (node.jsonType === "object") {
       for (const propertyNode of node.children) {
@@ -226,7 +224,7 @@ export class Hyperjump {
     }
   }
 
-  /** @type API.Hyperjump<T>["entries"] */
+  /** @type API.Hyperjump<JrefNode>["entries"] */
   async* entries(node) {
     if (node.jsonType === "object") {
       for (const propertyNode of node.children) {
