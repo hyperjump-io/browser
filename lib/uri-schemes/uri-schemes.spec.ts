@@ -1,6 +1,4 @@
-import { Readable } from "node:stream";
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
-import { Response } from "undici";
 import { addUriSchemePlugin, removeUriSchemePlugin, get, RetrievalError } from "../index.js";
 
 
@@ -22,10 +20,7 @@ describe("JSON Browser", () => {
       beforeEach(() => {
         addUriSchemePlugin("foo", {
           retrieve: async (uri) => { // eslint-disable-line @typescript-eslint/require-await
-            const stream = new Readable();
-            stream.push(fixtureDocument);
-            stream.push(null);
-            const response = new Response(stream, {
+            const response = new Response(fixtureDocument, {
               headers: { "Content-Type": "application/reference+json" }
             });
             Object.defineProperty(response, "url", { value: uri });

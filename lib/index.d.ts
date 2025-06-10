@@ -1,4 +1,3 @@
-import type { Response } from "undici";
 import type { JRef, JRefType } from "./jref/index.js";
 
 
