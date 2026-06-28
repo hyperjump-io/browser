@@ -65,3 +65,11 @@ export class UnsupportedUriSchemeError extends Error {
   public constructor(scheme: string, message?: string);
   public get scheme(): string;
 }
+
+export const fileSchemePlugin: UriSchemePlugin;
+export const httpSchemePlugin: UriSchemePlugin;
+
+export class HttpError extends Error {
+  public constructor(response, message = undefined);
+  public get response(): Response;
+}
