@@ -42,7 +42,7 @@
     "eslint-plugin-import": "*",
     "typescript": "*",
     "typescript-eslint": "*",
-    "undici": "*",
+    "undici": "^7.28.0",
     "vitest": "*"
   },
   "engines": {
