@@ -177,7 +177,7 @@ foo: 42
         });
 
         test("full URI without authority", async () => {
-          const path = fileURLToPath(`${testUri}/${fixtureDirectory}/foo.jref`);
+          const path = fileURLToPath(`${testUri}/${fixtureDirectory}/foo.jref`, { windows: false });
           const fragment = "/foo";
           const href = "#/foo";
           const jref = `{
@@ -185,7 +185,8 @@ foo: 42
   "bar": { "$ref": "${href}" }
 }`;
 
-          await writeFile(path, jref);
+          const filesystemPath = fileURLToPath(pathToFileURL(path, { windows: false }));
+          await writeFile(filesystemPath, jref);
 
           const browser = await get(`file:${path}#${fragment}`);
 
