@@ -1,4 +1,5 @@
 .github/
+.gitattributes
 eslint.config.js
 **/*.spec.ts
 tsconfig.json
