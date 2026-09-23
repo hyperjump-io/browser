@@ -2,7 +2,6 @@ import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump } from "./index.js";
 
-
 describe("JSON Browser", () => {
   describe("media types", () => {
     test("default", () => {

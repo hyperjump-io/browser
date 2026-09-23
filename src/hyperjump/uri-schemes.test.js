@@ -2,7 +2,6 @@ import { Readable } from "node:stream";
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { Hyperjump, RetrievalError } from "./index.js";
 
-
 describe("JSON Browser", () => {
   describe("URI schemes", () => {
     const fixtureDocument = `{"foo": 42}`;

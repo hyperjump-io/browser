@@ -1,6 +1,5 @@
-import { Hyperjump } from "../hyperjump.js";
-import { UriSchemePlugin } from "./uri-scheme-plugin.d.ts";
-
+import type { Hyperjump } from "../hyperjump.js";
+import type { UriSchemePlugin } from "./uri-scheme-plugin.d.ts";
 
 /**
  * Support the `http:` and `https:` URI schemes. Sends an Accept header
@@ -18,6 +17,6 @@ export class HttpUriSchemePlugin implements UriSchemePlugin {
   retrieve: UriSchemePlugin["retrieve"];
 }
 
-class HttpError extends Error {
+declare class HttpError extends Error {
   constructor(response: Response, message?: string);
 }

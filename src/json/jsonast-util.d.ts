@@ -46,13 +46,13 @@ export const pointerStep: <A>(segment: string, node: JsonNode<A>, uri?: string) 
 export const pointerGet: <A>(pointer: string, tree: JsonNode<A>, documentUri?: string) => JsonNode<A>;
 
 export const jsonValue: (
-  (<_A>(node: JsonNullNode) => null) &
-  (<_A>(node: JsonBooleanNode) => boolean) &
-  (<_A>(node: JsonNumberNode) => number) &
-  (<_A>(node: JsonStringNode) => string) &
-  (<A>(node: JsonArrayNode<A>) => Json[]) &
-  (<A>(node: JsonObjectNode<A>) => Record<string, Json>) &
-  (<A>(node: JsonNode<A>) => Json)
+  (<_A>(node: JsonNullNode) => null)
+  & (<_A>(node: JsonBooleanNode) => boolean)
+  & (<_A>(node: JsonNumberNode) => number)
+  & (<_A>(node: JsonStringNode) => string)
+  & (<A>(node: JsonArrayNode<A>) => Json[])
+  & (<A>(node: JsonObjectNode<A>) => Record<string, Json>)
+  & (<A>(node: JsonNode<A>) => Json)
 );
 
 export const jsonObjectHas: <A>(key: string, node: JsonNode<A>) => boolean;

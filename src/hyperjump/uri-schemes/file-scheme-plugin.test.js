@@ -7,7 +7,6 @@ import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump, RetrievalError } from "../index.js";
 import { toJson } from "../../json/jsonast-util.js";
 
-
 describe("JSON Browser", () => {
   describe("get", () => {
     describe("`file:` scheme", () => {

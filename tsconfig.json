@@ -1,15 +1,11 @@
 {
   "exclude": ["./docs"],
   "compilerOptions": {
-    "module": "Node16",
-    "target": "es2023",
-    "moduleResolution": "Node16",
-    "esModuleInterop": true,
-    "strict": true,
-    "strictNullChecks": true,
-    "checkJs": true,
-    "skipLibCheck": true,
+    "module": "NodeNext",
+    "target": "esnext",
+    "moduleResolution": "NodeNext",
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["node"]
   }
 }

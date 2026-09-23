@@ -5,7 +5,6 @@ import { VFileMessage } from "vfile-message";
  * @import { Lexer, Token } from "moo"
  */
 
-
 /**
  * @typedef {"null" | "boolean" | "number" | "string" | "{" | "}" | "[" | "]" | ":" | ","} JsonTokenType
  */
@@ -47,18 +46,18 @@ export class JsonLexer {
    */
   constructor(json) {
     this.#lexer = moo.compile({
-      WS: { match: new RegExp(whitespace, "u"), lineBreaks: true },
-      boolean: ["true", "false"],
-      null: "null",
-      number: { match: new RegExp(number, "u") },
-      string: { match: new RegExp(string, "u") },
+      "WS": { match: new RegExp(whitespace, "u"), lineBreaks: true },
+      "boolean": ["true", "false"],
+      "null": "null",
+      "number": { match: new RegExp(number, "u") },
+      "string": { match: new RegExp(string, "u") },
       "{": "{",
       "}": "}",
       "[": "[",
       "]": "]",
       ":": ":",
       ",": ",",
-      error: moo.error
+      "error": moo.error
     });
 
     this.#iterator = (function* (lexer) {
@@ -80,7 +79,7 @@ export class JsonLexer {
     }
 
     return result.value;
-  };
+  }
 
   done() {
     if (!this.#iterator.next().done) {
@@ -100,5 +99,5 @@ export class JsonLexer {
         column: token?.col ?? this.#lexer.col // eslint-disable-line @typescript-eslint/no-unsafe-assignment
       }
     });
-  };
+  }
 }

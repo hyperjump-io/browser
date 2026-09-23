@@ -4,7 +4,6 @@ import { fromJson } from "../../json/jsonast-util.js";
  * @import * as API from "./json-media-type-plugin.d.ts"
  */
 
-
 /** @implements API.JsonMediaTypePlugin */
 export class JsonMediaTypePlugin {
   constructor() {

@@ -6,7 +6,6 @@ import { fromJson } from "../json/jsonast-util.js";
  * @import * as API from "./jref-util.d.ts"
  */
 
-
 /** @type API.Reviver<any> */
 const defaultReviver = (value) => value;
 

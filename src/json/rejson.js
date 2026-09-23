@@ -7,7 +7,6 @@ import { rejsonStringify } from "./rejson-stringify.js";
  * @import * as API from "./rejson.d.ts"
  */
 
-
 /** @type API.rejson */
 export const rejson = /** @type Processor<any, any, any, any, any> */ (unified()
   .use(rejsonParse)

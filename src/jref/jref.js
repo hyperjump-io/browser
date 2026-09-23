@@ -7,7 +7,6 @@ import { jrefStringify } from "./jref-stringify.js";
  * @import * as API from "./jref.d.ts"
  */
 
-
 /** @type API.jref */
 export const jref = /** @type Processor<any, any, any, any, any> */ (unified()
   .use(jrefParse)

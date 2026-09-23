@@ -7,7 +7,6 @@ import { toJson } from "../json/jsonast-util.js";
  * @import { JrefNode } from "./jref-ast.d.ts"
  */
 
-
 describe("JRef", () => {
   const testContext = "https://test.hyperjump.com";
 

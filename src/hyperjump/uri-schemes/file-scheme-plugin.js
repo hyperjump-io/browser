@@ -9,7 +9,6 @@ import { Readable } from "node:stream";
  * @import * as API from "./file-scheme-plugin.d.ts"
  */
 
-
 /** @implements API.FileUriSchemePlugin */
 export class FileUriSchemePlugin {
   #hyperjump;

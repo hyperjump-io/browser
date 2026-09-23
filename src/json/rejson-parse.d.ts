@@ -1,7 +1,6 @@
-import { Plugin } from "unified";
-import { JsonDocumentNode, JsonNode } from "./jsonast.d.ts";
-import { Reviver } from "./jsonast-util.d.ts";
-
+import type { Plugin } from "unified";
+import type { JsonDocumentNode, JsonNode } from "./jsonast.d.ts";
+import type { Reviver } from "./jsonast-util.d.ts";
 
 export type JsonParseOptions = {
   location?: string;

@@ -4,7 +4,6 @@ import { readFile } from "node:fs/promises";
 import { args } from "unified-args";
 import { rejson } from "./rejson.js";
 
-
 /**
  * @typedef {{
  *   version: string;

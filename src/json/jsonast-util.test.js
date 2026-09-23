@@ -19,7 +19,6 @@ import {
  * @import { JsonNode } from "./index.js"
  */
 
-
 describe("jsonast-util", async () => {
   const testPath = resolve(import.meta.dirname, "jsonast-util-tests");
   for (const entry of await readdir(testPath, { withFileTypes: true })) {

@@ -1,7 +1,6 @@
-import { Plugin } from "unified";
-import { JrefDocumentNode, JrefNode } from "./jref-ast.d.ts";
-import { Reviver } from "./jref-util.js";
-
+import type { Plugin } from "unified";
+import type { JrefDocumentNode, JrefNode } from "./jref-ast.d.ts";
+import type { Reviver } from "./jref-util.js";
 
 export type JrefParseOptions = {
   reviver?: Reviver<JrefNode | undefined>;

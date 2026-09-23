@@ -14,7 +14,7 @@
   "repository": "github:hyperjump-io/browser",
   "funding": {
     "type": "github",
-    "url": "https://github.com/sponsors/jdesrosiers"
+    "url": "https://github.com/sponsors/hyperjump-io"
   },
   "type": "module",
   "exports": {
@@ -27,8 +27,8 @@
     "jref": "./src/jref/jref-cli.js"
   },
   "scripts": {
-    "lint": "eslint src",
-    "test": "vitest --watch=false",
+    "lint": "oxlint",
+    "test": "vitest run",
     "type-check": "tsc --noEmit",
     "docs": "typedoc --excludeExternals"
   },
@@ -37,10 +37,11 @@
     "@types/content-type": "*",
     "@types/moo": "*",
     "@types/node": "*",
-    "eslint-import-resolver-typescript": "*",
-    "eslint-plugin-import": "*",
+    "@vitest/coverage-v8": "*",
+    "oxlint": "*",
+    "oxlint-tsgolint": "*",
     "typedoc": "*",
-    "typescript-eslint": "*",
+    "typescript": "*",
     "undici": "*",
     "vitest": "*"
   },

@@ -4,7 +4,6 @@ import { fromJref } from "../../jref/jref-util.js";
  * @import * as API from "./jref-media-type-plugin.d.ts"
  */
 
-
 /** @implements API.JrefMediaTypePlugin */
 export class JrefMediaTypePlugin {
   constructor() {

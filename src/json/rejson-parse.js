@@ -7,7 +7,6 @@ import { fromJson } from "./jsonast-util.js";
  * @import * as API from "./rejson-parse.d.ts"
  */
 
-
 /** @type API.rejsonParse */
 export function rejsonParse(options) {
   this.parser = function (document, file) {

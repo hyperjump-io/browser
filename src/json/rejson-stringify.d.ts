@@ -1,7 +1,6 @@
-import { Plugin } from "unified";
-import { JsonDocumentNode } from "./jsonast.d.ts";
-import { Replacer } from "./jsonast-util.js";
-
+import type { Plugin } from "unified";
+import type { JsonDocumentNode } from "./jsonast.d.ts";
+import type { Replacer } from "./jsonast-util.js";
 
 export type RejsonStringifyOptions = {
   replacer?: Replacer;

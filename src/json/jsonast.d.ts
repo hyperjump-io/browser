@@ -1,6 +1,5 @@
 import type { Data, Position } from "unist";
 
-
 export type JsonNullNode = {
   type: string;
   jsonType: "null";

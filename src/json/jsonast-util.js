@@ -14,7 +14,6 @@ import { JsonLexer } from "./json-lexer.js";
  * @import * as API from "./jsonast-util.d.ts"
  */
 
-
 /** @type API.Reviver<object, any> */
 const defaultReviver = (value) => value;
 
@@ -31,9 +30,7 @@ export const fromJson = (json, location = "", reviver = defaultReviver) => {
 };
 
 /**
- * @template {object} A
- *
- * @type <B extends JsonNode<A> | undefined>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: API.Reviver<A, B>, location: string) => B
+ * @type <A extends object, B extends JsonNode<A> | undefined>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: API.Reviver<A, B>, location: string) => B
  */
 const parseValue = (token, lexer, key, reviver, location) => {
   /** @type {JsonNode<A>} */
@@ -111,7 +108,7 @@ const parseProperty = (token, lexer, _key, reviver, location) => {
  * ) => (lexer: JsonLexer, node: P, reviver: API.Reviver<any, any>, location: string) => P
  */
 const parseCommaSeparated = (parseChild, endToken) => (lexer, node, reviver, location) => {
-  for (let index = 0; true; index++) {
+  for (let index = 0; ; index++) {
     let token = lexer.nextToken();
 
     if (token.type === endToken) {
@@ -391,10 +388,14 @@ const pointerSegments = function* (pointer) {
 };
 
 /** @type (segment: string) => string */
-const unescapePointerSegment = (segment) => segment.toString().replace(/~1/g, "/").replace(/~0/g, "~");
+const unescapePointerSegment = (segment) => segment.toString()
+  .replace(/~1/g, "/")
+  .replace(/~0/g, "~");
 
 /** @type (segment: string) => string */
-const escapePointerSegment = (segment) => segment.toString().replace(/~/g, "~0").replace(/\//g, "~1");
+const escapePointerSegment = (segment) => segment.toString()
+  .replace(/~/g, "~0")
+  .replace(/\//g, "~1");
 
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jsonValue = /** @type API.jsonValue */ ((node) => {
@@ -462,7 +463,7 @@ export class JsonPointerError extends Error {
   /**
    * @param {string} [message]
    */
-  constructor(message = undefined) {
+  constructor(message) {
     super(message);
     this.name = this.constructor.name;
   }

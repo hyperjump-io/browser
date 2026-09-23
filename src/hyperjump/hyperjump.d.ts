@@ -1,8 +1,8 @@
-import type { JrefNode } from "../jref/jref-ast.js";
+import type { JsonNode } from "../json/jsonast.d.ts";
+import type { JrefNode } from "../jref/jref-ast.d.ts";
 import type { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.d.ts";
 import type { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.d.ts";
-import type { jsonObjectHas, jsonObjectKeys, jsonValue } from "../json/jsonast-util.js";
-
+import type { jsonObjectHas, jsonObjectKeys, jsonValue } from "../json/jsonast-util.d.ts";
 
 export type HyperjumpConfig = object;
 
@@ -10,9 +10,7 @@ export type GetOptions = {
   referencedFrom?: string;
 };
 
-type UnionIncludes<T, U> = U extends T ? T : never;
-
-export class Hyperjump<T extends UnionIncludes<U, JrefNode> = JrefNode> {
+export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
   constructor(config?: HyperjumpConfig);
 
   /**

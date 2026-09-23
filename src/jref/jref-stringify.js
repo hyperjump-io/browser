@@ -5,7 +5,6 @@ import { toJson } from "../json/jsonast-util.js";
  * @import * as API from "./jref-stringify.d.ts"
  */
 
-
 /** @type API.jrefStringify */
 export function jrefStringify(options) {
   this.compiler = (tree) => {

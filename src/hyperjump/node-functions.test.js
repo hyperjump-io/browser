@@ -6,7 +6,6 @@ import { Hyperjump } from "./index.js";
  * @import { JrefNode } from "../jref/index.js"
  */
 
-
 describe("JSON Browser", () => {
   const testDomain = "https://example.com";
   /** @type MockAgent */

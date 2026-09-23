@@ -8,7 +8,6 @@ import { fromJref } from "./jref-util.js";
  * @import * as API from "./jref-parse.d.ts"
  */
 
-
 /** @type API.jrefParse */
 export function jrefParse(options) {
   this.parser = function (document, file) {

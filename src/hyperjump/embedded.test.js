@@ -9,7 +9,6 @@ import { toJson } from "../json/jsonast-util.js";
  * @import { JrefNode } from "../jref/jref-ast.js"
  */
 
-
 describe("JSON Browser", () => {
   describe("embedded", () => {
     const hyperjump = new Hyperjump();

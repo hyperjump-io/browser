@@ -3,7 +3,6 @@ import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump } from "./index.js";
 import { toJson } from "../json/jsonast-util.js";
 
-
 describe("JSON Browser", () => {
   describe("get", () => {
     const testDomain = "https://example.com";

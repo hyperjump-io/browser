@@ -3,7 +3,6 @@
  * @import * as API from "./http-scheme-plugin.d.ts"
  */
 
-
 /** @implements API.HttpUriSchemePlugin */
 export class HttpUriSchemePlugin {
   #hyperjump;
@@ -34,7 +33,7 @@ export class HttpUriSchemePlugin {
     }
 
     return response;
-  };
+  }
 }
 
 class HttpError extends Error {
@@ -42,7 +41,7 @@ class HttpError extends Error {
    * @param {Response} response
    * @param {string} [message]
    */
-  constructor(response, message = undefined) {
+  constructor(response, message) {
     super(`${response.status} ${response.statusText}${message ? ` -- ${message}` : ""}`);
     this.name = this.constructor.name;
     this.response = response;

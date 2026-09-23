@@ -9,12 +9,11 @@ import { jsonObjectHas, jsonObjectKeys, jsonValue, pointerGet, pointerStep } fro
 import { mimeMatch } from "./utilities.js";
 
 /**
- * @import { JrefNode } from "../jref/jref-ast.js"
- * @import { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.js"
- * @import { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.js"
+ * @import { JrefNode } from "../jref/jref-ast.d.ts"
+ * @import { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.d.ts"
+ * @import { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.d.ts"
  * @import * as API from "./hyperjump.d.ts"
  */
-
 
 // TODO: Support fetch options in get
 // TODO: Support filters
@@ -154,7 +153,7 @@ export class Hyperjump {
     for (const contentType in this.#mediaTypePlugins) {
       for (const extension of this.#mediaTypePlugins[contentType].extensions) {
         if (uri.endsWith(extension)) {
-          if (extension.startsWith("/") || extension.startsWith(".") && uri[uri.length - extension.length - 1] !== "/") {
+          if (extension.startsWith("/") || (extension.startsWith(".") && uri[uri.length - extension.length - 1] !== "/")) {
             return contentType;
           }
         }
@@ -253,7 +252,7 @@ export class UnsupportedUriSchemeError extends Error {
    * @param {string} scheme
    * @param {string} [message]
    */
-  constructor(scheme, message = undefined) {
+  constructor(scheme, message) {
     super(message);
     this.name = this.constructor.name;
     this.scheme = scheme;
@@ -268,7 +267,7 @@ export class UnsupportedMediaTypeError extends Error {
    * @param {string} mediaType
    * @param {string} [message]
    */
-  constructor(mediaType, message = undefined) {
+  constructor(mediaType, message) {
     super(message);
     this.name = this.constructor.name;
     this.mediaType = mediaType;
@@ -279,7 +278,7 @@ export class UnknownMediaTypeError extends Error {
   /**
    * @param {string} [message]
    */
-  constructor(message = undefined) {
+  constructor(message) {
     super(message);
     this.name = this.constructor.name;
   }

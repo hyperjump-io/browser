@@ -19,4 +19,4 @@ export interface MediaTypePlugin<T extends DocumentNode> {
   extensions: string[];
   quality?: number;
   parse: (response: Response) => Promise<T>;
-};
+}
