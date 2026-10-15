@@ -12,7 +12,9 @@ import {
   jsonObjectKeys,
   jsonObjectValues,
   jsonObjectEntries,
-  jsonValue
+  jsonValue,
+  pointerStep,
+  JsonPointerError
 } from "./index.js";
 
 /**
@@ -135,6 +137,47 @@ describe("jsonast-util", async () => {
       /** @type JsonNode */
       const node = fromJson(`{ "d": 1 }`);
       expect(toJson(node, replacer, "  ")).to.equal(`{}`);
+    });
+  });
+
+  describe("pointerStep array index", () => {
+    /** @type JsonNode */
+    let subject;
+
+    beforeEach(() => {
+      subject = fromJson(`[0, 1, 2]`);
+    });
+
+    test("valid index", () => {
+      expect(toJson(pointerStep("1", subject))).to.equal(`1`);
+    });
+
+    test("zero", () => {
+      expect(toJson(pointerStep("0", subject))).to.equal(`0`);
+    });
+
+    test("leading zero is not a valid index", () => {
+      expect(() => pointerStep("01", subject)).to.throw(JsonPointerError);
+    });
+
+    test("trailing characters are not a valid index", () => {
+      expect(() => pointerStep("1abc", subject)).to.throw(JsonPointerError);
+    });
+
+    test("negative numbers are not a valid index", () => {
+      expect(() => pointerStep("-1", subject)).to.throw(JsonPointerError);
+    });
+
+    test("decimals are not a valid index", () => {
+      expect(() => pointerStep("1.0", subject)).to.throw(JsonPointerError);
+    });
+
+    test("out of range", () => {
+      expect(() => pointerStep("3", subject)).to.throw(JsonPointerError);
+    });
+
+    test("'-' refers to a nonexistent element", () => {
+      expect(() => pointerStep("-", subject)).to.throw(JsonPointerError);
     });
   });
 

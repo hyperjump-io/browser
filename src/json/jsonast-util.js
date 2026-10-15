@@ -362,6 +362,9 @@ const stringifyObject = (node, replacer, space, depth) => {
   return "{" + padding + space + properties.join(`,${padding}${space}`) + padding + "}";
 };
 
+// RFC 6901: array-index = %x30 / ( %x31-39 *(%x30-39) )
+const arrayIndexPattern = /^(?:0|[1-9][0-9]*)$/;
+
 /** @type API.pointerStep */
 export const pointerStep = (segment, node, uri = "#") => {
   switch (node.jsonType) {
@@ -375,7 +378,11 @@ export const pointerStep = (segment, node, uri = "#") => {
       throw new JsonPointerError(`Property '${segment}' doesn't exist${uriMessage}`);
     }
     case "array": {
-      const index = segment === "-" ? node.children.length : parseInt(segment);
+      if (segment !== "-" && !arrayIndexPattern.test(segment)) {
+        const uriMessage = uri ? ` at ${uri}` : "";
+        throw new JsonPointerError(`'${segment}' is not a valid array index${uriMessage}`);
+      }
+      const index = segment === "-" ? node.children.length : parseInt(segment, 10);
       if (!node.children[index]) {
         const uriMessage = uri ? ` at ${uri}` : "";
         throw new JsonPointerError(`Index '${index}' doesn't exist${uriMessage}`);
