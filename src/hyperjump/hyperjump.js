@@ -76,6 +76,13 @@ export class Hyperjump {
         const response = await this.retrieve(uri, options);
         document = await this.#parseResponse(response);
         uri = response.url + (fragment === undefined ? "" : `#${fragment}`);
+
+        // References within the document are relative to the URI it was
+        // retrieved from, which can differ from the requested URI (redirects,
+        // symlinks), so it needs to be cached under both.
+        if (response.url) {
+          this.#cache[toAbsoluteIri(response.url)] = document;
+        }
       } catch (error) {
         throw new RetrievalError(`Unable to load resource '${uri}'`, { cause: error });
       }

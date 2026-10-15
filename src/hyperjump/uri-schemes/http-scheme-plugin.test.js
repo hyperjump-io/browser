@@ -165,6 +165,29 @@ describe("JSON Browser", () => {
         expect(toJson(subject)).to.equal(`42`);
       });
 
+      test("redirected document with a reference to itself", async () => {
+        const path = "/foo";
+        const redirectPath = "/alternate-foo";
+        const jref = `{
+  "foo": { "$ref": "#/bar" },
+  "bar": 42
+}`;
+
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: path })
+          .reply(307, "", { headers: { location: `${testDomain}${redirectPath}` } });
+
+        // Only one request to the redirect target is expected
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: redirectPath })
+          .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
+
+        const hyperjump = new Hyperjump();
+        const subject = await hyperjump.get(`${testDomain}${path}#/foo`);
+
+        expect(toJson(subject)).to.equal(`42`);
+      });
+
       // There isn't a way to make this pass in the browser do to limitations of the Fetch spec.
       test.skip("redirect with a Location that includes a fragment", async () => {
         const path = "/foo";
