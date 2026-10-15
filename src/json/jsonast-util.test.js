@@ -181,6 +181,18 @@ describe("jsonast-util", async () => {
     });
   });
 
+  test("a reviver can parse JSON while another parse is in progress", () => {
+    /** @type JsonNode | undefined */
+    const subject = fromJson(`["[1, 2]", 3]`, "", (node) => {
+      if (node.jsonType === "string") {
+        return fromJson(node.value);
+      }
+      return node;
+    });
+
+    expect(toJson(/** @type JsonNode */ (subject))).to.equal(`[[1,2],3]`);
+  });
+
   test("missing colon error reports the position of the unexpected token", () => {
     try {
       fromJson(`{ "foo"\n\n  1 }`);

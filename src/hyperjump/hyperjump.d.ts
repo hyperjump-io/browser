@@ -66,7 +66,7 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
   getMediaType: (uri: string) => string;
 
   /**
-   * Add support for a media tpe. Support for the
+   * Add support for a media type. Support for the
    * {@link hyperjump.JrefMediaTypePlugin | `JRef`} and
    * {@link hyperjump.JsonMediaTypePlugin | `JSON`} media types are enabled by
    * default.
@@ -74,7 +74,7 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
   addMediaTypePlugin: <A extends DocumentNode>(plugin: MediaTypePlugin<A>) => void;
 
   /**
-   * This is mostly useful for disabling a scheme that's enabled by default.
+   * This is mostly useful for disabling a media type that's enabled by default.
    */
   removeMediaTypePlugin: (contentType: string) => void;
 
@@ -83,6 +83,9 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * {@link https://developer.mozilla.org/en-US/docs/Glossary/Quality_values | quality}
    * that will be used in the Accept header of requests to indicate to servers
    * which media types are preferred over others.
+   *
+   * @throws {@link UnsupportedMediaTypeError} if there is no plugin registered
+   * for the media type.
    */
   setMediaTypeQuality: (contentType: string, quality: number) => void;
 

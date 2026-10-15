@@ -1,6 +1,6 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump, JrefMediaTypePlugin } from "./index.js";
+import { Hyperjump, JrefMediaTypePlugin, UnsupportedMediaTypeError } from "./index.js";
 import { fromJs, toJson } from "../json/jsonast-util.js";
 
 describe("JSON Browser", () => {
@@ -9,6 +9,11 @@ describe("JSON Browser", () => {
       const hyperjump = new Hyperjump();
       const accept = hyperjump.acceptableMediaTypes();
       expect(accept).to.equal("application/reference+json, application/json, */*; q=0.001");
+    });
+
+    test("setMediaTypeQuality for an unregistered media type", () => {
+      const hyperjump = new Hyperjump();
+      expect(() => hyperjump.setMediaTypeQuality("application/foo", 0.5)).to.throw(UnsupportedMediaTypeError);
     });
 
     describe("media type plugin without quality", () => {
@@ -74,7 +79,7 @@ describe("JSON Browser", () => {
             return {
               type: "foo-document",
               children: [],
-              uri: "https://exmple.com/foo"
+              uri: "https://example.com/foo"
             };
           }
         });

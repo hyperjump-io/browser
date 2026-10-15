@@ -86,7 +86,7 @@ const parseScalar = (token, location) => {
  */
 const parseProperty = (token, lexer, _key, reviver, location) => {
   if (token.type !== "string") {
-    throw lexer.syntaxError("Expected a propertry", token);
+    throw lexer.syntaxError("Expected a property", token);
   }
 
   /** @type JsonPropertyNameNode */

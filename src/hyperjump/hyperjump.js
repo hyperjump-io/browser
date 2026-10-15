@@ -197,6 +197,10 @@ export class Hyperjump {
 
   /** @type API.Hyperjump<JrefNode>["setMediaTypeQuality"] */
   setMediaTypeQuality(contentType, quality) {
+    if (!(contentType in this.#mediaTypePlugins)) {
+      throw new UnsupportedMediaTypeError(contentType, `'${contentType}' is not supported. Use the 'addMediaTypePlugin' function to add support for this media type.`);
+    }
+
     this.#mediaTypePlugins[contentType].quality = quality;
   }
 

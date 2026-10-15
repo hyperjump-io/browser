@@ -1,6 +1,6 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump, RetrievalError } from "../index.js";
+import { Hyperjump, HttpError, RetrievalError } from "../index.js";
 import { toJson } from "../../json/jsonast-util.js";
 
 describe("JSON Browser", () => {
@@ -35,8 +35,9 @@ describe("JSON Browser", () => {
         } catch (error) {
           expect(error).to.be.instanceof(RetrievalError);
           const retrievalError = /** @type RetrievalError */ (error);
-          const cause = /** @type Error */ (retrievalError.cause);
-          expect(cause.name).to.equal("HttpError");
+          expect(retrievalError.cause).to.be.instanceof(HttpError);
+          const cause = /** @type HttpError */ (retrievalError.cause);
+          expect(cause.response.status).to.equal(404);
         }
       });
 
@@ -188,7 +189,7 @@ describe("JSON Browser", () => {
         expect(toJson(subject)).to.equal(`42`);
       });
 
-      // There isn't a way to make this pass in the browser do to limitations of the Fetch spec.
+      // There isn't a way to make this pass in the browser due to limitations of the Fetch spec.
       test.skip("redirect with a Location that includes a fragment", async () => {
         const path = "/foo";
         const uri = `${testDomain}${path}`;
@@ -210,8 +211,8 @@ describe("JSON Browser", () => {
         expect(toJson(subject)).to.equal(`42`);
       });
 
-      // There isn't a way to make this pass in the browser do to limitations of the Fetch spec.
-      test.skip("redirect whose inherited fragment gets overriden by the Location's fragment", async () => {
+      // There isn't a way to make this pass in the browser due to limitations of the Fetch spec.
+      test.skip("redirect whose inherited fragment gets overridden by the Location's fragment", async () => {
         const path = "/foo";
         const uri = `${testDomain}${path}`;
         const redirectPath = "/alternate-foo";

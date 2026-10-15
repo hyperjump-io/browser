@@ -34,6 +34,21 @@ const number = `-?${int}(?:${frac})?(?:${exp})?`;
 // Whitespace
 const whitespace = `(?:(?:\\r?\\n)|[ \\t])+`;
 
+const jsonLexer = moo.compile({
+  "WS": { match: new RegExp(whitespace, "u"), lineBreaks: true },
+  "boolean": ["true", "false"],
+  "null": "null",
+  "number": { match: new RegExp(number, "u") },
+  "string": { match: new RegExp(string, "u") },
+  "{": "{",
+  "}": "}",
+  "[": "[",
+  "]": "]",
+  ":": ":",
+  ",": ",",
+  "error": moo.error
+});
+
 export class JsonLexer {
   /** @type Lexer */
   #lexer;
@@ -45,20 +60,10 @@ export class JsonLexer {
    * @param {string} json
    */
   constructor(json) {
-    this.#lexer = moo.compile({
-      "WS": { match: new RegExp(whitespace, "u"), lineBreaks: true },
-      "boolean": ["true", "false"],
-      "null": "null",
-      "number": { match: new RegExp(number, "u") },
-      "string": { match: new RegExp(string, "u") },
-      "{": "{",
-      "}": "}",
-      "[": "[",
-      "]": "]",
-      ":": ":",
-      ",": ",",
-      "error": moo.error
-    });
+    // Lexers are stateful, so each instance needs its own copy. Cloning reuses
+    // the compiled rules.
+    // @ts-expect-error clone exists in the lexer but isn't included in the type
+    this.#lexer = /** @type Lexer */ (jsonLexer.clone());
 
     this.#iterator = (function* (lexer) {
       for (const token of lexer.reset(json)) {

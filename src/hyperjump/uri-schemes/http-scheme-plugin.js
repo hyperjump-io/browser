@@ -36,7 +36,7 @@ export class HttpUriSchemePlugin {
   }
 }
 
-class HttpError extends Error {
+export class HttpError extends Error {
   /**
    * @param {Response} response
    * @param {string} [message]

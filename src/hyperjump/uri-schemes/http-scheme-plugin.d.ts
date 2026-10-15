@@ -3,7 +3,7 @@ import type { UriSchemePlugin } from "./uri-scheme-plugin.d.ts";
 
 /**
  * Support the `http:` and `https:` URI schemes. Sends an Accept header
- * representng all registered media types.
+ * representing all registered media types.
  */
 export class HttpUriSchemePlugin implements UriSchemePlugin {
   constructor(hyperjump: Hyperjump<any>);
@@ -16,6 +16,11 @@ export class HttpUriSchemePlugin implements UriSchemePlugin {
   retrieve: UriSchemePlugin["retrieve"];
 }
 
-declare class HttpError extends Error {
+/**
+ * Thrown when an HTTP request returns an error or an unsupported status code.
+ */
+export class HttpError extends Error {
+  response: Response;
+
   constructor(response: Response, message?: string);
 }
