@@ -51,6 +51,12 @@ describe("JSON Browser", () => {
         const accept = hyperjump.acceptableMediaTypes();
         expect(accept).to.equal("application/reference+json, application/json, application/foo; q=0.9, */*; q=0.001");
       });
+
+      test("setMediaTypeQuality to 0", () => {
+        hyperjump.setMediaTypeQuality("application/foo", 0);
+        const accept = hyperjump.acceptableMediaTypes();
+        expect(accept).to.equal("application/reference+json, application/json, application/foo; q=0, */*; q=0.001");
+      });
     });
 
     describe("media type plugin with quality", () => {

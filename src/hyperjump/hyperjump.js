@@ -163,7 +163,7 @@ export class Hyperjump {
       accept += ", ";
     }
     accept += contentType;
-    if (quality) {
+    if (quality !== undefined) {
       accept += `; q=${quality}`;
     }
 
