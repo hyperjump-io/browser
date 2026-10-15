@@ -13,7 +13,7 @@ import { jref } from "./jref.js";
 const packageJsonUrl = new URL("../../package.json", import.meta.url);
 
 /** @type Package */
-const packageJson = JSON.parse(await readFile(packageJsonUrl, "utf8")); // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+const packageJson = JSON.parse(await readFile(packageJsonUrl, "utf8"));
 
 args({
   description: "CLI to process JRef",

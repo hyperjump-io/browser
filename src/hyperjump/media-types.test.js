@@ -20,7 +20,7 @@ describe("JSON Browser", () => {
         hyperjump.addMediaTypePlugin({
           mediaType: "application/foo",
           extensions: [".foo"],
-          parse: async () => { // eslint-disable-line @typescript-eslint/require-await
+          parse: async () => {
             return {
               type: "foo-document",
               children: [],
@@ -63,7 +63,7 @@ describe("JSON Browser", () => {
           mediaType: "application/foo",
           extensions: [".foo"],
           quality: 0.8,
-          parse: async () => { // eslint-disable-line @typescript-eslint/require-await
+          parse: async () => {
             return {
               type: "foo-document",
               children: [],

@@ -6,7 +6,6 @@ import type { UriSchemePlugin } from "./uri-scheme-plugin.d.ts";
  * representng all registered media types.
  */
 export class HttpUriSchemePlugin implements UriSchemePlugin {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(hyperjump: Hyperjump<any>);
 
   schemes: string[];

@@ -68,13 +68,22 @@ const parseScalar = (token, location) => {
   return {
     type: "json",
     jsonType: token.type,
-    value: JSON.parse(token.value), // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+    value: JSON.parse(token.value),
     location: location,
     position: tokenPosition(token)
   };
 };
 
-/** @type <A extends object, B extends JsonNode<A> | undefined>(token: JsonToken, lexer: JsonLexer, key: string, reviver: API.Reviver<A, B>, location: string) => JsonPropertyNode<JsonNode<A>> | undefined */
+/**
+ * @template {object} A
+ * @template {JsonNode<A> | undefined} B
+ * @param {JsonToken} token
+ * @param {JsonLexer} lexer
+ * @param {string} _key
+ * @param {API.Reviver<A, B>} reviver
+ * @param {string} location
+ * @returns {JsonPropertyNode<JsonNode<A>> | undefined}
+ */
 const parseProperty = (token, lexer, _key, reviver, location) => {
   if (token.type !== "string") {
     throw lexer.syntaxError("Expected a propertry", token);
@@ -84,7 +93,7 @@ const parseProperty = (token, lexer, _key, reviver, location) => {
   const keyNode = {
     type: "json-property-name",
     jsonType: "string",
-    value: JSON.parse(token.value), // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+    value: JSON.parse(token.value),
     position: tokenPosition(token)
   };
 
@@ -138,7 +147,15 @@ const parseCommaSeparated = (parseChild, endToken) => (lexer, node, reviver, loc
   }
 };
 
-/** @type <A extends object, B extends JsonNode<A> | undefined>(openToken: JsonToken, lexer: JsonLexer, reviver: API.Reviver<A, B>, location: string) => JsonNode<A> */
+/**
+ * @template {object} A
+ * @template {JsonNode<A> | undefined} B
+ * @param {JsonToken} openToken
+ * @param {JsonLexer} lexer
+ * @param {API.Reviver<A, B>} reviver
+ * @param {string} location
+ * @returns {JsonNode<A>}
+ */
 const parseArray = (openToken, lexer, reviver, location) => {
   return parseItems(lexer, {
     type: "json",
@@ -149,7 +166,16 @@ const parseArray = (openToken, lexer, reviver, location) => {
   }, reviver, location);
 };
 
-/** @type <A extends object, B extends JsonNode<A> | undefined>(token: JsonToken, lexer: JsonLexer, key: string, reviver: API.Reviver<A, B>, location: string) => B */
+/**
+ * @template {object} A
+ * @template {JsonNode<A> | undefined} B
+ * @param {JsonToken} token
+ * @param {JsonLexer} lexer
+ * @param {string} key
+ * @param {API.Reviver<A, B>} reviver
+ * @param {string} location
+ * @returns {B}
+ */
 const parseItem = (token, lexer, key, reviver, location) => {
   return parseValue(token, lexer, key, reviver, JsonPointer.append(key, location));
 };
@@ -157,7 +183,15 @@ const parseItem = (token, lexer, key, reviver, location) => {
 /** @type <A extends object, B extends JsonNode<A> | undefined>(lexer: JsonLexer, node: { type: "json" } & JsonArrayNode<JsonNode<A>>, reviver: API.Reviver<A, B>, location: string) => JsonNode<A> */
 const parseItems = parseCommaSeparated(parseItem, "]");
 
-/** @type <A extends object, B extends JsonNode<A> | undefined>(openToken: JsonToken, lexer: JsonLexer, reviver: API.Reviver<A, B>, location: string) => JsonNode<A> */
+/**
+ * @template {object} A
+ * @template {JsonNode<A> | undefined} B
+ * @param {JsonToken} openToken
+ * @param {JsonLexer} lexer
+ * @param {API.Reviver<A, B>} reviver
+ * @param {string} location
+ * @returns {JsonNode<A>}
+ */
 const parseObject = (openToken, lexer, reviver, location) => {
   return parseProperties(lexer, {
     type: "json",

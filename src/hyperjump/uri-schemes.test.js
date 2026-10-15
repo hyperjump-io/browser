@@ -28,7 +28,7 @@ describe("JSON Browser", () => {
 
         hyperjump.addUriSchemePlugin({
           schemes: ["foo"],
-          retrieve: async (uri) => { // eslint-disable-line @typescript-eslint/require-await
+          retrieve: async (uri) => {
             const stream = new Readable();
             stream.push(fixtureDocument);
             stream.push(null);

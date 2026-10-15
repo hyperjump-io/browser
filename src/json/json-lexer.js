@@ -94,9 +94,9 @@ export class JsonLexer {
       ruleId: "syntax-error",
       place: {
         // @ts-expect-error Line exists in the lexer but isn't included in the type
-        line: token?.line ?? this.#lexer.line, // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+        line: token?.line ?? this.#lexer.line,
         // @ts-expect-error Line exists in the lexer but isn't included in the type
-        column: token?.col ?? this.#lexer.col // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+        column: token?.col ?? this.#lexer.col
       }
     });
   }

@@ -9,7 +9,6 @@ export type DocumentNode = {
   fragmentKind?: string;
 };
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export interface MediaTypePlugin<T extends DocumentNode> {
   mediaType: string;
   /**
