@@ -1,6 +1,7 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump } from "./index.js";
+import { Hyperjump, JrefMediaTypePlugin } from "./index.js";
+import { fromJs, toJson } from "../json/jsonast-util.js";
 
 describe("JSON Browser", () => {
   describe("media types", () => {
@@ -114,6 +115,60 @@ describe("JSON Browser", () => {
 
         // Expect not to throw
         await hyperjump.get(`${testDomain}/foo`);
+      });
+
+      test("a plugin for a structured suffix media type takes precedence over the suffix's plugin", async () => {
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: "/foo" })
+          .reply(200, `{}`, { headers: { "content-type": "application/whatever+json" } });
+
+        const hyperjump = new Hyperjump();
+        hyperjump.addMediaTypePlugin({
+          mediaType: "application/whatever+json",
+          extensions: [],
+          parse: async () => ({ type: "whatever-document", children: [fromJs(42)] })
+        });
+
+        const subject = await hyperjump.get(`${testDomain}/foo`);
+        expect(toJson(subject)).to.equal(`42`);
+      });
+
+      test("re-registered JRef plugin takes precedence over the JSON plugin", async () => {
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: "/foo" })
+          .reply(200, `{ "$ref": "/bar" }`, { headers: { "content-type": "application/reference+json" } });
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: "/bar" })
+          .reply(200, `42`, { headers: { "content-type": "application/reference+json" } });
+
+        const hyperjump = new Hyperjump();
+        hyperjump.removeMediaTypePlugin("application/reference+json");
+        hyperjump.addMediaTypePlugin(new JrefMediaTypePlugin());
+
+        const subject = await hyperjump.get(`${testDomain}/foo`);
+        expect(toJson(subject)).to.equal(`42`);
+      });
+
+      test("a wildcard plugin doesn't take precedence over a more specific plugin", async () => {
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: "/foo" })
+          .reply(200, `42`, { headers: { "content-type": "application/json" } });
+
+        const hyperjump = new Hyperjump();
+        hyperjump.removeMediaTypePlugin("application/json");
+        hyperjump.addMediaTypePlugin({
+          mediaType: "application/*",
+          extensions: [],
+          parse: async () => ({ type: "wildcard-document", children: [fromJs("wildcard")] })
+        });
+        hyperjump.addMediaTypePlugin({
+          mediaType: "application/json",
+          extensions: [],
+          parse: async () => ({ type: "json-document", children: [fromJs("json")] })
+        });
+
+        const subject = await hyperjump.get(`${testDomain}/foo`);
+        expect(toJson(subject)).to.equal(`"json"`);
       });
     });
   });

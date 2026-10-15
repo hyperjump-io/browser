@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { mimeMatch } from "./utilities.js";
+import { mimeMatch, mimeMatchSpecificity } from "./utilities.js";
 
 describe("mimeMatch", () => {
   test("Exact match", () => {
@@ -56,5 +56,28 @@ describe("mimeMatch", () => {
 
   test("Wildcard type, wildcard subtype", () => {
     expect(mimeMatch("*/*", "application/reference+json")).to.equal(true);
+  });
+});
+
+describe("mimeMatchSpecificity", () => {
+  test("More specific matches have higher specificity", () => {
+    const actual = "application/schema+json";
+    const rangesFromMostToLeastSpecific = [
+      "application/schema+json",
+      "*/schema+json",
+      "application/json",
+      "*/json",
+      "application/*",
+      "*/*"
+    ];
+
+    const specificities = rangesFromMostToLeastSpecific.map((range) => mimeMatchSpecificity(range, actual));
+    const sorted = specificities.toSorted((a, b) => b - a);
+    expect(specificities).to.eql(sorted);
+    expect(new Set(specificities).size).to.equal(specificities.length);
+  });
+
+  test("No match", () => {
+    expect(mimeMatchSpecificity("application/xml", "application/json")).to.equal(0);
   });
 });

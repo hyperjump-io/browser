@@ -6,7 +6,7 @@ import { FileUriSchemePlugin } from "./uri-schemes/file-scheme-plugin.js";
 import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
 import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
 import { jsonObjectHas, jsonObjectKeys, jsonValue, pointerGet, pointerStep } from "../json/jsonast-util.js";
-import { mimeMatch } from "./utilities.js";
+import { mimeMatchSpecificity } from "./utilities.js";
 
 /**
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
@@ -193,10 +193,21 @@ export class Hyperjump {
     }
 
     const contentType = parseContentType(contentTypeText);
+
+    // Use the plugin with the most specific match. If there's a tie, the plugin
+    // that was registered first wins.
+    let bestPattern;
+    let bestSpecificity = 0;
     for (const pattern in this.#mediaTypePlugins) {
-      if (mimeMatch(pattern, contentType.type)) {
-        return this.#mediaTypePlugins[pattern].parse(response);
+      const specificity = mimeMatchSpecificity(pattern, contentType.type);
+      if (specificity > bestSpecificity) {
+        bestPattern = pattern;
+        bestSpecificity = specificity;
       }
+    }
+
+    if (bestPattern !== undefined) {
+      return this.#mediaTypePlugins[bestPattern].parse(response);
     }
 
     throw new UnsupportedMediaTypeError(contentType.type, `'${contentType.type}' is not supported. Use the 'addMediaTypePlugin' function to add support for this media type.`);
