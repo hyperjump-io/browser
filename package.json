@@ -56,12 +56,12 @@
     "@types/moo": "*",
     "@types/node": "*",
     "@vitest/coverage-v8": "*",
-    "esbuild": "*",
     "oxlint": "*",
     "oxlint-tsgolint": "*",
     "typedoc": "*",
     "typescript": "*",
     "undici": "*",
+    "vite": "*",
     "vitest": "*"
   },
   "dependencies": {

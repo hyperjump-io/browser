@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
+import { isBuiltin } from "node:module";
+import { fileURLToPath } from "node:url";
 import { describe, test, expect } from "vitest";
-import { build } from "esbuild";
+import { build } from "vite";
 import { contextUri } from "./hyperjump/context-uri.browser.js";
 import { defaultUriSchemePlugins } from "./hyperjump/uri-schemes/default-uri-scheme-plugins.browser.js";
 import { FileUriSchemePlugin } from "./hyperjump/uri-schemes/file-scheme-plugin.browser.js";
@@ -22,19 +24,33 @@ const packageJson = JSON.parse(await readFile(packageJsonUrl, "utf8"));
 describe("Browser compatibility", () => {
   for (const [subpath, entryPoint] of Object.entries(packageJson.exports)) {
     test(`'${subpath}' can be bundled for the browser`, async () => {
-      // Fails if anything reachable from the entry point imports a Node.js
-      // built-in module.
-      const result = await build({
-        entryPoints: [new URL(entryPoint, packageJsonUrl).pathname],
-        bundle: true,
-        platform: "browser",
-        format: "esm",
-        write: false,
-        logLevel: "silent"
+      /** @type string[] */
+      const nodeImports = [];
+
+      await build({
+        configFile: false,
+        logLevel: "silent",
+        build: {
+          write: false,
+          lib: {
+            entry: fileURLToPath(new URL(entryPoint, packageJsonUrl)),
+            formats: ["es"]
+          }
+        },
+        plugins: [{
+          // Vite replaces Node.js built-ins with an empty module in browser
+          // builds instead of failing, so record them before it gets the chance.
+          name: "detect-node-imports",
+          enforce: "pre",
+          resolveId(id, importer) {
+            if (isBuiltin(id)) {
+              nodeImports.push(`${id} <- ${importer}`);
+            }
+          }
+        }]
       });
 
-      expect(result.errors).to.eql([]);
-      expect(result.outputFiles[0].text).not.to.match(/["']node:/);
+      expect(nodeImports).to.eql([]);
     });
   }
 
