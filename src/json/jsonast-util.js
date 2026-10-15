@@ -331,43 +331,34 @@ const stringifyArray = (node, replacer, space, depth) => {
 
   const padding = space ? `\n${space.repeat(depth - 1)}` : "";
 
-  let result = "[" + padding + space;
+  /** @type string[] */
+  const items = [];
   for (let index = 0; index < node.children.length; index++) {
     const itemNode = replacer(node.children[index], `${index}`);
-    if (itemNode !== undefined) {
-      const stringifiedValue = stringifyValue(itemNode, replacer, space, depth + 1);
-      result += stringifiedValue ?? "null";
-      if (index + 1 < node.children.length) {
-        result += `,${padding}${space}`;
-      }
-    }
+    items.push(itemNode === undefined ? "null" : stringifyValue(itemNode, replacer, space, depth + 1));
   }
-  return result + padding + "]";
+  return "[" + padding + space + items.join(`,${padding}${space}`) + padding + "]";
 };
 
 /** @type (node: JsonObjectNode<unknown>, replacer: API.Replacer, space: string, depth: number) => string */
 const stringifyObject = (node, replacer, space, depth) => {
-  if (node.children.length === 0) {
-    return "{}";
-  }
-
   const padding = space ? `\n${space.repeat(depth - 1)}` : "";
   const colonSpacing = space ? " " : "";
 
-  let result = "{" + padding + space;
-  for (let index = 0; index < node.children.length; index++) {
-    const propertyNode = node.children[index];
+  /** @type string[] */
+  const properties = [];
+  for (const propertyNode of node.children) {
     const [keyNode, valueNode] = propertyNode.children;
     const replacedValueNode = replacer(valueNode, keyNode.value);
     if (replacedValueNode !== undefined) {
       const stringifiedValue = stringifyValue(replacedValueNode, replacer, space, depth + 1);
-      result += JSON.stringify(keyNode.value) + ":" + colonSpacing + stringifiedValue;
-      if (node.children[index + 1]) {
-        result += `,${padding}${space}`;
-      }
+      properties.push(JSON.stringify(keyNode.value) + ":" + colonSpacing + stringifiedValue);
     }
   }
-  return result + padding + "}";
+  if (properties.length === 0) {
+    return "{}";
+  }
+  return "{" + padding + space + properties.join(`,${padding}${space}`) + padding + "}";
 };
 
 /** @type API.pointerStep */

@@ -106,6 +106,38 @@ describe("jsonast-util", async () => {
     });
   });
 
+  describe("toJson replacer that removes values", () => {
+    const json = `{ "a": [1, 2, 3], "b": { "c": 1, "d": 2 }, "d": 4 }`;
+
+    /** @type JsonNode */
+    const subject = fromJson(json);
+
+    /** @type (key: string) => boolean */
+    const isRemoved = (key) => key === "2" || key === "d";
+
+    /** @type (node: JsonNode<unknown>, key?: string) => JsonNode<unknown> | undefined */
+    const replacer = (node, key) => key !== undefined && isRemoved(key) ? undefined : node;
+
+    /** @type (key: string, value: unknown) => unknown */
+    const jsReplacer = (key, value) => isRemoved(key) ? undefined : value;
+
+    test("without spaces", () => {
+      const expected = JSON.stringify(JSON.parse(json), jsReplacer);
+      expect(toJson(subject, replacer)).to.equal(expected);
+    });
+
+    test("with spaces", () => {
+      const expected = JSON.stringify(JSON.parse(json), jsReplacer, "  ");
+      expect(toJson(subject, replacer, "  ")).to.equal(expected);
+    });
+
+    test("all properties removed", () => {
+      /** @type JsonNode */
+      const node = fromJson(`{ "d": 1 }`);
+      expect(toJson(node, replacer, "  ")).to.equal(`{}`);
+    });
+  });
+
   test("iter", () => {
     const subject = fromJson(`[1, 2]`);
 
