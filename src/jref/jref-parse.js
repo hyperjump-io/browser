@@ -4,7 +4,6 @@ import { VFileMessage } from "vfile-message";
 import { fromJref } from "./jref-util.js";
 
 /**
- * @import { Options } from "vfile-message"
  * @import { JrefDocumentNode } from "./jref-ast.js"
  * @import * as API from "./jref-parse.d.ts"
  */
@@ -31,7 +30,11 @@ export function jrefParse(options) {
       return jrefDocumentNode;
     } catch (error) {
       if (error instanceof VFileMessage) {
-        return file.fail(error.message, /** @type Options */ (error));
+        return file.fail(error.reason, {
+          place: error.place,
+          ruleId: error.ruleId,
+          source: error.source
+        });
       } else {
         throw error;
       }

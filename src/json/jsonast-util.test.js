@@ -210,6 +210,22 @@ describe("jsonast-util", async () => {
     expect(toJson(/** @type JsonNode */ (subject))).to.equal(`[[1,2],3]`);
   });
 
+  test("rejson syntax errors keep their position, source, and ruleId", () => {
+    try {
+      rejson.processSync(`{ "foo" 1 }`);
+      expect.fail("Expected a VFileMessage");
+    } catch (error) {
+      expect(error).to.be.instanceof(VFileMessage);
+      const message = /** @type VFileMessage */ (error);
+      expect(message.reason).to.equal("Expected :");
+      expect(message.line).to.equal(1);
+      expect(message.column).to.equal(9);
+      expect(message.source).to.equal("json");
+      expect(message.ruleId).to.equal("syntax-error");
+      expect(message.fatal).to.equal(true);
+    }
+  });
+
   test("missing colon error reports the position of the unexpected token", () => {
     try {
       fromJson(`{ "foo"\n\n  1 }`);

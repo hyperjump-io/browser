@@ -2,7 +2,6 @@ import { VFileMessage } from "vfile-message";
 import { fromJson } from "./jsonast-util.js";
 
 /**
- * @import { Options } from "vfile-message"
  * @import { JsonDocumentNode } from "./jsonast.js"
  * @import * as API from "./rejson-parse.d.ts"
  */
@@ -25,7 +24,11 @@ export function rejsonParse(options) {
       return jsonDocumentNode;
     } catch (error) {
       if (error instanceof VFileMessage) {
-        return file.fail(error.message, /** @type Options */ (error));
+        return file.fail(error.reason, {
+          place: error.place,
+          ruleId: error.ruleId,
+          source: error.source
+        });
       } else {
         throw error;
       }
