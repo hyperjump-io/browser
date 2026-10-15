@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs";
-import { readlink, lstat } from "node:fs/promises";
+import { lstat, realpath } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseIri, toAbsoluteIri } from "@hyperjump/uri";
 import { Readable } from "node:stream";
@@ -37,7 +37,7 @@ export class FileUriSchemePlugin {
     const filePath = fileURLToPath(uri);
     const stats = await lstat(filePath);
     if (stats.isSymbolicLink()) {
-      responseUri = pathToFileURL(await readlink(filePath)).toString();
+      responseUri = pathToFileURL(await realpath(filePath)).toString();
     }
 
     const contentType = this.#hyperjump.getMediaType(responseUri);

@@ -178,6 +178,31 @@ describe("JSON Browser", () => {
 
         expect(toJson(subject)).to.equal(`42`);
       });
+
+      test("relative symlink resolves references relative to the target", async () => {
+        const subdirectory = join(testPath, "sub");
+        await mkdir(subdirectory);
+        await writeFile(join(subdirectory, "foo.jref"), `{ "foo": { "$ref": "bar.jref" } }`);
+        await writeFile(join(subdirectory, "bar.jref"), `42`);
+        await symlink("foo.jref", join(subdirectory, "symlink-foo.jref"));
+
+        const hyperjump = new Hyperjump();
+        const subject = await hyperjump.get(`${fixtureDirectory}/sub/symlink-foo.jref#/foo`);
+
+        expect(toJson(subject)).to.equal(`42`);
+      });
+
+      test("chained symlinks", async () => {
+        await writeFile(join(testPath, "foo.jref"), `{ "foo": { "$ref": "bar.jref" } }`);
+        await writeFile(join(testPath, "bar.jref"), `42`);
+        await symlink("foo.jref", join(testPath, "symlink-foo.jref"));
+        await symlink("symlink-foo.jref", join(testPath, "symlink-symlink-foo.jref"));
+
+        const hyperjump = new Hyperjump();
+        const subject = await hyperjump.get(`${fixtureDirectory}/symlink-symlink-foo.jref#/foo`);
+
+        expect(toJson(subject)).to.equal(`42`);
+      });
     });
   });
 });
