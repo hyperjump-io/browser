@@ -61,7 +61,22 @@ export class Hyperjump {
 
   /** @type API.Hyperjump<JrefNode>["get"] */
   async get(uri, options = this.#defaultGetOptions) {
+    return this.#get(uri, options, []);
+  }
+
+  /**
+   * @param {string} uri
+   * @param {API.GetOptions} options
+   * @param {string[]} referenceChain - URIs of the references followed to get here
+   * @returns {Promise<JrefNode>}
+   */
+  async #get(uri, options, referenceChain) {
     uri = resolveIri(uri, contextUri());
+    if (referenceChain.includes(uri)) {
+      throw new ReferenceCycleError([...referenceChain, uri]);
+    }
+    referenceChain = [...referenceChain, uri];
+
     const id = toAbsoluteIri(uri);
     let { fragment } = parseIri(uri);
 
@@ -96,13 +111,13 @@ export class Hyperjump {
     const cursor = document.fragmentKind === "json-pointer" ? fragment : "";
 
     const node = pointerGet(cursor ?? "", document.children[0], document.uri);
-    return await this.#followReferences(node);
+    return await this.#followReferences(node, referenceChain);
   }
 
-  /** @type (node: JrefNode) => Promise<JrefNode> */
-  async #followReferences(node) {
+  /** @type (node: JrefNode, referenceChain?: string[]) => Promise<JrefNode> */
+  async #followReferences(node, referenceChain = []) {
     if (node.type === "reference") {
-      return this.get(node.href, { referencedFrom: toAbsoluteIri(node.location) });
+      return this.#get(node.href, { referencedFrom: toAbsoluteIri(node.location) }, referenceChain);
     } else {
       return node;
     }
@@ -262,6 +277,20 @@ export class RetrievalError extends Error {
   constructor(message, options) {
     super(message, options);
     this.name = this.constructor.name;
+  }
+}
+
+export class ReferenceCycleError extends Error {
+  /** @type string[] */
+  referenceChain;
+
+  /**
+   * @param {string[]} referenceChain
+   */
+  constructor(referenceChain) {
+    super(`Reference cycle: ${referenceChain.join(" -> ")}`);
+    this.name = this.constructor.name;
+    this.referenceChain = referenceChain;
   }
 }
 

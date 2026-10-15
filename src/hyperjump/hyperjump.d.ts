@@ -26,6 +26,7 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * types.
    *
    * @throws {@link RetrievalError}
+   * @throws {@link ReferenceCycleError}
    * @throws {@link json.JsonPointerError}
    */
   get: (uri: string, options?: GetOptions) => Promise<T>;
@@ -117,6 +118,16 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
 
 export class RetrievalError extends Error {
   constructor(message: string, options: { cause: unknown });
+}
+
+/**
+ * Thrown when following references leads back to a reference that was already
+ * followed, so the references never resolve to a value.
+ */
+export class ReferenceCycleError extends Error {
+  referenceChain: string[];
+
+  constructor(referenceChain: string[]);
 }
 
 export class UnsupportedUriSchemeError extends Error {
