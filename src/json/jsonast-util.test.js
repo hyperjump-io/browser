@@ -138,6 +138,19 @@ describe("jsonast-util", async () => {
     });
   });
 
+  test("missing colon error reports the position of the unexpected token", () => {
+    try {
+      fromJson(`{ "foo"\n\n  1 }`);
+      expect.fail("Expected a VFileMessage");
+    } catch (error) {
+      expect(error).to.be.instanceof(VFileMessage);
+      const message = /** @type VFileMessage */ (error);
+      expect(message.reason).to.equal("Expected :");
+      expect(message.line).to.equal(3);
+      expect(message.column).to.equal(3);
+    }
+  });
+
   test("iter", () => {
     const subject = fromJson(`[1, 2]`);
 

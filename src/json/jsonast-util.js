@@ -97,8 +97,9 @@ const parseProperty = (token, lexer, _key, reviver, location) => {
     position: tokenPosition(token)
   };
 
-  if (lexer.nextToken().type !== ":") {
-    throw lexer.syntaxError("Expected :", token);
+  const colonToken = lexer.nextToken();
+  if (colonToken.type !== ":") {
+    throw lexer.syntaxError("Expected :", colonToken);
   }
 
   const valueNode = parseValue(lexer.nextToken(), lexer, keyNode.value, reviver, JsonPointer.append(keyNode.value, location));
