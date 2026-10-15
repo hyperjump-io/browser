@@ -1,8 +1,7 @@
 import { parseIri, resolveIri, toAbsoluteIri } from "@hyperjump/uri";
 import { parse as parseContentType } from "content-type";
-import { contextUri } from "./context-uri.js";
-import { HttpUriSchemePlugin } from "./uri-schemes/http-scheme-plugin.js";
-import { FileUriSchemePlugin } from "./uri-schemes/file-scheme-plugin.js";
+import { contextUri } from "#context-uri";
+import { defaultUriSchemePlugins } from "#default-uri-scheme-plugins";
 import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
 import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
 import { jsonObjectHas, jsonObjectKeys, jsonValue, pointerGet, pointerStep } from "../json/jsonast-util.js";
@@ -51,8 +50,9 @@ export class Hyperjump {
     this.#defaultGetOptions = {};
 
     // Load default URI scheme plugins
-    this.addUriSchemePlugin(new HttpUriSchemePlugin(this));
-    this.addUriSchemePlugin(new FileUriSchemePlugin(this));
+    for (const plugin of defaultUriSchemePlugins(this)) {
+      this.addUriSchemePlugin(plugin);
+    }
 
     // Load default MediaType plugins
     this.addMediaTypePlugin(new JrefMediaTypePlugin());

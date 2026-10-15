@@ -22,6 +22,24 @@
     "./json": "./src/json/index.js",
     "./jref": "./src/jref/index.js"
   },
+  "imports": {
+    "#context-uri": {
+      "node": "./src/hyperjump/context-uri.js",
+      "default": "./src/hyperjump/context-uri.browser.js"
+    },
+    "#default-uri-scheme-plugins": {
+      "node": "./src/hyperjump/uri-schemes/default-uri-scheme-plugins.js",
+      "default": "./src/hyperjump/uri-schemes/default-uri-scheme-plugins.browser.js"
+    },
+    "#file-scheme-plugin": {
+      "node": "./src/hyperjump/uri-schemes/file-scheme-plugin.js",
+      "default": "./src/hyperjump/uri-schemes/file-scheme-plugin.browser.js"
+    },
+    "#path-to-uri": {
+      "node": "./src/jref/path-to-uri.js",
+      "default": "./src/jref/path-to-uri.browser.js"
+    }
+  },
   "bin": {
     "rejson": "./src/json/rejson-cli.js",
     "jref": "./src/jref/jref-cli.js"
@@ -38,6 +56,7 @@
     "@types/moo": "*",
     "@types/node": "*",
     "@vitest/coverage-v8": "*",
+    "esbuild": "*",
     "oxlint": "*",
     "oxlint-tsgolint": "*",
     "typedoc": "*",

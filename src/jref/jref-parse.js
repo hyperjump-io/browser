@@ -1,5 +1,4 @@
-import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { pathToUri } from "#path-to-uri";
 import { VFileMessage } from "vfile-message";
 import { fromJref } from "./jref-util.js";
 
@@ -12,7 +11,7 @@ import { fromJref } from "./jref-util.js";
 export function jrefParse(options) {
   this.parser = function (document, file) {
     try {
-      const uri = file.path ? pathToFileURL(resolve(file.cwd, file.path)).toString() : undefined;
+      const uri = file.path ? pathToUri(file.cwd, file.path) : undefined;
 
       /** @type JrefDocumentNode */
       const jrefDocumentNode = {
