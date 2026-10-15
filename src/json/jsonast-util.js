@@ -30,7 +30,14 @@ export const fromJson = (json, location = "", reviver = defaultReviver) => {
 };
 
 /**
- * @type <A extends object, B extends JsonNode<A> | undefined>(token: JsonToken, lexer: JsonLexer, key: string | undefined, reviver: API.Reviver<A, B>, location: string) => B
+ * @template {object} A
+ * @template {JsonNode<A> | undefined} B
+ * @param {JsonToken} token
+ * @param {JsonLexer} lexer
+ * @param {string | undefined} key
+ * @param {API.Reviver<A, B>} reviver
+ * @param {string} location
+ * @returns {B}
  */
 const parseValue = (token, lexer, key, reviver, location) => {
   /** @type {JsonNode<A>} */

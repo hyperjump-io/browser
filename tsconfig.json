@@ -1,9 +1,14 @@
 {
-  "exclude": ["./docs"],
+  "exclude": ["./docs", "./coverage", "./scratch"],
   "compilerOptions": {
-    "module": "NodeNext",
+    "module": "Node16",
     "target": "esnext",
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "Node16",
+    "esModuleInterop": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "checkJs": true,
+    "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "types": ["node"]
