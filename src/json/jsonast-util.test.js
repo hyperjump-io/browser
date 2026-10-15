@@ -140,6 +140,23 @@ describe("jsonast-util", async () => {
     });
   });
 
+  describe("pointerStep duplicate property names", () => {
+    /** @type JsonNode */
+    let subject;
+
+    beforeEach(() => {
+      subject = fromJson(`{ "foo": 1, "bar": 2, "foo": 3 }`);
+    });
+
+    test("stepping into a duplicated property fails", () => {
+      expect(() => pointerStep("foo", subject)).to.throw(JsonPointerError);
+    });
+
+    test("stepping into a unique property in the same object works", () => {
+      expect(toJson(pointerStep("bar", subject))).to.equal(`2`);
+    });
+  });
+
   describe("pointerStep array index", () => {
     /** @type JsonNode */
     let subject;

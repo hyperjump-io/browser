@@ -369,13 +369,23 @@ const arrayIndexPattern = /^(?:0|[1-9][0-9]*)$/;
 export const pointerStep = (segment, node, uri = "#") => {
   switch (node.jsonType) {
     case "object": {
+      let result;
       for (const propertyNode of node.children) {
         if (propertyNode.children[0].value === segment) {
-          return propertyNode.children[1];
+          // RFC 6901: If a referenced member name is not unique in an object,
+          // the member that is referenced is undefined, and evaluation fails.
+          if (result) {
+            const uriMessage = uri ? ` at ${uri}` : "";
+            throw new JsonPointerError(`Property '${segment}' is not unique${uriMessage}`);
+          }
+          result = propertyNode.children[1];
         }
       }
-      const uriMessage = uri ? ` at ${uri}` : "";
-      throw new JsonPointerError(`Property '${segment}' doesn't exist${uriMessage}`);
+      if (!result) {
+        const uriMessage = uri ? ` at ${uri}` : "";
+        throw new JsonPointerError(`Property '${segment}' doesn't exist${uriMessage}`);
+      }
+      return result;
     }
     case "array": {
       if (segment !== "-" && !arrayIndexPattern.test(segment)) {
