@@ -19,7 +19,8 @@ export const fromJref = (jref, uri, reviver = defaultReviver) => {
           if (valueNode.jsonType === "string") {
             Object.assign(node, {
               type: "reference",
-              href: resolveIri(valueNode.value, uri)
+              // Without a base URI, relative references can't be resolved
+              href: uri === undefined ? valueNode.value : resolveIri(valueNode.value, uri)
             });
             break;
           }
