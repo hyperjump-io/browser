@@ -1,4 +1,4 @@
-import { describe, test, beforeEach, afterEach, expect, beforeAll, afterAll } from "vitest";
+import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { toAbsoluteIri } from "@hyperjump/uri";
 import { Hyperjump } from "./index.js";
@@ -11,70 +11,70 @@ import { jsonObjectEntries, toJson } from "../json/jsonast-util.js";
 
 describe("JSON Browser", () => {
   describe("embedded", () => {
-    const hyperjump = new Hyperjump();
     const testDomain = "https://test.hyperjump.io";
     const testMediaType = "application/prs.hyperjump-embedded-test";
 
-    beforeAll(() => {
-      /**
-       * @typedef {{
-       *   type: "embedded-document";
-       *   children: JrefNode[];
-       *   uri: string;
-       *   fragmentKind: "json-pointer";
-       *   embedded?: Record<string, EmbeddedDocumentNode>;
-       * }} EmbeddedDocumentNode
-       */
+    /**
+     * @typedef {{
+     *   type: "embedded-document";
+     *   children: JrefNode[];
+     *   uri: string;
+     *   fragmentKind: "json-pointer";
+     *   embedded?: Record<string, EmbeddedDocumentNode>;
+     * }} EmbeddedDocumentNode
+     */
 
-      /** @type (uri: string, text: string, embedded?: Record<string, EmbeddedDocumentNode>) => EmbeddedDocumentNode */
-      const parseToDocument = (uri, text, embedded = {}) => {
-        /** @type EmbeddedDocumentNode */
-        const embeddedDocument = {
-          type: "embedded-document",
-          children: [],
-          uri: uri,
-          fragmentKind: "json-pointer",
-          embedded: embedded
-        };
-
-        const result = fromJref(text, uri, (node, key) => {
-          if (key === "$embedded" && node.jsonType === "object") {
-            for (const [key, valueNode] of jsonObjectEntries(node)) {
-              const embeddedUri = toAbsoluteIri(key);
-              const embeddedJref = toJson(/** @type JrefTolerantNode */ (valueNode));
-              embedded[embeddedUri] = parseToDocument(embeddedUri, embeddedJref, embedded);
-            }
-            return;
-          } else {
-            return node;
-          }
-        });
-
-        if (result.status !== "success") {
-          throw result.messages[0];
-        }
-
-        if (result.node) {
-          embeddedDocument.children.push(result.node);
-        }
-
-        return embeddedDocument;
+    /** @type (uri: string, text: string, embedded?: Record<string, EmbeddedDocumentNode>) => EmbeddedDocumentNode */
+    const parseToDocument = (uri, text, embedded = {}) => {
+      /** @type EmbeddedDocumentNode */
+      const embeddedDocument = {
+        type: "embedded-document",
+        children: [],
+        uri: uri,
+        fragmentKind: "json-pointer",
+        embedded: embedded
       };
-      hyperjump.addMediaTypePlugin({
-        mediaType: testMediaType,
-        extensions: [".embedded"],
-        parse: async (response) => parseToDocument(response.url, await response.text())
-      });
-    });
 
-    afterAll(() => {
-      hyperjump.removeMediaTypePlugin(testMediaType);
-    });
+      const result = fromJref(text, uri, (node, key) => {
+        if (key === "$embedded" && node.jsonType === "object") {
+          for (const [key, valueNode] of jsonObjectEntries(node)) {
+            const embeddedUri = toAbsoluteIri(key);
+            const embeddedJref = toJson(/** @type JrefTolerantNode */ (valueNode));
+            embedded[embeddedUri] = parseToDocument(embeddedUri, embeddedJref, embedded);
+          }
+          return;
+        } else {
+          return node;
+        }
+      });
+
+      if (result.status !== "success") {
+        throw result.messages[0];
+      }
+
+      if (result.node) {
+        embeddedDocument.children.push(result.node);
+      }
+
+      return embeddedDocument;
+    };
+
+    // Each test gets its own instance so documents cached by one test can't
+    // satisfy another.
+    /** @type Hyperjump */
+    let hyperjump;
 
     /** @type MockAgent */
     let mockAgent;
 
     beforeEach(() => {
+      hyperjump = new Hyperjump();
+      hyperjump.addMediaTypePlugin({
+        mediaType: testMediaType,
+        extensions: [".embedded"],
+        parse: async (response) => parseToDocument(response.url, await response.text())
+      });
+
       mockAgent = new MockAgent();
       mockAgent.disableNetConnect();
       setGlobalDispatcher(mockAgent);
@@ -138,6 +138,28 @@ describe("JSON Browser", () => {
       const subject = await hyperjump.get(uri);
 
       expect(toJson(subject)).to.equal(`42`);
+    });
+
+    test("an embedded document isn't visible outside the document that embeds it", async () => {
+      const jrefEmbedded = `{
+        "foo": { "$ref": "/foo" },
+        "$embedded": {
+          "${testDomain}/foo": 42
+        }
+      }`;
+
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/main" })
+        .reply(200, jrefEmbedded, { headers: { "content-type": testMediaType } });
+
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo" })
+        .reply(200, "\"retrieved\"", { headers: { "content-type": testMediaType } });
+
+      await hyperjump.get(`${testDomain}/main#/foo`);
+      const subject = await hyperjump.get(`${testDomain}/foo`);
+
+      expect(toJson(subject)).to.equal(`"retrieved"`);
     });
 
     test("a cached document takes precence over an embedded document", async () => {

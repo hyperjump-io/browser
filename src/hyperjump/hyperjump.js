@@ -27,6 +27,14 @@ export class Hyperjump {
   /** @type Record<string, DocumentNode> */
   #cache;
 
+  /**
+   * Maps the URI of every document in a compound document to the `embedded`
+   * object they share, so a reference from any of them can find the others.
+   *
+   * @type Record<string, Record<string, DocumentNode>>
+   */
+  #embedded;
+
   /** @type Record<string, UriSchemePlugin> */
   #uriSchemePlugins;
 
@@ -43,6 +51,7 @@ export class Hyperjump {
     this.#config = config;
 
     this.#cache = {};
+    this.#embedded = {};
 
     this.#uriSchemePlugins = {};
     this.#mediaTypePlugins = {};
@@ -83,7 +92,7 @@ export class Hyperjump {
     // TODO: How should cache work?
 
     const cachedDocument = this.#cache[id];
-    const embeddedDocument = options.referencedFrom ? this.#cache[options.referencedFrom]?.embedded?.[id] : undefined;
+    const embeddedDocument = options.referencedFrom ? this.#embedded[options.referencedFrom]?.[id] : undefined;
     let document = cachedDocument ?? embeddedDocument;
 
     if (!document) {
@@ -97,12 +106,14 @@ export class Hyperjump {
         // symlinks), so it needs to be cached under both.
         if (response.url) {
           this.#cache[toAbsoluteIri(response.url)] = document;
+          this.#addEmbedded(toAbsoluteIri(response.url), document);
         }
       } catch (error) {
         throw new RetrievalError(`Unable to load resource '${uri}'`, { cause: error });
       }
 
       this.#cache[id] = document;
+      this.#addEmbedded(id, document);
     }
 
     if (document.anchors && fragment !== undefined) {
@@ -112,6 +123,24 @@ export class Hyperjump {
 
     const node = pointerGet(cursor ?? "", document.children[0], document.uri);
     return await this.#followReferences(node, referenceChain);
+  }
+
+  /**
+   * If two compound documents embed a document with the same URI, references
+   * from that document find the documents embedded alongside it in whichever
+   * compound document was retrieved first.
+   *
+   * @type (uri: string, document: DocumentNode) => void
+   */
+  #addEmbedded(uri, document) {
+    if (!document.embedded) {
+      return;
+    }
+
+    this.#embedded[uri] = document.embedded;
+    for (const embeddedUri in document.embedded) {
+      this.#embedded[embeddedUri] ??= document.embedded;
+    }
   }
 
   /** @type (node: JrefNode, referenceChain?: string[]) => Promise<JrefNode> */

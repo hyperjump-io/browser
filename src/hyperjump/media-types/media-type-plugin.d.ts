@@ -1,15 +1,24 @@
 import type { JrefNode } from "../../jref/jref-ast.js";
 
-export type DocumentNode = {
+/**
+ * A parsed document. `T` is the type of its nodes.
+ */
+export type DocumentNode<T = JrefNode> = {
   type: string;
-  children: JrefNode[];
+  children: T[];
   uri?: string;
-  embedded?: Record<string, DocumentNode>;
+  /**
+   * Documents embedded in this one, by URI. Every document in a compound
+   * document should share the same `embedded` object, so any of them can find
+   * any other. Embedded documents are only visible to references from within
+   * the compound document that contains them.
+   */
+  embedded?: Record<string, DocumentNode<T>>;
   anchors?: Record<string, string>;
   fragmentKind?: string;
 };
 
-export interface MediaTypePlugin<T extends DocumentNode> {
+export interface MediaTypePlugin<T extends DocumentNode<unknown>> {
   mediaType: string;
   /**
    * Extensions start with `.` (Example: `.jref`).

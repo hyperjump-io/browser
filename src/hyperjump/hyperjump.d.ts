@@ -71,7 +71,7 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * {@link hyperjump.JsonMediaTypePlugin | `JSON`} media types are enabled by
    * default.
    */
-  addMediaTypePlugin: <A extends DocumentNode>(plugin: MediaTypePlugin<A>) => void;
+  addMediaTypePlugin: <A extends DocumentNode<T>>(plugin: MediaTypePlugin<A>) => void;
 
   /**
    * This is mostly useful for disabling a media type that's enabled by default.

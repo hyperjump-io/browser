@@ -1,7 +1,6 @@
 import type { VFileMessage } from "vfile-message";
 import type {
   Json,
-  JsonArrayNode,
   JsonBooleanNode,
   JsonCommentNode,
   JsonDocumentNode,
@@ -10,7 +9,7 @@ import type {
   JsonNode,
   JsonNullNode,
   JsonNumberNode,
-  JsonObjectNode,
+  JsonPropertyNameNode,
   JsonParseStatus,
   JsonStringNode
 } from "./jsonast.d.ts";
@@ -118,11 +117,25 @@ export type Replacer = (node: JsonNode<unknown>, key?: string) => JsonNode<unkno
 export const toJson: (node: JsonNode<unknown, JsonErrorNode> | JsonErrorNode, replacer?: Replacer, space?: string) => string;
 
 /**
+ * Any JSON AST node. The utilities take the type of the node you give them
+ * rather than inferring its annotations, so they work with any annotated tree,
+ * such as a JRef or JSON Schema AST.
+ */
+export type AnyJsonNode = JsonNode<unknown, unknown, unknown>;
+
+/**
+ * The type of the values of an object node and the items of an array node.
+ */
+export type JsonMember<N> = N extends { jsonType: "array"; children: (infer M)[] } ? M
+  : N extends { jsonType: "object"; children: (infer C)[] } ? C extends { children: [JsonPropertyNameNode, infer M] } ? M : never
+    : never;
+
+/**
  * The value of an object member or array item. A {@link JsonMissingNode} from
  * a failed parse is presented as `undefined`. A {@link JsonInvalidNode} is
  * returned as is.
  */
-export type JsonMemberValue<A, X = never> = JsonNode<A, X> | Exclude<X, JsonMissingNode> | (JsonMissingNode extends X ? undefined : never);
+export type JsonMemberValue<N> = Exclude<JsonMember<N>, JsonMissingNode> | (JsonMissingNode extends JsonMember<N> ? undefined : never);
 
 /**
  * Index into an object or array JsonNode. If the property or item exists but
@@ -130,7 +143,7 @@ export type JsonMemberValue<A, X = never> = JsonNode<A, X> | Exclude<X, JsonMiss
  *
  * @throws {@link JsonPointerError} if the property or item doesn't exist.
  */
-export const pointerStep: <A, X = never>(segment: string, node: JsonNode<A, X>, uri?: string) => JsonMemberValue<A, X>;
+export const pointerStep: <N extends AnyJsonNode>(segment: string, node: N, uri?: string) => JsonMemberValue<N>;
 
 /**
  * Get a JsonNode using a JSON Pointer. If the last segment points to a missing
@@ -139,27 +152,27 @@ export const pointerStep: <A, X = never>(segment: string, node: JsonNode<A, X>, 
  * @throws {@link JsonPointerError} if the pointer doesn't resolve, including
  * when it tries to index into a missing or invalid value.
  */
-export const pointerGet: <A, X = never>(pointer: string, tree: JsonNode<A, X>, documentUri?: string) => JsonMemberValue<A, X>;
+export const pointerGet: <N extends AnyJsonNode>(pointer: string, tree: N, documentUri?: string) => N | JsonMemberValue<N>;
 
 export const jsonValue: (
-  (<_A>(node: JsonNullNode) => null)
-  & (<_A>(node: JsonBooleanNode) => boolean)
-  & (<_A>(node: JsonNumberNode) => number)
-  & (<_A>(node: JsonStringNode) => string)
-  & (<A>(node: JsonArrayNode<A>) => Json[])
-  & (<A>(node: JsonObjectNode<A>) => Record<string, Json>)
-  & (<A, X>(node: JsonNode<A, X>) => Json)
+  ((node: JsonNullNode) => null)
+  & ((node: JsonBooleanNode) => boolean)
+  & ((node: JsonNumberNode) => number)
+  & ((node: JsonStringNode) => string)
+  & ((node: AnyJsonNode & { jsonType: "array" }) => Json[])
+  & ((node: AnyJsonNode & { jsonType: "object" }) => Record<string, Json>)
+  & ((node: AnyJsonNode) => Json)
 );
 
-export const jsonObjectHas: <A, X = never>(key: string, node: JsonNode<A, X>) => boolean;
+export const jsonObjectHas: (key: string, node: AnyJsonNode) => boolean;
 
-export const jsonArrayIter: <A, X = never>(node: JsonNode<A, X>) => Generator<JsonMemberValue<A, X>, void, unknown>;
+export const jsonArrayIter: <N extends AnyJsonNode>(node: N) => Generator<JsonMemberValue<N>, void, unknown>;
 
-export const jsonObjectKeys: <A, X = never>(node: JsonNode<A, X>) => Generator<string, void, unknown>;
+export const jsonObjectKeys: (node: AnyJsonNode) => Generator<string, void, unknown>;
 
-export const jsonObjectValues: <A, X = never>(node: JsonNode<A, X>) => Generator<JsonMemberValue<A, X>, void, unknown>;
+export const jsonObjectValues: <N extends AnyJsonNode>(node: N) => Generator<JsonMemberValue<N>, void, unknown>;
 
-export const jsonObjectEntries: <A, X = never>(node: JsonNode<A, X>) => Generator<[string, JsonMemberValue<A, X>], void, unknown>;
+export const jsonObjectEntries: <N extends AnyJsonNode>(node: N) => Generator<[string, JsonMemberValue<N>], void, unknown>;
 
 export class JsonPointerError extends Error {
   constructor(message?: string);

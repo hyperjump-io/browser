@@ -36,10 +36,10 @@ export type JsonStringNode = {
   position?: Position;
 };
 
-export type JsonArrayNode<T, X = never> = {
+export type JsonArrayNode<T, X = never, P = unknown> = {
   type: string;
   jsonType: "array";
-  children: (JsonNode<T, X> | X)[];
+  children: (JsonNode<T, X, P> | X)[];
   location: string;
   data?: Data;
   position?: Position;
@@ -53,17 +53,17 @@ export type JsonPropertyNameNode = {
   position?: Position;
 };
 
-export type JsonPropertyNode<T, X = never> = {
+export type JsonPropertyNode<T, X = never, P = unknown> = P & {
   type: "json-property";
-  children: [JsonPropertyNameNode, JsonNode<T, X> | X];
+  children: [JsonPropertyNameNode, JsonNode<T, X, P> | X];
   data?: Data;
   position?: Position;
 };
 
-export type JsonObjectNode<T, X = never> = {
+export type JsonObjectNode<T, X = never, P = unknown> = {
   type: string;
   jsonType: "object";
-  children: JsonPropertyNode<T, X>[];
+  children: JsonPropertyNode<T, X, P>[];
   location: string;
   data?: Data;
   position?: Position;
@@ -73,11 +73,13 @@ export type JsonObjectNode<T, X = never> = {
  * A JSON value. `A` is the annotations every node in the tree has. `X` is the
  * other kinds of nodes that can appear where a value is expected. It's
  * `never` for a complete tree and {@link JsonErrorNode} for a tree from a
- * parse whose status is `failure`.
+ * parse whose status is `failure`. `P` is the annotations every property node
+ * in the tree has. It's for languages built on JSON that give meaning to
+ * object properties, such as the keywords of a JSON Schema.
  */
-export type JsonNode<A = { type: "json" }, X = never> = A & (
-  JsonObjectNode<A, X>
-  | JsonArrayNode<A, X>
+export type JsonNode<A = { type: "json" }, X = never, P = unknown> = A & (
+  JsonObjectNode<A, X, P>
+  | JsonArrayNode<A, X, P>
   | JsonStringNode
   | JsonNumberNode
   | JsonBooleanNode
