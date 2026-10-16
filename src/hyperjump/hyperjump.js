@@ -201,14 +201,24 @@ export class Hyperjump {
 
   /** @type API.Hyperjump<JrefNode>["getMediaType"] */
   getMediaType(uri) {
+    // Use the plugin with the longest matching extension so `.schema.json`
+    // takes precedence over `.json`. If there's a tie, the plugin that was
+    // registered first wins.
+    let bestContentType;
+    let bestLength = 0;
     for (const contentType in this.#mediaTypePlugins) {
       for (const extension of this.#mediaTypePlugins[contentType].extensions) {
-        if (uri.endsWith(extension)) {
+        if (extension.length > bestLength && uri.endsWith(extension)) {
           if (extension.startsWith("/") || (extension.startsWith(".") && uri[uri.length - extension.length - 1] !== "/")) {
-            return contentType;
+            bestContentType = contentType;
+            bestLength = extension.length;
           }
         }
       }
+    }
+
+    if (bestContentType !== undefined) {
+      return bestContentType;
     }
 
     throw new UnknownMediaTypeError(`The media type of the file at '${uri}' could not be determined. Use the 'addMediaTypePlugin' function to add support for this media type.`);

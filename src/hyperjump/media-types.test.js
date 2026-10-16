@@ -16,6 +16,33 @@ describe("JSON Browser", () => {
       expect(() => hyperjump.setMediaTypeQuality("application/foo", 0.5)).to.throw(UnsupportedMediaTypeError);
     });
 
+    describe("getMediaType", () => {
+      /** @type Hyperjump */
+      let hyperjump;
+
+      beforeEach(() => {
+        hyperjump = new Hyperjump();
+
+        hyperjump.addMediaTypePlugin({
+          mediaType: "application/foo+json",
+          extensions: [".foo.json"],
+          parse: async () => ({ type: "foo-document", children: [] })
+        });
+      });
+
+      test("by extension", () => {
+        expect(hyperjump.getMediaType("file:///path/to/bar.json")).to.equal("application/json");
+      });
+
+      test("the longest matching extension wins", () => {
+        expect(hyperjump.getMediaType("file:///path/to/bar.foo.json")).to.equal("application/foo+json");
+      });
+
+      test("an extension isn't a whole filename", () => {
+        expect(hyperjump.getMediaType("file:///path/to/.foo.json")).to.equal("application/json");
+      });
+    });
+
     describe("media type plugin without quality", () => {
       /** @type Hyperjump */
       let hyperjump;
