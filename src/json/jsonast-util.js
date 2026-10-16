@@ -1,227 +1,30 @@
 import * as JsonPointer from "@hyperjump/json-pointer";
-import { JsonLexer } from "./json-lexer.js";
+import { parseJson } from "./json-parser.js";
 
 /**
- * @import { Node, Position } from "unist"
- * @import { JsonToken } from "./json-lexer.js"
  * @import {
  *   JsonArrayNode,
+ *   JsonInvalidNode,
  *   JsonNode,
  *   JsonObjectNode,
  *   JsonPropertyNameNode,
+ *   JsonErrorNode,
  *   JsonPropertyNode
  * } from "./jsonast.js"
  * @import * as API from "./jsonast-util.d.ts"
  */
 
-/** @type API.Reviver<object, any> */
+/** @type API.Reviver<object, any, any> */
 const defaultReviver = (value) => value;
 
 /** @type API.fromJson */
-export const fromJson = (json, location = "", reviver = defaultReviver) => {
-  const lexer = new JsonLexer(json);
-
-  const token = lexer.nextToken();
-  const jsonValue = parseValue(token, lexer, undefined, reviver, `${location}#`);
-
-  lexer.done();
-
-  return jsonValue;
+export const fromJson = (json, location = "", reviver = defaultReviver, options = {}) => {
+  return parseJson(json, location, reviver, options);
 };
 
-/**
- * @template {object} A
- * @template {JsonNode<A> | undefined} B
- * @param {JsonToken} token
- * @param {JsonLexer} lexer
- * @param {string | undefined} key
- * @param {API.Reviver<A, B>} reviver
- * @param {string} location
- * @returns {B}
- */
-const parseValue = (token, lexer, key, reviver, location) => {
-  /** @type {JsonNode<A>} */
-  let node;
-
-  switch (token.type) {
-    case "null":
-    case "boolean":
-    case "number":
-    case "string":
-      node = parseScalar(token, location);
-      break;
-    case "[":
-      node = parseArray(token, lexer, reviver, location);
-      break;
-    case "{":
-      node = parseObject(token, lexer, reviver, location);
-      break;
-    default:
-      throw lexer.syntaxError("Expected a JSON value", token);
-  }
-
-  return reviver(node, key);
-};
-
-/** @type (token: JsonToken<"null" | "boolean" | "number" | "string">, location: string) => JsonNode */
-const parseScalar = (token, location) => {
-  return {
-    type: "json",
-    jsonType: token.type,
-    value: JSON.parse(token.value),
-    location: location,
-    position: tokenPosition(token)
-  };
-};
-
-/**
- * @template {object} A
- * @template {JsonNode<A> | undefined} B
- * @param {JsonToken} token
- * @param {JsonLexer} lexer
- * @param {string} _key
- * @param {API.Reviver<A, B>} reviver
- * @param {string} location
- * @returns {JsonPropertyNode<JsonNode<A>> | undefined}
- */
-const parseProperty = (token, lexer, _key, reviver, location) => {
-  if (token.type !== "string") {
-    throw lexer.syntaxError("Expected a property", token);
-  }
-
-  /** @type JsonPropertyNameNode */
-  const keyNode = {
-    type: "json-property-name",
-    jsonType: "string",
-    value: JSON.parse(token.value),
-    position: tokenPosition(token)
-  };
-
-  const colonToken = lexer.nextToken();
-  if (colonToken.type !== ":") {
-    throw lexer.syntaxError("Expected :", colonToken);
-  }
-
-  const valueNode = parseValue(lexer.nextToken(), lexer, keyNode.value, reviver, JsonPointer.append(keyNode.value, location));
-  if (!valueNode) {
-    return;
-  }
-
-  return {
-    type: "json-property",
-    children: [keyNode, valueNode]
-  };
-};
-
-/**
- * @template A
- * @typedef {Node & { children: A[] }} ParentNode
- */
-
-/**
- * @type <A, P extends ParentNode<C>, C extends JsonNode<A> | undefined>(
- *   parseChild: (token: JsonToken, lexer: JsonLexer, key: string, reviver: API.Reviver<any, any>, location: string) => C,
- *   endToken: string
- * ) => (lexer: JsonLexer, node: P, reviver: API.Reviver<any, any>, location: string) => P
- */
-const parseCommaSeparated = (parseChild, endToken) => (lexer, node, reviver, location) => {
-  for (let index = 0; ; index++) {
-    let token = lexer.nextToken();
-
-    if (token.type === endToken) {
-      /** @type Position */ (node.position).end = tokenPosition(token).end;
-      return node;
-    }
-
-    if (index > 0) {
-      if (token.type === ",") {
-        token = lexer.nextToken();
-      } else {
-        throw lexer.syntaxError(`Expected , or ${endToken}`, token);
-      }
-    }
-
-    const childNode = parseChild(token, lexer, `${index}`, reviver, location);
-    if (childNode) {
-      node.children.push(childNode);
-    }
-  }
-};
-
-/**
- * @template {object} A
- * @template {JsonNode<A> | undefined} B
- * @param {JsonToken} openToken
- * @param {JsonLexer} lexer
- * @param {API.Reviver<A, B>} reviver
- * @param {string} location
- * @returns {JsonNode<A>}
- */
-const parseArray = (openToken, lexer, reviver, location) => {
-  return parseItems(lexer, {
-    type: "json",
-    jsonType: "array",
-    children: [],
-    location: location,
-    position: tokenPosition(openToken)
-  }, reviver, location);
-};
-
-/**
- * @template {object} A
- * @template {JsonNode<A> | undefined} B
- * @param {JsonToken} token
- * @param {JsonLexer} lexer
- * @param {string} key
- * @param {API.Reviver<A, B>} reviver
- * @param {string} location
- * @returns {B}
- */
-const parseItem = (token, lexer, key, reviver, location) => {
-  return parseValue(token, lexer, key, reviver, JsonPointer.append(key, location));
-};
-
-/** @type <A extends object, B extends JsonNode<A> | undefined>(lexer: JsonLexer, node: { type: "json" } & JsonArrayNode<JsonNode<A>>, reviver: API.Reviver<A, B>, location: string) => JsonNode<A> */
-const parseItems = parseCommaSeparated(parseItem, "]");
-
-/**
- * @template {object} A
- * @template {JsonNode<A> | undefined} B
- * @param {JsonToken} openToken
- * @param {JsonLexer} lexer
- * @param {API.Reviver<A, B>} reviver
- * @param {string} location
- * @returns {JsonNode<A>}
- */
-const parseObject = (openToken, lexer, reviver, location) => {
-  return parseProperties(lexer, {
-    type: "json",
-    jsonType: "object",
-    children: [],
-    location: location,
-    position: tokenPosition(openToken)
-  }, reviver, location);
-};
-
-/** @type <A extends object, B extends JsonNode<A> | undefined>(lexer: JsonLexer, node: { type: "json" } & JsonObjectNode<JsonNode<A>>, reviver: API.Reviver<A, B>, location: string) => JsonNode<A> */
-const parseProperties = parseCommaSeparated(parseProperty, "}");
-
-/** @type (startToken: JsonToken, endToken?: JsonToken) => Position */
-const tokenPosition = (startToken, endToken) => {
-  endToken ??= startToken;
-
-  return {
-    start: {
-      line: startToken.line,
-      column: startToken.col,
-      offset: startToken.offset
-    },
-    end: {
-      line: endToken.line,
-      column: endToken.col + endToken.text.length,
-      offset: endToken.offset + endToken.text.length
-    }
-  };
+/** @type API.hasStatus */
+export const hasStatus = (document, ...statuses) => {
+  return /** @type string[] */ (statuses).includes(document.status);
 };
 
 /** @type API.fromJs */
@@ -308,8 +111,28 @@ const defaultReplacer = (node) => node;
 
 /** @type API.toJson */
 export const toJson = (node, replacer = defaultReplacer, space = "") => {
-  const replacedNode = replacer(node);
+  const replacedNode = replace(node, replacer);
   return replacedNode ? stringifyValue(replacedNode, replacer, space, 1) : "";
+};
+
+/**
+ * Apply the replacer to a value. A missing value is treated like a value the
+ * replacer removed. An invalid value can't be represented in JSON, so it's an
+ * error.
+ *
+ * @type (node: JsonNode<unknown, JsonErrorNode> | JsonErrorNode, replacer: API.Replacer, key?: string) => JsonNode<unknown> | undefined
+ */
+const replace = (node, replacer, key) => {
+  switch (node.type) {
+    case "json-missing":
+      return undefined;
+    case "json-invalid": {
+      const invalidNode = /** @type JsonInvalidNode */ (node);
+      throw TypeError(`Can't convert an invalid value to JSON: '${invalidNode.raw}' at ${invalidNode.location}`);
+    }
+    default:
+      return replacer(/** @type JsonNode<unknown> */ (node), key);
+  }
 };
 
 /** @type (node: JsonNode<unknown>, replacer: API.Replacer, space: string, depth: number) => string */
@@ -335,7 +158,7 @@ const stringifyArray = (node, replacer, space, depth) => {
   /** @type string[] */
   const items = [];
   for (let index = 0; index < node.children.length; index++) {
-    const itemNode = replacer(node.children[index], `${index}`);
+    const itemNode = replace(node.children[index], replacer, `${index}`);
     items.push(itemNode === undefined ? "null" : stringifyValue(itemNode, replacer, space, depth + 1));
   }
   return "[" + padding + space + items.join(`,${padding}${space}`) + padding + "]";
@@ -350,7 +173,7 @@ const stringifyObject = (node, replacer, space, depth) => {
   const properties = [];
   for (const propertyNode of node.children) {
     const [keyNode, valueNode] = propertyNode.children;
-    const replacedValueNode = replacer(valueNode, keyNode.value);
+    const replacedValueNode = replace(valueNode, replacer, keyNode.value);
     if (replacedValueNode !== undefined) {
       const stringifiedValue = stringifyValue(replacedValueNode, replacer, space, depth + 1);
       properties.push(JSON.stringify(keyNode.value) + ":" + colonSpacing + stringifiedValue);
@@ -369,19 +192,21 @@ const arrayIndexPattern = /^(?:0|[1-9][0-9]*)$/;
 export const pointerStep = (segment, node, uri = "#") => {
   switch (node.jsonType) {
     case "object": {
+      let found = false;
       let result;
-      for (const propertyNode of node.children) {
-        if (propertyNode.children[0].value === segment) {
+      for (const [keyNode, valueNode] of propertyEntries(node.children)) {
+        if (keyNode.value === segment) {
           // RFC 6901: If a referenced member name is not unique in an object,
           // the member that is referenced is undefined, and evaluation fails.
-          if (result) {
+          if (found) {
             const uriMessage = uri ? ` at ${uri}` : "";
             throw new JsonPointerError(`Property '${segment}' is not unique${uriMessage}`);
           }
-          result = propertyNode.children[1];
+          found = true;
+          result = valueNode;
         }
       }
-      if (!result) {
+      if (!found) {
         const uriMessage = uri ? ` at ${uri}` : "";
         throw new JsonPointerError(`Property '${segment}' doesn't exist${uriMessage}`);
       }
@@ -397,7 +222,7 @@ export const pointerStep = (segment, node, uri = "#") => {
         const uriMessage = uri ? ` at ${uri}` : "";
         throw new JsonPointerError(`Index '${index}' doesn't exist${uriMessage}`);
       }
-      return node.children[index];
+      return memberValue(node.children[index]);
     }
     default: {
       const uriMessage = uri ? ` at ${uri}` : "";
@@ -409,10 +234,18 @@ export const pointerStep = (segment, node, uri = "#") => {
 /** @type API.pointerGet */
 export const pointerGet = (pointer, tree, documentUri) => {
   let currentPointer = "";
-  let node = tree;
+  let node = memberValue(tree);
   for (const segment of pointerSegments(pointer)) {
+    const uri = `${documentUri}#${currentPointer}`;
+    if (node === undefined) {
+      throw new JsonPointerError(`Can't index into a missing value at ${uri}`);
+    }
+    if (node.type === "json-invalid") {
+      throw new JsonPointerError(`Can't index into an invalid value at ${uri}`);
+    }
+
     currentPointer += "/" + escapePointerSegment(segment);
-    node = pointerStep(segment, node, `${documentUri}#${currentPointer}`);
+    node = pointerStep(segment, /** @type Parameters<typeof pointerStep>[1] */ (node), `${documentUri}#${currentPointer}`);
   }
 
   return node;
@@ -448,7 +281,7 @@ const escapePointerSegment = (segment) => segment.toString()
   .replace(/\//g, "~1");
 
 // eslint-disable-next-line @stylistic/no-extra-parens
-export const jsonValue = /** @type API.jsonValue */ ((node) => {
+export const jsonValue = /** @type API.jsonValue */ ((/** @type JsonNode<unknown, JsonErrorNode> */ node) => {
   switch (node.jsonType) {
     case "object":
     case "array":
@@ -462,8 +295,8 @@ export const jsonValue = /** @type API.jsonValue */ ((node) => {
 /** @type API.jsonObjectHas */
 export const jsonObjectHas = (key, node) => {
   if (node.jsonType === "object") {
-    for (const property of node.children) {
-      if (property.children[0].value === key) {
+    for (const [keyNode] of propertyEntries(node.children)) {
+      if (keyNode.value === key) {
         return true;
       }
     }
@@ -476,7 +309,7 @@ export const jsonObjectHas = (key, node) => {
 export const jsonArrayIter = function* (node) {
   if (node.jsonType === "array") {
     for (const itemNode of node.children) {
-      yield itemNode;
+      yield memberValue(itemNode);
     }
   }
 };
@@ -484,8 +317,8 @@ export const jsonArrayIter = function* (node) {
 /** @type API.jsonObjectKeys */
 export const jsonObjectKeys = function* (node) {
   if (node.jsonType === "object") {
-    for (const propertyNode of node.children) {
-      yield propertyNode.children[0].value;
+    for (const [keyNode] of propertyEntries(node.children)) {
+      yield keyNode.value;
     }
   }
 };
@@ -493,8 +326,8 @@ export const jsonObjectKeys = function* (node) {
 /** @type API.jsonObjectValues */
 export const jsonObjectValues = function* (node) {
   if (node.jsonType === "object") {
-    for (const propertyNode of node.children) {
-      yield propertyNode.children[1];
+    for (const [, valueNode] of propertyEntries(node.children)) {
+      yield valueNode;
     }
   }
 };
@@ -502,9 +335,26 @@ export const jsonObjectValues = function* (node) {
 /** @type API.jsonObjectEntries */
 export const jsonObjectEntries = function* (node) {
   if (node.jsonType === "object") {
-    for (const propertyNode of node.children) {
-      yield [propertyNode.children[0].value, propertyNode.children[1]];
+    for (const [keyNode, valueNode] of propertyEntries(node.children)) {
+      yield [keyNode.value, valueNode];
     }
+  }
+};
+
+/**
+ * A missing value from a failed parse is presented as `undefined`.
+ *
+ * @type (node: any) => any
+ */
+const memberValue = (node) => {
+  return node.type === "json-missing" ? undefined : node;
+};
+
+/** @type (propertyNodes: JsonPropertyNode<any, any>[]) => Generator<[JsonPropertyNameNode, any]> */
+const propertyEntries = function* (propertyNodes) {
+  for (const propertyNode of propertyNodes) {
+    const [keyNode, valueNode] = propertyNode.children;
+    yield [keyNode, memberValue(valueNode)];
   }
 };
 

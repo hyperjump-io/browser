@@ -1,5 +1,5 @@
 import { pathToUri } from "#path-to-uri";
-import { VFileMessage } from "vfile-message";
+import { reportSyntaxErrors } from "../json/report-syntax-errors.js";
 import { fromJref } from "./jref-util.js";
 
 /**
@@ -10,33 +10,18 @@ import { fromJref } from "./jref-util.js";
 /** @type API.jrefParse */
 export function jrefParse(options) {
   this.parser = function (document, file) {
-    try {
-      const uri = file.path ? pathToUri(file.cwd, file.path) : undefined;
+    const uri = file.path ? pathToUri(file.cwd, file.path) : undefined;
 
-      /** @type JrefDocumentNode */
-      const jrefDocumentNode = {
-        type: "jref-document",
-        children: [],
-        uri: uri,
-        fragmentKind: "json-pointer"
-      };
+    const { status, node, messages, comments } = fromJref(document, uri, options?.reviver, options);
+    reportSyntaxErrors(file, messages, status, options?.accept);
 
-      const jrefNode = fromJref(document, uri, options?.reviver);
-      if (jrefNode) {
-        jrefDocumentNode.children.push(jrefNode);
-      }
-
-      return jrefDocumentNode;
-    } catch (error) {
-      if (error instanceof VFileMessage) {
-        return file.fail(error.reason, {
-          place: error.place,
-          ruleId: error.ruleId,
-          source: error.source
-        });
-      } else {
-        throw error;
-      }
-    }
+    return /** @type JrefDocumentNode */ ({
+      type: "jref-document",
+      status: status,
+      children: node ? [node] : [],
+      comments: comments,
+      uri: uri,
+      fragmentKind: "json-pointer"
+    });
   };
 }

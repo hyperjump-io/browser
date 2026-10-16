@@ -13,9 +13,17 @@ export class JsonMediaTypePlugin {
 
   /** @type API.JsonMediaTypePlugin["parse"] */
   async parse(response) {
+    const result = fromJson(await response.text());
+    if (result.status !== "success") {
+      result.messages[0].fatal = true;
+      throw result.messages[0];
+    }
+
     return {
       type: "json-document",
-      children: [fromJson(await response.text())]
+      status: result.status,
+      children: [result.node],
+      comments: []
     };
   }
 }

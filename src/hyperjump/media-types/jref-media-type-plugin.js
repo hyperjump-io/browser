@@ -13,9 +13,17 @@ export class JrefMediaTypePlugin {
 
   /** @type API.JrefMediaTypePlugin["parse"] */
   async parse(response) {
+    const result = fromJref(await response.text(), response.url);
+    if (result.status !== "success") {
+      result.messages[0].fatal = true;
+      throw result.messages[0];
+    }
+
     return {
       type: "jref-document",
-      children: [fromJref(await response.text(), response.url)],
+      status: result.status,
+      children: [result.node],
+      comments: [],
       uri: response.url,
       fragmentKind: "json-pointer"
     };

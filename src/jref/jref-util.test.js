@@ -13,7 +13,7 @@ describe("JRef", () => {
   describe("parse", () => {
     describe("scalars", () => {
       test("null", () => {
-        const subject = fromJref(`null`, testContext);
+        const subject = fromJref(`null`, testContext).node;
         expect(subject).to.eql({
           type: "json",
           jsonType: "null",
@@ -27,7 +27,7 @@ describe("JRef", () => {
       });
 
       test("true", () => {
-        const subject = fromJref(`true`, testContext);
+        const subject = fromJref(`true`, testContext).node;
         expect(subject).to.eql({
           type: "json",
           jsonType: "boolean",
@@ -41,7 +41,7 @@ describe("JRef", () => {
       });
 
       test("false", () => {
-        const subject = fromJref(`false`, testContext);
+        const subject = fromJref(`false`, testContext).node;
         expect(subject).to.eql({
           type: "json",
           jsonType: "boolean",
@@ -55,7 +55,7 @@ describe("JRef", () => {
       });
 
       test("integers", () => {
-        const subject = fromJref(`1`, testContext);
+        const subject = fromJref(`1`, testContext).node;
         expect(subject).to.eql({
           type: "json",
           jsonType: "number",
@@ -69,7 +69,7 @@ describe("JRef", () => {
       });
 
       test("real numbers", () => {
-        const subject = fromJref(`1.34`, testContext);
+        const subject = fromJref(`1.34`, testContext).node;
         expect(subject).to.eql({
           type: "json",
           jsonType: "number",
@@ -83,7 +83,7 @@ describe("JRef", () => {
       });
 
       test("negative numbers", () => {
-        const subject = fromJref(`-1.34`, testContext);
+        const subject = fromJref(`-1.34`, testContext).node;
         expect(subject).to.eql({
           type: "json",
           jsonType: "number",
@@ -97,7 +97,7 @@ describe("JRef", () => {
       });
 
       test("exponential numbers", () => {
-        const subject = fromJref(`-1e34`, testContext);
+        const subject = fromJref(`-1e34`, testContext).node;
         expect(subject).to.eql({
           type: "json",
           jsonType: "number",
@@ -111,7 +111,7 @@ describe("JRef", () => {
       });
 
       test("reference", () => {
-        const subject = fromJref(`{ "$ref": "./foo" }`, testContext);
+        const subject = fromJref(`{ "$ref": "./foo" }`, testContext).node;
         expect(subject).to.eql({
           type: "reference",
           jsonType: "object",
@@ -138,7 +138,11 @@ describe("JRef", () => {
                     end: { line: 1, column: 18, offset: 17 }
                   }
                 }
-              ]
+              ],
+              position: {
+                start: { line: 1, column: 3, offset: 2 },
+                end: { line: 1, column: 18, offset: 17 }
+              }
             }
           ],
           location: `${testContext}#`,
@@ -153,7 +157,7 @@ describe("JRef", () => {
 
     describe("array", () => {
       test("empty", () => {
-        const subject = fromJref(`[]`, testContext);
+        const subject = fromJref(`[]`, testContext).node;
         expect(subject).to.eql({
           type: "json",
           jsonType: "array",
@@ -169,7 +173,7 @@ describe("JRef", () => {
       test("non-empty", () => {
         const subject = fromJref(`[
   "foo"
-]`, testContext);
+]`, testContext).node;
         expect(subject).to.eql({
           type: "json",
           jsonType: "array",
@@ -196,7 +200,7 @@ describe("JRef", () => {
       test("reference", () => {
         const subject = fromJref(`[
   { "$ref": "./foo" }
-]`, testContext);
+]`, testContext).node;
         expect(subject).to.eql({
           type: "json",
           jsonType: "array",
@@ -227,7 +231,11 @@ describe("JRef", () => {
                         end: { line: 2, column: 20, offset: 21 }
                       }
                     }
-                  ]
+                  ],
+                  position: {
+                    start: { line: 2, column: 5, offset: 6 },
+                    end: { line: 2, column: 20, offset: 21 }
+                  }
                 }
               ],
               location: `${testContext}#/0`,
@@ -249,7 +257,7 @@ describe("JRef", () => {
 
     describe("object", () => {
       test("empty", () => {
-        const subject = fromJref(`{}`, testContext);
+        const subject = fromJref(`{}`, testContext).node;
         expect(subject).to.eql({
           type: "json",
           jsonType: "object",
@@ -265,7 +273,7 @@ describe("JRef", () => {
       test("non-empty", () => {
         const subject = fromJref(`{
   "foo": 42
-}`, testContext);
+}`, testContext).node;
         expect(subject).to.eql({
           type: "json",
           jsonType: "object",
@@ -292,7 +300,11 @@ describe("JRef", () => {
                     end: { line: 2, column: 12, offset: 13 }
                   }
                 }
-              ]
+              ],
+              position: {
+                start: { line: 2, column: 3, offset: 4 },
+                end: { line: 2, column: 12, offset: 13 }
+              }
             }
           ],
           location: `${testContext}#`,
@@ -306,7 +318,7 @@ describe("JRef", () => {
       test("reference", () => {
         const subject = fromJref(`{
   "foo": { "$ref": "./foo" }
-}`, testContext);
+}`, testContext).node;
         expect(subject).to.eql({
           type: "json",
           jsonType: "object",
@@ -349,7 +361,11 @@ describe("JRef", () => {
                             end: { line: 2, column: 27, offset: 28 }
                           }
                         }
-                      ]
+                      ],
+                      position: {
+                        start: { line: 2, column: 12, offset: 13 },
+                        end: { line: 2, column: 27, offset: 28 }
+                      }
                     }
                   ],
                   location: `${testContext}#/foo`,
@@ -359,7 +375,11 @@ describe("JRef", () => {
                     end: { line: 2, column: 29, offset: 30 }
                   }
                 }
-              ]
+              ],
+              position: {
+                start: { line: 2, column: 3, offset: 4 },
+                end: { line: 2, column: 29, offset: 30 }
+              }
             }
           ],
           location: `${testContext}#`,
@@ -384,7 +404,7 @@ describe("JRef", () => {
             return node;
           }
         });
-        expect(toJson(subject)).to.equal(`{"foo":42,"iBar":42,"baz":{"$ref":"./foo"}}`);
+        expect(toJson(subject.node)).to.equal(`{"foo":42,"iBar":42,"baz":{"$ref":"./foo"}}`);
       });
     });
   });

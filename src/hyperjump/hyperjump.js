@@ -4,7 +4,7 @@ import { contextUri } from "#context-uri";
 import { defaultUriSchemePlugins } from "#default-uri-scheme-plugins";
 import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
 import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
-import { jsonObjectHas, jsonObjectKeys, jsonValue, pointerGet, pointerStep } from "../json/jsonast-util.js";
+import { jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonObjectValues, jsonValue, pointerGet, pointerStep } from "../json/jsonast-util.js";
 import { mimeMatchSpecificity } from "./utilities.js";
 
 /**
@@ -254,8 +254,8 @@ export class Hyperjump {
   /** @type API.Hyperjump<JrefNode>["values"] */
   async* values(node) {
     if (node.jsonType === "object") {
-      for (const propertyNode of node.children) {
-        yield this.#followReferences(propertyNode.children[1]);
+      for (const valueNode of jsonObjectValues(node)) {
+        yield this.#followReferences(valueNode);
       }
     }
   }
@@ -263,11 +263,8 @@ export class Hyperjump {
   /** @type API.Hyperjump<JrefNode>["entries"] */
   async* entries(node) {
     if (node.jsonType === "object") {
-      for (const propertyNode of node.children) {
-        yield [
-          propertyNode.children[0].value,
-          await this.#followReferences(propertyNode.children[1])
-        ];
+      for (const [key, valueNode] of jsonObjectEntries(node)) {
+        yield [key, await this.#followReferences(valueNode)];
       }
     }
   }

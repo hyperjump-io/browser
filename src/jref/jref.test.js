@@ -37,11 +37,11 @@ describe("jref processor", () => {
     } catch (error) {
       expect(error).to.be.instanceof(VFileMessage);
       const message = /** @type VFileMessage */ (error);
-      expect(message.reason).to.equal("Expected :");
+      expect(message.reason).to.equal("Expected a colon");
       expect(message.line).to.equal(1);
-      expect(message.column).to.equal(9);
+      expect(message.column).to.equal(3);
       expect(message.source).to.equal("json");
-      expect(message.ruleId).to.equal("syntax-error");
+      expect(message.ruleId).to.equal("colon-expected");
       expect(message.fatal).to.equal(true);
     }
   });

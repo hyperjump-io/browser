@@ -3,10 +3,10 @@ import { MockAgent, setGlobalDispatcher } from "undici";
 import { toAbsoluteIri } from "@hyperjump/uri";
 import { Hyperjump } from "./index.js";
 import { fromJref } from "../jref/index.js";
-import { toJson } from "../json/jsonast-util.js";
+import { jsonObjectEntries, toJson } from "../json/jsonast-util.js";
 
 /**
- * @import { JrefNode } from "../jref/jref-ast.js"
+ * @import { JrefNode, JrefTolerantNode } from "../jref/jref-ast.js"
  */
 
 describe("JSON Browser", () => {
@@ -37,11 +37,11 @@ describe("JSON Browser", () => {
           embedded: embedded
         };
 
-        const rootNode = fromJref(text, uri, (node, key) => {
+        const result = fromJref(text, uri, (node, key) => {
           if (key === "$embedded" && node.jsonType === "object") {
-            for (const propertyNode of node.children) {
-              const embeddedUri = toAbsoluteIri(propertyNode.children[0].value);
-              const embeddedJref = toJson(propertyNode.children[1]);
+            for (const [key, valueNode] of jsonObjectEntries(node)) {
+              const embeddedUri = toAbsoluteIri(key);
+              const embeddedJref = toJson(/** @type JrefTolerantNode */ (valueNode));
               embedded[embeddedUri] = parseToDocument(embeddedUri, embeddedJref, embedded);
             }
             return;
@@ -50,8 +50,12 @@ describe("JSON Browser", () => {
           }
         });
 
-        if (rootNode) {
-          embeddedDocument.children.push(rootNode);
+        if (result.status !== "success") {
+          throw result.messages[0];
+        }
+
+        if (result.node) {
+          embeddedDocument.children.push(result.node);
         }
 
         return embeddedDocument;

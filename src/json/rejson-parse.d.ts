@@ -1,10 +1,17 @@
 import type { Plugin } from "unified";
-import type { JsonDocumentNode, JsonNode } from "./jsonast.d.ts";
-import type { Reviver } from "./jsonast-util.d.ts";
+import type { JsonDocumentNode, JsonErrorNode, JsonNode, JsonParseStatus } from "./jsonast.d.ts";
+import type { JsonOptions, Reviver } from "./jsonast-util.d.ts";
 
-export type JsonParseOptions = {
+export type JsonParseOptions = JsonOptions & {
   location?: string;
-  reviver?: Reviver<JsonNode, JsonNode | undefined>;
+  reviver?: Reviver<JsonNode, JsonNode<JsonNode, JsonErrorNode> | undefined, JsonErrorNode>;
+  /**
+   * The worst parse status that doesn't fail the file. Every syntax error is
+   * added to the file as a message either way. The document's `status` says
+   * how the parse went. Defaults to `"success"`, so any syntax error fails the
+   * file. A linter might accept `"failure"` to always get an AST.
+   */
+  accept?: JsonParseStatus;
 };
 
 /**

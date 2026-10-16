@@ -6,9 +6,15 @@ import type { MediaTypePlugin } from "./media-type-plugin.d.ts";
  * - Media type: application/json
  * - Extensions: .json
  */
-export class JsonMediaTypePlugin implements MediaTypePlugin<JsonDocumentNode> {
+/**
+ * Documents are only produced for valid JSON, so their status is always
+ * `success`.
+ */
+export type JsonMediaTypeDocument = JsonDocumentNode<"success">;
+
+export class JsonMediaTypePlugin implements MediaTypePlugin<JsonMediaTypeDocument> {
   mediaType: string;
   extensions: string[];
   quality?: number;
-  parse: MediaTypePlugin<JsonDocumentNode>["parse"];
+  parse: MediaTypePlugin<JsonMediaTypeDocument>["parse"];
 }

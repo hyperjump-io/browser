@@ -18,8 +18,21 @@ import {
 } from "./index.js";
 
 /**
- * @import { JsonNode } from "./index.js"
+ * @import { JsonNode, JsonTolerantNode } from "./index.js"
  */
+
+/**
+ * Parse JSON that's expected to be valid.
+ *
+ * @type (json: string) => JsonNode
+ */
+const parse = (json) => {
+  const result = fromJson(json);
+  if (result.status !== "success") {
+    throw result.messages[0];
+  }
+  return result.node;
+};
 
 describe("jsonast-util", async () => {
   const testPath = resolve(import.meta.dirname, "jsonast-util-tests");
@@ -55,36 +68,36 @@ describe("jsonast-util", async () => {
 
   describe("type/value and type narrowing", () => {
     test("null", () => {
-      const node = fromJson(`null`);
+      const node = parse(`null`);
       const subject = jsonValue(node);
       expect(subject).to.equal(null);
     });
 
     test("boolean", () => {
-      const node = fromJson(`true`);
+      const node = parse(`true`);
       const subject = jsonValue(node);
       expect(subject).to.equal(true);
     });
 
     test("number", () => {
-      const node = fromJson(`42`);
+      const node = parse(`42`);
       const subject = jsonValue(node);
       expect(subject).to.equal(42);
     });
 
     test("string", () => {
-      const node = fromJson(`"foo"`);
+      const node = parse(`"foo"`);
       const subject = jsonValue(node);
       expect(subject).to.equal("foo");
     });
 
     test("array", () => {
-      const node = fromJson(`["foo", 42]`);
+      const node = parse(`["foo", 42]`);
       expect(() => jsonValue(node)).to.throw();
     });
 
     test("object", () => {
-      const node = fromJson(`{ "foo": 42 }`);
+      const node = parse(`{ "foo": 42 }`);
       expect(() => jsonValue(node)).to.throw();
     });
   });
@@ -94,7 +107,7 @@ describe("jsonast-util", async () => {
     let subject;
 
     beforeEach(() => {
-      subject = fromJson(`{
+      subject = parse(`{
         "foo": 42
       }`);
     });
@@ -112,7 +125,7 @@ describe("jsonast-util", async () => {
     const json = `{ "a": [1, 2, 3], "b": { "c": 1, "d": 2 }, "d": 4 }`;
 
     /** @type JsonNode */
-    const subject = fromJson(json);
+    const subject = parse(json);
 
     /** @type (key: string) => boolean */
     const isRemoved = (key) => key === "2" || key === "d";
@@ -135,7 +148,7 @@ describe("jsonast-util", async () => {
 
     test("all properties removed", () => {
       /** @type JsonNode */
-      const node = fromJson(`{ "d": 1 }`);
+      const node = parse(`{ "d": 1 }`);
       expect(toJson(node, replacer, "  ")).to.equal(`{}`);
     });
   });
@@ -145,7 +158,7 @@ describe("jsonast-util", async () => {
     let subject;
 
     beforeEach(() => {
-      subject = fromJson(`{ "foo": 1, "bar": 2, "foo": 3 }`);
+      subject = parse(`{ "foo": 1, "bar": 2, "foo": 3 }`);
     });
 
     test("stepping into a duplicated property fails", () => {
@@ -162,7 +175,7 @@ describe("jsonast-util", async () => {
     let subject;
 
     beforeEach(() => {
-      subject = fromJson(`[0, 1, 2]`);
+      subject = parse(`[0, 1, 2]`);
     });
 
     test("valid index", () => {
@@ -199,15 +212,14 @@ describe("jsonast-util", async () => {
   });
 
   test("a reviver can parse JSON while another parse is in progress", () => {
-    /** @type JsonNode | undefined */
     const subject = fromJson(`["[1, 2]", 3]`, "", (node) => {
       if (node.jsonType === "string") {
-        return fromJson(node.value);
+        return /** @type JsonTolerantNode */ (fromJson(node.value).node);
       }
       return node;
     });
 
-    expect(toJson(/** @type JsonNode */ (subject))).to.equal(`[[1,2],3]`);
+    expect(toJson(subject.node)).to.equal(`[[1,2],3]`);
   });
 
   test("rejson syntax errors keep their position, source, and ruleId", () => {
@@ -217,30 +229,26 @@ describe("jsonast-util", async () => {
     } catch (error) {
       expect(error).to.be.instanceof(VFileMessage);
       const message = /** @type VFileMessage */ (error);
-      expect(message.reason).to.equal("Expected :");
+      expect(message.reason).to.equal("Expected a colon");
       expect(message.line).to.equal(1);
-      expect(message.column).to.equal(9);
+      expect(message.column).to.equal(3);
       expect(message.source).to.equal("json");
-      expect(message.ruleId).to.equal("syntax-error");
+      expect(message.ruleId).to.equal("colon-expected");
       expect(message.fatal).to.equal(true);
     }
   });
 
-  test("missing colon error reports the position of the unexpected token", () => {
-    try {
-      fromJson(`{ "foo"\n\n  1 }`);
-      expect.fail("Expected a VFileMessage");
-    } catch (error) {
-      expect(error).to.be.instanceof(VFileMessage);
-      const message = /** @type VFileMessage */ (error);
-      expect(message.reason).to.equal("Expected :");
-      expect(message.line).to.equal(3);
-      expect(message.column).to.equal(3);
-    }
+  test("missing colon error points at the property name it should follow", () => {
+    const message = fromJson(`{ "foo"\n\n  1 }`).messages[0];
+    expect(message.reason).to.equal("Expected a colon");
+    expect(message.place).to.eql({
+      start: { line: 1, column: 3, offset: 2 },
+      end: { line: 1, column: 8, offset: 7 }
+    });
   });
 
   test("iter", () => {
-    const subject = fromJson(`[1, 2]`);
+    const subject = parse(`[1, 2]`);
 
     const generator = jsonArrayIter(subject);
 
@@ -252,7 +260,7 @@ describe("jsonast-util", async () => {
   });
 
   test("keys", () => {
-    const subject = fromJson(`{
+    const subject = parse(`{
       "a": 1,
       "b": 2
     }`);
@@ -265,7 +273,7 @@ describe("jsonast-util", async () => {
   });
 
   test("values", () => {
-    const subject = fromJson(`{
+    const subject = parse(`{
       "a": 1,
       "b": 2
     }`);
@@ -280,7 +288,7 @@ describe("jsonast-util", async () => {
   });
 
   test("entries", () => {
-    const subject = fromJson(`{
+    const subject = parse(`{
       "a": 1,
       "b": 2
     }`);

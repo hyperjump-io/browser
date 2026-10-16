@@ -1,5 +1,5 @@
-import { VFileMessage } from "vfile-message";
 import { fromJson } from "./jsonast-util.js";
+import { reportSyntaxErrors } from "./report-syntax-errors.js";
 
 /**
  * @import { JsonDocumentNode } from "./jsonast.js"
@@ -9,29 +9,14 @@ import { fromJson } from "./jsonast-util.js";
 /** @type API.rejsonParse */
 export function rejsonParse(options) {
   this.parser = function (document, file) {
-    try {
-      /** @type JsonDocumentNode */
-      const jsonDocumentNode = {
-        type: "json-document",
-        children: []
-      };
+    const { status, node, messages, comments } = fromJson(document, options?.location, options?.reviver, options);
+    reportSyntaxErrors(file, messages, status, options?.accept);
 
-      const jsonNode = fromJson(document, options?.location, options?.reviver);
-      if (jsonNode) {
-        jsonDocumentNode.children.push(jsonNode);
-      }
-
-      return jsonDocumentNode;
-    } catch (error) {
-      if (error instanceof VFileMessage) {
-        return file.fail(error.reason, {
-          place: error.place,
-          ruleId: error.ruleId,
-          source: error.source
-        });
-      } else {
-        throw error;
-      }
-    }
+    return /** @type JsonDocumentNode */ ({
+      type: "json-document",
+      status: status,
+      children: node ? [node] : [],
+      comments: comments
+    });
   };
 }
