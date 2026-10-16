@@ -1,6 +1,6 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump, JrefMediaTypePlugin, UnsupportedMediaTypeError } from "./index.js";
+import { Hyperjump, JrefMediaTypePlugin, RetrievalError, UnknownMediaTypeError, UnsupportedMediaTypeError } from "./index.js";
 import { fromJs, toJson } from "../json/jsonast-util.js";
 
 describe("JSON Browser", () => {
@@ -125,6 +125,50 @@ describe("JSON Browser", () => {
         hyperjump.setMediaTypeQuality("application/foo", 0.9);
         const accept = hyperjump.acceptableMediaTypes();
         expect(accept).to.equal("application/reference+json, application/json, application/foo; q=0.9, */*; q=0.001");
+      });
+    });
+
+    describe("Content-Type header", () => {
+      const testDomain = "https://example.com";
+
+      /** @type MockAgent */
+      let mockAgent;
+
+      beforeEach(() => {
+        mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+      });
+
+      afterEach(async () => {
+        await mockAgent.close();
+      });
+
+      test("with parameters", async () => {
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: "/foo" })
+          .reply(200, `42`, { headers: { "content-type": "application/json; charset=utf-8" } });
+
+        const hyperjump = new Hyperjump();
+        const subject = await hyperjump.get(`${testDomain}/foo`);
+
+        expect(toJson(subject)).to.equal("42");
+      });
+
+      test.each([
+        "not a media type",
+        "application/json garbage",
+        ";charset=utf-8"
+      ])("an invalid Content-Type: '%s'", async (contentType) => {
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: "/foo" })
+          .reply(200, `42`, { headers: { "content-type": contentType } });
+
+        const hyperjump = new Hyperjump();
+        const result = hyperjump.get(`${testDomain}/foo`);
+
+        await expect(result).rejects.toBeInstanceOf(RetrievalError);
+        await expect(result).rejects.toHaveProperty("cause", expect.any(UnknownMediaTypeError));
       });
     });
 

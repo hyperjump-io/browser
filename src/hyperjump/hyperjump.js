@@ -1,5 +1,5 @@
 import { parseIri, resolveIri, toAbsoluteIri } from "@hyperjump/uri";
-import { parse as parseContentType } from "content-type";
+import { isTypeValid, parse as parseContentType } from "content-type";
 import { contextUri } from "#context-uri";
 import { defaultUriSchemePlugins } from "#default-uri-scheme-plugins";
 import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
@@ -250,7 +250,11 @@ export class Hyperjump {
       throw new UnknownMediaTypeError("The media type of the response could not be determined. Make sure the response includes a 'Content-Type' header.");
     }
 
+    // The parser is lenient, so the type needs to be validated
     const contentType = parseContentType(contentTypeText);
+    if (!isTypeValid(contentType.type)) {
+      throw new UnknownMediaTypeError(`The media type of the response could not be determined. The 'Content-Type' header isn't valid: '${contentTypeText}'`);
+    }
 
     // Use the plugin with the most specific match. If there's a tie, the plugin
     // that was registered first wins.
