@@ -245,7 +245,9 @@ export const parseJson = (text, location, reviver, options = {}) => {
     }
 
     if (lastItem) {
-      report(code, startOf(lastItem), endOf(lastItem) - startOf(lastItem));
+      // The last item can be an unclosed container that covers whitespace
+      const lastItemText = text.slice(startOf(lastItem), endOf(lastItem));
+      report(code, startOf(lastItem), lastItemText.trimEnd().length);
     } else {
       report(code, startOf(container), 1);
     }
@@ -407,12 +409,14 @@ export const parseJson = (text, location, reviver, options = {}) => {
         report("value-expected", colonOffset, 1);
       }
 
+      // The missing value has no width, but the property extends to where
+      // parsing stopped so the cursor is inside it while typing the value
       const missingNode = missing(valueLocation, previousOffset + previousLength);
       /** @type JsonPropertyNode<object, JsonErrorNode> */
       const property = {
         type: "json-property",
         children: [keyNode, missingNode],
-        position: position(start, endOf(missingNode))
+        position: position(start, token.offset)
       };
       return { property, value };
     }
@@ -586,9 +590,11 @@ export const parseJson = (text, location, reviver, options = {}) => {
     }
 
     if (token.kind !== closer) {
-      // An unclosed container ends at its last token, not at whatever comes
-      // after it
-      finish(container, previousOffset + previousLength);
+      // An unclosed container extends to where parsing stopped, including any
+      // whitespace after its last token. Editors look up the node at the
+      // cursor, and while typing at the end of a truncated document, the
+      // cursor is usually in that whitespace.
+      finish(container, token.offset);
       reportNotClosed(jsonType === "object" ? "brace-not-closed" : "bracket-not-closed", container, lastItem);
       depth--;
       return container;

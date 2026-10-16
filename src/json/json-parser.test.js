@@ -579,19 +579,19 @@ describe("recovery", () => {
   test("a property with no value does not include the comma after it", () => {
     const { root } = parse(`{ "a": , "b": 1 }`);
 
-    expect(span(property(root, 0))).toEqual({ offset: 2, length: 4 });
+    expect(span(property(root, 0))).toEqual({ offset: 2, length: 5 });
   });
 
   test("a property with no value does not include the closing brace", () => {
     const { root } = parse(`{ "a": }`);
 
-    expect(span(property(root, 0))).toEqual({ offset: 2, length: 4 });
+    expect(span(property(root, 0))).toEqual({ offset: 2, length: 5 });
   });
 
   test("a property with no colon or value does not include the closing brace", () => {
     const { root } = parse(`{ "a" }`);
 
-    expect(span(property(root, 0))).toEqual({ offset: 2, length: 3 });
+    expect(span(property(root, 0))).toEqual({ offset: 2, length: 4 });
   });
 
   test("a stray token in an array does not hide the items after it", () => {
@@ -897,6 +897,13 @@ describe("tolerant AST", () => {
     });
   });
 
+  test("a property with no value covers the whitespace where the value would go", () => {
+    const { root } = parse(`{ "foo": `);
+
+    expect(span(property(root, 0))).toEqual({ offset: 2, length: 7 });
+    expect(span(property(root, 0).children[1])).toEqual({ offset: 8, length: 0 });
+  });
+
   test("a property with no colon has a missing value after its name", () => {
     const { root } = parse(`{ "a" }`);
 
@@ -956,24 +963,33 @@ describe("tolerant AST", () => {
     expect(itemValues(root)).toEqual([1, "json-missing"]);
   });
 
-  test("an unclosed object ends at its last token", () => {
+  test("an unclosed object covers the whitespace after its last token", () => {
     const { root } = parse(`{ "a": 1\n\n  `);
 
     expect(root).toMatchObject({ jsonType: "object" });
-    expect(span(root)).toEqual({ offset: 0, length: 8 });
+    expect(span(root)).toEqual({ offset: 0, length: 12 });
   });
 
-  test("an unclosed array followed by a property ends at its last item", () => {
+  test("an unclosed array followed by a property extends to the property", () => {
     const { root } = parse(`{ "a": [1, 2\n  "b": 3 }`);
 
-    expect(span(property(root, 0).children[1])).toEqual({ offset: 7, length: 5 });
-    expect(span(property(root, 0))).toEqual({ offset: 2, length: 10 });
+    expect(span(property(root, 0).children[1])).toEqual({ offset: 7, length: 8 });
+    expect(span(property(root, 0))).toEqual({ offset: 2, length: 13 });
   });
 
-  test("an unclosed empty object is just its opening brace", () => {
+  test("an unclosed empty object covers the whitespace after its brace", () => {
     const { root } = parse(`{  `);
 
-    expect(span(root)).toEqual({ offset: 0, length: 1 });
+    expect(span(root)).toEqual({ offset: 0, length: 3 });
+  });
+
+  test("an unclosed container's error doesn't include the whitespace", () => {
+    const { errors } = parse(`{ "a": [1, 2\n  "b": 3 }`);
+
+    expect(errors).toEqual([
+      { code: "comma-expected", offset: 11, length: 1 },
+      { code: "bracket-not-closed", offset: 11, length: 1 }
+    ]);
   });
 
   test("an unterminated string keeps what was typed", () => {
