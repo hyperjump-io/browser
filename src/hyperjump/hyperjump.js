@@ -86,15 +86,19 @@ export class Hyperjump {
     }
     referenceChain = [...referenceChain, uri];
 
-    let { fragment } = parseIri(uri);
+    const { fragment } = parseIri(uri);
     const document = await this.#getDocument(uri, options);
 
-    if (document.anchors && fragment !== undefined) {
-      fragment = document.anchors[fragment] ?? fragment;
+    // An anchor identifies a JSON Pointer. Otherwise, the fragment is a JSON
+    // Pointer that's percent-encoded.
+    let cursor = "";
+    if (fragment !== undefined && document.fragmentKind === "json-pointer") {
+      cursor = document.anchors && Object.hasOwn(document.anchors, fragment)
+        ? document.anchors[fragment]
+        : decodeURIComponent(fragment);
     }
-    const cursor = document.fragmentKind === "json-pointer" ? fragment : "";
 
-    const node = pointerGet(cursor ?? "", document.children[0], document.uri);
+    const node = pointerGet(cursor, document.children[0], document.uri);
     return await this.#followReferences(node, referenceChain);
   }
 

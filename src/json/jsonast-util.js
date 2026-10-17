@@ -1,5 +1,5 @@
-import * as JsonPointer from "@hyperjump/json-pointer";
 import { parseJson } from "./json-parser.js";
+import { appendToLocation } from "./location.js";
 
 /**
  * @import {
@@ -69,7 +69,7 @@ export const fromJs = (js, location = "#") => {
         return {
           type: "json",
           jsonType: "array",
-          children: js.map((item, index) => fromJs(item, JsonPointer.append(`${index}`, location))),
+          children: js.map((item, index) => fromJs(item, appendToLocation(`${index}`, location))),
           location: location
         };
       }
@@ -86,7 +86,7 @@ export const fromJs = (js, location = "#") => {
                 jsonType: "string",
                 value: key
               },
-              fromJs(js[key], JsonPointer.append(key, location))
+              fromJs(js[key], appendToLocation(key, location))
             ]
           });
         }
@@ -234,10 +234,9 @@ export const pointerStep = (segment, node, uri = "#") => {
 
 /** @type API.pointerGet */
 export const pointerGet = (pointer, tree, documentUri) => {
-  let currentPointer = "";
+  let uri = `${documentUri}#`;
   let node = memberValue(tree);
   for (const segment of pointerSegments(pointer)) {
-    const uri = `${documentUri}#${currentPointer}`;
     if (node === undefined) {
       throw new JsonPointerError(`Can't index into a missing value at ${uri}`);
     }
@@ -245,8 +244,8 @@ export const pointerGet = (pointer, tree, documentUri) => {
       throw new JsonPointerError(`Can't index into an invalid value at ${uri}`);
     }
 
-    currentPointer += "/" + escapePointerSegment(segment);
-    node = pointerStep(segment, /** @type Parameters<typeof pointerStep>[1] */ (node), `${documentUri}#${currentPointer}`);
+    uri = appendToLocation(segment, uri);
+    node = pointerStep(segment, /** @type Parameters<typeof pointerStep>[1] */ (node), uri);
   }
 
   return node;
@@ -275,11 +274,6 @@ const pointerSegments = function* (pointer) {
 const unescapePointerSegment = (segment) => segment.toString()
   .replace(/~1/g, "/")
   .replace(/~0/g, "~");
-
-/** @type (segment: string) => string */
-const escapePointerSegment = (segment) => segment.toString()
-  .replace(/~/g, "~0")
-  .replace(/\//g, "~1");
 
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jsonValue = /** @type API.jsonValue */ ((/** @type JsonNode<unknown, JsonErrorNode> */ node) => {

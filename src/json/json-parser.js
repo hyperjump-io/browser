@@ -1,7 +1,7 @@
-import * as JsonPointer from "@hyperjump/json-pointer";
 import { VFileMessage } from "vfile-message";
 import { scanToken } from "./json-scanner.js";
 import { withoutStackTraces } from "./without-stack-traces.js";
+import { appendToLocation } from "./location.js";
 
 /**
  * @import { Point, Position } from "unist"
@@ -400,7 +400,7 @@ export const parseJson = (text, location, reviver, options = {}) => {
       reportAtPrevious("colon-expected");
     }
 
-    const valueLocation = JsonPointer.append(keyNode.value, objectLocation);
+    const valueLocation = appendToLocation(keyNode.value, objectLocation);
     const value = looksLikeProperty() ? undefined : parseValue(valueLocation);
     if (!value) {
       if (colonOffset === undefined) {
@@ -542,7 +542,7 @@ export const parseJson = (text, location, reviver, options = {}) => {
       if (token.kind === ",") {
         const gapOffset = parseComma(closer, !separator, index === 0);
         if (gapOffset !== undefined && jsonType === "array") {
-          container.children.push(missing(JsonPointer.append(`${index}`, containerLocation), gapOffset));
+          container.children.push(missing(appendToLocation(`${index}`, containerLocation), gapOffset));
         }
         if (gapOffset !== undefined) {
           index++;
@@ -579,7 +579,7 @@ export const parseJson = (text, location, reviver, options = {}) => {
         separator = separatorAfter(value);
       } else {
         const key = `${index++}`;
-        const item = /** @type JsonValueNode */ (parseValue(JsonPointer.append(key, containerLocation), true));
+        const item = /** @type JsonValueNode */ (parseValue(appendToLocation(key, containerLocation), true));
         const revivedItem = revive(item, key);
         if (revivedItem !== undefined) {
           container.children.push(revivedItem);

@@ -140,6 +140,30 @@ describe("JSON Browser", () => {
       expect(toJson(subject)).to.eql(`24`);
     });
 
+    test("a fragment is a percent-encoded JSON Pointer", async () => {
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo" })
+        .reply(200, `{ "a^b": { "c d": 42 } }`, { headers: { "content-type": "application/reference+json" } });
+
+      const browser = new Hyperjump();
+      const subject = await browser.get(`${testDomain}/foo#/a%5Eb/c%20d`);
+
+      expect(toJson(subject)).to.equal(`42`);
+      expect(subject.location).to.equal(`${testDomain}/foo#/a%5Eb/c%20d`);
+    });
+
+    test("an unnecessarily encoded fragment finds the same node", async () => {
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo" })
+        .reply(200, `{ "$defs": 42 }`, { headers: { "content-type": "application/reference+json" } });
+
+      const browser = new Hyperjump();
+      const subject = await browser.get(`${testDomain}/foo#/%24defs`);
+
+      expect(toJson(subject)).to.equal(`42`);
+      expect(subject.location).to.equal(`${testDomain}/foo#/$defs`);
+    });
+
     test("reference to itself", async () => {
       mockAgent.get(testDomain)
         .intercept({ method: "GET", path: "/foo" })
