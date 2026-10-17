@@ -16,5 +16,5 @@ export class JsonMediaTypePlugin implements MediaTypePlugin<JsonMediaTypeDocumen
   mediaType: string;
   extensions: string[];
   quality?: number;
-  parse: MediaTypePlugin<JsonMediaTypeDocument>["parse"];
+  parse(response: Response): Promise<JsonMediaTypeDocument>;
 }

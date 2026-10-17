@@ -29,7 +29,7 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * @throws {@link ReferenceCycleError}
    * @throws {@link json.JsonPointerError}
    */
-  get: (uri: string, options?: GetOptions) => Promise<T>;
+  get(uri: string, options?: GetOptions): Promise<T>;
 
   /**
    * Retrieve the document located at the given URI, the same way {@link get}
@@ -42,7 +42,7 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    *
    * @throws {@link RetrievalError}
    */
-  getDocument: (uri: string, options?: GetOptions) => Promise<DocumentNode<T>>;
+  getDocument(uri: string, options?: GetOptions): Promise<DocumentNode<T>>;
 
   /**
    * Add support for a
@@ -50,12 +50,12 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * Support for the {@link HttpUriSchemePlugin | `http(s):`} and
    * {@link FileUriSchemePlugin | `file:`} URI schemes are enabled by default.
    */
-  addUriSchemePlugin: (plugin: UriSchemePlugin) => void;
+  addUriSchemePlugin(plugin: UriSchemePlugin): void;
 
   /**
    * This is mostly useful for disabling a scheme that's enabled by default.
    */
-  removeUriSchemePlugin: (scheme: string) => void;
+  removeUriSchemePlugin(scheme: string): void;
 
   /**
    * Unless you're using it in a {@link UriSchemePlugin.retrieve} method, this
@@ -65,18 +65,18 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * have locating semantics (such as `urn:`) and instead map to another URI
    * where the resource can be retrieved from. See the example in the README.
    */
-  retrieve: (uri: string, options: GetOptions) => Promise<Response>;
+  retrieve(uri: string, options: GetOptions): Promise<Response>;
 
   /**
    * Constructs an `Accept` header based on the registered media types.
    */
-  acceptableMediaTypes: () => string;
+  acceptableMediaTypes(): string;
 
   /**
    * Returns the media type of the resource based on its URI. This is usually
    * based on the extension and configured by {@link hyperjump.MediaTypePlugin}s.
    */
-  getMediaType: (uri: string) => string;
+  getMediaType(uri: string): string;
 
   /**
    * Add support for a media type. Support for the
@@ -84,12 +84,12 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * {@link hyperjump.JsonMediaTypePlugin | `JSON`} media types are enabled by
    * default.
    */
-  addMediaTypePlugin: <A extends DocumentNode<T>>(plugin: MediaTypePlugin<A>) => void;
+  addMediaTypePlugin<A extends DocumentNode<T>>(plugin: MediaTypePlugin<A>): void;
 
   /**
    * This is mostly useful for disabling a media type that's enabled by default.
    */
-  removeMediaTypePlugin: (contentType: string) => void;
+  removeMediaTypePlugin(contentType: string): void;
 
   /**
    * Set the
@@ -100,7 +100,7 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * @throws {@link UnsupportedMediaTypeError} if there is no plugin registered
    * for the media type.
    */
-  setMediaTypeQuality: (contentType: string, quality: number) => void;
+  setMediaTypeQuality(contentType: string, quality: number): void;
 
   /**
    * The value of a node that isn't an array or object.
@@ -115,13 +115,13 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * This is like indexing into an object or array. It will follow any
    * references it encounters so it always returns a JSON compatible value.
    */
-  step: (key: string, node: T) => Promise<T>;
+  step(key: string, node: T): Promise<T>;
 
   /**
    * Iterate over an array node. It will follow any references it encounters so
    * it always yields JSON compatible values.
    */
-  iter: (node: T) => AsyncGenerator<T, void, unknown>;
+  iter(node: T): AsyncGenerator<T, void, unknown>;
 
   keys: typeof jsonObjectKeys;
 
@@ -129,13 +129,13 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * Iterate over the values of an object. It will follow any references it
    * encounters so it always yields JSON compatible values.
    */
-  values: (node: T) => AsyncGenerator<T, void, unknown>;
+  values(node: T): AsyncGenerator<T, void, unknown>;
 
   /**
    * Iterate over key/value pairs of an object. It will follow any references it
    * encounters so it always yields JSON compatible values.
    */
-  entries: (node: T) => AsyncGenerator<[string, T], void, unknown>;
+  entries(node: T): AsyncGenerator<[string, T], void, unknown>;
 }
 
 export class RetrievalError extends Error {

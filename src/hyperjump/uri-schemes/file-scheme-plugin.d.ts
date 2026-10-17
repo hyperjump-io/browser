@@ -1,5 +1,5 @@
 import type { UriSchemePlugin } from "./uri-scheme-plugin.d.ts";
-import type { Hyperjump } from "../hyperjump.js";
+import type { GetOptions, Hyperjump } from "../hyperjump.js";
 
 /**
  * Supports the `file:` URI scheme. Media type is determined by file extensions.
@@ -10,5 +10,5 @@ import type { Hyperjump } from "../hyperjump.js";
 export class FileUriSchemePlugin implements UriSchemePlugin {
   constructor(hyperjump: Hyperjump<any>);
   schemes: string[];
-  retrieve: UriSchemePlugin["retrieve"];
+  retrieve(uri: string, options: GetOptions): Promise<Response>;
 }

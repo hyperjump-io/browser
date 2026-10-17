@@ -16,5 +16,5 @@ export class JrefMediaTypePlugin implements MediaTypePlugin<JrefMediaTypeDocumen
   mediaType: string;
   extensions: string[];
   quality?: number;
-  parse: MediaTypePlugin<JrefMediaTypeDocument>["parse"];
+  parse(response: Response): Promise<JrefMediaTypeDocument>;
 }

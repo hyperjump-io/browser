@@ -1,4 +1,4 @@
-import type { Hyperjump } from "../hyperjump.js";
+import type { GetOptions, Hyperjump } from "../hyperjump.js";
 import type { UriSchemePlugin } from "./uri-scheme-plugin.d.ts";
 
 /**
@@ -13,7 +13,7 @@ export class HttpUriSchemePlugin implements UriSchemePlugin {
   /**
    * @throws {@link HttpError}
    */
-  retrieve: UriSchemePlugin["retrieve"];
+  retrieve(uri: string, options: GetOptions): Promise<Response>;
 }
 
 /**
