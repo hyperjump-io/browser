@@ -91,7 +91,7 @@ describe("JSON Browser", () => {
           lookups.push({ uri, referencedFrom: options?.referencedFrom });
           if (uri === `${testDomain}/bar#/bar`) {
             const node = /** @type JrefNode */ (fromJref(`{ "bar": 42 }`, `${testDomain}/bar`).node);
-            return { type: "jref-document", children: [node], uri: `${testDomain}/bar`, fragmentKind: "json-pointer" };
+            return { type: "jref-document", children: [node], uri: `${testDomain}/bar`, mediaType: "application/reference+json" };
           }
           return super.getDocument(uri, options);
         }

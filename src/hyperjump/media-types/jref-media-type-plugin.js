@@ -24,8 +24,12 @@ export class JrefMediaTypePlugin {
       status: result.status,
       children: [result.node],
       comments: [],
-      uri: response.url,
-      fragmentKind: "json-pointer"
+      uri: response.url
     };
+  }
+
+  /** @type API.JrefMediaTypePlugin["fragmentPointer"] */
+  fragmentPointer(_document, fragment) {
+    return decodeURIComponent(fragment);
   }
 }

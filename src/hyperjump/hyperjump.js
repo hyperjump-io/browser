@@ -81,13 +81,11 @@ export class Hyperjump {
     // Subclasses can override getDocument, so every lookup goes through it
     const document = await this.getDocument(uri, options);
 
-    // An anchor identifies a JSON Pointer. Otherwise, the fragment is a JSON
-    // Pointer that's percent-encoded.
+    // What a fragment identifies depends on the media type. A media type that
+    // doesn't define fragments identifies the whole document.
     let cursor = "";
-    if (fragment !== undefined && document.fragmentKind === "json-pointer") {
-      cursor = document.anchors && Object.hasOwn(document.anchors, fragment)
-        ? document.anchors[fragment]
-        : decodeURIComponent(fragment);
+    if (fragment !== undefined && document.mediaType !== undefined) {
+      cursor = this.#mediaTypePlugins[document.mediaType]?.fragmentPointer?.(document, fragment) ?? "";
     }
 
     const node = pointerGet(cursor, document.children[0], document.uri);
@@ -229,7 +227,7 @@ export class Hyperjump {
   }
 
   /** @type (response: Response) => Promise<DocumentNode> */
-  #parseResponse(response) {
+  async #parseResponse(response) {
     const contentTypeText = response.headers.get("content-type");
     if (contentTypeText === null) {
       throw new UnknownMediaTypeError("The media type of the response could not be determined. Make sure the response includes a 'Content-Type' header.");
@@ -254,7 +252,9 @@ export class Hyperjump {
     }
 
     if (bestPattern !== undefined) {
-      return this.#mediaTypePlugins[bestPattern].parse(response);
+      const document = await this.#mediaTypePlugins[bestPattern].parse(response);
+      document.mediaType = bestPattern;
+      return document;
     }
 
     throw new UnsupportedMediaTypeError(contentType.type, `'${contentType.type}' is not supported. Use the 'addMediaTypePlugin' function to add support for this media type.`);

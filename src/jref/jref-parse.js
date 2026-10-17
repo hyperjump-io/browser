@@ -20,8 +20,7 @@ export function jrefParse(options) {
       status: status,
       children: node ? [node] : [],
       comments: comments,
-      uri: uri,
-      fragmentKind: "json-pointer"
+      uri: uri
     });
   };
 }

@@ -17,4 +17,7 @@ export class JrefMediaTypePlugin implements MediaTypePlugin<JrefMediaTypeDocumen
   extensions: string[];
   quality?: number;
   parse(response: Response): Promise<JrefMediaTypeDocument>;
+
+  /** A fragment is a percent-encoded JSON Pointer. */
+  fragmentPointer(document: JrefMediaTypeDocument, fragment: string): string;
 }

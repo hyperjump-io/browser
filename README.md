@@ -85,9 +85,13 @@ export class YrefMediaTypePlugin {
     return {
       type: "jref-document",
       uri: response.url,
-      children: [parseYamlToJrefAst(await response.text())],
-      fragmentKind: "json-pointer"
+      children: [parseYamlToJrefAst(await response.text())]
     };
+  }
+
+  // A fragment is a JSON Pointer, as it is for JRef
+  fragmentPointer(document, fragment) {
+    return decodeURIComponent(fragment);
   }
 
   async fileMatcher(path) {

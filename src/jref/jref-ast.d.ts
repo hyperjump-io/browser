@@ -26,6 +26,5 @@ export type JrefDocumentNode<S extends JsonParseStatus = JsonParseStatus> = {
   /** See `JsonDocumentNode` */
   comments: JsonCommentNode[];
   uri?: string;
-  fragmentKind: "json-pointer";
   data?: Data;
 };
