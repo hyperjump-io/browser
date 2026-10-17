@@ -299,6 +299,7 @@ export class Hyperjump {
 
     return jsonValue(node);
   });
+
   has = jsonObjectHas;
 
   /** @type API.Hyperjump<JrefNode>["step"] */
