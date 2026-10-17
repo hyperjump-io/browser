@@ -43,6 +43,31 @@ describe("JSON Browser", () => {
       expect(toJson(subject, undefined, "  ")).to.eql(jref);
     });
 
+    test("getDocument", async () => {
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo" })
+        .reply(200, `{ "$ref": "/bar" }`, { headers: { "content-type": "application/reference+json" } });
+
+      const browser = new Hyperjump();
+      const subject = await browser.getDocument(`${testDomain}/foo#/ignored`);
+
+      expect(subject.type).to.equal("jref-document");
+      expect(subject.uri).to.equal(`${testDomain}/foo`);
+      expect(toJson(subject.children[0])).to.equal(`{"$ref":"/bar"}`);
+    });
+
+    test("getDocument uses the same cache as get", async () => {
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo" })
+        .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "application/reference+json" } });
+
+      const browser = new Hyperjump();
+      const node = await browser.get(`${testDomain}/foo#/foo`);
+      const subject = await browser.getDocument(`${testDomain}/foo`);
+
+      expect(subject.children[0].jsonType === "object" && subject.children[0].children[0].children[1]).to.equal(node);
+    });
+
     test("follow fragment-only reference", async () => {
       const path = "/foo";
       const uri = `${testDomain}${path}`;

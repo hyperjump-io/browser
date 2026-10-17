@@ -140,6 +140,24 @@ describe("JSON Browser", () => {
       expect(toJson(subject)).to.equal(`42`);
     });
 
+    test("getDocument finds an embedded document", async () => {
+      const jrefEmbedded = `{
+        "$embedded": {
+          "${testDomain}/foo": 42
+        }
+      }`;
+
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/main" })
+        .reply(200, jrefEmbedded, { headers: { "content-type": testMediaType } });
+
+      await hyperjump.get(`${testDomain}/main`);
+      const subject = await hyperjump.getDocument(`${testDomain}/foo`, { referencedFrom: `${testDomain}/main` });
+
+      expect(subject.uri).to.equal(`${testDomain}/foo`);
+      expect(toJson(subject.children[0])).to.equal(`42`);
+    });
+
     test("an embedded document isn't visible outside the document that embeds it", async () => {
       const jrefEmbedded = `{
         "foo": { "$ref": "/foo" },

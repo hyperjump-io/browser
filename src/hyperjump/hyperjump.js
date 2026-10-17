@@ -86,8 +86,26 @@ export class Hyperjump {
     }
     referenceChain = [...referenceChain, uri];
 
-    const id = toAbsoluteIri(uri);
     let { fragment } = parseIri(uri);
+    const document = await this.#getDocument(uri, options);
+
+    if (document.anchors && fragment !== undefined) {
+      fragment = document.anchors[fragment] ?? fragment;
+    }
+    const cursor = document.fragmentKind === "json-pointer" ? fragment : "";
+
+    const node = pointerGet(cursor ?? "", document.children[0], document.uri);
+    return await this.#followReferences(node, referenceChain);
+  }
+
+  /** @type API.Hyperjump<JrefNode>["getDocument"] */
+  async getDocument(uri, options = this.#defaultGetOptions) {
+    return this.#getDocument(resolveIri(uri, contextUri()), options);
+  }
+
+  /** @type (uri: string, options: API.GetOptions) => Promise<DocumentNode> */
+  async #getDocument(uri, options) {
+    const id = toAbsoluteIri(uri);
 
     // TODO: How should cache work?
 
@@ -99,7 +117,6 @@ export class Hyperjump {
       try {
         const response = await this.retrieve(uri, options);
         document = await this.#parseResponse(response);
-        uri = response.url + (fragment === undefined ? "" : `#${fragment}`);
 
         // References within the document are relative to the URI it was
         // retrieved from, which can differ from the requested URI (redirects,
@@ -116,13 +133,7 @@ export class Hyperjump {
       this.#addEmbedded(id, document);
     }
 
-    if (document.anchors && fragment !== undefined) {
-      fragment = document.anchors[fragment] ?? fragment;
-    }
-    const cursor = document.fragmentKind === "json-pointer" ? fragment : "";
-
-    const node = pointerGet(cursor ?? "", document.children[0], document.uri);
-    return await this.#followReferences(node, referenceChain);
+    return document;
   }
 
   /**

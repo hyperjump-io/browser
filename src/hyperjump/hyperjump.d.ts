@@ -32,6 +32,19 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
   get: (uri: string, options?: GetOptions) => Promise<T>;
 
   /**
+   * Retrieve the document located at the given URI, the same way {@link get}
+   * does, but return the document itself rather than a node in it. The
+   * fragment is ignored and references aren't followed. Use it for what the
+   * document has beyond its values, such as its anchors or parse status.
+   *
+   * An embedded document is only found with the `referencedFrom` option, as
+   * with {@link get}.
+   *
+   * @throws {@link RetrievalError}
+   */
+  getDocument: (uri: string, options?: GetOptions) => Promise<DocumentNode<T>>;
+
+  /**
    * Add support for a
    * {@link https://www.rfc-editor.org/rfc/rfc3986#section-3.1 | URI scheme}.
    * Support for the {@link HttpUriSchemePlugin | `http(s):`} and
