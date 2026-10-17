@@ -275,7 +275,15 @@ export class Hyperjump {
     throw new UnsupportedMediaTypeError(contentType.type, `'${contentType.type}' is not supported. Use the 'addMediaTypePlugin' function to add support for this media type.`);
   }
 
-  value = jsonValue;
+  // TODO: Follow references in structured values
+  // eslint-disable-next-line @stylistic/no-extra-parens
+  value = /** @type API.Hyperjump<JrefNode>["value"] */ ((/** @type JrefNode */ node) => {
+    if (node.jsonType === "object" || node.jsonType === "array") {
+      throw Error("Can't get the value of a structured value.");
+    }
+
+    return jsonValue(node);
+  });
   has = jsonObjectHas;
 
   /** @type API.Hyperjump<JrefNode>["step"] */

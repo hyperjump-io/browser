@@ -3,6 +3,7 @@ import { parseJson } from "./json-parser.js";
 
 /**
  * @import {
+ *   Json,
  *   JsonArrayNode,
  *   JsonInvalidNode,
  *   JsonNode,
@@ -283,14 +284,26 @@ const escapePointerSegment = (segment) => segment.toString()
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jsonValue = /** @type API.jsonValue */ ((/** @type JsonNode<unknown, JsonErrorNode> */ node) => {
   switch (node.jsonType) {
-    case "object":
     case "array":
-      // TODO: Handle structured values
-      throw Error("Can't get the value of a structured value.");
+      return node.children.map((itemNode) => isErrorNode(itemNode) ? null : jsonValue(itemNode));
+    case "object": {
+      /** @type Record<string, Json> */
+      const object = {};
+      for (const propertyNode of node.children) {
+        const [keyNode, valueNode] = propertyNode.children;
+        if (!isErrorNode(valueNode)) {
+          object[keyNode.value] = jsonValue(valueNode);
+        }
+      }
+      return object;
+    }
     default:
       return node.value;
   }
 });
+
+/** @type (node: JsonNode<unknown, JsonErrorNode> | JsonErrorNode) => node is JsonErrorNode */
+const isErrorNode = (node) => node.type === "json-missing" || node.type === "json-invalid";
 
 /** @type API.jsonObjectHas */
 export const jsonObjectHas = (key, node) => {

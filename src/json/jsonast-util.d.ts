@@ -154,6 +154,16 @@ export const pointerStep: <N extends AnyJsonNode>(segment: string, node: N, uri?
  */
 export const pointerGet: <N extends AnyJsonNode>(pointer: string, tree: N, documentUri?: string) => N | JsonMemberValue<N>;
 
+/**
+ * The value of a node as a JavaScript value. Arrays and objects are copied.
+ * References aren't followed, so a reference in a JRef tree is the object it
+ * was written as.
+ *
+ * In a tree from a parse whose status is `failure`, a value that couldn't be
+ * parsed ({@link JsonErrorNode}) is left out when it's a property value and is
+ * `null` when it's an array item, so the items after it keep their positions.
+ * That's how {@link toJson} treats a missing value.
+ */
 export const jsonValue: (
   ((node: JsonNullNode) => null)
   & ((node: JsonBooleanNode) => boolean)

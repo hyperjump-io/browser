@@ -89,6 +89,12 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    */
   setMediaTypeQuality: (contentType: string, quality: number) => void;
 
+  /**
+   * The value of a node that isn't an array or object.
+   *
+   * @throws Error for an array or object. Getting their value would need to
+   * follow the references in them.
+   */
   value: typeof jsonValue;
   has: typeof jsonObjectHas;
 

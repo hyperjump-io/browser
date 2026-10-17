@@ -92,13 +92,21 @@ describe("jsonast-util", async () => {
     });
 
     test("array", () => {
-      const node = parse(`["foo", 42]`);
-      expect(() => jsonValue(node)).to.throw();
+      const node = parse(`["foo", [42]]`);
+      const subject = jsonValue(node);
+      expect(subject).to.eql(["foo", [42]]);
     });
 
     test("object", () => {
-      const node = parse(`{ "foo": 42 }`);
-      expect(() => jsonValue(node)).to.throw();
+      const node = parse(`{ "foo": { "bar": 42 } }`);
+      const subject = jsonValue(node);
+      expect(subject).to.eql({ foo: { bar: 42 } });
+    });
+
+    test("values that couldn't be parsed", () => {
+      const node = /** @type JsonNode */ (fromJson(`{ "foo": , "bar": [1, , NaN, 2], "baz": True }`).node);
+      const subject = jsonValue(node);
+      expect(subject).to.eql({ bar: [1, null, null, 2] });
     });
   });
 
