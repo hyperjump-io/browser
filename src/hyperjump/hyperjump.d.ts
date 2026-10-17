@@ -37,8 +37,9 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * fragment is ignored and references aren't followed. Use it for what the
    * document has beyond its values, such as its anchors or parse status.
    *
-   * An embedded document is only found with the `referencedFrom` option, as
-   * with {@link get}.
+   * Every document {@link get} uses comes from this method, including the
+   * ones it follows references to, so a subclass can override it to find
+   * documents somewhere other than the cache or a URI scheme plugin.
    *
    * @throws {@link RetrievalError}
    */

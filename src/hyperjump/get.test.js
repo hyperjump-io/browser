@@ -2,6 +2,12 @@ import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump, ReferenceCycleError } from "./index.js";
 import { toJson } from "../json/jsonast-util.js";
+import { fromJref } from "../jref/jref-util.js";
+
+/**
+ * @import { GetOptions } from "./index.js"
+ * @import { JrefNode } from "../jref/jref-ast.js"
+ */
 
 describe("JSON Browser", () => {
   describe("get", () => {
@@ -66,6 +72,39 @@ describe("JSON Browser", () => {
       const subject = await browser.getDocument(`${testDomain}/foo`);
 
       expect(subject.children[0].jsonType === "object" && subject.children[0].children[0].children[1]).to.equal(node);
+    });
+
+    test("references are followed through an overridden getDocument", async () => {
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo" })
+        .reply(200, `{ "$ref": "/bar#/bar" }`, { headers: { "content-type": "application/reference+json" } });
+
+      /** @type {{ uri: string; referencedFrom?: string }[]} */
+      const lookups = [];
+
+      class TestHyperjump extends Hyperjump {
+        /**
+         * @param {string} uri
+         * @param {GetOptions} [options]
+         */
+        async getDocument(uri, options) {
+          lookups.push({ uri, referencedFrom: options?.referencedFrom });
+          if (uri === `${testDomain}/bar#/bar`) {
+            const node = /** @type JrefNode */ (fromJref(`{ "bar": 42 }`, `${testDomain}/bar`).node);
+            return { type: "jref-document", children: [node], uri: `${testDomain}/bar`, fragmentKind: "json-pointer" };
+          }
+          return super.getDocument(uri, options);
+        }
+      }
+
+      const browser = new TestHyperjump();
+      const subject = await browser.get(`${testDomain}/foo`);
+
+      expect(toJson(subject)).to.equal(`42`);
+      expect(lookups).to.eql([
+        { uri: `${testDomain}/foo`, referencedFrom: undefined },
+        { uri: `${testDomain}/bar#/bar`, referencedFrom: `${testDomain}/foo` }
+      ]);
     });
 
     test("follow fragment-only reference", async () => {
