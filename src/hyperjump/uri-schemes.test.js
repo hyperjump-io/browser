@@ -2,14 +2,19 @@ import { Readable } from "node:stream";
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { Hyperjump, RetrievalError } from "./index.js";
 
+/**
+ * @import { Session } from "./index.js"
+ */
+
 describe("JSON Browser", () => {
   describe("URI schemes", () => {
     const fixtureDocument = `{"foo": 42}`;
 
     test("Error on unsupported scheme", async () => {
       const hyperjump = new Hyperjump();
+      const session = hyperjump.session();
       try {
-        await hyperjump.get("foo:something");
+        await session.get("foo:something");
         expect.fail("Expected RetrievalError => UnsupportedUriSchemeError");
       } catch (error) {
         expect(error).to.be.instanceof(RetrievalError);
@@ -22,9 +27,12 @@ describe("JSON Browser", () => {
     describe("Custom URI scheme plugin", () => {
       /** @type Hyperjump */
       let hyperjump;
+      /** @type Session */
+      let session;
 
       beforeEach(() => {
         hyperjump = new Hyperjump();
+        session = hyperjump.session();
 
         hyperjump.addUriSchemePlugin({
           schemes: ["foo"],
@@ -48,14 +56,14 @@ describe("JSON Browser", () => {
       });
 
       test("addUriSchemePlugin", async () => {
-        await hyperjump.get("foo:something");
+        await session.get("foo:something");
       });
 
       test("removeUriSchemePlugin", async () => {
         hyperjump.removeUriSchemePlugin("foo");
 
         try {
-          await hyperjump.get("foo:something");
+          await session.get("foo:something");
           expect.fail("Expected RetrievalError => UnsupportedUriSchemeError");
         } catch (error) {
           expect(error).to.be.instanceof(RetrievalError);

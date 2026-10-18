@@ -14,36 +14,11 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
   constructor(config?: HyperjumpConfig);
 
   /**
-   * Retrieve a document located at the given URI. URIs can be relative if a
-   * base URI can be determined. On the server-side, the base URI is the CWD. In
-   * browser, the base URI is the URI of the page.
-   *
-   * @see Use {@link Hyperjump.addUriSchemePlugin} to add support for additional
-   * URI schemes.
-   * @see Support for {@link JrefMediaTypePlugin | JRef} and
-   * {@link JsonMediaTypePlugin | JSON} is built in. Use
-   * {@link Hyperjump.addMediaTypePlugin} to add support for additional media
-   * types.
-   *
-   * @throws {@link RetrievalError}
-   * @throws {@link ReferenceCycleError}
-   * @throws {@link json.JsonPointerError}
+   * Start a session. Each session has its own documents, so nothing one
+   * session retrieves is seen by another, except through the URI scheme
+   * plugins (such as an HTTP cache).
    */
-  get(uri: string, options?: GetOptions): Promise<T>;
-
-  /**
-   * Retrieve the document located at the given URI, the same way {@link get}
-   * does, but return the document itself rather than a node in it. The
-   * fragment is ignored and references aren't followed. Use it for what the
-   * document has beyond its values, such as its anchors or parse status.
-   *
-   * Every document {@link get} uses comes from this method, including the
-   * ones it follows references to, so a subclass can override it to find
-   * documents somewhere other than the cache or a URI scheme plugin.
-   *
-   * @throws {@link RetrievalError}
-   */
-  getDocument(uri: string, options?: GetOptions): Promise<DocumentNode<T>>;
+  session(): Session<T>;
 
   /**
    * Add support for a
@@ -102,6 +77,65 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * for the media type.
    */
   setMediaTypeQuality(contentType: string, quality: number): void;
+
+  /**
+   * Parse a response with the media type plugin for its `Content-Type`. The
+   * document's `mediaType` is set to the plugin's media type.
+   *
+   * @throws {@link UnknownMediaTypeError}
+   * @throws {@link UnsupportedMediaTypeError}
+   */
+  parseResponse(response: Response): Promise<DocumentNode<T>>;
+
+  /**
+   * The JSON Pointer a fragment identifies in a document, according to the
+   * media type plugin that parsed it. It's `""` (the whole document) for a
+   * media type that doesn't define fragments.
+   */
+  fragmentPointer(document: DocumentNode<T>, fragment: string): string;
+}
+
+/**
+ * Retrieves documents and follows references. A session caches every
+ * document it retrieves for as long as it's used, so start a new session to
+ * see changes. Create one with {@link Hyperjump.session}.
+ */
+export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
+  constructor(hyperjump: Hyperjump<T>);
+
+  readonly hyperjump: Hyperjump<T>;
+
+  /**
+   * Retrieve a document located at the given URI. URIs can be relative if a
+   * base URI can be determined. On the server-side, the base URI is the CWD. In
+   * browser, the base URI is the URI of the page.
+   *
+   * @see Use {@link Hyperjump.addUriSchemePlugin} to add support for additional
+   * URI schemes.
+   * @see Support for {@link JrefMediaTypePlugin | JRef} and
+   * {@link JsonMediaTypePlugin | JSON} is built in. Use
+   * {@link Hyperjump.addMediaTypePlugin} to add support for additional media
+   * types.
+   *
+   * @throws {@link RetrievalError}
+   * @throws {@link ReferenceCycleError}
+   * @throws {@link json.JsonPointerError}
+   */
+  get(uri: string, options?: GetOptions): Promise<T>;
+
+  /**
+   * Retrieve the document located at the given URI, the same way
+   * {@link Session.get} does, but return the document itself rather than a
+   * node in it. The fragment is ignored and references aren't followed. Use it
+   * for what the document has beyond its values, such as its parse status.
+   *
+   * Every document {@link Session.get} uses comes from this method, including
+   * the ones it follows references to, so a subclass can override it to find
+   * documents somewhere other than the session or a URI scheme plugin.
+   *
+   * @throws {@link RetrievalError}
+   */
+  getDocument(uri: string, options?: GetOptions): Promise<DocumentNode<T>>;
 
   /**
    * The value of a node that isn't an array or object.

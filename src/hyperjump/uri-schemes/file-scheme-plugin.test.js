@@ -24,8 +24,9 @@ describe("JSON Browser", () => {
 
       test("not found", async () => {
         const hyperjump = new Hyperjump();
+        const session = hyperjump.session();
         try {
-          await hyperjump.get("nothing-here.jref");
+          await session.get("nothing-here.jref");
           expect.fail("Expected Error: ENOENT: no such file or directory");
         } catch (error) {
           expect(error).to.be.instanceof(RetrievalError);
@@ -42,8 +43,9 @@ describe("JSON Browser", () => {
         await writeFile(fileURLToPath(`${testUri}/${path}`), jref);
 
         const hyperjump = new Hyperjump();
+        const session = hyperjump.session();
         try {
-          await hyperjump.get(path);
+          await session.get(path);
           expect.fail("Expected RetrievalError => UnknownMediaTypeError");
         } catch (error) {
           expect(error).to.be.instanceof(RetrievalError);
@@ -60,8 +62,9 @@ describe("JSON Browser", () => {
         await writeFile(fileURLToPath(`${testUri}/${path}`), jref);
 
         const hyperjump = new Hyperjump();
+        const session = hyperjump.session();
         try {
-          await hyperjump.get(path);
+          await session.get(path);
           expect.fail("Expected RetrievalError => UnknownMediaTypeError");
         } catch (error) {
           expect(error).to.be.instanceof(RetrievalError);
@@ -95,10 +98,11 @@ describe("JSON Browser", () => {
             .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
           const hyperjump = new Hyperjump();
+          const session = hyperjump.session();
 
           try {
             const uri = `${testDomain}/main`;
-            await hyperjump.get(uri);
+            await session.get(uri);
             expect.fail("Expected Error: Accessing a file from a non-filesystem document is not allowed");
           } catch (error) {
             expect(error).to.be.instanceof(Error);
@@ -114,7 +118,8 @@ describe("JSON Browser", () => {
           await writeFile(fileURLToPath(`${testUri}/${fooPath}`), `42`);
 
           const hyperjump = new Hyperjump();
-          const subject = await hyperjump.get(mainPath);
+          const session = hyperjump.session();
+          const subject = await session.get(mainPath);
 
           expect(toJson(subject)).to.equal(`42`);
         });
@@ -127,7 +132,8 @@ describe("JSON Browser", () => {
           await writeFile(fileURLToPath(`${testUri}/${path}`), `{ "foo": 42 }`);
 
           const hyperjump = new Hyperjump();
-          const subject = await hyperjump.get(`${path}#/foo`);
+          const session = hyperjump.session();
+          const subject = await session.get(`${path}#/foo`);
 
           expect(toJson(subject)).to.equal(`42`);
         });
@@ -138,7 +144,8 @@ describe("JSON Browser", () => {
           await writeFile(fileURLToPath(pathToFileURL(path, { windows: false })), `{ "foo": 42 }`);
 
           const hyperjump = new Hyperjump();
-          const subject = await hyperjump.get(`${path}#/foo`);
+          const session = hyperjump.session();
+          const subject = await session.get(`${path}#/foo`);
 
           expect(toJson(subject)).to.equal(`42`);
         });
@@ -149,7 +156,8 @@ describe("JSON Browser", () => {
           await writeFile(fileURLToPath(pathToFileURL(path, { windows: false })), `{ "foo": 42 }`);
 
           const hyperjump = new Hyperjump();
-          const subject = await hyperjump.get(`file://${path}#/foo`);
+          const session = hyperjump.session();
+          const subject = await session.get(`file://${path}#/foo`);
 
           expect(toJson(subject)).to.equal(`42`);
         });
@@ -160,7 +168,8 @@ describe("JSON Browser", () => {
           await writeFile(path, `{ "foo": 42 }`);
 
           const hyperjump = new Hyperjump();
-          const subject = await hyperjump.get(`file:${path}#/foo`);
+          const session = hyperjump.session();
+          const subject = await session.get(`file:${path}#/foo`);
 
           expect(toJson(subject)).to.equal(`42`);
         });
@@ -174,7 +183,8 @@ describe("JSON Browser", () => {
         await symlink(fileURLToPath(`${testUri}/${actualPath}`), join(cwd(), path));
 
         const hyperjump = new Hyperjump();
-        const subject = await hyperjump.get(`${path}#/foo`);
+        const session = hyperjump.session();
+        const subject = await session.get(`${path}#/foo`);
 
         expect(toJson(subject)).to.equal(`42`);
       });
@@ -187,7 +197,8 @@ describe("JSON Browser", () => {
         await symlink("foo.jref", join(subdirectory, "symlink-foo.jref"));
 
         const hyperjump = new Hyperjump();
-        const subject = await hyperjump.get(`${fixtureDirectory}/sub/symlink-foo.jref#/foo`);
+        const session = hyperjump.session();
+        const subject = await session.get(`${fixtureDirectory}/sub/symlink-foo.jref#/foo`);
 
         expect(toJson(subject)).to.equal(`42`);
       });
@@ -199,7 +210,8 @@ describe("JSON Browser", () => {
         await symlink("symlink-foo.jref", join(testPath, "symlink-symlink-foo.jref"));
 
         const hyperjump = new Hyperjump();
-        const subject = await hyperjump.get(`${fixtureDirectory}/symlink-symlink-foo.jref#/foo`);
+        const session = hyperjump.session();
+        const subject = await session.get(`${fixtureDirectory}/symlink-symlink-foo.jref#/foo`);
 
         expect(toJson(subject)).to.equal(`42`);
       });

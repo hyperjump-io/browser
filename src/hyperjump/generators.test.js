@@ -34,8 +34,9 @@ describe("JSON Browser", () => {
         .reply(200, external, { headers: { "content-type": "application/reference+json" } });
 
       const hyperjump = new Hyperjump();
-      const subject = await hyperjump.get(uri);
-      const generator = hyperjump.iter(subject);
+      const session = hyperjump.session();
+      const subject = await session.get(uri);
+      const generator = session.iter(subject);
 
       const first = await generator.next();
       expect(first.value && toJson(first.value)).to.equal(`1`);
@@ -58,8 +59,9 @@ describe("JSON Browser", () => {
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
       const hyperjump = new Hyperjump();
-      const subject = await hyperjump.get(`${testDomain}/subject`);
-      const generator = hyperjump.keys(subject);
+      const session = hyperjump.session();
+      const subject = await session.get(`${testDomain}/subject`);
+      const generator = session.keys(subject);
 
       expect(generator.next().value).to.equal("a");
       expect(generator.next().value).to.equal("b");
@@ -85,8 +87,9 @@ describe("JSON Browser", () => {
         .reply(200, external, { headers: { "content-type": "application/reference+json" } });
 
       const hyperjump = new Hyperjump();
-      const subject = await hyperjump.get(uri);
-      const generator = hyperjump.values(subject);
+      const session = hyperjump.session();
+      const subject = await session.get(uri);
+      const generator = session.values(subject);
 
       const first = await generator.next();
       expect(first.value && toJson(first.value)).to.equal(`1`);
@@ -115,8 +118,9 @@ describe("JSON Browser", () => {
         .reply(200, external, { headers: { "content-type": "application/reference+json" } });
 
       const hyperjump = new Hyperjump();
-      const subject = await hyperjump.get(uri);
-      const generator = hyperjump.entries(subject);
+      const session = hyperjump.session();
+      const subject = await session.get(uri);
+      const generator = session.entries(subject);
 
       const a = await generator.next();
       expect(a.value && a.value[0]).to.equal("a");

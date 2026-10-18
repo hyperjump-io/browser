@@ -150,7 +150,8 @@ describe("JSON Browser", () => {
           .reply(200, `42`, { headers: { "content-type": "application/json; charset=utf-8" } });
 
         const hyperjump = new Hyperjump();
-        const subject = await hyperjump.get(`${testDomain}/foo`);
+        const session = hyperjump.session();
+        const subject = await session.get(`${testDomain}/foo`);
 
         expect(toJson(subject)).to.equal("42");
       });
@@ -165,7 +166,8 @@ describe("JSON Browser", () => {
           .reply(200, `42`, { headers: { "content-type": contentType } });
 
         const hyperjump = new Hyperjump();
-        const result = hyperjump.get(`${testDomain}/foo`);
+        const session = hyperjump.session();
+        const result = session.get(`${testDomain}/foo`);
 
         await expect(result).rejects.toBeInstanceOf(RetrievalError);
         await expect(result).rejects.toHaveProperty("cause", expect.any(UnknownMediaTypeError));
@@ -194,9 +196,10 @@ describe("JSON Browser", () => {
           .reply(200, `{}`, { headers: { "content-type": "application/whatever+json" } });
 
         const hyperjump = new Hyperjump();
+        const session = hyperjump.session();
 
         // Expect not to throw
-        await hyperjump.get(`${testDomain}/foo`);
+        await session.get(`${testDomain}/foo`);
       });
 
       test("a plugin for a structured suffix media type takes precedence over the suffix's plugin", async () => {
@@ -205,13 +208,14 @@ describe("JSON Browser", () => {
           .reply(200, `{}`, { headers: { "content-type": "application/whatever+json" } });
 
         const hyperjump = new Hyperjump();
+        const session = hyperjump.session();
         hyperjump.addMediaTypePlugin({
           mediaType: "application/whatever+json",
           extensions: [],
           parse: async () => ({ type: "whatever-document", children: [fromJs(42)] })
         });
 
-        const subject = await hyperjump.get(`${testDomain}/foo`);
+        const subject = await session.get(`${testDomain}/foo`);
         expect(toJson(subject)).to.equal(`42`);
       });
 
@@ -224,10 +228,11 @@ describe("JSON Browser", () => {
           .reply(200, `42`, { headers: { "content-type": "application/reference+json" } });
 
         const hyperjump = new Hyperjump();
+        const session = hyperjump.session();
         hyperjump.removeMediaTypePlugin("application/reference+json");
         hyperjump.addMediaTypePlugin(new JrefMediaTypePlugin());
 
-        const subject = await hyperjump.get(`${testDomain}/foo`);
+        const subject = await session.get(`${testDomain}/foo`);
         expect(toJson(subject)).to.equal(`42`);
       });
 
@@ -237,6 +242,7 @@ describe("JSON Browser", () => {
           .reply(200, `42`, { headers: { "content-type": "application/json" } });
 
         const hyperjump = new Hyperjump();
+        const session = hyperjump.session();
         hyperjump.removeMediaTypePlugin("application/json");
         hyperjump.addMediaTypePlugin({
           mediaType: "application/*",
@@ -249,7 +255,7 @@ describe("JSON Browser", () => {
           parse: async () => ({ type: "json-document", children: [fromJs("json")] })
         });
 
-        const subject = await hyperjump.get(`${testDomain}/foo`);
+        const subject = await session.get(`${testDomain}/foo`);
         expect(toJson(subject)).to.equal(`"json"`);
       });
     });

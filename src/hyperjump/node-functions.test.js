@@ -23,6 +23,7 @@ describe("JSON Browser", () => {
 
   describe("object has property", () => {
     const hyperjump = new Hyperjump();
+    const session = hyperjump.session();
 
     /** @type JrefNode */
     let node;
@@ -36,20 +37,21 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo" })
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
-      node = await hyperjump.get(`${testDomain}/foo`);
+      node = await session.get(`${testDomain}/foo`);
     });
 
     test("true", () => {
-      expect(hyperjump.has("foo", node)).to.eql(true);
+      expect(session.has("foo", node)).to.eql(true);
     });
 
     test("false", () => {
-      expect(hyperjump.has("bar", node)).to.eql(false);
+      expect(session.has("bar", node)).to.eql(false);
     });
   });
 
   describe("typeOf/value and type narrowing", () => {
     const hyperjump = new Hyperjump();
+    const session = hyperjump.session();
 
     beforeEach(() => {
       const jref = `{
@@ -68,43 +70,43 @@ describe("JSON Browser", () => {
     });
 
     test("null", async () => {
-      const node = await hyperjump.get(`${testDomain}/foo#/null`);
-      const subject = hyperjump.value(node);
+      const node = await session.get(`${testDomain}/foo#/null`);
+      const subject = session.value(node);
       expect(subject).to.equal(null);
     });
 
     test("true", async () => {
-      const node = await hyperjump.get(`${testDomain}/foo#/true`);
-      const subject = hyperjump.value(node);
+      const node = await session.get(`${testDomain}/foo#/true`);
+      const subject = session.value(node);
       expect(subject).to.equal(true);
     });
 
     test("false", async () => {
-      const node = await hyperjump.get(`${testDomain}/foo#/false`);
-      const subject = hyperjump.value(node);
+      const node = await session.get(`${testDomain}/foo#/false`);
+      const subject = session.value(node);
       expect(subject).to.equal(false);
     });
 
     test("number", async () => {
-      const node = await hyperjump.get(`${testDomain}/foo#/number`);
-      const subject = hyperjump.value(node);
+      const node = await session.get(`${testDomain}/foo#/number`);
+      const subject = session.value(node);
       expect(subject).to.equal(42);
     });
 
     test("string", async () => {
-      const node = await hyperjump.get(`${testDomain}/foo#/string`);
-      const subject = hyperjump.value(node);
+      const node = await session.get(`${testDomain}/foo#/string`);
+      const subject = session.value(node);
       expect(subject).to.equal("foo");
     });
 
     test("array", async () => {
-      const node = await hyperjump.get(`${testDomain}/foo#/array`);
-      expect(() => hyperjump.value(node)).to.throw();
+      const node = await session.get(`${testDomain}/foo#/array`);
+      expect(() => session.value(node)).to.throw();
     });
 
     test("object", async () => {
-      const node = await hyperjump.get(`${testDomain}/foo#/object`);
-      expect(() => hyperjump.value(node)).to.throw();
+      const node = await session.get(`${testDomain}/foo#/object`);
+      expect(() => session.value(node)).to.throw();
     });
   });
 });

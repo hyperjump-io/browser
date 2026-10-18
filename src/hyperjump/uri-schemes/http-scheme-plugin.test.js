@@ -29,8 +29,9 @@ describe("JSON Browser", () => {
           .reply(404, "");
 
         const hyperjump = new Hyperjump();
+        const session = hyperjump.session();
         try {
-          await hyperjump.get(testDomain + path);
+          await session.get(testDomain + path);
           expect.fail("Expected RetrievalError => HttpError");
         } catch (error) {
           expect(error).to.be.instanceof(RetrievalError);
@@ -49,8 +50,9 @@ describe("JSON Browser", () => {
           .reply(200);
 
         const hyperjump = new Hyperjump();
+        const session = hyperjump.session();
         try {
-          await hyperjump.get(testDomain + path);
+          await session.get(testDomain + path);
           expect.fail("Expected RetrievalError => UnknownMediaTypeError");
         } catch (error) {
           expect(error).to.be.instanceof(RetrievalError);
@@ -70,8 +72,9 @@ describe("JSON Browser", () => {
           .reply(200, yaml, { headers: { "content-type": contentType } });
 
         const hyperjump = new Hyperjump();
+        const session = hyperjump.session();
         try {
-          await hyperjump.get(testDomain + path);
+          await session.get(testDomain + path);
           expect.fail("Expected RetrievalError => UnsupportedMediaTypeError");
         } catch (error) {
           expect(error).to.be.instanceof(RetrievalError);
@@ -92,7 +95,8 @@ describe("JSON Browser", () => {
             .reply(status, jref, { headers: { "content-type": "application/reference+json" } });
 
           const hyperjump = new Hyperjump();
-          const subject = await hyperjump.get(`${uri}#/foo`);
+          const session = hyperjump.session();
+          const subject = await session.get(`${uri}#/foo`);
 
           expect(toJson(subject)).to.equal(`42`);
         });
@@ -115,7 +119,8 @@ describe("JSON Browser", () => {
             .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
           const hyperjump = new Hyperjump();
-          const subject = await hyperjump.get(`${uri}#/foo`);
+          const session = hyperjump.session();
+          const subject = await session.get(`${uri}#/foo`);
 
           expect(toJson(subject)).to.equal(`42`);
         });
@@ -134,8 +139,9 @@ describe("JSON Browser", () => {
           .reply(307, jref);
 
         const hyperjump = new Hyperjump();
+        const session = hyperjump.session();
         try {
-          await hyperjump.get(testDomain + path);
+          await session.get(testDomain + path);
           expect.fail("Expected RetrievalError => HttpError");
         } catch (error) {
           expect(error).to.be.instanceof(RetrievalError);
@@ -161,7 +167,8 @@ describe("JSON Browser", () => {
           .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
         const hyperjump = new Hyperjump();
-        const subject = await hyperjump.get(`${uri}#/foo`);
+        const session = hyperjump.session();
+        const subject = await session.get(`${uri}#/foo`);
 
         expect(toJson(subject)).to.equal(`42`);
       });
@@ -184,7 +191,8 @@ describe("JSON Browser", () => {
           .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
         const hyperjump = new Hyperjump();
-        const subject = await hyperjump.get(`${testDomain}${path}#/foo`);
+        const session = hyperjump.session();
+        const subject = await session.get(`${testDomain}${path}#/foo`);
 
         expect(toJson(subject)).to.equal(`42`);
       });
@@ -206,7 +214,8 @@ describe("JSON Browser", () => {
           .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
         const hyperjump = new Hyperjump();
-        const subject = await hyperjump.get(uri);
+        const session = hyperjump.session();
+        const subject = await session.get(uri);
 
         expect(toJson(subject)).to.equal(`42`);
       });
@@ -231,7 +240,8 @@ describe("JSON Browser", () => {
           .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
         const hyperjump = new Hyperjump();
-        const subject = await hyperjump.get(`${uri}#/bar`);
+        const session = hyperjump.session();
+        const subject = await session.get(`${uri}#/bar`);
 
         expect(toJson(subject)).to.equal(`42`);
       });
@@ -245,8 +255,9 @@ describe("JSON Browser", () => {
             .reply(status, "");
 
           const hyperjump = new Hyperjump();
+          const session = hyperjump.session();
           try {
-            await hyperjump.get(testDomain + path);
+            await session.get(testDomain + path);
             expect.fail("Expected RetrievalError => HttpError");
           } catch (error) {
             expect(error).to.be.instanceof(RetrievalError);

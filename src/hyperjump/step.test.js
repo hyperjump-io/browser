@@ -30,8 +30,9 @@ describe("JSON Browser", () => {
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
       const hyperjump = new Hyperjump();
-      const subject = await hyperjump.get(uri);
-      const foo = await hyperjump.step("foo", subject);
+      const session = hyperjump.session();
+      const subject = await session.get(uri);
+      const foo = await session.step("foo", subject);
 
       expect(toJson(foo)).to.eql(`42`);
     });
@@ -49,8 +50,9 @@ describe("JSON Browser", () => {
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
       const hyperjump = new Hyperjump();
-      const subject = await hyperjump.get(uri);
-      const foo = await hyperjump.step("bar", subject);
+      const session = hyperjump.session();
+      const subject = await session.get(uri);
+      const foo = await session.step("bar", subject);
 
       expect(toJson(foo)).to.eql(`42`);
     });
@@ -69,8 +71,9 @@ describe("JSON Browser", () => {
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
       const hyperjump = new Hyperjump();
-      const subject = await hyperjump.get(uri);
-      const foo = await hyperjump.step("baz", subject);
+      const session = hyperjump.session();
+      const subject = await session.get(uri);
+      const foo = await session.step("baz", subject);
 
       expect(toJson(foo)).to.eql(`42`);
     });
@@ -95,8 +98,9 @@ describe("JSON Browser", () => {
         .reply(200, externalJref, { headers: { "content-type": "application/reference+json" } });
 
       const hyperjump = new Hyperjump();
-      const subject = await hyperjump.get(uri);
-      const foo = await hyperjump.step("baz", subject);
+      const session = hyperjump.session();
+      const subject = await session.get(uri);
+      const foo = await session.step("baz", subject);
 
       expect(toJson(foo)).to.eql(`42`);
     });
@@ -113,7 +117,8 @@ describe("JSON Browser", () => {
         .reply(200, subjectJref, { headers: { "content-type": "application/reference+json" } });
 
       const hyperjump = new Hyperjump();
-      const subject = await hyperjump.get(uri);
+      const session = hyperjump.session();
+      const subject = await session.get(uri);
 
       const externalPath = "/external";
       const externalJref = `{ "foo": 42 }`;
@@ -122,7 +127,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: externalPath })
         .reply(200, externalJref, { headers: { "content-type": "application/reference+json" } });
 
-      const foo = await hyperjump.step("bar", subject);
+      const foo = await session.step("bar", subject);
 
       expect(toJson(foo)).to.eql(`42`);
     });
@@ -139,7 +144,8 @@ describe("JSON Browser", () => {
         .reply(200, subjectJref, { headers: { "content-type": "application/reference+json" } });
 
       const hyperjump = new Hyperjump();
-      const subject = await hyperjump.get(uri);
+      const session = hyperjump.session();
+      const subject = await session.get(uri);
 
       const externalPath = "/external";
       const externalJref = `{
@@ -151,7 +157,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: externalPath })
         .reply(200, externalJref, { headers: { "content-type": "application/reference+json" } });
 
-      const foo = await hyperjump.step("baz", subject);
+      const foo = await session.step("baz", subject);
 
       expect(toJson(foo)).to.eql(`42`);
     });

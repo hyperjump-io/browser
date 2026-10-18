@@ -1,6 +1,6 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump, ReferenceCycleError } from "./index.js";
+import { Hyperjump, ReferenceCycleError, Session } from "./index.js";
 import { toJson } from "../json/jsonast-util.js";
 import { fromJref } from "../jref/jref-util.js";
 
@@ -44,7 +44,8 @@ describe("JSON Browser", () => {
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
       const browser = new Hyperjump();
-      const subject = await browser.get(uri);
+      const session = browser.session();
+      const subject = await session.get(uri);
 
       expect(toJson(subject, undefined, "  ")).to.eql(jref);
     });
@@ -55,7 +56,8 @@ describe("JSON Browser", () => {
         .reply(200, `{ "$ref": "/bar" }`, { headers: { "content-type": "application/reference+json" } });
 
       const browser = new Hyperjump();
-      const subject = await browser.getDocument(`${testDomain}/foo#/ignored`);
+      const session = browser.session();
+      const subject = await session.getDocument(`${testDomain}/foo#/ignored`);
 
       expect(subject.type).to.equal("jref-document");
       expect(subject.uri).to.equal(`${testDomain}/foo`);
@@ -68,8 +70,9 @@ describe("JSON Browser", () => {
         .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "application/reference+json" } });
 
       const browser = new Hyperjump();
-      const node = await browser.get(`${testDomain}/foo#/foo`);
-      const subject = await browser.getDocument(`${testDomain}/foo`);
+      const session = browser.session();
+      const node = await session.get(`${testDomain}/foo#/foo`);
+      const subject = await session.getDocument(`${testDomain}/foo`);
 
       expect(subject.children[0].jsonType === "object" && subject.children[0].children[0].children[1]).to.equal(node);
     });
@@ -82,7 +85,7 @@ describe("JSON Browser", () => {
       /** @type {{ uri: string; referencedFrom?: string }[]} */
       const lookups = [];
 
-      class TestHyperjump extends Hyperjump {
+      class TestSession extends Session {
         /**
          * @param {string} uri
          * @param {GetOptions} [options]
@@ -97,8 +100,8 @@ describe("JSON Browser", () => {
         }
       }
 
-      const browser = new TestHyperjump();
-      const subject = await browser.get(`${testDomain}/foo`);
+      const session = new TestSession(new Hyperjump());
+      const subject = await session.get(`${testDomain}/foo`);
 
       expect(toJson(subject)).to.equal(`42`);
       expect(lookups).to.eql([
@@ -124,7 +127,8 @@ describe("JSON Browser", () => {
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
       const browser = new Hyperjump();
-      const subject = await browser.get(`${uri}#/bar`);
+      const session = browser.session();
+      const subject = await session.get(`${uri}#/bar`);
 
       expect(toJson(subject)).to.eql(`42`);
     });
@@ -148,7 +152,8 @@ describe("JSON Browser", () => {
         .reply(200, bar, { headers: { "content-type": "application/reference+json" } });
 
       const browser = new Hyperjump();
-      const subject = await browser.get(uri);
+      const session = browser.session();
+      const subject = await session.get(uri);
 
       expect(toJson(subject)).to.eql(`"bar"`);
     });
@@ -174,7 +179,8 @@ describe("JSON Browser", () => {
         .reply(200, bar, { headers: { "content-type": "application/reference+json" } });
 
       const browser = new Hyperjump();
-      const subject = await browser.get(uri);
+      const session = browser.session();
+      const subject = await session.get(uri);
 
       expect(toJson(subject)).to.eql(`24`);
     });
@@ -185,7 +191,8 @@ describe("JSON Browser", () => {
         .reply(200, `{ "a^b": { "c d": 42 } }`, { headers: { "content-type": "application/reference+json" } });
 
       const browser = new Hyperjump();
-      const subject = await browser.get(`${testDomain}/foo#/a%5Eb/c%20d`);
+      const session = browser.session();
+      const subject = await session.get(`${testDomain}/foo#/a%5Eb/c%20d`);
 
       expect(toJson(subject)).to.equal(`42`);
       expect(subject.location).to.equal(`${testDomain}/foo#/a%5Eb/c%20d`);
@@ -197,7 +204,8 @@ describe("JSON Browser", () => {
         .reply(200, `{ "$defs": 42 }`, { headers: { "content-type": "application/reference+json" } });
 
       const browser = new Hyperjump();
-      const subject = await browser.get(`${testDomain}/foo#/%24defs`);
+      const session = browser.session();
+      const subject = await session.get(`${testDomain}/foo#/%24defs`);
 
       expect(toJson(subject)).to.equal(`42`);
       expect(subject.location).to.equal(`${testDomain}/foo#/$defs`);
@@ -209,7 +217,8 @@ describe("JSON Browser", () => {
         .reply(200, `{ "$ref": "#" }`, { headers: { "content-type": "application/reference+json" } });
 
       const browser = new Hyperjump();
-      const error = await browser.get(`${testDomain}/foo`).catch((/** @type unknown */ error) => error);
+      const session = browser.session();
+      const error = await session.get(`${testDomain}/foo`).catch((/** @type unknown */ error) => error);
       expect(error).to.be.instanceof(ReferenceCycleError);
       expect(/** @type ReferenceCycleError */ (error).referenceChain).to.eql([
         `${testDomain}/foo`,
@@ -227,7 +236,8 @@ describe("JSON Browser", () => {
         .reply(200, `{ "$ref": "/foo" }`, { headers: { "content-type": "application/reference+json" } });
 
       const browser = new Hyperjump();
-      const error = await browser.get(`${testDomain}/foo`).catch((/** @type unknown */ error) => error);
+      const session = browser.session();
+      const error = await session.get(`${testDomain}/foo`).catch((/** @type unknown */ error) => error);
       expect(error).to.be.instanceof(ReferenceCycleError);
       expect(/** @type ReferenceCycleError */ (error).referenceChain).to.eql([
         `${testDomain}/foo`,
@@ -242,10 +252,11 @@ describe("JSON Browser", () => {
         .reply(200, `{ "foo": 42, "self": { "$ref": "#" } }`, { headers: { "content-type": "application/reference+json" } });
 
       const browser = new Hyperjump();
-      const root = await browser.get(`${testDomain}/foo`);
-      const self = await browser.step("self", root);
-      const selfSelf = await browser.step("self", self);
-      const subject = await browser.step("foo", selfSelf);
+      const session = browser.session();
+      const root = await session.get(`${testDomain}/foo`);
+      const self = await session.step("self", root);
+      const selfSelf = await session.step("self", self);
+      const subject = await session.step("foo", selfSelf);
 
       expect(toJson(subject)).to.equal(`42`);
     });

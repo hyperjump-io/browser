@@ -24,17 +24,11 @@ export class Hyperjump {
   // TODO: Add config to enable schemes and media types
   #config;
 
-  /** @type Record<string, DocumentNode> */
-  #cache;
-
   /** @type Record<string, UriSchemePlugin> */
   #uriSchemePlugins;
 
   /** @type Record<string, MediaTypePlugin<DocumentNode>> */
   #mediaTypePlugins;
-
-  /** @type API.GetOptions */
-  #defaultGetOptions;
 
   /**
    * @param {API.HyperjumpConfig} [config]
@@ -42,12 +36,8 @@ export class Hyperjump {
   constructor(config = {}) {
     this.#config = config;
 
-    this.#cache = {};
-
     this.#uriSchemePlugins = {};
     this.#mediaTypePlugins = {};
-
-    this.#defaultGetOptions = {};
 
     // Load default URI scheme plugins
     for (const plugin of defaultUriSchemePlugins(this)) {
@@ -59,80 +49,9 @@ export class Hyperjump {
     this.addMediaTypePlugin(new JsonMediaTypePlugin());
   }
 
-  /** @type API.Hyperjump<JrefNode>["get"] */
-  async get(uri, options = this.#defaultGetOptions) {
-    return this.#get(uri, options, []);
-  }
-
-  /**
-   * @param {string} uri
-   * @param {API.GetOptions} options
-   * @param {string[]} referenceChain - URIs of the references followed to get here
-   * @returns {Promise<JrefNode>}
-   */
-  async #get(uri, options, referenceChain) {
-    uri = resolveIri(uri, contextUri());
-    if (referenceChain.includes(uri)) {
-      throw new ReferenceCycleError([...referenceChain, uri]);
-    }
-    referenceChain = [...referenceChain, uri];
-
-    const { fragment } = parseIri(uri);
-    // Subclasses can override getDocument, so every lookup goes through it
-    const document = await this.getDocument(uri, options);
-
-    // What a fragment identifies depends on the media type. A media type that
-    // doesn't define fragments identifies the whole document.
-    let cursor = "";
-    if (fragment !== undefined && document.mediaType !== undefined) {
-      cursor = this.#mediaTypePlugins[document.mediaType]?.fragmentPointer?.(document, fragment) ?? "";
-    }
-
-    const node = pointerGet(cursor, document.children[0], document.uri);
-    return await this.#followReferences(node, referenceChain);
-  }
-
-  /** @type API.Hyperjump<JrefNode>["getDocument"] */
-  async getDocument(uri, options = this.#defaultGetOptions) {
-    return this.#getDocument(resolveIri(uri, contextUri()), options);
-  }
-
-  /** @type (uri: string, options: API.GetOptions) => Promise<DocumentNode> */
-  async #getDocument(uri, options) {
-    const id = toAbsoluteIri(uri);
-
-    // TODO: How should cache work?
-
-    let document = this.#cache[id];
-
-    if (!document) {
-      try {
-        const response = await this.retrieve(uri, options);
-        document = await this.#parseResponse(response);
-
-        // References within the document are relative to the URI it was
-        // retrieved from, which can differ from the requested URI (redirects,
-        // symlinks), so it needs to be cached under both.
-        if (response.url) {
-          this.#cache[toAbsoluteIri(response.url)] = document;
-        }
-      } catch (error) {
-        throw new RetrievalError(`Unable to load resource '${uri}'`, { cause: error });
-      }
-
-      this.#cache[id] = document;
-    }
-
-    return document;
-  }
-
-  /** @type (node: JrefNode, referenceChain?: string[]) => Promise<JrefNode> */
-  async #followReferences(node, referenceChain = []) {
-    if (node.type === "reference") {
-      return this.#get(node.href, { referencedFrom: toAbsoluteIri(node.location) }, referenceChain);
-    } else {
-      return node;
-    }
+  /** @type API.Hyperjump<JrefNode>["session"] */
+  session() {
+    return new Session(this);
   }
 
   /** @type API.Hyperjump<JrefNode>["addUriSchemePlugin"] */
@@ -226,8 +145,8 @@ export class Hyperjump {
     this.#mediaTypePlugins[contentType].quality = quality;
   }
 
-  /** @type (response: Response) => Promise<DocumentNode> */
-  async #parseResponse(response) {
+  /** @type API.Hyperjump<JrefNode>["parseResponse"] */
+  async parseResponse(response) {
     const contentTypeText = response.headers.get("content-type");
     if (contentTypeText === null) {
       throw new UnknownMediaTypeError("The media type of the response could not be determined. Make sure the response includes a 'Content-Type' header.");
@@ -260,9 +179,116 @@ export class Hyperjump {
     throw new UnsupportedMediaTypeError(contentType.type, `'${contentType.type}' is not supported. Use the 'addMediaTypePlugin' function to add support for this media type.`);
   }
 
+  /** @type API.Hyperjump<JrefNode>["fragmentPointer"] */
+  fragmentPointer(document, fragment) {
+    // A media type that doesn't define fragments identifies the whole document
+    if (document.mediaType === undefined) {
+      return "";
+    }
+
+    return this.#mediaTypePlugins[document.mediaType]?.fragmentPointer?.(document, fragment) ?? "";
+  }
+}
+
+/**
+ * @implements API.Session<JrefNode>
+ */
+export class Session {
+  /** @type Hyperjump */
+  #hyperjump;
+
+  /**
+   * Documents by URI. The promise is cached so a document that's requested
+   * again while it's being retrieved is only retrieved once.
+   *
+   * @type Record<string, Promise<DocumentNode>>
+   */
+  #cache;
+
+  /**
+   * @param {Hyperjump} hyperjump
+   */
+  constructor(hyperjump) {
+    this.#hyperjump = hyperjump;
+    this.#cache = {};
+  }
+
+  get hyperjump() {
+    return this.#hyperjump;
+  }
+
+  /** @type API.Session<JrefNode>["get"] */
+  async get(uri, options = {}) {
+    return this.#get(uri, options, []);
+  }
+
+  /**
+   * @param {string} uri
+   * @param {API.GetOptions} options
+   * @param {string[]} referenceChain - URIs of the references followed to get here
+   * @returns {Promise<JrefNode>}
+   */
+  async #get(uri, options, referenceChain) {
+    uri = resolveIri(uri, contextUri());
+    if (referenceChain.includes(uri)) {
+      throw new ReferenceCycleError([...referenceChain, uri]);
+    }
+    referenceChain = [...referenceChain, uri];
+
+    const { fragment } = parseIri(uri);
+    // Subclasses can override getDocument, so every lookup goes through it
+    const document = await this.getDocument(uri, options);
+
+    const cursor = fragment === undefined ? "" : this.#hyperjump.fragmentPointer(document, fragment);
+    const node = pointerGet(cursor, document.children[0], document.uri);
+    return await this.#followReferences(node, referenceChain);
+  }
+
+  /** @type API.Session<JrefNode>["getDocument"] */
+  async getDocument(uri, options = {}) {
+    uri = resolveIri(uri, contextUri());
+    const id = toAbsoluteIri(uri);
+
+    this.#cache[id] ??= this.#retrieveDocument(uri, options).catch((/** @type unknown */ error) => {
+      // A failure isn't cached, so it can be tried again
+      delete this.#cache[id];
+      throw error;
+    });
+
+    return this.#cache[id];
+  }
+
+  /** @type (uri: string, options: API.GetOptions) => Promise<DocumentNode> */
+  async #retrieveDocument(uri, options) {
+    try {
+      const response = await this.#hyperjump.retrieve(uri, options);
+      const document = await this.#hyperjump.parseResponse(response);
+
+      // References within the document are relative to the URI it was
+      // retrieved from, which can differ from the requested URI (redirects,
+      // symlinks), so it needs to be cached under both.
+      if (response.url) {
+        this.#cache[toAbsoluteIri(response.url)] ??= Promise.resolve(document);
+      }
+
+      return document;
+    } catch (error) {
+      throw new RetrievalError(`Unable to load resource '${uri}'`, { cause: error });
+    }
+  }
+
+  /** @type (node: JrefNode, referenceChain?: string[]) => Promise<JrefNode> */
+  async #followReferences(node, referenceChain = []) {
+    if (node.type === "reference") {
+      return this.#get(node.href, { referencedFrom: toAbsoluteIri(node.location) }, referenceChain);
+    } else {
+      return node;
+    }
+  }
+
   // TODO: Follow references in structured values
   // eslint-disable-next-line @stylistic/no-extra-parens
-  value = /** @type API.Hyperjump<JrefNode>["value"] */ ((/** @type JrefNode */ node) => {
+  value = /** @type API.Session<JrefNode>["value"] */ ((/** @type JrefNode */ node) => {
     if (node.jsonType === "object" || node.jsonType === "array") {
       throw Error("Can't get the value of a structured value.");
     }
@@ -272,12 +298,12 @@ export class Hyperjump {
 
   has = jsonObjectHas;
 
-  /** @type API.Hyperjump<JrefNode>["step"] */
+  /** @type API.Session<JrefNode>["step"] */
   async step(key, node) {
     return await this.#followReferences(pointerStep(key, node));
   }
 
-  /** @type API.Hyperjump<JrefNode>["iter"] */
+  /** @type API.Session<JrefNode>["iter"] */
   async* iter(node) {
     if (node.jsonType === "array") {
       for (const itemNode of node.children) {
@@ -288,7 +314,7 @@ export class Hyperjump {
 
   keys = jsonObjectKeys;
 
-  /** @type API.Hyperjump<JrefNode>["values"] */
+  /** @type API.Session<JrefNode>["values"] */
   async* values(node) {
     if (node.jsonType === "object") {
       for (const valueNode of jsonObjectValues(node)) {
@@ -297,7 +323,7 @@ export class Hyperjump {
     }
   }
 
-  /** @type API.Hyperjump<JrefNode>["entries"] */
+  /** @type API.Session<JrefNode>["entries"] */
   async* entries(node) {
     if (node.jsonType === "object") {
       for (const [key, valueNode] of jsonObjectEntries(node)) {

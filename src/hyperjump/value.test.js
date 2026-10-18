@@ -27,10 +27,11 @@ describe("JSON Browser", () => {
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
       const browser = new Hyperjump();
+      const session = browser.session();
       const uri = `${testDomain}${path}`;
-      const subject = await browser.get(uri);
+      const subject = await session.get(uri);
 
-      expect(browser.value(subject)).to.eql(42);
+      expect(session.value(subject)).to.eql(42);
     });
 
     test("with pointer", async () => {
@@ -42,9 +43,10 @@ describe("JSON Browser", () => {
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
       const browser = new Hyperjump();
-      const subject = await browser.get(`${testDomain}${path}#/foo`);
+      const session = browser.session();
+      const subject = await session.get(`${testDomain}${path}#/foo`);
 
-      expect(browser.value(subject)).to.equal(42);
+      expect(session.value(subject)).to.equal(42);
     });
 
     test("with pointer to reference", async () => {
@@ -63,9 +65,10 @@ describe("JSON Browser", () => {
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
       const browser = new Hyperjump();
-      const subject = await browser.get(`${testDomain}${path}#/bar`);
+      const session = browser.session();
+      const subject = await session.get(`${testDomain}${path}#/bar`);
 
-      expect(browser.value(subject)).to.equal(42);
+      expect(session.value(subject)).to.equal(42);
     });
   });
 });
