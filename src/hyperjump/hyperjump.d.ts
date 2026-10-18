@@ -79,13 +79,13 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
   setMediaTypeQuality(contentType: string, quality: number): void;
 
   /**
-   * Parse a response with the media type plugin for its `Content-Type`. The
-   * document's `mediaType` is set to the plugin's media type.
+   * Parse a response with the media type plugin for its `Content-Type`, for
+   * a session. The document's `mediaType` is set to the plugin's media type.
    *
    * @throws {@link UnknownMediaTypeError}
    * @throws {@link UnsupportedMediaTypeError}
    */
-  parseResponse(response: Response): Promise<DocumentNode<T>>;
+  parseResponse(response: Response, session: Session<T>): Promise<DocumentNode<T>>;
 
   /**
    * The JSON Pointer a fragment identifies in a document, according to the

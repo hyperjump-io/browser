@@ -146,7 +146,7 @@ export class Hyperjump {
   }
 
   /** @type API.Hyperjump<JrefNode>["parseResponse"] */
-  async parseResponse(response) {
+  async parseResponse(response, session) {
     const contentTypeText = response.headers.get("content-type");
     if (contentTypeText === null) {
       throw new UnknownMediaTypeError("The media type of the response could not be determined. Make sure the response includes a 'Content-Type' header.");
@@ -171,7 +171,7 @@ export class Hyperjump {
     }
 
     if (bestPattern !== undefined) {
-      const document = await this.#mediaTypePlugins[bestPattern].parse(response);
+      const document = await this.#mediaTypePlugins[bestPattern].parse(response, session);
       document.mediaType = bestPattern;
       return document;
     }
@@ -262,7 +262,7 @@ export class Session {
   async #retrieveDocument(uri, options) {
     try {
       const response = await this.#hyperjump.retrieve(uri, options);
-      const document = await this.#hyperjump.parseResponse(response);
+      const document = await this.#hyperjump.parseResponse(response, this);
 
       // References within the document are relative to the URI it was
       // retrieved from, which can differ from the requested URI (redirects,

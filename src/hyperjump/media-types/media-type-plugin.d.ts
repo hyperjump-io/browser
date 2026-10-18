@@ -1,4 +1,5 @@
 import type { JrefNode } from "../../jref/jref-ast.js";
+import type { Session } from "../hyperjump.d.ts";
 
 /**
  * A parsed document. `T` is the type of its nodes.
@@ -22,7 +23,12 @@ export interface MediaTypePlugin<T extends DocumentNode<unknown>> {
    */
   extensions: string[];
   quality?: number;
-  parse(response: Response): Promise<T>;
+  /**
+   * @param session - The session the document is being retrieved for. A
+   * media type that needs other resources to parse a document, such as a
+   * schema's meta-schema, retrieves them in this session.
+   */
+  parse(response: Response, session: Session<any>): Promise<T>;
 
   /**
    * The JSON Pointer to the node a fragment identifies. The fragment is

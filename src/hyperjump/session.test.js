@@ -1,6 +1,6 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump } from "./index.js";
+import { Hyperjump, JrefMediaTypePlugin } from "./index.js";
 import { toJson } from "../json/jsonast-util.js";
 
 describe("JSON Browser", () => {
@@ -61,6 +61,30 @@ describe("JSON Browser", () => {
 
       expect(toJson(first)).to.equal(`42`);
       expect(toJson(second)).to.equal(`24`);
+    });
+
+    test("a media type plugin parses for the session the document is retrieved in", async () => {
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo" })
+        .reply(200, `42`, { headers: { "content-type": "application/prs.hyperjump-session-test" } });
+
+      /** @type unknown */
+      let parsedFor;
+
+      const hyperjump = new Hyperjump();
+      const jref = new JrefMediaTypePlugin();
+      hyperjump.addMediaTypePlugin({
+        mediaType: "application/prs.hyperjump-session-test",
+        extensions: [],
+        parse: async (response, session) => {
+          parsedFor = session;
+          return jref.parse(response);
+        }
+      });
+      const session = hyperjump.session();
+      await session.get(`${testDomain}/foo`);
+
+      expect(parsedFor).to.equal(session);
     });
 
     test("a failed retrieval can be tried again", async () => {
