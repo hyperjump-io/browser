@@ -31,6 +31,10 @@
       "node": "./src/hyperjump/uri-schemes/default-uri-scheme-plugins.js",
       "default": "./src/hyperjump/uri-schemes/default-uri-scheme-plugins.browser.js"
     },
+    "#file-http-cache-store": {
+      "node": "./src/hyperjump/uri-schemes/file-http-cache-store.js",
+      "default": "./src/hyperjump/uri-schemes/file-http-cache-store.browser.js"
+    },
     "#file-scheme-plugin": {
       "node": "./src/hyperjump/uri-schemes/file-scheme-plugin.js",
       "default": "./src/hyperjump/uri-schemes/file-scheme-plugin.browser.js"
@@ -67,6 +71,7 @@
     "@hyperjump/uri": "file:../uri",
     "@types/unist": "^3.0.3",
     "content-type": "^3.1.1",
+    "http-cache-semantics": "^4.3.0",
     "unified": "^11.0.5",
     "unified-args": "^11.0.1",
     "vfile-message": "^4.0.3"
