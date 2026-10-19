@@ -2,7 +2,11 @@ import type { JsonNode } from "../json/jsonast.d.ts";
 import type { JrefNode } from "../jref/jref-ast.d.ts";
 import type { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.d.ts";
 import type { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.d.ts";
-import type { jsonObjectHas, jsonObjectKeys, jsonValue } from "../json/jsonast-util.d.ts";
+import type { JsonPointerError, jsonObjectHas, jsonObjectKeys, jsonValue } from "../json/jsonast-util.d.ts";
+import type { HttpUriSchemePlugin } from "./uri-schemes/http-scheme-plugin.d.ts";
+import type { FileUriSchemePlugin } from "./uri-schemes/file-scheme-plugin.d.ts";
+import type { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.d.ts";
+import type { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.d.ts";
 
 export type HyperjumpConfig = object;
 
@@ -37,7 +41,7 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * Unless you're using it in a {@link UriSchemePlugin.retrieve} method, this
    * is not the method you're looking for. It's used internally to fetch a
    * resource before processing it based on its media type. You might use it for
-   * implementing {@link hyperjump.UriSchemePlugin}s for URI schemes that don't
+   * implementing {@link UriSchemePlugin}s for URI schemes that don't
    * have locating semantics (such as `urn:`) and instead map to another URI
    * where the resource can be retrieved from. See the example in the README.
    */
@@ -50,14 +54,14 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
 
   /**
    * Returns the media type of the resource based on its URI. This is usually
-   * based on the extension and configured by {@link hyperjump.MediaTypePlugin}s.
+   * based on the extension and configured by {@link MediaTypePlugin}s.
    */
   getMediaType(uri: string): string;
 
   /**
    * Add support for a media type. Support for the
-   * {@link hyperjump.JrefMediaTypePlugin | `JRef`} and
-   * {@link hyperjump.JsonMediaTypePlugin | `JSON`} media types are enabled by
+   * {@link JrefMediaTypePlugin | `JRef`} and
+   * {@link JsonMediaTypePlugin | `JSON`} media types are enabled by
    * default.
    */
   addMediaTypePlugin<A extends DocumentNode<T>>(plugin: MediaTypePlugin<A>): void;
@@ -73,8 +77,8 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * that will be used in the Accept header of requests to indicate to servers
    * which media types are preferred over others.
    *
-   * @throws {@link UnsupportedMediaTypeError} if there is no plugin registered
-   * for the media type.
+   * @throws An {@link UnsupportedMediaTypeError} if there is no plugin
+   * registered for the media type.
    */
   setMediaTypeQuality(contentType: string, quality: number): void;
 
@@ -82,8 +86,10 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * Parse a response with the media type plugin for its `Content-Type`, for
    * a session. The document's `mediaType` is set to the plugin's media type.
    *
-   * @throws {@link UnknownMediaTypeError}
-   * @throws {@link UnsupportedMediaTypeError}
+   * @throws An {@link UnknownMediaTypeError} if the response doesn't have a
+   * valid `Content-Type`.
+   * @throws An {@link UnsupportedMediaTypeError} if there is no plugin
+   * registered for the media type.
    */
   parseResponse(response: Response, session: Session<T>): Promise<DocumentNode<T>>;
 
@@ -117,9 +123,12 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    * {@link Hyperjump.addMediaTypePlugin} to add support for additional media
    * types.
    *
-   * @throws {@link RetrievalError}
-   * @throws {@link ReferenceCycleError}
-   * @throws {@link json.JsonPointerError}
+   * @throws A {@link RetrievalError} if a document can't be retrieved or
+   * parsed. The cause is the error that prevented it.
+   * @throws A {@link ReferenceCycleError} if following references leads back
+   * to a reference that was already followed.
+   * @throws A {@link JsonPointerError} if a fragment doesn't resolve to a
+   * value.
    */
   get(uri: string, options?: GetOptions): Promise<T>;
 
@@ -133,7 +142,8 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    * the ones it follows references to, so a subclass can override it to find
    * documents somewhere other than the session or a URI scheme plugin.
    *
-   * @throws {@link RetrievalError}
+   * @throws A {@link RetrievalError} if the document can't be retrieved or
+   * parsed. The cause is the error that prevented it.
    */
   getDocument(uri: string, options?: GetOptions): Promise<DocumentNode<T>>;
 

@@ -18,7 +18,8 @@ export class HttpUriSchemePlugin implements UriSchemePlugin {
   schemes: string[];
 
   /**
-   * @throws {@link HttpError}
+   * @throws An {@link HttpError} if the response is an error or has a status
+   * code that isn't supported.
    */
   retrieve(uri: string, options: GetOptions): Promise<Response>;
 }

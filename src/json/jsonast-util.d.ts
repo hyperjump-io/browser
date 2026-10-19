@@ -141,7 +141,7 @@ export type JsonMemberValue<N> = Exclude<JsonMember<N>, JsonMissingNode> | (Json
  * Index into an object or array JsonNode. If the property or item exists but
  * its value is missing, the result is `undefined`.
  *
- * @throws {@link JsonPointerError} if the property or item doesn't exist.
+ * @throws A {@link JsonPointerError} if the property or item doesn't exist.
  */
 export const pointerStep: <N extends AnyJsonNode>(segment: string, node: N, uri?: string) => JsonMemberValue<N>;
 
@@ -149,8 +149,8 @@ export const pointerStep: <N extends AnyJsonNode>(segment: string, node: N, uri?
  * Get a JsonNode using a JSON Pointer. If the last segment points to a missing
  * value, the result is `undefined`.
  *
- * @throws {@link JsonPointerError} if the pointer doesn't resolve, including
- * when it tries to index into a missing or invalid value.
+ * @throws A {@link JsonPointerError} if the pointer doesn't resolve,
+ * including when it tries to index into a missing or invalid value.
  */
 export const pointerGet: <N extends AnyJsonNode>(pointer: string, tree: N, documentUri?: string) => N | JsonMemberValue<N>;
 
