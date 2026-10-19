@@ -12,7 +12,7 @@ import { Hyperjump } from "./hyperjump/index.js";
 
 /**
  * @typedef {{
- *   exports: Record<string, string>;
+ *   exports: Record<string, { types: string; default: string }>;
  * }} Package
  */
 
@@ -22,7 +22,7 @@ const packageJsonUrl = new URL("../package.json", import.meta.url);
 const packageJson = JSON.parse(await readFile(packageJsonUrl, "utf8"));
 
 describe("Browser compatibility", () => {
-  for (const [subpath, entryPoint] of Object.entries(packageJson.exports)) {
+  for (const [subpath, { default: entryPoint }] of Object.entries(packageJson.exports)) {
     test(`'${subpath}' can be bundled for the browser`, async () => {
       /** @type string[] */
       const nodeImports = [];

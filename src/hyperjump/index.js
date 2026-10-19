@@ -1,7 +1,3 @@
-/**
- * @module hyperjump
- */
-
 export * from "./hyperjump.js";
 export * from "#file-scheme-plugin";
 export * from "./uri-schemes/http-scheme-plugin.js";

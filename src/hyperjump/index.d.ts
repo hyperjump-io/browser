@@ -1,3 +1,7 @@
+/**
+ * @module hyperjump
+ */
+
 export * from "./hyperjump.js";
 export type * from "./uri-schemes/uri-scheme-plugin.d.ts";
 export * from "./uri-schemes/file-scheme-plugin.js";
