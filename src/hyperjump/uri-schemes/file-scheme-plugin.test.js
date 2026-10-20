@@ -1,4 +1,4 @@
-import { mkdir, rm, writeFile, symlink } from "node:fs/promises";
+import { mkdir, realpath, rm, writeFile, symlink } from "node:fs/promises";
 import { cwd } from "node:process";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -201,6 +201,43 @@ describe("JSON Browser", () => {
         const subject = await session.get(`${fixtureDirectory}/sub/symlink-foo.jref#/foo`);
 
         expect(toJson(subject)).to.equal(`42`);
+      });
+
+      test("a file in a symlinked directory resolves references relative to the target", async () => {
+        // `linked/../bar.jref` is `bar.jref`, but `real/../bar.jref` is `deep/bar.jref`
+        await mkdir(join(testPath, "deep", "real"), { recursive: true });
+        await writeFile(join(testPath, "deep", "real", "foo.jref"), `{ "foo": { "$ref": "../bar.jref" } }`);
+        await writeFile(join(testPath, "deep", "bar.jref"), `"target"`);
+        await writeFile(join(testPath, "bar.jref"), `"link"`);
+        await symlink(join(testPath, "deep", "real"), join(testPath, "linked"));
+
+        const hyperjump = new Hyperjump();
+        const session = hyperjump.session();
+        const subject = await session.get(`${fixtureDirectory}/linked/foo.jref#/foo`);
+
+        expect(toJson(subject)).to.equal(`"target"`);
+      });
+
+      test("the response's URL is the real path", async () => {
+        await mkdir(join(testPath, "real"));
+        await writeFile(join(testPath, "real", "foo.jref"), `42`);
+        await symlink(join(testPath, "real"), join(testPath, "linked"));
+
+        const hyperjump = new Hyperjump();
+        const response = await hyperjump.retrieve(`${testUri}/${fixtureDirectory}/linked/foo.jref`, {});
+
+        expect(response.url).to.equal(pathToFileURL(await realpath(join(testPath, "real", "foo.jref"))).toString());
+        await response.body?.cancel();
+      });
+
+      test("without a symlink, the response's URL is the requested URI", async () => {
+        await writeFile(join(testPath, "foo.jref"), `42`);
+
+        const hyperjump = new Hyperjump();
+        const response = await hyperjump.retrieve(`${testUri}/${fixtureDirectory}/foo.jref#/foo`, {});
+
+        expect(response.url).to.equal(`${testUri}/${fixtureDirectory}/foo.jref`);
+        await response.body?.cancel();
       });
 
       test("chained symlinks", async () => {

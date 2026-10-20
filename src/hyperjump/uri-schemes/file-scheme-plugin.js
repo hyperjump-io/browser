@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs";
-import { lstat, realpath } from "node:fs/promises";
+import { realpath } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseIri, toAbsoluteIri } from "@hyperjump/uri";
 import { Readable } from "node:stream";
@@ -32,16 +32,15 @@ export class FileUriSchemePlugin {
       }
     }
 
-    let responseUri = toAbsoluteIri(uri);
-
+    // The file is read from its real path, which is also the response's URL,
+    // so references resolve relative to where the file really is. That's
+    // true for a symlink anywhere in the path, not only the file itself.
     const filePath = fileURLToPath(uri);
-    const stats = await lstat(filePath);
-    if (stats.isSymbolicLink()) {
-      responseUri = pathToFileURL(await realpath(filePath)).toString();
-    }
+    const realFilePath = await realpath(filePath);
+    const responseUri = realFilePath === filePath ? toAbsoluteIri(uri) : pathToFileURL(realFilePath).toString();
 
     const contentType = this.#hyperjump.getMediaType(responseUri);
-    const stream = /** @type ReadableStream<Uint8Array> */ (Readable.toWeb(createReadStream(filePath)));
+    const stream = /** @type ReadableStream<Uint8Array> */ (Readable.toWeb(createReadStream(realFilePath)));
     const response = new Response(stream, {
       headers: { "Content-Type": contentType }
     });
