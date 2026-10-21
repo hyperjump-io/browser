@@ -156,6 +156,42 @@ describe("JSON Browser", () => {
       expect(toJson(subject)).to.equal(`42`);
     });
 
+    test("a stale response is revalidated with the plugin's headers", async () => {
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo" })
+        .reply(200, `{ "foo": 42 }`, { headers: { ...contentType, "cache-control": "no-cache", "etag": `"1"` } });
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo", headers: { "if-none-match": `"1"`, "authorization": "Bearer token" } })
+        .reply(304, "", { headers: { etag: `"1"` } });
+
+      const hyperjump = new Hyperjump();
+      const headers = () => ({ Authorization: "Bearer token" });
+      hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin(hyperjump, { cache: new MemoryHttpCacheStore(), headers }));
+      await hyperjump.session().get(uri);
+      const subject = await hyperjump.session().get(uri);
+
+      expect(toJson(subject)).to.equal(`42`);
+    });
+
+    test("a response that varies by a header isn't used for a request with a different one", async () => {
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo", headers: { authorization: "Bearer 1" } })
+        .reply(200, `{ "foo": 42 }`, { headers: { ...contentType, "cache-control": "max-age=60", "vary": "authorization" } });
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo", headers: { authorization: "Bearer 2" } })
+        .reply(200, `{ "foo": 24 }`, { headers: contentType });
+
+      const hyperjump = new Hyperjump();
+      let token = 1;
+      const headers = () => ({ Authorization: `Bearer ${token}` });
+      hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin(hyperjump, { cache: new MemoryHttpCacheStore(), headers }));
+      await hyperjump.session().get(uri);
+      token = 2;
+      const subject = await hyperjump.session().get(uri);
+
+      expect(toJson(subject)).to.equal(`24`);
+    });
+
     describe("FileHttpCacheStore", () => {
       /** @type string */
       let directory;

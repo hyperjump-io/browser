@@ -27,6 +27,9 @@ export class HttpUriSchemePlugin {
   /** @type HttpCacheStore | undefined */
   #cache;
 
+  /** @type API.HttpUriSchemePluginOptions["headers"] */
+  #headers;
+
   /**
    * Responses being retrieved, by URL, so concurrent requests for the same
    * URL share one request.
@@ -45,15 +48,14 @@ export class HttpUriSchemePlugin {
     this.#hyperjump = hyperjump;
     this.#successStatus = new Set([200, 203]);
     this.#cache = options.cache;
+    this.#headers = options.headers;
     this.#pending = new Map();
   }
 
   /** @type API.HttpUriSchemePlugin["retrieve"] */
   async retrieve(uri) {
     if (!this.#cache) {
-      const response = await fetch(uri, {
-        headers: { Accept: this.#hyperjump.acceptableMediaTypes() }
-      });
+      const response = await fetch(uri, { headers: await this.#requestHeaders(uri) });
       this.#assertSuccess(uri, response);
 
       return response;
@@ -78,7 +80,8 @@ export class HttpUriSchemePlugin {
 
   /** @type (url: string, cache: HttpCacheStore) => Promise<ReadResponse> */
   async #retrieveCached(url, cache) {
-    const request = { url, method: "GET", headers: { accept: this.#hyperjump.acceptableMediaTypes() } };
+    // The cache needs every header sent so it can match a `Vary`
+    const request = { url, method: "GET", headers: await this.#requestHeaders(url) };
 
     const cached = await cache.get(url);
     const cachedPolicy = cached && CachePolicy.fromObject(cached.policy);
@@ -117,6 +120,14 @@ export class HttpUriSchemePlugin {
     }
 
     return { url: response.url, status: response.status, headers: responseHeaders, body };
+  }
+
+  /** @type (uri: string) => Promise<Record<string, string>> */
+  async #requestHeaders(uri) {
+    const headers = new Headers(await this.#headers?.(new URL(uri)));
+    headers.set("accept", this.#hyperjump.acceptableMediaTypes());
+
+    return Object.fromEntries(headers);
   }
 
   /** @type (uri: string, response: Response) => void */

@@ -1,6 +1,6 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump, HttpError, RetrievalError } from "../index.js";
+import { Hyperjump, HttpError, HttpUriSchemePlugin, MemoryHttpCacheStore, RetrievalError } from "../index.js";
 import { toJson } from "../../json/jsonast-util.js";
 
 describe("JSON Browser", () => {
@@ -265,6 +265,85 @@ describe("JSON Browser", () => {
             const cause = /** @type Error */ (retrievalError.cause);
             expect(cause.name).to.include("HttpError");
           }
+        });
+      });
+
+      describe("headers", () => {
+        const contentType = { "content-type": "application/reference+json" };
+
+        /** @type (options: import("./http-scheme-plugin.d.ts").HttpUriSchemePluginOptions) => Hyperjump */
+        const withOptions = (options) => {
+          const hyperjump = new Hyperjump();
+          hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin(hyperjump, options));
+          return hyperjump;
+        };
+
+        test("are sent", async () => {
+          mockAgent.get(testDomain)
+            .intercept({ method: "GET", path: "/foo", headers: { authorization: "Bearer token" } })
+            .reply(200, `42`, { headers: contentType });
+
+          const hyperjump = withOptions({ headers: () => ({ Authorization: "Bearer token" }) });
+          const subject = await hyperjump.session().get(`${testDomain}/foo`);
+
+          expect(toJson(subject)).to.equal(`42`);
+        });
+
+        test("are sent with a cache", async () => {
+          mockAgent.get(testDomain)
+            .intercept({ method: "GET", path: "/foo", headers: { authorization: "Bearer token" } })
+            .reply(200, `42`, { headers: contentType });
+
+          const hyperjump = withOptions({
+            cache: new MemoryHttpCacheStore(),
+            headers: () => ({ Authorization: "Bearer token" })
+          });
+          const subject = await hyperjump.session().get(`${testDomain}/foo`);
+
+          expect(toJson(subject)).to.equal(`42`);
+        });
+
+        test("can be different for each URL", async () => {
+          mockAgent.get(testDomain)
+            .intercept({ method: "GET", path: "/foo", headers: { authorization: "Bearer token" } })
+            .reply(200, `{ "$ref": "https://other.example.com/bar" }`, { headers: contentType });
+          mockAgent.get("https://other.example.com")
+            .intercept({ method: "GET", path: "/bar", headers: (headers) => !("authorization" in headers) })
+            .reply(200, `42`, { headers: contentType });
+
+          const hyperjump = withOptions({
+            headers: (url) => url.origin === testDomain ? { Authorization: "Bearer token" } : undefined
+          });
+          const subject = await hyperjump.session().get(`${testDomain}/foo`);
+
+          expect(toJson(subject)).to.equal(`42`);
+        });
+
+        test("can be async", async () => {
+          mockAgent.get(testDomain)
+            .intercept({ method: "GET", path: "/foo", headers: { authorization: "Bearer token" } })
+            .reply(200, `42`, { headers: contentType });
+
+          const hyperjump = withOptions({
+            headers: async () => new Headers({ Authorization: "Bearer token" })
+          });
+          const subject = await hyperjump.session().get(`${testDomain}/foo`);
+
+          expect(toJson(subject)).to.equal(`42`);
+        });
+
+        test("can't replace Accept", async () => {
+          const hyperjump = withOptions({
+            headers: () => ({ Accept: "text/plain" })
+          });
+
+          mockAgent.get(testDomain)
+            .intercept({ method: "GET", path: "/foo", headers: { accept: hyperjump.acceptableMediaTypes() } })
+            .reply(200, `42`, { headers: contentType });
+
+          const subject = await hyperjump.session().get(`${testDomain}/foo`);
+
+          expect(toJson(subject)).to.equal(`42`);
         });
       });
     });

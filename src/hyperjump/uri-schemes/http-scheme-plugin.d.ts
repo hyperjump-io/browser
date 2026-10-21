@@ -27,6 +27,25 @@ export class HttpUriSchemePlugin implements UriSchemePlugin {
 export type HttpUriSchemePluginOptions = {
   /** Where to cache responses. Without one, nothing is cached. */
   cache?: HttpCacheStore;
+
+  /**
+   * Headers to send with a request, such as credentials. It's called with
+   * each URL that's requested, so headers can be sent only to the origins
+   * they're for. Documents can reference any URL, so don't send
+   * credentials to every URL. It can be async, to refresh a token for
+   * example. The `Accept` header is always the plugin's.
+   *
+   * A redirected request is sent with the same headers. `fetch` drops
+   * `Authorization` and `Cookie` on a redirect to another origin, but not
+   * other headers.
+   *
+   * The cache is private, so a response retrieved with credentials is used
+   * for any later request for the same URL that it satisfies, including ones
+   * the headers would be different for, unless the response has a `Vary`
+   * for them. Don't share a cache between plugins with different
+   * credentials.
+   */
+  headers?: (url: URL) => HeadersInit | undefined | Promise<HeadersInit | undefined>;
 };
 
 /**
