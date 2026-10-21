@@ -1,6 +1,4 @@
-import { VFileMessage } from "vfile-message";
 import { scanToken } from "./json-scanner.js";
-import { withoutStackTraces } from "./without-stack-traces.js";
 import { appendToLocation } from "./location.js";
 
 /**
@@ -16,7 +14,8 @@ import { appendToLocation } from "./location.js";
  *   JsonPropertyNameNode,
  *   JsonPropertyNode
  * } from "./jsonast.d.ts"
- * @import { JsonOptions, JsonParseResult, JsonSyntaxErrorCode, Reviver } from "./jsonast-util.d.ts"
+ * @import { JsonOptions, JsonParseResult, JsonSyntaxError, JsonSyntaxErrorCode, Reviver } from "./jsonast-util.d.ts"
+ * @import * as API from "./jsonast-util.d.ts"
  */
 
 /**
@@ -73,10 +72,12 @@ const NUMBER = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?$/;
 /** @type Set<JsonTokenKind> */
 const KEY_STARTS = new Set(["string", "number", "true", "false", "null", "unknown"]);
 
+/** @type API.jsonSyntaxErrorMessage */
+export const jsonSyntaxErrorMessage = (error) => MESSAGES[error.ruleId](error.actual);
+
 /**
  * Parse JSON text into a JSON AST, recovering from syntax errors wherever
- * possible. Every error found is returned as a VFileMessage along with the
- * best-effort AST.
+ * possible. Every error found is returned along with the best-effort AST.
  *
  * @type (text: string, location: string, reviver: Reviver<any, any>, options?: JsonOptions) => JsonParseResult<any, any>
  */
@@ -670,24 +671,25 @@ export const parseJson = (text, location, reviver, options = {}) => {
   }
 
   errors.sort((a, b) => a.offset - b.offset);
-  const messages = withoutStackTraces(() => errors.map((error) => {
-    const message = new VFileMessage(MESSAGES[error.code](error.found), {
-      place: position(error.offset, error.offset + error.length),
+  const syntaxErrors = errors.map((error) => {
+    /** @type JsonSyntaxError */
+    const syntaxError = {
+      source: "json",
       ruleId: error.code,
-      source: "json"
-    });
+      place: position(error.offset, error.offset + error.length)
+    };
     if (error.found !== undefined) {
-      message.actual = error.found;
+      syntaxError.actual = error.found;
     }
-    return message;
-  }));
+    return syntaxError;
+  });
 
   /** @type JsonParseStatus */
-  const status = messages.length === 0 ? "success" : failed ? "failure" : "recovered";
+  const status = syntaxErrors.length === 0 ? "success" : failed ? "failure" : "recovered";
 
   // The status is what decides the type of the node, which is checked by the
   // tests rather than the type system
-  return /** @type JsonParseResult<any, any> */ ({ status, node, messages, comments });
+  return /** @type JsonParseResult<any, any> */ ({ status, node, errors: syntaxErrors, comments });
 };
 
 /** @type (text: string) => number[] */

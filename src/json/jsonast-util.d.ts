@@ -1,4 +1,4 @@
-import type { VFileMessage } from "vfile-message";
+import type { Position } from "unist";
 import type {
   Json,
   JsonBooleanNode,
@@ -60,17 +60,38 @@ type JsonParseResultBase = {
  * Only a `failure` can contain {@link JsonErrorNode}s. `S` is the AST type for
  * `success` and `recovered` and `F` is the AST type for `failure`.
  *
- * Every syntax error found is in `messages`, in document order. Each
- * message's `ruleId` is a {@link JsonSyntaxErrorCode}.
+ * Every syntax error found is in `errors`, in document order.
  */
 export type JsonParseResult<S, F> = JsonParseResultBase & (
-  { status: "success"; node: S; messages: [] }
-  | { status: "recovered"; node: S; messages: VFileMessage[] }
-  | { status: "failure"; node: F; messages: VFileMessage[] }
+  { status: "success"; node: S; errors: [] }
+  | { status: "recovered"; node: S; errors: JsonSyntaxError[] }
+  | { status: "failure"; node: F; errors: JsonSyntaxError[] }
 );
 
 /**
- * The `ruleId` of each syntax error message.
+ * A syntax error found by the parser. It's plain data. Use
+ * {@link jsonSyntaxErrorMessage} to describe it when reporting it, such as in
+ * a VFileMessage.
+ */
+export type JsonSyntaxError = {
+  source: "json";
+  ruleId: JsonSyntaxErrorCode;
+
+  /** The span of text the error is about */
+  place: Position;
+
+  /** The text that was found, for errors about something unexpected */
+  actual?: string;
+};
+
+/**
+ * A description of a syntax error for people, such as "Trailing commas are
+ * not allowed"
+ */
+export const jsonSyntaxErrorMessage: (error: JsonSyntaxError) => string;
+
+/**
+ * The `ruleId` of each syntax error.
  */
 export type JsonSyntaxErrorCode
   = "trailing-comma"

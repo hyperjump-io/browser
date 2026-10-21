@@ -4,6 +4,7 @@ import { describe, test, expect, beforeEach } from "vitest";
 import { VFileMessage } from "vfile-message";
 import {
   fromJson,
+  jsonSyntaxErrorMessage,
   toJson,
   rejson,
   rejsonStringify,
@@ -29,7 +30,7 @@ import {
 const parse = (json) => {
   const result = fromJson(json);
   if (result.status !== "success") {
-    throw result.messages[0];
+    throw Error(jsonSyntaxErrorMessage(result.errors[0]));
   }
   return result.node;
 };
@@ -247,9 +248,9 @@ describe("jsonast-util", async () => {
   });
 
   test("missing colon error points at the property name it should follow", () => {
-    const message = fromJson(`{ "foo"\n\n  1 }`).messages[0];
-    expect(message.reason).to.equal("Expected a colon");
-    expect(message.place).to.eql({
+    const error = fromJson(`{ "foo"\n\n  1 }`).errors[0];
+    expect(jsonSyntaxErrorMessage(error)).to.equal("Expected a colon");
+    expect(error.place).to.eql({
       start: { line: 1, column: 3, offset: 2 },
       end: { line: 1, column: 8, offset: 7 }
     });

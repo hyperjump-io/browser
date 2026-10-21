@@ -2,7 +2,7 @@
  * Run `fn` without capturing stack traces for any errors it creates.
  *
  * A VFileMessage is an Error, so creating one captures a stack trace. For a
- * syntax error, that trace only describes the parser's internals and it's the
+ * syntax error, that trace doesn't say anything about the problem and it's the
  * most expensive part of creating the message. `Error.stackTraceLimit` is
  * only supported by V8. Elsewhere, setting it has no effect.
  *

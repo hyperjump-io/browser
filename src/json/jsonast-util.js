@@ -1,4 +1,6 @@
 import { parseJson } from "./json-parser.js";
+
+export { jsonSyntaxErrorMessage } from "./json-parser.js";
 import { appendToLocation } from "./location.js";
 
 /**

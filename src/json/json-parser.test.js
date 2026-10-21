@@ -3,6 +3,7 @@ import { VFileMessage } from "vfile-message";
 import {
   fromJson,
   hasStatus,
+  jsonSyntaxErrorMessage,
   jsonArrayIter,
   jsonObjectEntries,
   jsonObjectHas,
@@ -24,6 +25,7 @@ import { fromJref, hasStatus as jrefHasStatus, jref, jrefParse } from "../jref/i
  *   JsonNode,
  *   JsonOptions,
  *   JsonPropertyNode,
+ *   JsonSyntaxError,
  *   JsonTolerantNode
  * } from "./index.js"
  * @import { JrefNode } from "../jref/index.js"
@@ -42,17 +44,17 @@ import { fromJref, hasStatus as jrefHasStatus, jref, jrefParse } from "../jref/i
  * }} TestError
  */
 
-/** @type (message: VFileMessage) => TestError */
-const toError = (message) => {
-  const place = /** @type Position */ (message.place);
+/** @type (syntaxError: JsonSyntaxError) => TestError */
+const toError = (syntaxError) => {
+  const place = syntaxError.place;
   /** @type TestError */
   const error = {
-    code: message.ruleId,
+    code: syntaxError.ruleId,
     offset: place.start.offset,
     length: (place.end.offset ?? 0) - (place.start.offset ?? 0)
   };
-  if (message.actual !== undefined) {
-    error.found = message.actual;
+  if (syntaxError.actual !== undefined) {
+    error.found = syntaxError.actual;
   }
   return error;
 };
@@ -106,8 +108,8 @@ const span = (node) => {
 
 /** @type (json: string, options?: JsonOptions) => { root: TolerantValue, errors: TestError[] } */
 const parse = (json, options) => {
-  const { node, messages } = fromJson(json, "", undefined, options);
-  return { root: node, errors: messages.map(toError) };
+  const { node, errors } = fromJson(json, "", undefined, options);
+  return { root: node, errors: errors.map(toError) };
 };
 
 describe("tolerant parse", () => {
@@ -1069,29 +1071,30 @@ describe("tolerant AST", () => {
   });
 
   test("errors have a line and column", () => {
-    const { messages } = fromJson(`{\n  "a": 1,\n}`);
+    const { errors } = fromJson(`{\n  "a": 1,\n}`);
 
-    expect(messages).toHaveLength(1);
-    expect(messages[0].reason).toBe("Trailing commas are not allowed");
-    expect(messages[0].place).toEqual({
-      start: { line: 2, column: 9, offset: 10 },
-      end: { line: 2, column: 10, offset: 11 }
-    });
-    expect(messages[0].source).toBe("json");
-    expect(messages[0].ruleId).toBe("trailing-comma");
+    expect(errors).toEqual([{
+      source: "json",
+      ruleId: "trailing-comma",
+      place: {
+        start: { line: 2, column: 9, offset: 10 },
+        end: { line: 2, column: 10, offset: 11 }
+      }
+    }]);
+    expect(jsonSyntaxErrorMessage(errors[0])).toBe("Trailing commas are not allowed");
   });
 
   test("errors with found text include it as the actual value", () => {
-    const { messages } = fromJson(`[True]`);
+    const { errors } = fromJson(`[True]`);
 
-    expect(messages[0].reason).toBe("'True' is not a valid value");
-    expect(messages[0].actual).toBe("True");
+    expect(errors[0].actual).toBe("True");
+    expect(jsonSyntaxErrorMessage(errors[0])).toBe("'True' is not a valid value");
   });
 
   test("lines can end with CRLF", () => {
-    const { messages } = fromJson(`{\r\n  "a": 1,\r\n}`);
+    const { errors } = fromJson(`{\r\n  "a": 1,\r\n}`);
 
-    expect(messages[0].place).toMatchObject({ start: { line: 2, column: 9 } });
+    expect(errors[0].place).toMatchObject({ start: { line: 2, column: 9 } });
   });
 });
 
@@ -1299,9 +1302,9 @@ describe("JSONC", () => {
   });
 
   test("fromJref reports no errors for comments with the flag", () => {
-    const { messages } = fromJref(`[1] // done`, undefined, undefined, { allowComments: true });
+    const { errors } = fromJref(`[1] // done`, undefined, undefined, { allowComments: true });
 
-    expect(messages).toEqual([]);
+    expect(errors).toEqual([]);
   });
 
   test("the jref processor takes the flag", () => {
@@ -1415,7 +1418,7 @@ describe("parse status", () => {
     const result = fromJson(`{ "a": [1, "two", null] }`);
 
     expect(result.status).toBe("success");
-    expect(result.messages).toEqual([]);
+    expect(result.errors).toEqual([]);
   });
 
   test.each([
@@ -1573,10 +1576,10 @@ describe("hasStatus", () => {
 
 describe("jref with errors", () => {
   test("a $ref without a value isn't a reference", () => {
-    const { node, messages } = fromJref(`{ "$ref": }`, "https://example.com/main.jref");
+    const { node, errors } = fromJref(`{ "$ref": }`, "https://example.com/main.jref");
 
     expect(node).toMatchObject({ type: "json", jsonType: "object" });
-    expect(messages.map((message) => message.ruleId)).toEqual(["value-expected"]);
+    expect(errors.map((error) => error.ruleId)).toEqual(["value-expected"]);
   });
 
   test("references are still found around errors", () => {

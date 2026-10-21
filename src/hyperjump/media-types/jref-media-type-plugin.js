@@ -1,4 +1,5 @@
 import { fromJref } from "../../jref/jref-util.js";
+import { fatalSyntaxError } from "../../json/report-syntax-errors.js";
 
 /**
  * @import * as API from "./jref-media-type-plugin.d.ts"
@@ -15,8 +16,7 @@ export class JrefMediaTypePlugin {
   async parse(response) {
     const result = fromJref(await response.text(), response.url);
     if (result.status !== "success") {
-      result.messages[0].fatal = true;
-      throw result.messages[0];
+      throw fatalSyntaxError(result.errors[0]);
     }
 
     return {

@@ -9,8 +9,8 @@ import { reportSyntaxErrors } from "./report-syntax-errors.js";
 /** @type API.rejsonParse */
 export function rejsonParse(options) {
   this.parser = function (document, file) {
-    const { status, node, messages, comments } = fromJson(document, options?.location, options?.reviver, options);
-    reportSyntaxErrors(file, messages, status, options?.accept);
+    const { status, node, errors, comments } = fromJson(document, options?.location, options?.reviver, options);
+    reportSyntaxErrors(file, errors, status, options?.accept);
 
     return /** @type JsonDocumentNode */ ({
       type: "json-document",
