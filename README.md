@@ -6,7 +6,7 @@ without loosing information.
 
 Everything is built to work with the [unified](https://unifiedjs.com/) ecosystem
 of libraries and tools. This module defines ASTs for representing JSON and JRef
-documents and provides a CLI and utilities allowing you to parse, transform, and
+documents and provides utilities allowing you to parse, transform, and
 stringify documents.
 
 ## Install
