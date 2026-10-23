@@ -51,6 +51,10 @@
     "#path-to-uri": {
       "node": "./src/jref/path-to-uri.js",
       "default": "./src/jref/path-to-uri.browser.js"
+    },
+    "#real-url": {
+      "node": "./src/hyperjump/real-url.js",
+      "default": "./src/hyperjump/real-url.browser.js"
     }
   },
   "bin": {

@@ -32,7 +32,7 @@ describe("JSON Browser", () => {
 
     /** @type (cache?: HttpCacheStore) => Hyperjump */
     const withCache = (cache) => {
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin(hyperjump, { cache }));
       return hyperjump;
     };
@@ -42,7 +42,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo" })
         .reply(200, `{ "foo": 42 }`, { headers: { ...contentType, "cache-control": "max-age=60" } });
 
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       await hyperjump.session().get(uri);
       const subject = await hyperjump.session().get(uri);
 
@@ -57,7 +57,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo" })
         .reply(200, `{ "foo": 24 }`, { headers: contentType });
 
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       await hyperjump.session().get(uri);
       const subject = await hyperjump.session().get(uri);
 
@@ -72,7 +72,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo", headers: { "if-none-match": `"1"` } })
         .reply(304, "", { headers: { etag: `"1"` } });
 
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       await hyperjump.session().get(uri);
       const subject = await hyperjump.session().get(uri);
 
@@ -87,7 +87,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo", headers: { "if-none-match": `"1"` } })
         .reply(200, `{ "foo": 24 }`, { headers: { ...contentType, "cache-control": "no-cache", "etag": `"2"` } });
 
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       await hyperjump.session().get(uri);
       const subject = await hyperjump.session().get(uri);
 
@@ -105,7 +105,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo", headers: (headers) => !("if-none-match" in headers) })
         .reply(200, `{ "foo": 24 }`, { headers: { ...contentType, "cache-control": "no-cache", "etag": `"2"` } });
 
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       await hyperjump.session().get(uri);
       const subject = await hyperjump.session().get(uri);
 
@@ -117,7 +117,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo" })
         .reply(200, `{ "foo": 42 }`, { headers: contentType });
 
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const [first, second] = await Promise.all([
         hyperjump.session().get(uri),
         hyperjump.session().get(uri)
@@ -164,7 +164,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo", headers: { "if-none-match": `"1"`, "authorization": "Bearer token" } })
         .reply(304, "", { headers: { etag: `"1"` } });
 
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const headers = () => ({ Authorization: "Bearer token" });
       hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin(hyperjump, { cache: new MemoryHttpCacheStore(), headers }));
       await hyperjump.session().get(uri);
@@ -181,7 +181,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo", headers: { authorization: "Bearer 2" } })
         .reply(200, `{ "foo": 24 }`, { headers: contentType });
 
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       let token = 1;
       const headers = () => ({ Authorization: `Bearer ${token}` });
       hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin(hyperjump, { cache: new MemoryHttpCacheStore(), headers }));

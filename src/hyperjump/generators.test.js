@@ -33,7 +33,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/external" })
         .reply(200, external, { headers: { "content-type": "application/reference+json" } });
 
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
       const subject = await session.get(uri);
       const generator = session.iter(subject);
@@ -58,7 +58,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/subject" })
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
       const subject = await session.get(`${testDomain}/subject`);
       const generator = session.keys(subject);
@@ -86,7 +86,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/external" })
         .reply(200, external, { headers: { "content-type": "application/reference+json" } });
 
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
       const subject = await session.get(uri);
       const generator = session.values(subject);
@@ -117,7 +117,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/external" })
         .reply(200, external, { headers: { "content-type": "application/reference+json" } });
 
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
       const subject = await session.get(uri);
       const generator = session.entries(subject);

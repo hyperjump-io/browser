@@ -26,7 +26,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo" })
         .reply(200, `{ "foo": 42 }`, { headers });
 
-      const session = new Hyperjump().session();
+      const session = new Hyperjump({ allowRetrieval: ["https://example.com/"] }).session();
       const first = await session.getDocument(`${testDomain}/foo`);
       const second = await session.getDocument(`${testDomain}/foo#/foo`);
 
@@ -38,7 +38,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo" })
         .reply(200, `{ "foo": 42 }`, { headers });
 
-      const session = new Hyperjump().session();
+      const session = new Hyperjump({ allowRetrieval: ["https://example.com/"] }).session();
       const [first, second] = await Promise.all([
         session.getDocument(`${testDomain}/foo`),
         session.getDocument(`${testDomain}/foo`)
@@ -55,7 +55,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo" })
         .reply(200, `{ "foo": 24 }`, { headers });
 
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const first = await hyperjump.session().get(`${testDomain}/foo#/foo`);
       const second = await hyperjump.session().get(`${testDomain}/foo#/foo`);
 
@@ -71,7 +71,7 @@ describe("JSON Browser", () => {
       /** @type unknown */
       let parsedFor;
 
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const jref = new JrefMediaTypePlugin();
       hyperjump.addMediaTypePlugin({
         mediaType: "application/prs.hyperjump-session-test",
@@ -95,7 +95,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo" })
         .reply(200, `{ "foo": 42 }`, { headers });
 
-      const session = new Hyperjump().session();
+      const session = new Hyperjump({ allowRetrieval: ["https://example.com/"] }).session();
       await expect(session.get(`${testDomain}/foo`)).rejects.toThrow("Unable to load resource");
       const subject = await session.get(`${testDomain}/foo#/foo`);
 

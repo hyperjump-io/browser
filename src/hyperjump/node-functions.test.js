@@ -22,7 +22,7 @@ describe("JSON Browser", () => {
   });
 
   describe("object has property", () => {
-    const hyperjump = new Hyperjump();
+    const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
     const session = hyperjump.session();
 
     /** @type JrefNode */
@@ -50,7 +50,7 @@ describe("JSON Browser", () => {
   });
 
   describe("typeOf/value and type narrowing", () => {
-    const hyperjump = new Hyperjump();
+    const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
     const session = hyperjump.session();
 
     beforeEach(() => {

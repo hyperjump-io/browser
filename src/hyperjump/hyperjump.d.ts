@@ -8,7 +8,46 @@ import type { FileUriSchemePlugin } from "./uri-schemes/file-scheme-plugin.d.ts"
 import type { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.d.ts";
 import type { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.d.ts";
 
-export type HyperjumpConfig = object;
+export type HyperjumpConfig = {
+  /**
+   * What can be retrieved. Documents aren't trusted, so a reference
+   * shouldn't be able to make the application retrieve whatever it names,
+   * such as an internal address or a file outside the project. A URL it
+   * refuses is a {@link RetrievalNotAllowedError}.
+   *
+   * It's a list of URLs. One that ends with `/` allows everything under it.
+   * Any other allows only itself. A relative one is resolved against the
+   * working directory in Node.js and the page in a browser. Where there's
+   * nothing to resolve it against, such as in a worker, it throws.
+   *
+   * It's checked for everything a session retrieves, before the URI scheme
+   * plugins, so a cached HTTP response isn't a way around it.
+   *
+   * In Node.js, `file:` URLs are compared by their real paths, so a symlink
+   * can't lead outside an allowed directory. A file that doesn't exist is
+   * compared by its path as it is. A response is checked again by the URL
+   * it came from, so a redirect can't lead to a refused URL. The redirected
+   * request is still sent, but its response isn't used.
+   *
+   * The default is `["./"]`: files in the working directory in Node.js, and
+   * what's in the page's directory in a browser. To allow more, include it,
+   * such as `["./", "https://api.example.com/"]`. `[]` allows nothing.
+   *
+   * A session can have its own (see {@link SessionOptions}), which it uses
+   * instead.
+   */
+  allowRetrieval?: string[];
+};
+
+export type SessionOptions = {
+  /**
+   * What this session can retrieve, instead of the {@link Hyperjump}'s
+   * `allowRetrieval` config. It replaces the config rather than adding to
+   * it, so a session can allow less. To allow what the config allows too,
+   * include its entries.
+   */
+  allowRetrieval?: string[];
+};
 
 export type GetOptions = {
   referencedFrom?: string;
@@ -22,7 +61,7 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * session retrieves is seen by another, except through the URI scheme
    * plugins (such as an HTTP cache).
    */
-  session(): Session<T>;
+  session(options?: SessionOptions): Session<T>;
 
   /**
    * Add support for a
@@ -107,7 +146,7 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
  * see changes. Create one with {@link Hyperjump.session}.
  */
 export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
-  constructor(hyperjump: Hyperjump<T>);
+  constructor(hyperjump: Hyperjump<T>, options?: SessionOptions);
 
   readonly hyperjump: Hyperjump<T>;
 
@@ -123,6 +162,8 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    * {@link Hyperjump.addMediaTypePlugin} to add support for additional media
    * types.
    *
+   * @throws A {@link RetrievalNotAllowedError} if `allowRetrieval` refuses
+   * the document's URL.
    * @throws A {@link RetrievalError} if a document can't be retrieved or
    * parsed. The cause is the error that prevented it.
    * @throws A {@link ReferenceCycleError} if following references leads back
@@ -185,6 +226,19 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
 
 export class RetrievalError extends Error {
   constructor(message: string, options: { cause: unknown });
+}
+
+/**
+ * The `allowRetrieval` config refused a URL (see {@link HyperjumpConfig}).
+ * It's distinct from a {@link RetrievalError}, which is for a URL that was
+ * allowed and couldn't be retrieved. Tools use the difference: a refused URL
+ * is unknown, and one that failed is missing.
+ */
+export class RetrievalNotAllowedError extends Error {
+  /** The URL that was refused. For a redirect, it's where it led. */
+  uri: string;
+
+  constructor(uri: string, message?: string);
 }
 
 /**

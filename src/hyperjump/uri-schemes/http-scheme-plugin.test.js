@@ -28,7 +28,7 @@ describe("JSON Browser", () => {
           .intercept({ method: "GET", path: path })
           .reply(404, "");
 
-        const hyperjump = new Hyperjump();
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
         try {
           await session.get(testDomain + path);
@@ -49,7 +49,7 @@ describe("JSON Browser", () => {
           .intercept({ method: "GET", path: path })
           .reply(200);
 
-        const hyperjump = new Hyperjump();
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
         try {
           await session.get(testDomain + path);
@@ -71,7 +71,7 @@ describe("JSON Browser", () => {
           .intercept({ method: "GET", path: path })
           .reply(200, yaml, { headers: { "content-type": contentType } });
 
-        const hyperjump = new Hyperjump();
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
         try {
           await session.get(testDomain + path);
@@ -94,7 +94,7 @@ describe("JSON Browser", () => {
             .intercept({ method: "GET", path: path })
             .reply(status, jref, { headers: { "content-type": "application/reference+json" } });
 
-          const hyperjump = new Hyperjump();
+          const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
           const session = hyperjump.session();
           const subject = await session.get(`${uri}#/foo`);
 
@@ -118,7 +118,7 @@ describe("JSON Browser", () => {
             .intercept({ method: "GET", path: redirectPath })
             .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
-          const hyperjump = new Hyperjump();
+          const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
           const session = hyperjump.session();
           const subject = await session.get(`${uri}#/foo`);
 
@@ -138,7 +138,7 @@ describe("JSON Browser", () => {
           .intercept({ method: "GET", path: path })
           .reply(307, jref);
 
-        const hyperjump = new Hyperjump();
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
         try {
           await session.get(testDomain + path);
@@ -166,7 +166,7 @@ describe("JSON Browser", () => {
           .intercept({ method: "GET", path: redirectPath })
           .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
-        const hyperjump = new Hyperjump();
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
         const subject = await session.get(`${uri}#/foo`);
 
@@ -190,7 +190,7 @@ describe("JSON Browser", () => {
           .intercept({ method: "GET", path: redirectPath })
           .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
-        const hyperjump = new Hyperjump();
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
         const subject = await session.get(`${testDomain}${path}#/foo`);
 
@@ -213,7 +213,7 @@ describe("JSON Browser", () => {
           .intercept({ method: "GET", path: redirectPath })
           .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
-        const hyperjump = new Hyperjump();
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
         const subject = await session.get(uri);
 
@@ -239,7 +239,7 @@ describe("JSON Browser", () => {
           .intercept({ method: "GET", path: redirectPath })
           .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
-        const hyperjump = new Hyperjump();
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
         const subject = await session.get(`${uri}#/bar`);
 
@@ -254,7 +254,7 @@ describe("JSON Browser", () => {
             .intercept({ method: "GET", path: path })
             .reply(status, "");
 
-          const hyperjump = new Hyperjump();
+          const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
           const session = hyperjump.session();
           try {
             await session.get(testDomain + path);
@@ -273,7 +273,7 @@ describe("JSON Browser", () => {
 
         /** @type (options: import("./http-scheme-plugin.d.ts").HttpUriSchemePluginOptions) => Hyperjump */
         const withOptions = (options) => {
-          const hyperjump = new Hyperjump();
+          const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/", "https://other.example.com/"] });
           hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin(hyperjump, options));
           return hyperjump;
         };

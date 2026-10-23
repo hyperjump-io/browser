@@ -6,6 +6,7 @@ import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
 import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
 import { jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonObjectValues, jsonValue, pointerGet, pointerStep } from "../json/jsonast-util.js";
 import { mimeMatchSpecificity } from "./utilities.js";
+import { AllowedUrls, resolveAllowRetrieval } from "./allowed-urls.js";
 
 /**
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
@@ -16,6 +17,14 @@ import { mimeMatchSpecificity } from "./utilities.js";
 
 // TODO: Support fetch options in get
 // TODO: Support filters
+
+/**
+ * Each `Hyperjump`'s resolved `allowRetrieval` config. It isn't there if
+ * it's the default.
+ *
+ * @type WeakMap<Hyperjump, string[]>
+ */
+const configuredAllowRetrieval = new WeakMap();
 
 /**
  * @implements API.Hyperjump<JrefNode>
@@ -36,6 +45,10 @@ export class Hyperjump {
   constructor(config = {}) {
     this.#config = config;
 
+    if (config.allowRetrieval !== undefined) {
+      configuredAllowRetrieval.set(this, resolveAllowRetrieval(config.allowRetrieval));
+    }
+
     this.#uriSchemePlugins = {};
     this.#mediaTypePlugins = {};
 
@@ -50,8 +63,8 @@ export class Hyperjump {
   }
 
   /** @type API.Hyperjump<JrefNode>["session"] */
-  session() {
-    return new Session(this);
+  session(options) {
+    return new Session(this, options);
   }
 
   /** @type API.Hyperjump<JrefNode>["addUriSchemePlugin"] */
@@ -205,12 +218,19 @@ export class Session {
    */
   #cache;
 
+  /** @type AllowedUrls */
+  #allowedUrls;
+
   /**
    * @param {Hyperjump} hyperjump
+   * @param {API.SessionOptions} [options]
    */
-  constructor(hyperjump) {
+  constructor(hyperjump, options = {}) {
     this.#hyperjump = hyperjump;
     this.#cache = {};
+    this.#allowedUrls = new AllowedUrls(options.allowRetrieval === undefined
+      ? configuredAllowRetrieval.get(hyperjump)
+      : resolveAllowRetrieval(options.allowRetrieval));
   }
 
   get hyperjump() {
@@ -258,10 +278,33 @@ export class Session {
     return this.#cache[id];
   }
 
-  /** @type (uri: string, options: API.GetOptions) => Promise<DocumentNode> */
+  /**
+   * Every retrieval is checked against `allowRetrieval` before the URI
+   * scheme plugins, so before the HTTP cache too. The response is checked
+   * again, because a redirect or a symlink can lead somewhere else. A refused
+   * URL isn't one that couldn't be retrieved, so it isn't a RetrievalError.
+   *
+   * @type (uri: string, options: API.GetOptions) => Promise<DocumentNode>
+   */
   async #retrieveDocument(uri, options) {
+    const id = toAbsoluteIri(uri);
+    if (!await this.#allowedUrls.allows(id)) {
+      throw new RetrievalNotAllowedError(id);
+    }
+
+    let response;
     try {
-      const response = await this.#hyperjump.retrieve(uri, options);
+      response = await this.#hyperjump.retrieve(uri, options);
+    } catch (error) {
+      throw new RetrievalError(`Unable to load resource '${uri}'`, { cause: error });
+    }
+
+    if (response.url && response.url !== id && !await this.#allowedUrls.allows(response.url)) {
+      await response.body?.cancel();
+      throw new RetrievalNotAllowedError(response.url, `Retrieving '${id}' led to '${response.url}', which isn't allowed. Use the 'allowRetrieval' config to allow it.`);
+    }
+
+    try {
       const document = await this.#hyperjump.parseResponse(response, this);
 
       // References within the document are relative to the URI it was
@@ -341,6 +384,18 @@ export class RetrievalError extends Error {
   constructor(message, options) {
     super(message, options);
     this.name = this.constructor.name;
+  }
+}
+
+export class RetrievalNotAllowedError extends Error {
+  /**
+   * @param {string} uri
+   * @param {string} [message]
+   */
+  constructor(uri, message = `Retrieving '${uri}' isn't allowed. Use the 'allowRetrieval' config to allow it.`) {
+    super(message);
+    this.name = this.constructor.name;
+    this.uri = uri;
   }
 }
 

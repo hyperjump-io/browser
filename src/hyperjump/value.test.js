@@ -26,7 +26,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: path })
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
-      const browser = new Hyperjump();
+      const browser = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = browser.session();
       const uri = `${testDomain}${path}`;
       const subject = await session.get(uri);
@@ -42,7 +42,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: path })
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
-      const browser = new Hyperjump();
+      const browser = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = browser.session();
       const subject = await session.get(`${testDomain}${path}#/foo`);
 
@@ -64,7 +64,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: path })
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
 
-      const browser = new Hyperjump();
+      const browser = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = browser.session();
       const subject = await session.get(`${testDomain}${path}#/bar`);
 

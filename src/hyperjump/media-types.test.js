@@ -6,13 +6,13 @@ import { fromJs, toJson } from "../json/jsonast-util.js";
 describe("JSON Browser", () => {
   describe("media types", () => {
     test("default", () => {
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const accept = hyperjump.acceptableMediaTypes();
       expect(accept).to.equal("application/reference+json, application/json, */*; q=0.001");
     });
 
     test("setMediaTypeQuality for an unregistered media type", () => {
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       expect(() => hyperjump.setMediaTypeQuality("application/foo", 0.5)).to.throw(UnsupportedMediaTypeError);
     });
 
@@ -21,7 +21,7 @@ describe("JSON Browser", () => {
       let hyperjump;
 
       beforeEach(() => {
-        hyperjump = new Hyperjump();
+        hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
 
         hyperjump.addMediaTypePlugin({
           mediaType: "application/foo+json",
@@ -48,7 +48,7 @@ describe("JSON Browser", () => {
       let hyperjump;
 
       beforeEach(() => {
-        hyperjump = new Hyperjump();
+        hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
 
         hyperjump.addMediaTypePlugin({
           mediaType: "application/foo",
@@ -96,7 +96,7 @@ describe("JSON Browser", () => {
       let hyperjump;
 
       beforeEach(() => {
-        hyperjump = new Hyperjump();
+        hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
 
         hyperjump.addMediaTypePlugin({
           mediaType: "application/foo",
@@ -149,7 +149,7 @@ describe("JSON Browser", () => {
           .intercept({ method: "GET", path: "/foo" })
           .reply(200, `42`, { headers: { "content-type": "application/json; charset=utf-8" } });
 
-        const hyperjump = new Hyperjump();
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
         const subject = await session.get(`${testDomain}/foo`);
 
@@ -165,7 +165,7 @@ describe("JSON Browser", () => {
           .intercept({ method: "GET", path: "/foo" })
           .reply(200, `42`, { headers: { "content-type": contentType } });
 
-        const hyperjump = new Hyperjump();
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
         const result = session.get(`${testDomain}/foo`);
 
@@ -195,7 +195,7 @@ describe("JSON Browser", () => {
           .intercept({ method: "GET", path: "/foo" })
           .reply(200, `{}`, { headers: { "content-type": "application/whatever+json" } });
 
-        const hyperjump = new Hyperjump();
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
 
         // Expect not to throw
@@ -207,7 +207,7 @@ describe("JSON Browser", () => {
           .intercept({ method: "GET", path: "/foo" })
           .reply(200, `{}`, { headers: { "content-type": "application/whatever+json" } });
 
-        const hyperjump = new Hyperjump();
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
         hyperjump.addMediaTypePlugin({
           mediaType: "application/whatever+json",
@@ -227,7 +227,7 @@ describe("JSON Browser", () => {
           .intercept({ method: "GET", path: "/bar" })
           .reply(200, `42`, { headers: { "content-type": "application/reference+json" } });
 
-        const hyperjump = new Hyperjump();
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
         hyperjump.removeMediaTypePlugin("application/reference+json");
         hyperjump.addMediaTypePlugin(new JrefMediaTypePlugin());
@@ -241,7 +241,7 @@ describe("JSON Browser", () => {
           .intercept({ method: "GET", path: "/foo" })
           .reply(200, `42`, { headers: { "content-type": "application/json" } });
 
-        const hyperjump = new Hyperjump();
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
         hyperjump.removeMediaTypePlugin("application/json");
         hyperjump.addMediaTypePlugin({

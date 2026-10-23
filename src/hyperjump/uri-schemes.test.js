@@ -11,7 +11,7 @@ describe("JSON Browser", () => {
     const fixtureDocument = `{"foo": 42}`;
 
     test("Error on unsupported scheme", async () => {
-      const hyperjump = new Hyperjump();
+      const hyperjump = new Hyperjump({ allowRetrieval: ["foo:something"] });
       const session = hyperjump.session();
       try {
         await session.get("foo:something");
@@ -31,7 +31,7 @@ describe("JSON Browser", () => {
       let session;
 
       beforeEach(() => {
-        hyperjump = new Hyperjump();
+        hyperjump = new Hyperjump({ allowRetrieval: ["foo:something"] });
         session = hyperjump.session();
 
         hyperjump.addUriSchemePlugin({
