@@ -14,33 +14,6 @@ import { toJson } from "../json/jsonast-util.js";
 
 const document = `{ "foo": 42 }`;
 
-/** @type (path: string) => string */
-const fileUri = (path) => pathToFileURL(path).href;
-
-/** @type (path: string) => string */
-const directoryUri = (path) => pathToFileURL(join(path, "/")).href;
-
-/**
- * A plugin for `test:` URIs whose response claims to come from `url`
- *
- * @type (hyperjump: Hyperjump, url?: string) => void
- */
-const addTestScheme = (hyperjump, url) => {
-  hyperjump.addUriSchemePlugin({
-    schemes: ["test"],
-    retrieve: async (uri) => {
-      const response = new Response(document, { headers: { "Content-Type": "application/json" } });
-      Object.defineProperty(response, "url", { value: url ?? uri });
-      return response;
-    }
-  });
-};
-
-/** @type (config?: HyperjumpConfig) => Hyperjump */
-const hyperjumpWith = (config) => new Hyperjump(config);
-
-const defaultSession = () => new Hyperjump().session();
-
 describe("allowRetrieval", () => {
   /** A directory in the working directory, which the default allows */
   let inside = "";
@@ -286,3 +259,30 @@ describe("the working directory's entry", () => {
     expect(await allowed.allows(fileUri(join(await realpath(cwd()), "..", "a.json")))).to.equal(false);
   });
 });
+
+/** @type (path: string) => string */
+const fileUri = (path) => pathToFileURL(path).href;
+
+/** @type (path: string) => string */
+const directoryUri = (path) => pathToFileURL(join(path, "/")).href;
+
+/**
+ * A plugin for `test:` URIs whose response claims to come from `url`
+ *
+ * @type (hyperjump: Hyperjump, url?: string) => void
+ */
+const addTestScheme = (hyperjump, url) => {
+  hyperjump.addUriSchemePlugin({
+    schemes: ["test"],
+    retrieve: async (uri) => {
+      const response = new Response(document, { headers: { "Content-Type": "application/json" } });
+      Object.defineProperty(response, "url", { value: url ?? uri });
+      return response;
+    }
+  });
+};
+
+/** @type (config?: HyperjumpConfig) => Hyperjump */
+const hyperjumpWith = (config) => new Hyperjump(config);
+
+const defaultSession = () => new Hyperjump().session();

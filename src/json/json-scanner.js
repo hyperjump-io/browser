@@ -39,9 +39,6 @@ const SLASH = 0x2f;
 const ASTERISK = 0x2a;
 const BACKSLASH = 0x5c;
 
-/** @type (code: number) => boolean */
-const isWhitespace = (code) => code === SPACE || code === LINE_FEED || code === CARRIAGE_RETURN || code === TAB;
-
 // Characters that end a number or a bare word, indexed by character code
 const TERMINATORS = new Uint8Array(128);
 for (const character of " \t\n\r{}[]:,\"'/") {
@@ -58,9 +55,6 @@ const PUNCTUATORS = {
   0x2c: ","
 };
 
-/** @type (code: number) => boolean */
-const isNumberStart = (code) => (code >= 0x30 && code <= 0x39) || code === 0x2d || code === 0x2b || code === 0x2e;
-
 /** @type Record<string, string> */
 const ESCAPES = {
   "\"": "\"",
@@ -72,9 +66,6 @@ const ESCAPES = {
   "r": "\r",
   "t": "\t"
 };
-
-/** @type (code: number) => boolean */
-const isHexDigit = (code) => (code >= 0x30 && code <= 0x39) || (code >= 0x41 && code <= 0x46) || (code >= 0x61 && code <= 0x66);
 
 /**
  * Scan the token that starts at `offset`, skipping any whitespace before it.
@@ -144,6 +135,15 @@ export const scanToken = (text, offset) => {
   const kind = word === "true" || word === "false" || word === "null" ? word : "unknown";
   return token(kind, offset, end - offset, word);
 };
+
+/** @type (code: number) => boolean */
+const isWhitespace = (code) => code === SPACE || code === LINE_FEED || code === CARRIAGE_RETURN || code === TAB;
+
+/** @type (code: number) => boolean */
+const isNumberStart = (code) => (code >= 0x30 && code <= 0x39) || code === 0x2d || code === 0x2b || code === 0x2e;
+
+/** @type (code: number) => boolean */
+const isHexDigit = (code) => (code >= 0x30 && code <= 0x39) || (code >= 0x41 && code <= 0x46) || (code >= 0x61 && code <= 0x66);
 
 /**
  * Every token has the same shape so property access stays fast.

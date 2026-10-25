@@ -142,16 +142,6 @@ export class HttpUriSchemePlugin {
   }
 }
 
-/**
- * A response that's stale as soon as it's stored and can't be revalidated
- * would never be used again.
- *
- * @type (policy: CachePolicy, headers: Record<string, string>) => boolean
- */
-const isWorthCaching = (policy, headers) => {
-  return policy.storable() && (policy.timeToLive() > 0 || "etag" in headers || "last-modified" in headers);
-};
-
 export class HttpError extends Error {
   /**
    * @param {Response} response
@@ -163,3 +153,13 @@ export class HttpError extends Error {
     this.response = response;
   }
 }
+
+/**
+ * A response that's stale as soon as it's stored and can't be revalidated
+ * would never be used again.
+ *
+ * @type (policy: CachePolicy, headers: Record<string, string>) => boolean
+ */
+const isWorthCaching = (policy, headers) => {
+  return policy.storable() && (policy.timeToLive() > 0 || "etag" in headers || "last-modified" in headers);
+};

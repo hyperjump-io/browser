@@ -17,9 +17,6 @@ import { appendToLocation } from "./location.js";
  * @import * as API from "./jsonast-util.d.ts"
  */
 
-/** @type API.Reviver<object, any, any> */
-const defaultReviver = (value) => value;
-
 /** @type API.fromJson */
 export const fromJson = (json, location = "", reviver = defaultReviver, options = {}) => {
   return parseJson(json, location, reviver, options);
@@ -110,14 +107,163 @@ export const fromJs = (js, location = "#") => {
   }
 };
 
-/** @type API.Replacer */
-const defaultReplacer = (node) => node;
-
 /** @type API.toJson */
 export const toJson = (node, replacer = defaultReplacer, space = "") => {
   const replacedNode = replace(node, replacer);
   return replacedNode ? stringifyValue(replacedNode, replacer, space, 1) : "";
 };
+
+// RFC 6901: array-index = %x30 / ( %x31-39 *(%x30-39) )
+const arrayIndexPattern = /^(?:0|[1-9][0-9]*)$/;
+
+/** @type API.pointerStep */
+export const pointerStep = (segment, node, uri = "#") => {
+  switch (node.jsonType) {
+    case "object": {
+      let found = false;
+      let result;
+      for (const [keyNode, valueNode] of propertyEntries(node.children)) {
+        if (keyNode.value === segment) {
+          // RFC 6901: If a referenced member name is not unique in an object,
+          // the member that is referenced is undefined, and evaluation fails.
+          if (found) {
+            const uriMessage = uri ? ` at ${uri}` : "";
+            throw new JsonPointerError(`Property '${segment}' is not unique${uriMessage}`);
+          }
+          found = true;
+          result = valueNode;
+        }
+      }
+      if (!found) {
+        const uriMessage = uri ? ` at ${uri}` : "";
+        throw new JsonPointerError(`Property '${segment}' doesn't exist${uriMessage}`);
+      }
+      return result;
+    }
+    case "array": {
+      if (segment !== "-" && !arrayIndexPattern.test(segment)) {
+        const uriMessage = uri ? ` at ${uri}` : "";
+        throw new JsonPointerError(`'${segment}' is not a valid array index${uriMessage}`);
+      }
+      const index = segment === "-" ? node.children.length : parseInt(segment, 10);
+      if (!node.children[index]) {
+        const uriMessage = uri ? ` at ${uri}` : "";
+        throw new JsonPointerError(`Index '${index}' doesn't exist${uriMessage}`);
+      }
+      return memberValue(node.children[index]);
+    }
+    default: {
+      const uriMessage = uri ? ` at ${uri}` : "";
+      throw new JsonPointerError(`Can't index into scalar value${uriMessage}`);
+    }
+  }
+};
+
+/** @type API.pointerGet */
+export const pointerGet = (pointer, tree, documentUri) => {
+  let uri = `${documentUri}#`;
+  let node = memberValue(tree);
+  for (const segment of pointerSegments(pointer)) {
+    if (node === undefined) {
+      throw new JsonPointerError(`Can't index into a missing value at ${uri}`);
+    }
+    if (node.type === "json-invalid") {
+      throw new JsonPointerError(`Can't index into an invalid value at ${uri}`);
+    }
+
+    uri = appendToLocation(segment, uri);
+    node = pointerStep(segment, /** @type Parameters<typeof pointerStep>[1] */ (node), uri);
+  }
+
+  return node;
+};
+
+// eslint-disable-next-line @stylistic/no-extra-parens
+export const jsonValue = /** @type API.jsonValue */ ((/** @type JsonNode<unknown, JsonErrorNode> */ node) => {
+  switch (node.jsonType) {
+    case "array":
+      return node.children.map((itemNode) => isErrorNode(itemNode) ? null : jsonValue(itemNode));
+    case "object": {
+      /** @type Record<string, Json> */
+      const object = {};
+      for (const propertyNode of node.children) {
+        const [keyNode, valueNode] = propertyNode.children;
+        if (!isErrorNode(valueNode)) {
+          object[keyNode.value] = jsonValue(valueNode);
+        }
+      }
+      return object;
+    }
+    default:
+      return node.value;
+  }
+});
+
+/** @type API.jsonObjectHas */
+export const jsonObjectHas = (key, node) => {
+  if (node.jsonType === "object") {
+    for (const [keyNode] of propertyEntries(node.children)) {
+      if (keyNode.value === key) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
+/** @type API.jsonArrayIter */
+export const jsonArrayIter = function* (node) {
+  if (node.jsonType === "array") {
+    for (const itemNode of node.children) {
+      yield memberValue(itemNode);
+    }
+  }
+};
+
+/** @type API.jsonObjectKeys */
+export const jsonObjectKeys = function* (node) {
+  if (node.jsonType === "object") {
+    for (const [keyNode] of propertyEntries(node.children)) {
+      yield keyNode.value;
+    }
+  }
+};
+
+/** @type API.jsonObjectValues */
+export const jsonObjectValues = function* (node) {
+  if (node.jsonType === "object") {
+    for (const [, valueNode] of propertyEntries(node.children)) {
+      yield valueNode;
+    }
+  }
+};
+
+/** @type API.jsonObjectEntries */
+export const jsonObjectEntries = function* (node) {
+  if (node.jsonType === "object") {
+    for (const [keyNode, valueNode] of propertyEntries(node.children)) {
+      yield [keyNode.value, valueNode];
+    }
+  }
+};
+
+/** @implements API.JsonPointerError */
+export class JsonPointerError extends Error {
+  /**
+   * @param {string} [message]
+   */
+  constructor(message) {
+    super(message);
+    this.name = this.constructor.name;
+  }
+}
+
+/** @type API.Reviver<object, any, any> */
+const defaultReviver = (value) => value;
+
+/** @type API.Replacer */
+const defaultReplacer = (node) => node;
 
 /**
  * Apply the replacer to a value. A missing value is treated like a value the
@@ -189,71 +335,6 @@ const stringifyObject = (node, replacer, space, depth) => {
   return "{" + padding + space + properties.join(`,${padding}${space}`) + padding + "}";
 };
 
-// RFC 6901: array-index = %x30 / ( %x31-39 *(%x30-39) )
-const arrayIndexPattern = /^(?:0|[1-9][0-9]*)$/;
-
-/** @type API.pointerStep */
-export const pointerStep = (segment, node, uri = "#") => {
-  switch (node.jsonType) {
-    case "object": {
-      let found = false;
-      let result;
-      for (const [keyNode, valueNode] of propertyEntries(node.children)) {
-        if (keyNode.value === segment) {
-          // RFC 6901: If a referenced member name is not unique in an object,
-          // the member that is referenced is undefined, and evaluation fails.
-          if (found) {
-            const uriMessage = uri ? ` at ${uri}` : "";
-            throw new JsonPointerError(`Property '${segment}' is not unique${uriMessage}`);
-          }
-          found = true;
-          result = valueNode;
-        }
-      }
-      if (!found) {
-        const uriMessage = uri ? ` at ${uri}` : "";
-        throw new JsonPointerError(`Property '${segment}' doesn't exist${uriMessage}`);
-      }
-      return result;
-    }
-    case "array": {
-      if (segment !== "-" && !arrayIndexPattern.test(segment)) {
-        const uriMessage = uri ? ` at ${uri}` : "";
-        throw new JsonPointerError(`'${segment}' is not a valid array index${uriMessage}`);
-      }
-      const index = segment === "-" ? node.children.length : parseInt(segment, 10);
-      if (!node.children[index]) {
-        const uriMessage = uri ? ` at ${uri}` : "";
-        throw new JsonPointerError(`Index '${index}' doesn't exist${uriMessage}`);
-      }
-      return memberValue(node.children[index]);
-    }
-    default: {
-      const uriMessage = uri ? ` at ${uri}` : "";
-      throw new JsonPointerError(`Can't index into scalar value${uriMessage}`);
-    }
-  }
-};
-
-/** @type API.pointerGet */
-export const pointerGet = (pointer, tree, documentUri) => {
-  let uri = `${documentUri}#`;
-  let node = memberValue(tree);
-  for (const segment of pointerSegments(pointer)) {
-    if (node === undefined) {
-      throw new JsonPointerError(`Can't index into a missing value at ${uri}`);
-    }
-    if (node.type === "json-invalid") {
-      throw new JsonPointerError(`Can't index into an invalid value at ${uri}`);
-    }
-
-    uri = appendToLocation(segment, uri);
-    node = pointerStep(segment, /** @type Parameters<typeof pointerStep>[1] */ (node), uri);
-  }
-
-  return node;
-};
-
 /** @type (pointer: string) => Generator<string> */
 const pointerSegments = function* (pointer) {
   if (pointer.length > 0 && !pointer.startsWith("/")) {
@@ -278,78 +359,8 @@ const unescapePointerSegment = (segment) => segment.toString()
   .replace(/~1/g, "/")
   .replace(/~0/g, "~");
 
-// eslint-disable-next-line @stylistic/no-extra-parens
-export const jsonValue = /** @type API.jsonValue */ ((/** @type JsonNode<unknown, JsonErrorNode> */ node) => {
-  switch (node.jsonType) {
-    case "array":
-      return node.children.map((itemNode) => isErrorNode(itemNode) ? null : jsonValue(itemNode));
-    case "object": {
-      /** @type Record<string, Json> */
-      const object = {};
-      for (const propertyNode of node.children) {
-        const [keyNode, valueNode] = propertyNode.children;
-        if (!isErrorNode(valueNode)) {
-          object[keyNode.value] = jsonValue(valueNode);
-        }
-      }
-      return object;
-    }
-    default:
-      return node.value;
-  }
-});
-
 /** @type (node: JsonNode<unknown, JsonErrorNode> | JsonErrorNode) => node is JsonErrorNode */
 const isErrorNode = (node) => node.type === "json-missing" || node.type === "json-invalid";
-
-/** @type API.jsonObjectHas */
-export const jsonObjectHas = (key, node) => {
-  if (node.jsonType === "object") {
-    for (const [keyNode] of propertyEntries(node.children)) {
-      if (keyNode.value === key) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-};
-
-/** @type API.jsonArrayIter */
-export const jsonArrayIter = function* (node) {
-  if (node.jsonType === "array") {
-    for (const itemNode of node.children) {
-      yield memberValue(itemNode);
-    }
-  }
-};
-
-/** @type API.jsonObjectKeys */
-export const jsonObjectKeys = function* (node) {
-  if (node.jsonType === "object") {
-    for (const [keyNode] of propertyEntries(node.children)) {
-      yield keyNode.value;
-    }
-  }
-};
-
-/** @type API.jsonObjectValues */
-export const jsonObjectValues = function* (node) {
-  if (node.jsonType === "object") {
-    for (const [, valueNode] of propertyEntries(node.children)) {
-      yield valueNode;
-    }
-  }
-};
-
-/** @type API.jsonObjectEntries */
-export const jsonObjectEntries = function* (node) {
-  if (node.jsonType === "object") {
-    for (const [keyNode, valueNode] of propertyEntries(node.children)) {
-      yield [keyNode.value, valueNode];
-    }
-  }
-};
 
 /**
  * A missing value from a failed parse is presented as `undefined`.
@@ -367,14 +378,3 @@ const propertyEntries = function* (propertyNodes) {
     yield [keyNode, memberValue(valueNode)];
   }
 };
-
-/** @implements API.JsonPointerError */
-export class JsonPointerError extends Error {
-  /**
-   * @param {string} [message]
-   */
-  constructor(message) {
-    super(message);
-    this.name = this.constructor.name;
-  }
-}

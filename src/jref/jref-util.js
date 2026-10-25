@@ -7,9 +7,6 @@ import { fromJson, hasStatus as jsonHasStatus } from "../json/jsonast-util.js";
  * @import * as API from "./jref-util.d.ts"
  */
 
-/** @type API.Reviver<any, any> */
-const defaultReviver = (value) => value;
-
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const hasStatus = /** @type API.hasStatus */ (jsonHasStatus);
 
@@ -17,6 +14,9 @@ export const hasStatus = /** @type API.hasStatus */ (jsonHasStatus);
 export const fromJref = (jref, uri, reviver = defaultReviver, options = {}) => {
   return /** @type any */ (fromJson(jref, uri, jrefReviver(uri, reviver), options));
 };
+
+/** @type API.Reviver<any, any> */
+const defaultReviver = (value) => value;
 
 /** @type (uri: string | undefined, reviver: (node: any, key?: string) => any) => (node: any, key?: string) => any */
 const jrefReviver = (uri, reviver) => (/** @type JrefNode<JsonErrorNode> */ node, key) => {

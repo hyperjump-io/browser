@@ -44,74 +44,6 @@ import { fromJref, hasStatus as jrefHasStatus, jref, jrefParse } from "../jref/i
  * }} TestError
  */
 
-/** @type (syntaxError: JsonSyntaxError) => TestError */
-const toError = (syntaxError) => {
-  const place = syntaxError.place;
-  /** @type TestError */
-  const error = {
-    code: syntaxError.ruleId,
-    offset: place.start.offset,
-    length: (place.end.offset ?? 0) - (place.start.offset ?? 0)
-  };
-  if (syntaxError.actual !== undefined) {
-    error.found = syntaxError.actual;
-  }
-  return error;
-};
-
-/** @type (node: TolerantValue | undefined) => string[] */
-const propertyNames = (node) => {
-  return node && "jsonType" in node && node.jsonType === "object" ? node.children.map((property) => property.children[0].value) : [];
-};
-
-/**
- * The values of an array's items. Error nodes are shown as their type.
- *
- * @type (node: TolerantValue | undefined) => unknown[]
- */
-const itemValues = (node) => {
-  if (!node || !("jsonType" in node) || node.jsonType !== "array") {
-    return [];
-  }
-  return node.children.map((item) => "value" in item ? item.value : item.type);
-};
-
-/** @type (node: TolerantValue | undefined, index: number) => JsonPropertyNode<{ type: "json" }, JsonErrorNode> */
-const property = (node, index) => {
-  if (!node || !("jsonType" in node) || node.jsonType !== "object") {
-    throw Error("Expected an object");
-  }
-  return node.children[index];
-};
-
-/** @type (node: TolerantValue | undefined, index: number) => TolerantValue */
-const item = (node, index) => {
-  if (!node || !("jsonType" in node) || node.jsonType !== "array") {
-    throw Error("Expected an array");
-  }
-  return node.children[index];
-};
-
-/** @type (json: string) => TolerantValue */
-const tree = (json) => {
-  return fromJson(json).node;
-};
-
-/** @type (node: { position?: Position }) => { offset: number | undefined, length: number } */
-const span = (node) => {
-  const position = /** @type Position */ (node.position);
-  return {
-    offset: position.start.offset,
-    length: (position.end.offset ?? 0) - (position.start.offset ?? 0)
-  };
-};
-
-/** @type (json: string, options?: JsonOptions) => { root: TolerantValue, errors: TestError[] } */
-const parse = (json, options) => {
-  const { node, errors } = fromJson(json, "", undefined, options);
-  return { root: node, errors: errors.map(toError) };
-};
-
 describe("tolerant parse", () => {
   test("a valid document has no errors", () => {
     const { errors } = parse(`{ "a": 1 }`);
@@ -1610,3 +1542,71 @@ describe("jref with errors", () => {
     expect(document.status).toBe("failure");
   });
 });
+
+/** @type (syntaxError: JsonSyntaxError) => TestError */
+const toError = (syntaxError) => {
+  const place = syntaxError.place;
+  /** @type TestError */
+  const error = {
+    code: syntaxError.ruleId,
+    offset: place.start.offset,
+    length: (place.end.offset ?? 0) - (place.start.offset ?? 0)
+  };
+  if (syntaxError.actual !== undefined) {
+    error.found = syntaxError.actual;
+  }
+  return error;
+};
+
+/** @type (node: TolerantValue | undefined) => string[] */
+const propertyNames = (node) => {
+  return node && "jsonType" in node && node.jsonType === "object" ? node.children.map((property) => property.children[0].value) : [];
+};
+
+/**
+ * The values of an array's items. Error nodes are shown as their type.
+ *
+ * @type (node: TolerantValue | undefined) => unknown[]
+ */
+const itemValues = (node) => {
+  if (!node || !("jsonType" in node) || node.jsonType !== "array") {
+    return [];
+  }
+  return node.children.map((item) => "value" in item ? item.value : item.type);
+};
+
+/** @type (node: TolerantValue | undefined, index: number) => JsonPropertyNode<{ type: "json" }, JsonErrorNode> */
+const property = (node, index) => {
+  if (!node || !("jsonType" in node) || node.jsonType !== "object") {
+    throw Error("Expected an object");
+  }
+  return node.children[index];
+};
+
+/** @type (node: TolerantValue | undefined, index: number) => TolerantValue */
+const item = (node, index) => {
+  if (!node || !("jsonType" in node) || node.jsonType !== "array") {
+    throw Error("Expected an array");
+  }
+  return node.children[index];
+};
+
+/** @type (json: string) => TolerantValue */
+const tree = (json) => {
+  return fromJson(json).node;
+};
+
+/** @type (node: { position?: Position }) => { offset: number | undefined, length: number } */
+const span = (node) => {
+  const position = /** @type Position */ (node.position);
+  return {
+    offset: position.start.offset,
+    length: (position.end.offset ?? 0) - (position.start.offset ?? 0)
+  };
+};
+
+/** @type (json: string, options?: JsonOptions) => { root: TolerantValue, errors: TestError[] } */
+const parse = (json, options) => {
+  const { node, errors } = fromJson(json, "", undefined, options);
+  return { root: node, errors: errors.map(toError) };
+};

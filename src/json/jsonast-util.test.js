@@ -22,19 +22,6 @@ import {
  * @import { JsonNode, JsonTolerantNode } from "./index.js"
  */
 
-/**
- * Parse JSON that's expected to be valid.
- *
- * @type (json: string) => JsonNode
- */
-const parse = (json) => {
-  const result = fromJson(json);
-  if (result.status !== "success") {
-    throw Error(jsonSyntaxErrorMessage(result.errors[0]));
-  }
-  return result.node;
-};
-
 describe("jsonast-util", async () => {
   const testPath = resolve(import.meta.dirname, "jsonast-util-tests");
   for (const entry of await readdir(testPath, { withFileTypes: true })) {
@@ -315,3 +302,16 @@ describe("jsonast-util", async () => {
     expect(generator.next().done).to.equal(true);
   });
 });
+
+/**
+ * Parse JSON that's expected to be valid.
+ *
+ * @type (json: string) => JsonNode
+ */
+const parse = (json) => {
+  const result = fromJson(json);
+  if (result.status !== "success") {
+    throw Error(jsonSyntaxErrorMessage(result.errors[0]));
+  }
+  return result.node;
+};
