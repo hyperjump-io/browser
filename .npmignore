@@ -8,4 +8,7 @@ docs/
 tsconfig.json
 scratch/
 TODO*
+CLAUDE.md
+design/
+website/
 scripts/
