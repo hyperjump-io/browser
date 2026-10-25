@@ -1,44 +1,69 @@
 # Media types
 
-Support for the JSON and [JRef] media types are included by default, but you can
-add support for any media type you like as long as it can be represented in a
-[JRef]-compatible way.
+A response's media type decides how it's parsed and what references and
+fragments mean in it. JRef (`application/reference+json`, `.jref`) and JSON
+(`application/json`, `.json`) are supported by default.
+
+| Where a document comes from | How its media type is found |
+| --- | --- |
+| HTTP | Its `Content-Type` header |
+| A file | Its extension |
+
+## Adding a media type
+
+A media type plugin parses a response into a JRef-compatible AST. Here's
+one for a YAML version of JRef, which parses YAML and hands the result to
+the JRef parser:
 
 ```javascript
 import { Hyperjump } from "@hyperjump/browser";
+import { fromJref } from "@hyperjump/browser/jref";
+import YAML from "yaml";
 
-const h = new Hyperjump();
-
-// Add support for YAML version of JRef (YRef)
-export class YrefMediaTypePlugin {
-  constructor(quality) {
-    this.quality = quality;
-  }
+class YrefMediaTypePlugin {
+  mediaType = "application/reference+yaml";
+  extensions = [".yref"];
 
   async parse(response) {
-    return {
-      type: "jref-document",
-      uri: response.url,
-      children: [parseYamlToJrefAst(await response.text())]
-    };
+    const json = JSON.stringify(YAML.parse(await response.text()));
+    const { status, node } = fromJref(json, response.url);
+    return { type: "jref-document", status, children: [node], uri: response.url };
   }
 
   // A fragment is a JSON Pointer, as it is for JRef
-  fragmentPointer(document, fragment) {
+  fragmentPointer(_document, fragment) {
     return decodeURIComponent(fragment);
   }
-
-  async fileMatcher(path) {
-    return /[^/]\.yref$/.test(path);
-  }
 }
-h.addMediaTypePlugin("application/reference+yaml", new YrefMediaTypePlugin());
 
-// Prefer "YRef" over JRef by reducing the quality for JRef.
-h.setMediaTypeQuality("application/reference+json", 0.9);
-
-// Only support YRef by removing JRef support.
-h.removeMediaTypePlugin("application/reference+json");
+const h = new Hyperjump();
+h.addMediaTypePlugin(new YrefMediaTypePlugin());
 ```
 
-[JRef]: ../src/jref/README.md
+| Property | What it is |
+| --- | --- |
+| `mediaType` | The media type it parses |
+| `extensions` | File extensions for it, like `.yref`. A name that starts with `/` is a whole filename, like `/.bowerrc`. |
+| `parse(response, session)` | Parse a `Response` into a document node. A media type that needs other documents to parse one retrieves them with `session`. |
+| `fragmentPointer(document, fragment)` | The JSON Pointer a fragment identifies. Without it, fragments are ignored. |
+| `quality` | Its quality in the `Accept` header (optional) |
+
+Positions in the AST are what errors and tools point to. This example
+loses YAML's positions by going through JSON. A real plugin would build the
+AST from the YAML parser's nodes.
+
+## Preferring a media type
+
+Requests send an `Accept` header with every supported media type. To tell
+servers you prefer one, lower the quality of the others:
+
+```javascript
+h.setMediaTypeQuality("application/reference+json", 0.9);
+// Accept: application/reference+json; q=0.9, application/json, application/reference+yaml, */*; q=0.001
+```
+
+## Removing a media type
+
+```javascript
+h.removeMediaTypePlugin("application/reference+json");
+```

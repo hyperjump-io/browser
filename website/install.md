@@ -1,21 +1,26 @@
 # Install
 
-This module is designed for node.js (ES Modules, TypeScript) and browsers. It
-should work in Bun and Deno as well, but the test runner doesn't work in these
-environments, so this module may be less stable in those environments.
-
-## Node.js
-
 ```bash
 npm install @hyperjump/browser
 ```
 
-## Browser
+It's an ES module, with TypeScript types. It's made for Node.js and
+browsers. It should work in Bun and Deno too, but its tests don't run there,
+so it's less proven in them.
 
-The package uses [subpath imports](https://nodejs.org/api/packages.html#subpath-imports)
-to provide browser-compatible implementations of the parts that depend on
-Node.js. Bundlers that support the `imports` field (Vite, webpack, esbuild,
-Rollup) select them automatically.
+## Browsers
 
-In the browser, relative URIs are resolved against the page's URI, and the
-`file:` URI scheme is not available.
+The package uses
+[subpath imports](https://nodejs.org/api/packages.html#subpath-imports) for
+browser versions of the parts that use Node.js. Bundlers that support the
+`imports` field, like Vite, webpack, esbuild, and Rollup, choose them for
+you.
+
+In a browser:
+
+- Relative URIs are resolved against the page's URI.
+- `file:` URIs aren't available.
+- There's no HTTP cache of its own, because `fetch` already caches (see
+  [HTTP caching](http-caching.md)).
+- The default [`allowRetrieval`](allow-retrieval.md) allows what's in the
+  page's directory.
