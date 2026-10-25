@@ -5,7 +5,27 @@ import { encodeIriFragment } from "@hyperjump/uri";
  * @import * as API from "./location.d.ts"
  */
 
+// Most segments are property names that repeat, in every instance of a
+// schema or every item of an array, and encoding them was most of the time
+// building a JSON AST took. The cache is cleared when it's full, and long
+// names aren't cached, so it can't grow without limit.
+/** @type Map<string, string> */
+const encodedSegments = new Map();
+const maxCachedSegments = 10_000;
+const maxCachedSegmentLength = 100;
+
 /** @type API.appendToLocation */
 export const appendToLocation = (segment, location) => {
-  return location + encodeIriFragment(JsonPointer.append(segment, ""));
+  let encoded = encodedSegments.get(segment);
+  if (encoded === undefined) {
+    encoded = encodeIriFragment(JsonPointer.append(segment, ""));
+    if (segment.length <= maxCachedSegmentLength) {
+      if (encodedSegments.size >= maxCachedSegments) {
+        encodedSegments.clear();
+      }
+      encodedSegments.set(segment, encoded);
+    }
+  }
+
+  return location + encoded;
 };

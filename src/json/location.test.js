@@ -28,6 +28,25 @@ describe("node locations", () => {
     });
   }
 
+  test("a segment encoded before is appended to the location it's given", () => {
+    expect(appendToLocation("a^b", "https://example.com#")).to.equal("https://example.com#/a%5Eb");
+    expect(appendToLocation("a^b", "https://example.com#/c")).to.equal("https://example.com#/c/a%5Eb");
+  });
+
+  test("a long segment is encoded every time", () => {
+    const segment = "^".repeat(200);
+    const expected = `#/${"%5E".repeat(200)}`;
+    expect(appendToLocation(segment, "#")).to.equal(expected);
+    expect(appendToLocation(segment, "#")).to.equal(expected);
+  });
+
+  test("segments are still encoded after more than the cache holds", () => {
+    for (let index = 0; index < 20_000; index++) {
+      expect(appendToLocation(`^${index}`, "#")).to.equal(`#/%5E${index}`);
+    }
+    expect(appendToLocation("^0", "#")).to.equal("#/%5E0");
+  });
+
   test("the parser encodes locations", () => {
     const root = /** @type any */ (fromJson(`{ "a^b": [1], "c d": 2 }`, "https://example.com").node);
 

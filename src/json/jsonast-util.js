@@ -71,7 +71,8 @@ export const fromJs = (js, location = "#") => {
         return {
           type: "json",
           jsonType: "array",
-          children: js.map((item, index) => fromJs(item, appendToLocation(`${index}`, location))),
+          // An index never needs escaping or encoding
+          children: js.map((item, index) => fromJs(item, `${location}/${index}`)),
           location: location
         };
       }

@@ -543,7 +543,8 @@ export const parseJson = (text, location, reviver, options = {}) => {
       if (token.kind === ",") {
         const gapOffset = parseComma(closer, !separator, index === 0);
         if (gapOffset !== undefined && jsonType === "array") {
-          container.children.push(missing(appendToLocation(`${index}`, containerLocation), gapOffset));
+          // An index never needs escaping or encoding
+          container.children.push(missing(`${containerLocation}/${index}`, gapOffset));
         }
         if (gapOffset !== undefined) {
           index++;
@@ -580,7 +581,7 @@ export const parseJson = (text, location, reviver, options = {}) => {
         separator = separatorAfter(value);
       } else {
         const key = `${index++}`;
-        const item = /** @type JsonValueNode */ (parseValue(appendToLocation(key, containerLocation), true));
+        const item = /** @type JsonValueNode */ (parseValue(`${containerLocation}/${key}`, true));
         const revivedItem = revive(item, key);
         if (revivedItem !== undefined) {
           container.children.push(revivedItem);
