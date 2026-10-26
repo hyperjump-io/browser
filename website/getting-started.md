@@ -65,10 +65,13 @@ for await (const character of session.iter(characters)) {
   const name = await session.step("name", character);
   console.log(session.value(name));
 }
-// Luke Skywalker
-// C-3PO
-// R2-D2
-// ...
+```
+
+```text
+Luke Skywalker
+C-3PO
+R2-D2
+...
 ```
 
 You never see a `$ref`. Each document is retrieved once for the session,
