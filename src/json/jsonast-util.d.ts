@@ -11,7 +11,8 @@ import type {
   JsonNumberNode,
   JsonPropertyNameNode,
   JsonParseStatus,
-  JsonStringNode
+  JsonStringNode,
+  ReadonlyJson
 } from "./jsonast.d.ts";
 
 export type Reviver<A extends object, R extends JsonNode<A, X> | undefined, X = never> = (node: JsonNode<A, X>, key?: string) => R;
@@ -118,7 +119,7 @@ export type JsonSyntaxErrorCode
 /**
  * Parse a JSON compatible JavaScript value into a JSON AST.
  */
-export const fromJs: (js: Json, location?: string) => JsonNode;
+export const fromJs: (js: ReadonlyJson, location?: string) => JsonNode;
 
 export type Replacer = (node: JsonNode<unknown>, key?: string) => JsonNode<unknown> | undefined;
 

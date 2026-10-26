@@ -42,6 +42,9 @@ status with it:
 - Property nodes have positions, and a type parameter for annotations, so
   an application can annotate them. The utilities are generic over the
   node type, so they work with annotated trees.
+- Functions that only read a JavaScript value take `ReadonlyJson`
+  (`fromJs`), so a value declared `as const` can be passed. What they
+  return is `Json`, because it's a new value the caller owns.
 - Object and array utilities present missing values as `undefined`.
   `jsonValue` supports arrays and objects: values that couldn't be parsed
   are left out of objects and are `null` in arrays, as `toJson` does.

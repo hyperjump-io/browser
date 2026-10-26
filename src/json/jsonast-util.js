@@ -12,7 +12,8 @@ import { appendToLocation } from "./location.js";
  *   JsonObjectNode,
  *   JsonPropertyNameNode,
  *   JsonErrorNode,
- *   JsonPropertyNode
+ *   JsonPropertyNode,
+ *   ReadonlyJson
  * } from "./jsonast.js"
  * @import * as API from "./jsonast-util.d.ts"
  */
@@ -75,9 +76,11 @@ export const fromJs = (js, location = "#") => {
       }
 
       if (Object.getPrototypeOf(js) === Object.prototype) {
+        // `Array.isArray` doesn't narrow out readonly arrays
+        const object = /** @type {{ readonly [property: string]: ReadonlyJson }} */ (js);
         /** @type JsonPropertyNode<JsonNode>[] */
         const properties = [];
-        for (const key in js) {
+        for (const key in object) {
           properties.push({
             type: "json-property",
             children: [
@@ -86,7 +89,7 @@ export const fromJs = (js, location = "#") => {
                 jsonType: "string",
                 value: key
               },
-              fromJs(js[key], appendToLocation(key, location))
+              fromJs(object[key], appendToLocation(key, location))
             ]
           });
         }

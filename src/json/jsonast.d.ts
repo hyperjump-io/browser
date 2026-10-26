@@ -178,3 +178,10 @@ export type JsonDocumentNode<S extends JsonParseStatus = JsonParseStatus> = {
 };
 
 export type Json = null | boolean | number | string | Json[] | { [property: string]: Json };
+
+/**
+ * JSON that won't be changed, for functions that take JSON and only read
+ * it. {@link Json} is assignable to it, and so is a value declared
+ * `as const`.
+ */
+export type ReadonlyJson = null | boolean | number | string | readonly ReadonlyJson[] | { readonly [property: string]: ReadonlyJson };
