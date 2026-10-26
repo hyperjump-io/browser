@@ -1,4 +1,4 @@
-# Hyperjump - Browser
+# Browser
 
 A client for JSON documents that reference each other. It retrieves
 documents over HTTP or from files, and follows references for you, so you
