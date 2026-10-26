@@ -61,7 +61,6 @@
     "lint": "oxlint",
     "test": "vitest run",
     "type-check": "tsc --noEmit",
-    "docs": "typedoc --excludeExternals",
     "version": "node scripts/version-docs.js && git add website"
   },
   "devDependencies": {
@@ -70,7 +69,6 @@
     "@vitest/coverage-v8": "*",
     "oxlint": "*",
     "oxlint-tsgolint": "*",
-    "typedoc": "*",
     "typescript": "*",
     "undici": "*",
     "vite": "*",
