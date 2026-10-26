@@ -55,7 +55,9 @@ documents. Step into them instead.
 A URI's fragment is a JSON Pointer to a value in the document:
 
 ```javascript
-const homeworld = await session.get("https://swapi.hyperjump.io/api/people/1#/homeworld");
+const homeworld = await session.get(
+  "https://swapi.hyperjump.io/api/people/1#/homeworld"
+);
 ```
 
 The pointer is applied to the document as written, without following

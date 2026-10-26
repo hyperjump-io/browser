@@ -31,7 +31,7 @@ allows nothing.
 Anything else throws a `RetrievalNotAllowedError`, whose `uri` is the URL
 that was refused:
 
-```
+```text
 Retrieving 'https://example.com/other' isn't allowed. Use the 'allowRetrieval' config to allow it.
 ```
 

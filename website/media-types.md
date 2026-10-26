@@ -27,7 +27,12 @@ class YrefMediaTypePlugin {
   async parse(response) {
     const json = JSON.stringify(YAML.parse(await response.text()));
     const { status, node } = fromJref(json, response.url);
-    return { type: "jref-document", status, children: [node], uri: response.url };
+    return {
+      type: "jref-document",
+      status,
+      children: [node],
+      uri: response.url
+    };
   }
 
   // A fragment is a JSON Pointer, as it is for JRef
@@ -59,7 +64,12 @@ servers you prefer one, lower the quality of the others:
 
 ```javascript
 h.setMediaTypeQuality("application/reference+json", 0.9);
-// Accept: application/reference+json; q=0.9, application/json, application/reference+yaml, */*; q=0.001
+```
+
+Requests then send:
+
+```text
+Accept: application/reference+json; q=0.9, application/json, application/reference+yaml, */*; q=0.001
 ```
 
 ## Removing a media type

@@ -5,7 +5,11 @@ replace the HTTP plugin with one that has a `headers` function. It's called
 with the URL of each request.
 
 ```javascript
-import { Hyperjump, HttpUriSchemePlugin, MemoryHttpCacheStore } from "@hyperjump/browser";
+import {
+  Hyperjump,
+  HttpUriSchemePlugin,
+  MemoryHttpCacheStore
+} from "@hyperjump/browser";
 
 const h = new Hyperjump({ allowRetrieval: ["https://api.example.com/"] });
 h.addUriSchemePlugin(new HttpUriSchemePlugin(h, {

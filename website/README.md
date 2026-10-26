@@ -7,7 +7,9 @@ work with linked documents as if they were one value.
 ```javascript
 import { Hyperjump } from "@hyperjump/browser";
 
-const h = new Hyperjump({ allowRetrieval: ["https://swapi.hyperjump.io/"] });
+const h = new Hyperjump({
+  allowRetrieval: ["https://swapi.hyperjump.io/"]
+});
 const session = h.session();
 
 const film = await session.get("https://swapi.hyperjump.io/api/films/1");

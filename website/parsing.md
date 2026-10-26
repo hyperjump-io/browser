@@ -15,8 +15,11 @@ import { fromJson, jsonSyntaxErrorMessage } from "@hyperjump/browser/json";
 
 const result = fromJson(`{ "a": [1, 2,] }`);
 result.status; // "recovered"
-result.errors.map(jsonSyntaxErrorMessage); // ["Trailing commas are not allowed"]
 result.node; // The AST
+
+const [error] = result.errors;
+error.ruleId; // "trailing-comma"
+jsonSyntaxErrorMessage(error); // "Trailing commas are not allowed"
 ```
 
 | Status | Meaning |
@@ -34,7 +37,8 @@ reference node gets an `href`, its URI resolved against the document.
 ```javascript
 import { fromJref } from "@hyperjump/browser/jref";
 
-const { node } = fromJref(`{ "x": { "$ref": "#/y" }, "y": 1 }`, "https://example.com/doc");
+const jref = `{ "x": { "$ref": "#/y" }, "y": 1 }`;
+const { node } = fromJref(jref, "https://example.com/doc");
 ```
 
 ## Reading the AST

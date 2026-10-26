@@ -21,7 +21,11 @@ only retrieves what has changed.
 To change it, replace the HTTP plugin with one that has a different cache:
 
 ```javascript
-import { FileHttpCacheStore, Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";
+import {
+  FileHttpCacheStore,
+  Hyperjump,
+  HttpUriSchemePlugin
+} from "@hyperjump/browser";
 
 const h = new Hyperjump();
 

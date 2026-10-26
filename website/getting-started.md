@@ -34,7 +34,9 @@ the API.
 ```javascript
 import { Hyperjump } from "@hyperjump/browser";
 
-const h = new Hyperjump({ allowRetrieval: ["https://swapi.hyperjump.io/"] });
+const h = new Hyperjump({
+  allowRetrieval: ["https://swapi.hyperjump.io/"]
+});
 ```
 
 Documents are retrieved through a session. Start one, and get the first
@@ -42,7 +44,9 @@ film:
 
 ```javascript
 const session = h.session();
-const aNewHope = await session.get("https://swapi.hyperjump.io/api/films/1");
+const aNewHope = await session.get(
+  "https://swapi.hyperjump.io/api/films/1"
+);
 ```
 
 `get` returns a node, a value in the document. Step into it to get its
