@@ -19,7 +19,7 @@ result.errors.map(jsonSyntaxErrorMessage); // ["Trailing commas are not allowed"
 result.node; // The AST
 ```
 
-| `status` | Meaning |
+| Status | Meaning |
 | --- | --- |
 | `"success"` | No syntax errors |
 | `"recovered"` | Syntax errors, but the parser could tell what was meant, like a trailing comma. The AST has every value. |
