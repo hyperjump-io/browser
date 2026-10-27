@@ -10,7 +10,7 @@ every value.
 `fromJson` parses JSON text. It never throws. It recovers from syntax errors
 where it can, and returns every error it found.
 
-```javascript
+```typescript
 import { fromJson, jsonSyntaxErrorMessage } from "@hyperjump/browser/json";
 
 const result = fromJson(`{ "a": [1, 2,] }`);
@@ -34,7 +34,7 @@ Each error is plain data, with a `ruleId` like `"trailing-comma"` and a
 `fromJref` parses JRef the same way. Pass the document's URI, and each
 reference node gets an `href`, its URI resolved against the document.
 
-```javascript
+```typescript
 import { fromJref } from "@hyperjump/browser/jref";
 
 const jref = `{ "x": { "$ref": "#/y" }, "y": 1 }`;
@@ -46,7 +46,7 @@ const { node } = fromJref(jref, "https://example.com/doc");
 Each node has a `jsonType`, a `location` (a URI with a JSON Pointer to it),
 and a `position` in the text.
 
-```javascript
+```typescript
 import { fromJson, jsonValue, pointerGet } from "@hyperjump/browser/json";
 
 const { node } = fromJson(`{ "a": { "b": [10, 20] } }`);

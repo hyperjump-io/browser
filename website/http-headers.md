@@ -4,7 +4,7 @@ To send headers with `http:` and `https:` requests, such as credentials,
 replace the HTTP plugin with one that has a `headers` function. It's called
 with the URL of each request.
 
-```javascript
+```typescript
 import {
   Hyperjump,
   HttpUriSchemePlugin,

@@ -10,7 +10,7 @@ A plugin has the `schemes` it handles and a `retrieve` function that returns
 a `Response`. This one supports `urn:` by mapping URNs to URLs, which it
 retrieves with the `Hyperjump`'s own `retrieve`:
 
-```javascript
+```typescript
 import { Hyperjump } from "@hyperjump/browser";
 
 const mappings = {
@@ -51,7 +51,7 @@ how the HTTP plugin is given a different cache or headers (see
 
 ## Removing a URI scheme
 
-```javascript
+```typescript
 h.removeUriSchemePlugin("http");
 h.removeUriSchemePlugin("https");
 h.removeUriSchemePlugin("file");

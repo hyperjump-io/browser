@@ -4,7 +4,7 @@ A client for JSON documents that reference each other. It retrieves
 documents over HTTP or from files, and follows references for you, so you
 work with linked documents as if they were one value.
 
-```javascript
+```typescript
 import { Hyperjump } from "@hyperjump/browser";
 
 const h = new Hyperjump({

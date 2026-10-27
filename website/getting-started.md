@@ -31,7 +31,7 @@ Create a `Hyperjump`, which holds the configuration, like what can be
 retrieved. Nothing on the network can be retrieved by default, so allow
 the API.
 
-```javascript
+```typescript
 import { Hyperjump } from "@hyperjump/browser";
 
 const h = new Hyperjump({
@@ -42,7 +42,7 @@ const h = new Hyperjump({
 Documents are retrieved through a session. Start one, and get the first
 film:
 
-```javascript
+```typescript
 const session = h.session();
 const aNewHope = await session.get(
   "https://swapi.hyperjump.io/api/films/1"
@@ -53,7 +53,7 @@ const aNewHope = await session.get(
 properties. `value` gets a node's value as JavaScript, for anything that
 isn't an object or an array.
 
-```javascript
+```typescript
 const title = await session.step("title", aNewHope);
 session.value(title); // "A New Hope"
 ```
@@ -62,7 +62,7 @@ session.value(title); // "A New Hope"
 and each reference is followed, so you get each character, retrieved from
 its own URL:
 
-```javascript
+```typescript
 const characters = await session.step("characters", aNewHope);
 
 for await (const character of session.iter(characters)) {
@@ -93,7 +93,7 @@ JRef files end with `.jref`.
 }
 ```
 
-```javascript
+```typescript
 const session = new Hyperjump().session();
 
 const luke = await session.get("./api/people/1.jref");

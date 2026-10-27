@@ -20,7 +20,7 @@ only retrieves what has changed.
 
 To change it, replace the HTTP plugin with one that has a different cache:
 
-```javascript
+```typescript
 import {
   FileHttpCacheStore,
   Hyperjump,

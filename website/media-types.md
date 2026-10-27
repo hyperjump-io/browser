@@ -15,7 +15,7 @@ A media type plugin parses a response into a JRef-compatible AST. Here's
 one for a YAML version of JRef, which parses YAML and hands the result to
 the JRef parser:
 
-```javascript
+```typescript
 import { Hyperjump } from "@hyperjump/browser";
 import { fromJref } from "@hyperjump/browser/jref";
 import YAML from "yaml";
@@ -62,7 +62,7 @@ AST from the YAML parser's nodes.
 Requests send an `Accept` header with every supported media type. To tell
 servers you prefer one, lower the quality of the others:
 
-```javascript
+```typescript
 h.setMediaTypeQuality("application/reference+json", 0.9);
 ```
 
@@ -74,6 +74,6 @@ Accept: application/reference+json; q=0.9, application/json, application/referen
 
 ## Removing a media type
 
-```javascript
+```typescript
 h.removeMediaTypePlugin("application/reference+json");
 ```

@@ -3,7 +3,7 @@
 A session retrieves documents and follows their references. Get a node with
 `get`, then use the session's methods to read it.
 
-```javascript
+```typescript
 const session = h.session();
 const luke = await session.get("https://swapi.hyperjump.io/api/people/1");
 ```
@@ -14,7 +14,7 @@ A node is a value in a document. Its `jsonType` is `"object"`, `"array"`,
 `"string"`, `"number"`, `"boolean"`, or `"null"`, and its `location` is its
 URI, with a JSON Pointer to it in the fragment.
 
-```javascript
+```typescript
 luke.jsonType; // "object"
 luke.location; // "https://swapi.hyperjump.io/api/people/1#"
 ```
@@ -36,7 +36,7 @@ The methods that can follow a reference are async. The others aren't.
 Every method that returns nodes follows references, so you never get a
 reference. If a reference leads to another reference, that's followed too.
 
-```javascript
+```typescript
 const homeworld = await session.step("homeworld", luke);
 
 for await (const [name, value] of session.entries(homeworld)) {
@@ -54,7 +54,7 @@ documents. Step into them instead.
 
 A URI's fragment is a JSON Pointer to a value in the document:
 
-```javascript
+```typescript
 const homeworld = await session.get(
   "https://swapi.hyperjump.io/api/people/1#/homeworld"
 );

@@ -19,7 +19,7 @@ It's a list of URLs:
 The default is `["./"]`: files in the working directory in Node.js, and
 what's in the page's directory in a browser.
 
-```javascript
+```typescript
 const h = new Hyperjump({
   allowRetrieval: ["./", "https://api.example.com/"]
 });
@@ -40,7 +40,7 @@ Retrieving 'https://example.com/other' isn't allowed. Use the 'allowRetrieval' c
 A session can have its own list. It replaces the config, instead of adding
 to it, so a session can allow less.
 
-```javascript
+```typescript
 const session = h.session({ allowRetrieval: ["./documents/"] });
 ```
 
