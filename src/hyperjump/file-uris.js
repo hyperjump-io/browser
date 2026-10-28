@@ -1,4 +1,4 @@
-import { parseIri, toRelativeIri } from "@hyperjump/uri";
+import { parseIri, resolveIri, toRelativeIri } from "@hyperjump/uri";
 import { contextUri } from "#context-uri";
 
 /**
@@ -21,5 +21,6 @@ export const relativeFileUri = (uri) => {
     return fragment === undefined ? name : `${name}#${fragment}`;
   }
 
-  return toRelativeIri(base, uri);
+  // Resolving it normalizes it, so a scheme written as 'FILE:' is relative too
+  return toRelativeIri(base, resolveIri(uri, base));
 };

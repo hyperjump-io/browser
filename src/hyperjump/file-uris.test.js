@@ -15,6 +15,10 @@ describe("relativeFileUri", () => {
     expect(relativeFileUri(`${workingDirectory}/../other/a.json`)).to.equal("../other/a.json");
   });
 
+  test("a file URI written with a different case", () => {
+    expect(relativeFileUri(`${workingDirectory.replace(/^file:/, "FILE:")}/data/a.json`)).to.equal("data/a.json");
+  });
+
   test("something that isn't a file URI is as it is", () => {
     expect(relativeFileUri("https://example.com/a#/b")).to.equal("https://example.com/a#/b");
     expect(relativeFileUri("#/b")).to.equal("#/b");
