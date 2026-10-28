@@ -3,6 +3,8 @@ import { realpath } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseIri, toAbsoluteIri } from "@hyperjump/uri";
 import { Readable } from "node:stream";
+import { FileNotFoundError } from "../hyperjump.js";
+import { relativeFileUri } from "../file-uris.js";
 
 /**
  * @import { Hyperjump } from "../index.js"
@@ -28,7 +30,7 @@ export class FileUriSchemePlugin {
       const { scheme } = parseIri(options.referencedFrom);
 
       if (scheme !== "file") {
-        throw Error(`Accessing a file (${uri}) from a non-filesystem context (${options.referencedFrom}) is not allowed`);
+        throw Error(`Accessing a file (${relativeFileUri(uri)}) from a non-filesystem context (${options.referencedFrom}) is not allowed`);
       }
     }
 
@@ -36,7 +38,19 @@ export class FileUriSchemePlugin {
     // so references resolve relative to where the file really is. That's
     // true for a symlink anywhere in the path, not only the file itself.
     const filePath = fileURLToPath(uri);
-    const realFilePath = await realpath(filePath);
+    let realFilePath;
+    try {
+      realFilePath = await realpath(filePath);
+    } catch (error) {
+      // Node.js's error says the absolute path, which isn't reported
+      const code = /** @type {{ code?: unknown }} */ (error).code;
+      if (code === "ENOENT" || code === "ENOTDIR") {
+        throw new FileNotFoundError(uri);
+      } else if (typeof code === "string") {
+        throw Error(`Unable to read the file at '${relativeFileUri(uri)}' (${code})`);
+      }
+      throw error;
+    }
     const responseUri = realFilePath === filePath ? toAbsoluteIri(uri) : pathToFileURL(realFilePath).toString();
 
     const contentType = this.#hyperjump.getMediaType(responseUri);

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump, RetrievalError } from "../index.js";
+import { FileNotFoundError, Hyperjump, RetrievalError } from "../index.js";
 import { toJson } from "../../json/jsonast-util.js";
 
 describe("JSON Browser", () => {
@@ -31,9 +31,24 @@ describe("JSON Browser", () => {
         } catch (error) {
           expect(error).to.be.instanceof(RetrievalError);
           const retrievalError = /** @type RetrievalError */ (error);
-          const cause = /** @type Error */ (retrievalError.cause);
-          expect(cause.message).to.contain("ENOENT: no such file or directory");
+          expect(retrievalError.cause).to.be.instanceof(FileNotFoundError);
         }
+      });
+
+      // An absolute path would reveal where the files are on the machine
+      test("a missing file's messages are relative to the working directory", async () => {
+        const missing = `${testUri}/${fixtureDirectory}/schemas/missing.jref`;
+        const session = new Hyperjump().session();
+        const error = await session.get(missing)
+          .catch((/** @type unknown */ error) => error);
+
+        expect(error).to.be.instanceof(RetrievalError);
+        const retrievalError = /** @type RetrievalError */ (error);
+        expect(retrievalError.message).to.equal(`Unable to load resource '${fixtureDirectory}/schemas/missing.jref'`);
+        expect(retrievalError.uri).to.equal(missing);
+        const cause = /** @type FileNotFoundError */ (retrievalError.cause);
+        expect(cause.message).to.equal(`There's no file at '${fixtureDirectory}/schemas/missing.jref'`);
+        expect(cause.uri).to.equal(missing);
       });
 
       test("unknown content type", async () => {

@@ -3,6 +3,7 @@
  */
 
 export * from "./hyperjump.js";
+export * from "./file-uris.js";
 export type * from "./uri-schemes/uri-scheme-plugin.d.ts";
 export * from "./uri-schemes/file-scheme-plugin.js";
 export * from "./uri-schemes/http-scheme-plugin.js";

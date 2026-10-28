@@ -1,6 +1,7 @@
 import { parseJson } from "./json-parser.js";
 
 export { jsonSyntaxErrorMessage } from "./json-parser.js";
+import { relativeFileUri } from "../hyperjump/file-uris.js";
 import { appendToLocation } from "./location.js";
 
 /**
@@ -281,7 +282,7 @@ const replace = (node, replacer, key) => {
       return undefined;
     case "json-invalid": {
       const invalidNode = /** @type JsonInvalidNode */ (node);
-      throw TypeError(`Can't convert an invalid value to JSON: '${invalidNode.raw}' at ${invalidNode.location}`);
+      throw TypeError(`Can't convert an invalid value to JSON: '${invalidNode.raw}' at ${relativeFileUri(invalidNode.location)}`);
     }
     default:
       return replacer(/** @type JsonNode<unknown> */ (node), key);

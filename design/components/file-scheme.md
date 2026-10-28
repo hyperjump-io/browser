@@ -15,4 +15,7 @@
   file, so a document from the web can't read files.
 - A file's media type comes from its extension, the longest one a media
   type plugin matches (see [Media types](media-types.md)).
+- A missing file is a `FileNotFoundError` whose message is relative to the
+  working directory, not Node.js's error (see [Local paths in
+  errors](file-uris.md)).
 - It isn't available in a browser.

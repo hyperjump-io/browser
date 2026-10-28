@@ -4,7 +4,7 @@ import { join, relative } from "node:path";
 import { cwd } from "node:process";
 import { pathToFileURL } from "node:url";
 import { describe, test, beforeAll, afterAll, afterEach, expect, vi } from "vitest";
-import { Hyperjump, RetrievalError, RetrievalNotAllowedError } from "./index.js";
+import { FileNotFoundError, Hyperjump, RetrievalError, RetrievalNotAllowedError } from "./index.js";
 import { AllowedUrls, resolveAllowRetrieval } from "./allowed-urls.js";
 import { toJson } from "../json/jsonast-util.js";
 
@@ -68,7 +68,7 @@ describe("allowRetrieval", () => {
       const error = await defaultSession().get(uri)
         .catch((/** @type unknown */ error) => error);
       expect(error).to.be.instanceOf(RetrievalError);
-      expect(/** @type Error */ (error).cause).toMatchObject({ code: "ENOENT" });
+      expect(/** @type Error */ (error).cause).to.be.instanceOf(FileNotFoundError);
     });
 
     test("a reference to a file outside the working directory is refused", async () => {

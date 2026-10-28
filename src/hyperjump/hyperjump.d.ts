@@ -1,3 +1,4 @@
+import type { relativeFileUri } from "./file-uris.d.ts";
 import type { JsonNode } from "../json/jsonast.d.ts";
 import type { JrefNode } from "../jref/jref-ast.d.ts";
 import type { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.d.ts";
@@ -224,8 +225,28 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
   entries(node: T): AsyncGenerator<[string, T], void, unknown>;
 }
 
+/**
+ * A URL that was allowed couldn't be retrieved. Its message says the URL
+ * with {@link relativeFileUri}, so it doesn't reveal where files are.
+ */
 export class RetrievalError extends Error {
-  constructor(message: string, options: { cause: unknown });
+  /** The URL that couldn't be retrieved */
+  uri: string;
+
+  constructor(uri: string, options: { cause: unknown });
+}
+
+/**
+ * There's no file at a `file:` URL, or something in its path isn't a
+ * folder. Its message says the URL with {@link relativeFileUri}, rather
+ * than Node.js's error, which says the absolute path. It's the cause of a
+ * {@link RetrievalError}.
+ */
+export class FileNotFoundError extends Error {
+  /** The URL of the file */
+  uri: string;
+
+  constructor(uri: string);
 }
 
 /**
@@ -238,6 +259,7 @@ export class RetrievalNotAllowedError extends Error {
   /** The URL that was refused. For a redirect, it's where it led. */
   uri: string;
 
+  /** The message says the URL with {@link relativeFileUri}, unless it's given. */
   constructor(uri: string, message?: string);
 }
 

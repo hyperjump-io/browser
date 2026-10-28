@@ -9,8 +9,10 @@ export type DocumentNode<T = JrefNode> = {
   children: T[];
   uri?: string;
   /**
-   * The media type of the plugin that parsed it, which defines what its
-   * fragments identify. It's set on every document a plugin parses.
+   * The media type that defines what its fragments identify. It's the media
+   * type of the plugin that parsed it, unless the plugin set another one,
+   * for a document it found to be in a more specific media type, like JSON
+   * that's a JSON Schema.
    */
   mediaType?: string;
 };

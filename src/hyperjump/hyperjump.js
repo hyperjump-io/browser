@@ -7,6 +7,7 @@ import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
 import { jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonObjectValues, jsonValue, pointerGet, pointerStep } from "../json/jsonast-util.js";
 import { mimeMatchSpecificity } from "./utilities.js";
 import { AllowedUrls, resolveAllowRetrieval } from "./allowed-urls.js";
+import { relativeFileUri } from "./file-uris.js";
 
 /**
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
@@ -136,7 +137,7 @@ export class Hyperjump {
       return bestContentType;
     }
 
-    throw new UnknownMediaTypeError(`The media type of the file at '${uri}' could not be determined. Use the 'addMediaTypePlugin' function to add support for this media type.`);
+    throw new UnknownMediaTypeError(`The media type of the file at '${relativeFileUri(uri)}' could not be determined. Use the 'addMediaTypePlugin' function to add support for this media type.`);
   }
 
   /** @type API.Hyperjump<JrefNode>["addMediaTypePlugin"] */
@@ -184,8 +185,10 @@ export class Hyperjump {
     }
 
     if (bestPattern !== undefined) {
+      // A plugin can say the document is a more specific media type, like a
+      // JSON document that turns out to be in a media type of its own
       const document = await this.#mediaTypePlugins[bestPattern].parse(response, session);
-      document.mediaType = bestPattern;
+      document.mediaType ??= bestPattern;
       return document;
     }
 
@@ -260,7 +263,7 @@ export class Session {
     const document = await this.getDocument(uri, options);
 
     const cursor = fragment === undefined ? "" : this.#hyperjump.fragmentPointer(document, fragment);
-    const node = pointerGet(cursor, document.children[0], document.uri);
+    const node = pointerGet(cursor, document.children[0], document.uri && relativeFileUri(document.uri));
     return await this.#followReferences(node, referenceChain);
   }
 
@@ -296,12 +299,12 @@ export class Session {
     try {
       response = await this.#hyperjump.retrieve(uri, options);
     } catch (error) {
-      throw new RetrievalError(`Unable to load resource '${uri}'`, { cause: error });
+      throw new RetrievalError(uri, { cause: error });
     }
 
     if (response.url && response.url !== id && !await this.#allowedUrls.allows(response.url)) {
       await response.body?.cancel();
-      throw new RetrievalNotAllowedError(response.url, `Retrieving '${id}' led to '${response.url}', which isn't allowed. Use the 'allowRetrieval' config to allow it.`);
+      throw new RetrievalNotAllowedError(response.url, `Retrieving '${relativeFileUri(id)}' led to '${relativeFileUri(response.url)}', which isn't allowed. Use the 'allowRetrieval' config to allow it.`);
     }
 
     try {
@@ -316,7 +319,7 @@ export class Session {
 
       return document;
     } catch (error) {
-      throw new RetrievalError(`Unable to load resource '${uri}'`, { cause: error });
+      throw new RetrievalError(uri, { cause: error });
     }
   }
 
@@ -378,12 +381,24 @@ export class Session {
 
 export class RetrievalError extends Error {
   /**
-   * @param {string} message
+   * @param {string} uri
    * @param {{ cause: unknown }} options
    */
-  constructor(message, options) {
-    super(message, options);
+  constructor(uri, options) {
+    super(`Unable to load resource '${relativeFileUri(uri)}'`, options);
     this.name = this.constructor.name;
+    this.uri = uri;
+  }
+}
+
+export class FileNotFoundError extends Error {
+  /**
+   * @param {string} uri
+   */
+  constructor(uri) {
+    super(`There's no file at '${relativeFileUri(uri)}'`);
+    this.name = this.constructor.name;
+    this.uri = uri;
   }
 }
 
@@ -392,7 +407,7 @@ export class RetrievalNotAllowedError extends Error {
    * @param {string} uri
    * @param {string} [message]
    */
-  constructor(uri, message = `Retrieving '${uri}' isn't allowed. Use the 'allowRetrieval' config to allow it.`) {
+  constructor(uri, message = `Retrieving '${relativeFileUri(uri)}' isn't allowed. Use the 'allowRetrieval' config to allow it.`) {
     super(message);
     this.name = this.constructor.name;
     this.uri = uri;
@@ -407,7 +422,7 @@ export class ReferenceCycleError extends Error {
    * @param {string[]} referenceChain
    */
   constructor(referenceChain) {
-    super(`Reference cycle: ${referenceChain.join(" -> ")}`);
+    super(`Reference cycle: ${referenceChain.map(relativeFileUri).join(" -> ")}`);
     this.name = this.constructor.name;
     this.referenceChain = referenceChain;
   }

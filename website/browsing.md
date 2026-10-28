@@ -75,11 +75,16 @@ depends on the media type.
 | Error | When |
 | --- | --- |
 | `RetrievalNotAllowedError` | `allowRetrieval` doesn't allow the URL (see [What can be retrieved](allow-retrieval.md)) |
-| `RetrievalError` | The URL is allowed, but the document can't be retrieved or parsed. Its `cause` says why, like an `HttpError` for a `404`. |
+| `RetrievalError` | The URL is allowed, but the document can't be retrieved or parsed. Its `cause` says why, like an `HttpError` for a `404` or a `FileNotFoundError`. Its `uri` is the URL. |
 | `JsonPointerError` | A fragment or a step doesn't find a value |
 | `ReferenceCycleError` | Following references leads back to a reference that was already followed |
 | `UnsupportedMediaTypeError` | No media type plugin handles the response's `Content-Type` |
 | `UnsupportedUriSchemeError` | No URI scheme plugin handles the URI |
+
+A `file:` URL in an error's message is relative to the working directory,
+like `data/person.json`, so a message doesn't say where your files are. The
+error's `uri` has the whole URL. To say URLs the same way in your own
+messages, use `relativeFileUri(uri)`.
 
 ## Sessions
 

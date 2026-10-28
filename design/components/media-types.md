@@ -16,7 +16,10 @@ fragments identify. JSON and JRef are built in.
 - A plugin's `fragmentPointer` turns a fragment into a JSON Pointer, so a
   media type defines what its fragments identify, like anchors. Each
   document records the media type of the plugin that parsed it, so `get`
-  knows which plugin to ask. A media type that doesn't define fragments
+  knows which plugin to ask. A plugin can set another one on the document
+  it returns, for a document it found to be in a more specific media type,
+  like JSON that's a JSON Schema, so that media type's plugin reads its
+  fragments. A media type that doesn't define fragments
   identifies the whole document. This replaced the `anchors` and
   `fragmentKind` document properties, which only one media type used.
 - `parse` gets the session the document is being retrieved in (see
