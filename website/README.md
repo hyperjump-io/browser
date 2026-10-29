@@ -34,6 +34,9 @@ schemes.
 [`@hyperjump/json-schema`](https://github.com/hyperjump-io/json-schema/blob/v2/website/README.md)
 is built on it.
 
+Using version 1.x? Its docs are in the
+[1.x README](https://github.com/hyperjump-io/browser/tree/v1#readme).
+
 ## Contents
 
 - [Install](install.md): Node.js and browsers
