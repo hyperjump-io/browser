@@ -8,6 +8,11 @@
   finds the declaration files and the types only they export.
 - It had its own CLIs, `rejson` and `jref`, which only parsed and
   stringified. They were removed, so it doesn't depend on `unified-args`.
-  What they did belongs to the `hyperjump` CLI (`hjlint`).
+  What they did belongs to the `hyperjump` CLI (`@hyperjump/cli`). The
+  processors they ran, `rejson` and `jref` (`unified().use(parse).use(stringify)`),
+  were removed on 2026-10-29: nothing used them, and creating them when the
+  module loaded kept `unified` in every bundle that imported
+  `@hyperjump/browser/json`. A pipeline uses the plugins
+  (`rejsonParse`, `rejsonStringify`, `jrefParse`, `jrefStringify`).
 - `@hyperjump/uri` is linked with `file:../uri` until `encodeIriFragment`
   is published.

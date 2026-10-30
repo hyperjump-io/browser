@@ -1,4 +1,5 @@
 import { describe, test, expect } from "vitest";
+import { unified } from "unified";
 import { VFileMessage } from "vfile-message";
 import {
   fromJson,
@@ -10,12 +11,21 @@ import {
   jsonObjectKeys,
   pointerGet,
   pointerStep,
-  rejson,
   rejsonParse,
+  rejsonStringify,
   toJson,
   JsonPointerError
 } from "./index.js";
-import { fromJref, hasStatus as jrefHasStatus, jref, jrefParse } from "../jref/index.js";
+import { fromJref, hasStatus as jrefHasStatus, jrefParse, jrefStringify } from "../jref/index.js";
+
+const rejson = unified()
+  .use(rejsonParse)
+  .use(rejsonStringify)
+  .freeze();
+const jref = unified()
+  .use(jrefParse)
+  .use(jrefStringify)
+  .freeze();
 
 /**
  * @import { Position } from "unist"

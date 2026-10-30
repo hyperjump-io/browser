@@ -1,12 +1,13 @@
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, test, expect, beforeEach } from "vitest";
+import { unified } from "unified";
 import { VFileMessage } from "vfile-message";
 import {
   fromJson,
   jsonSyntaxErrorMessage,
   toJson,
-  rejson,
+  rejsonParse,
   rejsonStringify,
   jsonObjectHas,
   jsonArrayIter,
@@ -17,6 +18,11 @@ import {
   pointerStep,
   JsonPointerError
 } from "./index.js";
+
+const rejson = unified()
+  .use(rejsonParse)
+  .use(rejsonStringify)
+  .freeze();
 
 /**
  * @import { JsonNode, JsonTolerantNode } from "./index.js"

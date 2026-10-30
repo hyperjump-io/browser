@@ -1,10 +1,17 @@
 import { describe, test, expect } from "vitest";
+import { unified } from "unified";
 import { VFileMessage } from "vfile-message";
-import { jref } from "./index.js";
+import { jrefParse, jrefStringify } from "./index.js";
 
 /**
  * @import { JrefNode } from "./index.js"
  */
+
+// The plugins as a processor would use them
+const jref = unified()
+  .use(jrefParse)
+  .use(jrefStringify)
+  .freeze();
 
 describe("jref processor", () => {
   test("a file without a path leaves references as written", () => {
