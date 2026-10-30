@@ -8,7 +8,7 @@ does the same with files.
 The documents are [JRef](../src/jref/README.md): JSON, where an object with
 a `$ref` string is a reference to another value, by URI.
 
-```json
+```jref
 {
   "title": "A New Hope",
   "director": "George Lucas",
@@ -86,7 +86,7 @@ the first time it's needed.
 Files work the same way. A file's media type comes from its extension, and
 JRef files end with `.jref`.
 
-```json
+```jref
 {
   "name": "Luke Skywalker",
   "homeworld": { "$ref": "../planets/1.jref" }
