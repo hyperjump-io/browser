@@ -1,8 +1,8 @@
 # Media types
 
-A response's media type decides how it's parsed and what references and
-fragments mean in it. JRef (`application/reference+json`, `.jref`) and JSON
-(`application/json`, `.json`) are supported by default.
+A response's media type decides how it's parsed. It also decides what
+references and fragments mean in it. JRef (`application/reference+json`,
+`.jref`) and JSON (`application/json`, `.json`) are supported by default.
 
 | Where a document comes from | How its media type is found |
 | --- | --- |
@@ -12,8 +12,8 @@ fragments mean in it. JRef (`application/reference+json`, `.jref`) and JSON
 ## Adding a media type
 
 A media type plugin parses a response into a JRef-compatible AST. Here's
-one for a YAML version of JRef, which parses YAML and hands the result to
-the JRef parser:
+a plugin for a YAML version of JRef. It parses the YAML and hands the result
+to the JRef parser:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
@@ -61,23 +61,24 @@ h.addMediaTypePlugin(new YrefMediaTypePlugin());
 | --- | --- |
 | `mediaType` | The media type it parses |
 | `extensions` | File extensions for it, like `.yref`. A name that starts with `/` is a whole filename, like `/.bowerrc`. |
-| `parse(response, session)` | Parse a `Response` into a document node. A media type that needs other documents to parse one retrieves them with `session`. A document that can't be parsed throws. |
-| `fragmentPointer(document, fragment)` | The JSON Pointer a fragment identifies. Without it, fragments are ignored. |
-| `quality` | Its quality in the `Accept` header (optional) |
+| `parse(response, session)` | Parses a `Response` into a document node. If parsing needs other documents, retrieve them with `session`. Throw if the document can't be parsed. |
+| `fragmentPointer(document, fragment)` | Returns the JSON Pointer a fragment identifies. Without it, fragments are ignored. |
+| `quality` | Optional. Its quality in the `Accept` header. |
 
 A plugin is a `MediaTypePlugin<D>`, where `D` is the type of the document
-node it parses. A document a `Hyperjump` can browse has JRef nodes, so this
-one is a `JrefMediaTypeDocument`, like the built-in JRef plugin's: one
-that parsed without errors.
+node it parses. A `Hyperjump` can only browse documents made of JRef nodes.
+So this plugin's document type is `JrefMediaTypeDocument`, the same as the
+built-in JRef plugin's. That type is for a document that parsed without
+errors.
 
-Positions in the AST are what errors and tools point to. This example
-loses YAML's positions by going through JSON. A real plugin would build the
-AST from the YAML parser's nodes.
+Errors and tools use the positions in the AST to point at the source. This
+example loses YAML's positions by going through JSON. A real plugin would
+build the AST from the YAML parser's nodes.
 
 ## Preferring a media type
 
-Requests send an `Accept` header with every supported media type. To tell
-servers you prefer one, lower the quality of the others:
+Requests send an `Accept` header that lists every supported media type. To
+tell servers you prefer one, lower the quality of the others:
 
 ```typescript
 h.setMediaTypeQuality("application/reference+json", 0.9);

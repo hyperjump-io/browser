@@ -7,8 +7,8 @@ isn't available in browsers.
 ## Adding a URI scheme
 
 A plugin has the `schemes` it handles and a `retrieve` function that returns
-a `Response`. This one supports `urn:` by mapping URNs to URLs, which it
-retrieves with the `Hyperjump`'s own `retrieve`:
+a `Response`. This one supports `urn:` by mapping URNs to URLs. It retrieves
+the URLs with the `Hyperjump`'s own `retrieve`:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
@@ -36,19 +36,20 @@ h.addUriSchemePlugin({
 const luke = await h.session().get("urn:example:luke");
 ```
 
-[`allowRetrieval`](allow-retrieval.md) applies to every scheme, so it
-allows the URN. The response is checked again by the URL it came from, so
-the URL it maps to must be allowed too.
+[`allowRetrieval`](allow-retrieval.md) applies to every scheme, so it has
+to allow the URN. The response is checked again against the URL it came
+from, so the URL that the URN maps to must be allowed too.
 
 `addUriSchemePlugin` takes a `UriSchemePlugin`, so `retrieve`'s parameters
 are typed. Pass `options` on to `retrieve`. It has what the request needs,
-like which document the reference is from.
+such as which document the reference came from.
 
 ## Replacing a URI scheme
 
-Adding a plugin for a scheme that's supported replaces its plugin. That's
-how the HTTP plugin is given a different cache or headers (see
-[HTTP caching](http-caching.md) and [HTTP headers](http-headers.md)).
+Adding a plugin for a scheme that's already supported replaces the
+existing plugin. That's how you give the HTTP plugin a different cache or
+headers. See [HTTP caching](http-caching.md) and
+[HTTP headers](http-headers.md).
 
 ## Removing a URI scheme
 

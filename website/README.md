@@ -1,8 +1,8 @@
 # Browser
 
 A client for JSON documents that reference each other. It retrieves
-documents over HTTP or from files, and follows references for you, so you
-work with linked documents as if they were one value.
+documents over HTTP or from files and follows references for you. You work
+with linked documents as if they were one value.
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
@@ -26,9 +26,9 @@ schemes.
 - **Safe with documents you don't trust.** A document can't make your
   application retrieve whatever it references. You allow what can be
   retrieved.
-- **HTTP done properly.** Responses are cached by their caching headers,
-  stale ones are revalidated, and concurrent requests for the same URL share
-  one request.
+- **HTTP done properly.** Responses are cached according to their caching
+  headers. Stale responses are revalidated. Concurrent requests for the same
+  URL share one request.
 - **Node.js and browsers.**
 
 [`@hyperjump/json-schema`](https://github.com/hyperjump-io/json-schema/blob/v2/website/README.md)
@@ -40,7 +40,7 @@ Using version 1.x? Its docs are in the
 ## Contents
 
 - [Install](install.md): Node.js and browsers
-- [Getting started](getting-started.md): browsing an API and files, step by
+- [Getting started](getting-started.md): browsing an API and files step by
   step
 - [Browsing documents](browsing.md): every way to read a document and follow
   its references

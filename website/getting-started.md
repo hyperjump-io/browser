@@ -1,7 +1,7 @@
 # Getting started
 
-This tutorial browses a small API whose documents link to each other, then
-does the same with files.
+This tutorial browses a small API whose documents link to each other. Then
+it does the same with files.
 
 ## JRef
 
@@ -27,8 +27,8 @@ into one, you get the value it refers to, not the reference.
 The API at [https://swapi.hyperjump.io](https://explore.hyperjump.io#https://swapi.hyperjump.io/api/films/1)
 is a version of the [Star Wars API](https://swapi.dev) written in JRef.
 
-Create a `Hyperjump`, which holds the configuration, like what can be
-retrieved. Nothing on the network can be retrieved by default, so allow
+Create a `Hyperjump`. It holds the configuration, such as what can be
+retrieved. By default nothing on the network can be retrieved, so allow
 the API.
 
 ```typescript
@@ -39,7 +39,7 @@ const h = new Hyperjump({
 });
 ```
 
-Documents are retrieved through a session. Start one, and get the first
+Documents are retrieved through a session. Start one and get the first
 film:
 
 ```typescript
@@ -49,18 +49,18 @@ const aNewHope = await session.get(
 );
 ```
 
-`get` returns a node, a value in the document. Step into it to get its
-properties. `value` gets a node's value as JavaScript, for anything that
-isn't an object or an array.
+`get` returns a node, which is a value in the document. Step into it to get
+its properties. `value` converts a node to a JavaScript value. It works for
+anything that isn't an object or an array.
 
 ```typescript
 const title = await session.step("title", aNewHope);
 session.value(title); // "A New Hope"
 ```
 
-`characters` is an array of references to other documents. Iterate over it,
-and each reference is followed, so you get each character, retrieved from
-its own URL:
+`characters` is an array of references to other documents. When you
+iterate over it, each reference is followed. You get each character, which
+is retrieved from its own URL:
 
 ```typescript
 const characters = await session.step("characters", aNewHope);
@@ -78,8 +78,8 @@ R2-D2
 ...
 ```
 
-You never see a `$ref`. Each document is retrieved once for the session,
-the first time it's needed.
+You never see a `$ref`. Each document is retrieved once per session, the
+first time it's needed.
 
 ## Browse files
 
@@ -103,7 +103,7 @@ session.value(name); // "Tatooine"
 ```
 
 Relative paths are resolved against the working directory. By default,
-files in the working directory can be retrieved, and nothing else.
+only files in the working directory can be retrieved.
 
 ## Next steps
 

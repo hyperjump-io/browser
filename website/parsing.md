@@ -1,14 +1,14 @@
 # Parsing JSON and JRef
 
-`@hyperjump/browser/json` and `@hyperjump/browser/jref` have the parsers the
-browser uses, for use on their own. They parse into a JSON AST, a
-[unist](https://github.com/syntax-tree/unist) tree with a position for
-every value.
+`@hyperjump/browser/json` and `@hyperjump/browser/jref` export the parsers
+the browser uses so you can use them on their own. They parse into a JSON
+AST. The AST is a [unist](https://github.com/syntax-tree/unist) tree with a
+position for every value.
 
 ## Parsing
 
 `fromJson` parses JSON text. It never throws. It recovers from syntax errors
-where it can, and returns every error it found.
+where it can and returns every error it found.
 
 ```typescript
 import { fromJson, jsonSyntaxErrorMessage } from "@hyperjump/browser/json";
@@ -25,14 +25,15 @@ jsonSyntaxErrorMessage(error); // "Trailing commas are not allowed"
 | Status | Meaning |
 | --- | --- |
 | `"success"` | No syntax errors |
-| `"recovered"` | Syntax errors, but the parser could tell what was meant, like a trailing comma. The AST has every value. |
-| `"failure"` | Syntax errors where a value couldn't be parsed. The AST has error nodes where those values would be. |
+| `"recovered"` | There were syntax errors, but the parser could tell what was meant. A trailing comma is an example. The AST has every value. |
+| `"failure"` | Some values couldn't be parsed because of syntax errors. The AST has error nodes where those values would be. |
 
-Each error is plain data, with a `ruleId` like `"trailing-comma"` and a
-`place`. `jsonSyntaxErrorMessage` describes it.
+Each error is plain data with a `ruleId` like `"trailing-comma"` and a
+`place`. `jsonSyntaxErrorMessage` turns an error into a message.
 
-`fromJref` parses JRef the same way. Pass the document's URI, and each
-reference node gets an `href`, its URI resolved against the document.
+`fromJref` parses JRef the same way. If you pass the document's URI, each
+reference node gets an `href`. That's the reference's URI resolved against
+the document.
 
 ```typescript
 import { fromJref } from "@hyperjump/browser/jref";
@@ -43,8 +44,8 @@ const { node } = fromJref(jref, "https://example.com/doc");
 
 ## Reading the AST
 
-Each node has a `jsonType`, a `location` (a URI with a JSON Pointer to it),
-and a `position` in the text.
+Each node has a `jsonType`, a `location`, and a `position` in the text. The
+`location` is a URI with a JSON Pointer to the node.
 
 ```typescript
 import { fromJson, jsonValue, pointerGet } from "@hyperjump/browser/json";
@@ -69,9 +70,10 @@ These don't follow references. For that, use a [session](browsing.md).
 
 ## In a unified pipeline
 
-`rejsonParse` and `rejsonStringify` (and `jrefParse` and `jrefStringify`)
-are [unified](https://unifiedjs.com/) plugins, for pipelines that process
-JSON files. With `accept: "recovered"`, a file with syntax errors the parser
-recovered from is processed, and its errors are reported as warnings.
+`rejsonParse` and `rejsonStringify` are [unified](https://unifiedjs.com/)
+plugins for pipelines that process JSON files. `jrefParse` and
+`jrefStringify` do the same for JRef. With `accept: "recovered"`, a file is
+still processed if the parser recovered from its syntax errors. Those
+errors are reported as warnings.
 [`@hyperjump/json-schema`](https://github.com/hyperjump-io/json-schema/blob/v2/website/unified/README.md)
 uses them to validate and lint JSON files.
