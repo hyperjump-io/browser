@@ -77,7 +77,7 @@
   },
   "dependencies": {
     "@hyperjump/json-pointer": "^1.1.1",
-    "@hyperjump/uri": "file:../uri",
+    "@hyperjump/uri": "^1.4.0",
     "@types/unist": "^3.0.3",
     "content-type": "^3.1.1",
     "http-cache-semantics": "^4.3.0",
