@@ -17,26 +17,38 @@ the JRef parser:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
+import type {
+  JrefMediaTypeDocument,
+  MediaTypePlugin
+} from "@hyperjump/browser";
 import { fromJref } from "@hyperjump/browser/jref";
+import { jsonSyntaxErrorMessage } from "@hyperjump/browser/json";
 import YAML from "yaml";
 
-class YrefMediaTypePlugin {
+type YrefDocument = JrefMediaTypeDocument;
+
+class YrefMediaTypePlugin implements MediaTypePlugin<YrefDocument> {
   mediaType = "application/reference+yaml";
   extensions = [".yref"];
 
-  async parse(response) {
+  async parse(response: Response): Promise<YrefDocument> {
     const json = JSON.stringify(YAML.parse(await response.text()));
-    const { status, node } = fromJref(json, response.url);
+    const result = fromJref(json, response.url);
+    if (result.status !== "success") {
+      throw Error(jsonSyntaxErrorMessage(result.errors[0]));
+    }
+
     return {
       type: "jref-document",
-      status,
-      children: [node],
+      status: result.status,
+      children: [result.node],
+      comments: [],
       uri: response.url
     };
   }
 
   // A fragment is a JSON Pointer, as it is for JRef
-  fragmentPointer(_document, fragment) {
+  fragmentPointer(_document: YrefDocument, fragment: string) {
     return decodeURIComponent(fragment);
   }
 }
@@ -49,9 +61,14 @@ h.addMediaTypePlugin(new YrefMediaTypePlugin());
 | --- | --- |
 | `mediaType` | The media type it parses |
 | `extensions` | File extensions for it, like `.yref`. A name that starts with `/` is a whole filename, like `/.bowerrc`. |
-| `parse(response, session)` | Parse a `Response` into a document node. A media type that needs other documents to parse one retrieves them with `session`. |
+| `parse(response, session)` | Parse a `Response` into a document node. A media type that needs other documents to parse one retrieves them with `session`. A document that can't be parsed throws. |
 | `fragmentPointer(document, fragment)` | The JSON Pointer a fragment identifies. Without it, fragments are ignored. |
 | `quality` | Its quality in the `Accept` header (optional) |
+
+A plugin is a `MediaTypePlugin<D>`, where `D` is the type of the document
+node it parses. A document a `Hyperjump` can browse has JRef nodes, so this
+one is a `JrefMediaTypeDocument`, like the built-in JRef plugin's: one
+that parsed without errors.
 
 Positions in the AST are what errors and tools point to. This example
 loses YAML's positions by going through JSON. A real plugin would build the

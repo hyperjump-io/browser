@@ -13,7 +13,7 @@ retrieves with the `Hyperjump`'s own `retrieve`:
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
 
-const mappings = {
+const mappings: Record<string, string> = {
   "urn:example:luke": "https://swapi.hyperjump.io/api/people/1"
 };
 
@@ -40,8 +40,9 @@ const luke = await h.session().get("urn:example:luke");
 allows the URN. The response is checked again by the URL it came from, so
 the URL it maps to must be allowed too.
 
-Pass `options` on to `retrieve`. It has what the request needs, like which
-document the reference is from.
+`addUriSchemePlugin` takes a `UriSchemePlugin`, so `retrieve`'s parameters
+are typed. Pass `options` on to `retrieve`. It has what the request needs,
+like which document the reference is from.
 
 ## Replacing a URI scheme
 
