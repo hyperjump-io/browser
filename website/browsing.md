@@ -72,9 +72,9 @@ The [JRef spec](https://github.com/hyperjump-io/json-reference/blob/main/spec.md
 says the pointer doesn't follow references because it's applied to the document
 as written. `#/homeworld` works anyway because the reference is the last thing
 the pointer reaches. The session follows that reference and gives you the
-homeworld. `#/homeworld/name` doesn't work because the pointer would have to go
-through the reference, and there's no `name` in Luke's document. To get the
-name, get the homeworld and step into it.
+homeworld. `#/homeworld/name` doesn't work because the pointer can't go through
+the reference. It looks for `name` in Luke's document, which doesn't have one.
+To get the name, get the homeworld and step into it.
 
 What a fragment means depends on the media type. In a plain JSON document, the
 fragment is ignored.

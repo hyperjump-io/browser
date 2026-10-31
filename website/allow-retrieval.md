@@ -1,9 +1,9 @@
 # What can be retrieved
 
-Documents refer to other documents by URL, and following a reference retrieves
+Documents refer to other documents by URL. Following a reference retrieves
 whatever that URL identifies. That's fine when you control the documents. When
 you don't, a document could refer to `http://169.254.169.254/` or
-`file:///etc/passwd`, and following that reference would make your application
+`file:///etc/passwd`. Following that reference would make your application
 retrieve it. That's why nothing is retrieved unless the `allowRetrieval` config
 allows it.
 

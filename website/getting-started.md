@@ -23,11 +23,10 @@ its characters:
 }
 ```
 
-Each character lives in a document of its own and the film refers to those
-documents instead of duplicating them. You won't have to retrieve them yourself
-because a reference is transparent like a reference in most programming
-languages. When you step into one, you get the value it refers to rather than
-the reference.
+Each character lives in a document of its own, which the film refers to instead
+of duplicating. You won't have to retrieve them yourself because a reference is
+transparent like a reference in most programming languages. When you step into
+one, you get the value it refers to rather than the reference.
 
 ## Browse an API
 

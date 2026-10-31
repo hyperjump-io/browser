@@ -35,7 +35,7 @@ types that are supported.
 ## Headers that change
 
 Instead of headers, a URL can be given a function that returns them. It's called
-with the URL of each request it matches and can be async, which lets you refresh
+with the URL of each request it matches. It can be async, which lets you refresh
 a token before it's sent:
 
 ```typescript
@@ -70,7 +70,7 @@ respect that `Vary`.
 
 Say Alice and Bob each have their own token for `https://api.example.com/me`. If
 their requests share a cache, Bob's request can get the response that was
-retrieved with Alice's token, and Bob sees Alice's account. To keep them apart,
+retrieved with Alice's token. Then Bob sees Alice's account. To keep them apart,
 give each user a `Hyperjump` with its own plugin:
 
 ```typescript
