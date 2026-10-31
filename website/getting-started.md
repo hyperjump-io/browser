@@ -70,8 +70,8 @@ session.value(title); // "A New Hope"
 ```
 
 The film's `characters` property is where the references come in. Iterating over
-it follows each reference as you reach it, so every character you get back was
-retrieved from its own URL:
+the array follows each reference as you reach it, so every character you get
+back was retrieved from its own URL:
 
 ```typescript
 const characters = await session.step("characters", aNewHope);

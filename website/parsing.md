@@ -31,8 +31,8 @@ The `status` says how parsing went:
 | `"failure"` | Some values couldn't be parsed because of syntax errors. The AST has error nodes where those values would be. |
 
 Each error is plain data with a `ruleId` and a `place`. The `ruleId` is a name
-like `"trailing-comma"`, and `jsonSyntaxErrorMessage` turns an error into a
-message for people to read.
+like `"trailing-comma"`. To turn an error into a message for people to read,
+use `jsonSyntaxErrorMessage`.
 
 `fromJref` parses JRef the same way. If you also pass the document's URI, each
 reference node gets an `href`, which is the reference's URI resolved against the

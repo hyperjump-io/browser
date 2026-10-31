@@ -4,9 +4,9 @@
 npm install @hyperjump/browser
 ```
 
-It's an ES module with TypeScript types, made for Node.js and browsers. It
-should also work in Bun and Deno, but its tests don't run there, so it's less
-proven in them.
+It's an ES module with TypeScript types that runs in Node.js and browsers. It
+should also work in Bun and Deno. Its tests don't run there, so it's less proven
+in them.
 
 ## Browsers
 
@@ -20,7 +20,7 @@ A few things work differently in a browser:
 
 - Relative URIs are resolved against the page's URI.
 - `file:` URIs aren't available.
-- It doesn't have its own HTTP cache because `fetch` already caches. See
-  [HTTP caching](http-caching.md).
+- The package doesn't have its own HTTP cache because the browser already
+  caches. See [HTTP caching](http-caching.md).
 - The default [`allowRetrieval`](allow-retrieval.md) allows what's in the
   page's directory.

@@ -18,11 +18,11 @@ Where responses are kept by default depends on the environment:
 
 | Environment | Default |
 | --- | --- |
-| Node.js | In memory for the life of the HTTP plugin |
-| Browsers | No cache of its own because `fetch` already caches |
+| Node.js | In memory for the life of the `Hyperjump` |
+| Browsers | No cache of its own because the browser already caches |
 
 The cache belongs to the HTTP plugin, so to keep responses somewhere else you
-configure an HTTP plugin with a different `cache`. It replaces the default one:
+replace the default HTTP plugin with one that has a different `cache`:
 
 ```typescript
 import {
@@ -49,6 +49,6 @@ methods. Entries are JSON, so they can be stored anywhere. Plugins only share a
 cache when they're given the same store.
 
 The cache is private, which means a response retrieved with one set of
-credentials can be used for a request to the same URL with another. Don't share
-a cache between plugins that send different credentials to the same URLs. See
-[HTTP headers](http-headers.md).
+credentials can be used for a request to the same URL with another set of
+credentials. Don't share a cache between plugins that send different
+credentials to the same URLs. See [HTTP headers](http-headers.md).

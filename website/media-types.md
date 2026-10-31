@@ -12,9 +12,9 @@ found depends on where the document comes from:
 
 ## Adding a media type
 
-A media type plugin parses a response into a JRef-compatible AST. Plugins are
-configured when you create the `Hyperjump`, with `mediaTypePlugins`. This
-example is a plugin for a YAML version of JRef. It parses the YAML and hands the
+A media type plugin parses a response into a JRef-compatible AST. You configure
+plugins with `mediaTypePlugins` when you create the `Hyperjump`. This example is
+a plugin for a YAML version of JRef. It parses the YAML and hands the
 result to the JRef parser:
 
 ```typescript
@@ -79,17 +79,17 @@ Errors and tools use the positions in the AST to point at the source. This
 example loses YAML's positions by going through JSON, so a real plugin would
 build the AST from the YAML parser's nodes instead.
 
-A plugin for a media type that's already supported replaces the plugin that
-supported it and takes its place in the `Accept` header. When more than one
+A plugin for a media type that's already supported replaces the existing plugin,
+including the existing plugin's place in the `Accept` header. When more than one
 plugin in the list has the same media type, the later one is used.
 
 ## Preferring a media type
 
 Every request sends an `Accept` header that lists every supported media type
 with its plugin's `quality`. To tell servers you prefer one, lower the quality
-of the others. The JRef and JSON plugins take a `quality` option, so this
-replaces the default JRef plugin with one that makes JRef less preferred than
-JSON and the YAML plugin's media type:
+of the others. The JRef and JSON plugins take a `quality` option. This example
+replaces the default JRef plugin with one that has a lower quality, so JRef is
+less preferred than JSON and YAML:
 
 ```typescript
 import { Hyperjump, JrefMediaTypePlugin } from "@hyperjump/browser";

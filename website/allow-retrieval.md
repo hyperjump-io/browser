@@ -10,9 +10,10 @@ allows it.
 ## `allowRetrieval`
 
 `allowRetrieval` is a list of URLs. A URL that ends with `/` allows everything
-under it, and any other URL allows only itself. A relative URL is resolved
-against the working directory in Node.js and against the page in a browser. A
-worker has no page to resolve against, so use absolute URLs there.
+under that URL. Any other URL allows only that exact URL, and an empty list
+allows nothing. A relative URL is resolved against the working directory in
+Node.js and against the page in a browser. A worker has no page to resolve
+against, so use absolute URLs there.
 
 The default is `["./"]`, which allows the files in the working directory in
 Node.js and what's in the page's directory in a browser. Setting your own list
@@ -25,10 +26,9 @@ const h = new Hyperjump({
 });
 ```
 
-An empty list allows nothing.
-
 Retrieving a URL the list doesn't allow throws a `RetrievalNotAllowedError`. Its
-`uri` is the URL that was refused, and its message tells you how to allow it:
+`uri` is the URL that was refused, and its message tells you how to allow that
+URL:
 
 ```text
 Retrieving 'https://example.com/other' isn't allowed. Use the 'allowRetrieval' config to allow it.
@@ -57,7 +57,7 @@ too:
   redirect can't lead somewhere you didn't allow. The redirected request is
   still sent, but its response isn't used.
 - **The cache.** The check happens before the URI scheme plugins run, so a
-  cached response can't get around it.
+  cached response can't get around the check.
 
 The check applies to every URI scheme, including the ones you add. Some plugins
 retrieve another URL along the way, such as a `urn:` plugin that maps URNs to

@@ -1,9 +1,9 @@
 # HTTP headers
 
 Requests are sent by the HTTP plugin, so to send headers such as credentials
-with `http:` and `https:` requests, you configure an HTTP plugin with
-`headers`. It replaces the default one. Documents can reference any URL, so
-headers are given by URL and only the URLs you list get them:
+with `http:` and `https:` requests, you replace the default HTTP plugin with one
+that has `headers`. Documents can reference any URL, so headers are given by URL
+and only the URLs you list get them:
 
 ```typescript
 import { Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";
@@ -18,14 +18,14 @@ const h = new Hyperjump({
 });
 ```
 
-A URL that ends with `/` gets its headers for everything under it, and any other
-URL gets them only for itself. That's the same rule
-[`allowRetrieval`](allow-retrieval.md) uses. The URLs have to be absolute
-`http:` or `https:` URLs. The plugin still has the default
-[cache](http-caching.md) because it wasn't given a different one.
+URLs match the way they do in [`allowRetrieval`](allow-retrieval.md). Headers
+for a URL that ends with `/` are sent with every request under that URL. Headers
+for any other URL are sent only with requests to that exact URL. Every URL in
+`headers` has to be an absolute `http:` or `https:` URL. This plugin wasn't
+given a `cache`, so the default [cache](http-caching.md) still applies.
 
 When more than one URL matches a request, their headers are merged and the
-longer URL's headers win, so an API can have one token and a path under it can
+longer URL's headers win. So, an API can have one token and a path under it can
 have another. `Accept` is always set for you, because it lists the media types
 that are supported.
 
@@ -55,10 +55,37 @@ headers.
 
 ## Caching
 
-The headers are part of the request the cache sees, so the cache respects `Vary`
-on them, and responses are cached by URL, so different credentials for
-different URLs can share one plugin. But the cache is private. A response
-retrieved with credentials will be used for a later request to the same URL
-even if that request has different headers, unless the response has a `Vary`
-for those headers. Different credentials for the same URL, such as one for each
-user, need plugins that don't share a cache.
+Each URL's responses are cached separately, so one plugin can send different
+credentials to different URLs.
+
+Different credentials for the same URL are another matter. The cache is private,
+which means it's meant for one user. A response retrieved with credentials is
+used for later requests to the same URL even when those requests send different
+credentials. The only exception is a response with a `Vary` header that names
+the headers that differ. The cache sees every header that's sent, so it can
+respect that `Vary`.
+
+Say Alice and Bob each have their own token for `https://api.example.com/me`. If
+their requests share a cache, Bob's request can get the response that was
+retrieved with Alice's token, and Bob sees Alice's account. To keep them apart,
+give each user a `Hyperjump` with its own plugin:
+
+```typescript
+import { Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";
+
+const hyperjumpFor = (token: string) => new Hyperjump({
+  allowRetrieval: ["https://api.example.com/"],
+  uriSchemePlugins: [new HttpUriSchemePlugin({
+    headers: {
+      "https://api.example.com/": { Authorization: `Bearer ${token}` }
+    }
+  })]
+});
+
+const alice = hyperjumpFor(await getToken("alice"));
+const bob = hyperjumpFor(await getToken("bob"));
+```
+
+Each call creates a new plugin, and each plugin gets its own default cache. Bob
+never gets a response that was retrieved with Alice's token. If you give the
+plugins a cache yourself, don't give them the same one.
