@@ -25,6 +25,14 @@ describe("JSON Browser", () => {
       }
     });
 
+    test("a scheme with the name of an object property isn't supported", async () => {
+      const hyperjump = new Hyperjump({ allowRetrieval: ["constructor:something"] });
+      const result = hyperjump.session().get("constructor:something");
+
+      await expect(result).rejects.toBeInstanceOf(RetrievalError);
+      await expect(result).rejects.toHaveProperty("cause", expect.objectContaining({ name: "UnsupportedUriSchemeError" }));
+    });
+
     describe("Custom URI scheme plugin", () => {
       test("is configured", async () => {
         const hyperjump = new Hyperjump({

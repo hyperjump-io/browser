@@ -42,10 +42,15 @@ export class Hyperjump {
   /** @type API.HyperjumpConfig */
   #config;
 
-  /** @type Record<string, UriSchemePlugin> */
+  /**
+   * Plugins by scheme. A `Map`, not an object, so a scheme like
+   * `constructor` isn't found on its prototype.
+   *
+   * @type Map<string, UriSchemePlugin>
+   */
   #uriSchemePlugins;
 
-  /** @type Record<string, MediaTypePlugin<DocumentNode>> */
+  /** @type Map<string, MediaTypePlugin<DocumentNode>> */
   #mediaTypePlugins;
 
   /**
@@ -70,16 +75,16 @@ export class Hyperjump {
     // The config's plugins come after the defaults, and a later plugin for a
     // scheme or media type replaces an earlier one. A replacement keeps its
     // place, which is the order of the Accept header and of ties.
-    this.#uriSchemePlugins = {};
+    this.#uriSchemePlugins = new Map();
     for (const plugin of [...defaultUriSchemePlugins(), ...config.uriSchemePlugins ?? []]) {
       for (const scheme of plugin.schemes) {
-        this.#uriSchemePlugins[scheme] = plugin;
+        this.#uriSchemePlugins.set(scheme, plugin);
       }
     }
 
-    this.#mediaTypePlugins = {};
+    this.#mediaTypePlugins = new Map();
     for (const plugin of [new JrefMediaTypePlugin(), new JsonMediaTypePlugin(), ...config.mediaTypePlugins ?? []]) {
-      this.#mediaTypePlugins[plugin.mediaType] = plugin;
+      this.#mediaTypePlugins.set(plugin.mediaType, plugin);
     }
   }
 
@@ -104,11 +109,12 @@ export class Hyperjump {
   async #retrieve(uri, options) {
     const { scheme } = parseIri(uri);
 
-    if (!(scheme in this.#uriSchemePlugins)) {
+    const plugin = this.#uriSchemePlugins.get(scheme);
+    if (!plugin) {
       throw new UnsupportedUriSchemeError(scheme, `The '${scheme}:' URI scheme is not supported. Use the 'uriSchemePlugins' config to add support for '${scheme}:' URIs.`);
     }
 
-    const response = await this.#uriSchemePlugins[scheme].retrieve(uri, {
+    const response = await plugin.retrieve(uri, {
       ...options,
       accept: this.#acceptableMediaTypes(),
       mediaTypeByExtension: (uri) => this.#mediaTypeByExtension(uri),
@@ -125,8 +131,8 @@ export class Hyperjump {
   #acceptableMediaTypes() {
     let accept = "";
 
-    for (const contentType in this.#mediaTypePlugins) {
-      accept = this.#addAcceptableMediaType(accept, contentType, this.#mediaTypePlugins[contentType].quality);
+    for (const [contentType, plugin] of this.#mediaTypePlugins) {
+      accept = this.#addAcceptableMediaType(accept, contentType, plugin.quality);
     }
 
     return this.#addAcceptableMediaType(accept, "*/*", 0.001);
@@ -156,8 +162,8 @@ export class Hyperjump {
     // registered first wins.
     let bestContentType;
     let bestLength = 0;
-    for (const contentType in this.#mediaTypePlugins) {
-      for (const extension of this.#mediaTypePlugins[contentType].extensions) {
+    for (const [contentType, plugin] of this.#mediaTypePlugins) {
+      for (const extension of plugin.extensions) {
         if (extension.length > bestLength && uri.endsWith(extension)) {
           if (extension.startsWith("/") || (extension.startsWith(".") && uri[uri.length - extension.length - 1] !== "/")) {
             bestContentType = contentType;
@@ -190,21 +196,23 @@ export class Hyperjump {
 
     // Use the plugin with the most specific match. If there's a tie, the plugin
     // that was registered first wins.
-    let bestPattern;
+    /** @type [string, MediaTypePlugin<DocumentNode>] | undefined */
+    let best;
     let bestSpecificity = 0;
-    for (const pattern in this.#mediaTypePlugins) {
+    for (const [pattern, plugin] of this.#mediaTypePlugins) {
       const specificity = mimeMatchSpecificity(pattern, contentType.type);
       if (specificity > bestSpecificity) {
-        bestPattern = pattern;
+        best = [pattern, plugin];
         bestSpecificity = specificity;
       }
     }
 
-    if (bestPattern !== undefined) {
+    if (best) {
       // A plugin can say the document is a more specific media type, like a
       // JSON document that turns out to be in a media type of its own
-      const document = await this.#mediaTypePlugins[bestPattern].parse(response, session);
-      document.mediaType ??= bestPattern;
+      const [pattern, plugin] = best;
+      const document = await plugin.parse(response, session);
+      document.mediaType ??= pattern;
       return document;
     }
 
@@ -218,7 +226,7 @@ export class Hyperjump {
       return "";
     }
 
-    return this.#mediaTypePlugins[document.mediaType]?.fragmentPointer?.(document, fragment) ?? "";
+    return this.#mediaTypePlugins.get(document.mediaType)?.fragmentPointer?.(document, fragment) ?? "";
   }
 }
 
