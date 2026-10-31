@@ -4,8 +4,8 @@ export interface UriSchemePlugin {
   schemes: string[];
 
   /**
-   * A response without a `Content-Type` gets the media type of its URL's
-   * extension, according to the media type plugins.
+   * A response without a `Content-Type` can't be parsed. A response without a
+   * URL gets the URI that was retrieved.
    */
   retrieve(uri: string, options: RetrieveOptions): Promise<Response>;
 }
@@ -14,6 +14,13 @@ export interface UriSchemePlugin {
 export type RetrieveOptions = GetOptions & {
   /** An `Accept` header for the media types that are supported */
   accept: string;
+
+  /**
+   * The media type of a URL's extension, the longest one a media type plugin
+   * has, for a scheme whose responses don't have a `Content-Type`, like
+   * `file:`
+   */
+  mediaTypeByExtension: (uri: string) => string | undefined;
 
   /**
    * Retrieve another URI with the plugin for its scheme, the way the

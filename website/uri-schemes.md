@@ -55,13 +55,16 @@ A plugin implements `UriSchemePlugin`. Its `retrieve` is given
 | --- | --- |
 | `referencedFrom` | The URL of the document the reference came from, if there is one |
 | `accept` | An `Accept` header for the media types that are supported |
+| `mediaTypeByExtension(uri)` | The media type of the URI's extension, or `undefined` if no media type plugin has it |
 | `retrieve(uri, options)` | Retrieves another URI with the plugin for that URI's scheme |
 
 Pass `options` on when you call `options.retrieve` so the other plugin gets the
 same options.
 
-A response doesn't need a `Content-Type`. When it doesn't have one, its media
-type comes from its URL's extension just like a file's media type does.
+A response needs a `Content-Type` so that it can be parsed. If your scheme
+doesn't have media types, like files don't, use `options.mediaTypeByExtension`
+to get the one for the URI's extension. A response doesn't need a URL. When it
+doesn't have one, its URL is the URI that was retrieved.
 
 ## Replacing a URI scheme
 

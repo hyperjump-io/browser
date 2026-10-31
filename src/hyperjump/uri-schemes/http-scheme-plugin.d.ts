@@ -4,7 +4,8 @@ import type { HttpCacheStore } from "./http-cache-store.d.ts";
 /**
  * Support the `http:` and `https:` URI schemes. Sends the Accept header it's
  * given (`options.accept`), for the media types that are supported. A
- * response has to have a `Content-Type`.
+ * response has to have a `Content-Type`, because a URL's extension doesn't
+ * say what's at it.
  *
  * With a cache, responses are cached according to their caching headers
  * (RFC 9111, as a private cache), and stale responses are revalidated when
@@ -20,8 +21,7 @@ export class HttpUriSchemePlugin implements UriSchemePlugin {
 
   /**
    * @throws An {@link HttpError} if the response is an error or has a status
-   * code that isn't supported, or an `UnknownMediaTypeError` if it doesn't
-   * have a `Content-Type`.
+   * code that isn't supported
    */
   retrieve(uri: string, options: RetrieveOptions): Promise<Response>;
 }

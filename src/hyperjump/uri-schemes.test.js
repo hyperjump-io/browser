@@ -92,15 +92,46 @@ describe("JSON Browser", () => {
         expect(accept).to.equal("application/reference+json, application/json, */*; q=0.001");
       });
 
-      test("a response without a Content-Type has its extension's media type", async () => {
+      test("a plugin is given the media type of a URL's extension", async () => {
+        /** @type string | undefined */
+        let mediaType;
+        const hyperjump = new Hyperjump({
+          allowRetrieval: ["foo:something"],
+          uriSchemePlugins: [{
+            schemes: ["foo"],
+            retrieve: async (_uri, options) => {
+              mediaType = options.mediaTypeByExtension("foo:something.json");
+              return new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } });
+            }
+          }]
+        });
+
+        await hyperjump.session().get("foo:something");
+        expect(mediaType).to.equal("application/json");
+      });
+
+      test("a response without a Content-Type doesn't get its extension's media type", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:something.json"],
           uriSchemePlugins: [withoutContentType]
         });
 
-        const document = await hyperjump.session().getDocument("foo:something.json");
-        expect(document.mediaType).to.equal("application/json");
-        expect(document.uri).to.equal(undefined);
+        const result = hyperjump.session().get("foo:something.json");
+        await expect(result).rejects.toBeInstanceOf(RetrievalError);
+        await expect(result).rejects.toHaveProperty("cause", expect.objectContaining({ name: "UnknownMediaTypeError" }));
+      });
+
+      test("a response without a URL gets the URI that was retrieved", async () => {
+        const hyperjump = new Hyperjump({
+          allowRetrieval: ["foo:something"],
+          uriSchemePlugins: [{
+            schemes: ["foo"],
+            retrieve: async () => new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } })
+          }]
+        });
+
+        const document = await hyperjump.session().getDocument("foo:something#/foo");
+        expect(document.uri).to.equal("foo:something");
       });
     });
 
@@ -143,22 +174,6 @@ describe("JSON Browser", () => {
 
         await hyperjump.session().get("urn:example:foo");
         expect(accept).to.equal("application/reference+json, application/json, */*; q=0.001");
-      });
-
-      test("gives a response without a Content-Type its extension's media type", async () => {
-        const hyperjump = new Hyperjump({
-          allowRetrieval: ["urn:example:foo", "foo:something.json"],
-          uriSchemePlugins: [
-            withoutContentType,
-            {
-              schemes: ["urn"],
-              retrieve: async (_urn, options) => options.retrieve("foo:something.json", options)
-            }
-          ]
-        });
-
-        const document = await hyperjump.session().getDocument("urn:example:foo");
-        expect(document.mediaType).to.equal("application/json");
       });
 
       test("a response from a URI that isn't allowed isn't used", async () => {

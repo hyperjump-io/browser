@@ -87,8 +87,10 @@ export class Hyperjump {
 
   /**
    * Retrieve with the plugin for the URI's scheme. It gives the plugin the
-   * Accept header for the media types that are supported, and a response
-   * without a Content-Type gets the media type of its URL's extension.
+   * Accept header for the media types that are supported, and the media type
+   * of a URL's extension, for a scheme without a Content-Type. A response
+   * without a URL gets the one that was retrieved, so a response from
+   * `options.retrieve` is checked against where it came from.
    *
    * @type (uri: string, options: API.GetOptions) => Promise<Response>
    */
@@ -102,24 +104,14 @@ export class Hyperjump {
     const response = await this.#uriSchemePlugins[scheme].retrieve(uri, {
       ...options,
       accept: this.#acceptableMediaTypes(),
+      mediaTypeByExtension: (uri) => this.#mediaTypeByExtension(uri),
       retrieve: (uri, options = {}) => this.#retrieve(uri, options)
     });
-    if (response.headers.has("content-type")) {
-      return response;
+    if (!response.url) {
+      Object.defineProperty(response, "url", { value: toAbsoluteIri(uri) });
     }
 
-    // The headers of a response from `fetch` can't be changed
-    const url = response.url || toAbsoluteIri(uri);
-    const headers = new Headers(response.headers);
-    try {
-      headers.set("content-type", this.#getMediaType(url));
-    } catch (error) {
-      await response.body?.cancel();
-      throw error;
-    }
-    const typed = new Response(response.body, { status: response.status, statusText: response.statusText, headers });
-    Object.defineProperty(typed, "url", { value: url });
-    return typed;
+    return response;
   }
 
   /** @type () => string */
@@ -147,11 +139,11 @@ export class Hyperjump {
   }
 
   /**
-   * The media type of a URL's extension
+   * The media type of a URL's extension, if a media type plugin has it
    *
-   * @type (uri: string) => string
+   * @type (uri: string) => string | undefined
    */
-  #getMediaType(uri) {
+  #mediaTypeByExtension(uri) {
     // Use the plugin with the longest matching extension so `.schema.json`
     // takes precedence over `.json`. If there's a tie, the plugin that was
     // registered first wins.
@@ -168,11 +160,7 @@ export class Hyperjump {
       }
     }
 
-    if (bestContentType !== undefined) {
-      return bestContentType;
-    }
-
-    throw new UnknownMediaTypeError(`The media type of the file at '${relativeFileUri(uri)}' could not be determined. Use the 'mediaTypePlugins' config to add support for this media type.`);
+    return bestContentType;
   }
 
   /**
@@ -184,7 +172,7 @@ export class Hyperjump {
   async #parseResponse(response, session) {
     const contentTypeText = response.headers.get("content-type");
     if (contentTypeText === null) {
-      throw new UnknownMediaTypeError("The media type of the response could not be determined. Make sure the response includes a 'Content-Type' header.");
+      throw new UnknownMediaTypeError(`The media type of '${relativeFileUri(response.url)}' could not be determined. A response needs a 'Content-Type' header, and a file needs an extension that a media type plugin has. Use the 'mediaTypePlugins' config to add support for a media type.`);
     }
 
     // The parser is lenient, so the type needs to be validated

@@ -14,7 +14,7 @@ describe("JSON Browser", () => {
       expect(accept).to.equal("application/reference+json, application/json, */*; q=0.001");
     });
 
-    describe("media type of a response without a Content-Type", () => {
+    describe("media type of a URL's extension", () => {
       const fooPlugin = {
         mediaType: "application/foo+json",
         extensions: [".foo.json"],
@@ -239,8 +239,8 @@ const acceptFor = async (config) => {
 };
 
 /**
- * The media type a `Hyperjump` with this config gives a document whose
- * response doesn't have a Content-Type
+ * The media type of a document from a plugin that uses its URL's extension,
+ * like the `file:` plugin, with this config
  *
  * @type (config: HyperjumpConfig, uri: string) => Promise<string | undefined>
  */
@@ -250,11 +250,14 @@ const mediaTypeFor = async (config, uri) => {
     allowRetrieval: ["test:/"],
     uriSchemePlugins: [{
       schemes: ["test"],
-      retrieve: async (uri) => {
+      retrieve: async (uri, options) => {
+        const headers = new Headers();
+        const mediaType = options.mediaTypeByExtension(uri);
+        if (mediaType !== undefined) {
+          headers.set("content-type", mediaType);
+        }
         // A string body would get a `Content-Type`
-        const response = new Response(new TextEncoder().encode(`42`));
-        Object.defineProperty(response, "url", { value: uri });
-        return response;
+        return new Response(new TextEncoder().encode(`42`), { headers });
       }
     }]
   });

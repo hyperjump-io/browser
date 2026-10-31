@@ -14,16 +14,35 @@ fragments identify. JSON and JRef are built in.
   the JRef and JSON plugins take it as a constructor option. Changing a
   default's quality is configuring a replacement. Before 2026-10-30,
   `setMediaTypeQuality` changed a registered plugin's quality.
-- A response without a `Content-Type` gets the media type of its URL's
-  extension, when the `Hyperjump` retrieves it. That's how a file gets one. The
-  `http(s):` plugin rejects a response without one, because a URL's
-  extension doesn't say what's at it.
+- A response without a `Content-Type` can't be parsed. A plugin for a
+  scheme without media types, like `file:`, gives a response the media type
+  of its URL's extension with `options.mediaTypeByExtension`. The
+  `http(s):` plugin doesn't, because a URL's extension doesn't say what's
+  at it.
+  - From 2026-10-30 to 2026-10-31, the `Hyperjump` gave every response
+    without a `Content-Type` its extension's media type after the plugin
+    returned it, and the `http(s):` plugin threw for a response without one
+    to keep it from being guessed. The plugin threw before `Session` checked
+    the response's URL against `allowRetrieval`, so a redirect to a refused
+    URL was reported as a `RetrievalError` instead of a
+    `RetrievalNotAllowedError`. Guessing also meant replacing a response
+    from `fetch`, whose headers can't be changed, with a new `Response`,
+    which throws for some statuses and loses `redirected`.
+  - A flag on the plugin to turn guessing off was considered. Guessing on
+    by default would let a plugin that maps to an `http(s):` URL with
+    `options.retrieve`, like `urn:`, guess from that URL. Making the plugin
+    decide removes the guessing from the `Hyperjump` instead.
+  - Only a plugin knows whether its scheme has media types, so a plugin
+    could also use the extension for a server it knows sends the wrong
+    `Content-Type`. That isn't an option of the `http(s):` plugin yet.
+- A response without a URL gets the URI that was retrieved, so a response
+  from `options.retrieve` is checked against the URL it came from.
 - URI scheme plugins don't get the `Hyperjump`. Before 2026-10-30, they
   were constructed with it, and the `http(s):` plugin only used it for the
   `Accept` header and the `file:` plugin for a file's media type, which
   made the client and its plugins depend on each other. What they needed
-  is a value `retrieve` gives them, or something it does with what they
-  return. A plugin for a scheme that maps to another URI, like `urn:`, is
+  are values `retrieve` gives them: `options.accept` and
+  `options.mediaTypeByExtension`. A plugin for a scheme that maps to another URI, like `urn:`, is
   given `options.retrieve` (see [Sessions](sessions.md#configuring-plugins)).
 - A file's media type is the plugin with the longest matching extension, so
   a plugin for `.schema.json` takes precedence over the JSON plugin, whatever

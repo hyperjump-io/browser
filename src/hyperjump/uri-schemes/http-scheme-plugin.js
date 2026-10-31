@@ -1,7 +1,6 @@
 import CachePolicy from "http-cache-semantics";
 import { toAbsoluteIri } from "@hyperjump/uri";
 import { defaultHttpCache } from "#default-http-cache";
-import { UnknownMediaTypeError } from "../hyperjump.js";
 
 /**
  * @import { HttpCacheStore } from "./http-cache-store.d.ts"
@@ -167,11 +166,6 @@ export class HttpUriSchemePlugin {
 
     if (!this.#successStatus.has(response.status)) {
       throw new HttpError(response, "Unsupported HTTP response status code");
-    }
-
-    // A URL's extension doesn't say what's at it
-    if (!response.headers.has("content-type")) {
-      throw new UnknownMediaTypeError("The media type of the response could not be determined. Make sure the response includes a 'Content-Type' header.");
     }
   }
 }

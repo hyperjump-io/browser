@@ -1,6 +1,6 @@
 import { describe, test, beforeEach, afterEach, expect, vi } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump, HttpError, HttpUriSchemePlugin, MemoryHttpCacheStore, RetrievalError } from "../index.js";
+import { Hyperjump, HttpError, HttpUriSchemePlugin, MemoryHttpCacheStore, RetrievalError, RetrievalNotAllowedError } from "../index.js";
 import { toJson } from "../../json/jsonast-util.js";
 
 describe("JSON Browser", () => {
@@ -61,6 +61,21 @@ describe("JSON Browser", () => {
           const cause = /** @type Error */ (retrievalError.cause);
           expect(cause.name).to.equal("UnknownMediaTypeError");
         }
+      });
+
+      test("a redirect to a refused URL without a content type is refused", async () => {
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: "/foo" })
+          .reply(302, "", { headers: { location: "https://internal.example.com/foo" } });
+        mockAgent.get("https://internal.example.com")
+          .intercept({ method: "GET", path: "/foo" })
+          .reply(200, `{ "foo": 42 }`);
+
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
+        const error = await hyperjump.session().get(`${testDomain}/foo`)
+          .catch((/** @type unknown */ error) => error);
+        expect(error).to.be.instanceof(RetrievalNotAllowedError);
+        expect(/** @type RetrievalNotAllowedError */ (error).uri).to.equal("https://internal.example.com/foo");
       });
 
       describe.each([

@@ -1,8 +1,8 @@
 import type { RetrieveOptions, UriSchemePlugin } from "./uri-scheme-plugin.d.ts";
 
 /**
- * Supports the `file:` URI scheme. A file's response doesn't have a
- * `Content-Type`, so its media type is its extension's.
+ * Supports the `file:` URI scheme. A file doesn't have a media type, so its
+ * response's `Content-Type` is its extension's (`options.mediaTypeByExtension`).
  *
  * A file is read from its real path, with every symlink in the path
  * resolved, and the response's URL is that real path. References in the file

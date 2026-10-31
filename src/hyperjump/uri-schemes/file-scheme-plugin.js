@@ -45,10 +45,14 @@ export class FileUriSchemePlugin {
     }
     const responseUri = realFilePath === filePath ? toAbsoluteIri(uri) : pathToFileURL(realFilePath).toString();
 
-    // A file doesn't have a media type. `Hyperjump` gives it the one its
-    // extension has.
+    // A file doesn't have a media type, so it's the one its extension has
+    const headers = new Headers();
+    const mediaType = options.mediaTypeByExtension(responseUri);
+    if (mediaType !== undefined) {
+      headers.set("content-type", mediaType);
+    }
     const stream = /** @type ReadableStream<Uint8Array> */ (Readable.toWeb(createReadStream(realFilePath)));
-    const response = new Response(stream);
+    const response = new Response(stream, { headers });
     Object.defineProperty(response, "url", { value: responseUri });
 
     return response;
