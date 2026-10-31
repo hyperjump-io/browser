@@ -92,7 +92,7 @@ Every request sends an `Accept` header that lists every supported media type
 with its plugin's `quality`. To tell servers you prefer one, lower the quality
 of the others. The JRef and JSON plugins take a `quality` option. This example
 replaces the default JRef plugin with one that gives JRef a quality of 0.9. JSON
-and YAML keep the default quality of 1, so servers are told to prefer them:
+and YRef keep the default quality of 1, so servers are told to prefer them:
 
 ```typescript
 import { Hyperjump, JrefMediaTypePlugin } from "@hyperjump/browser";

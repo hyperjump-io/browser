@@ -1,10 +1,10 @@
 # HTTP headers
 
 Requests are sent by the HTTP plugin, so to send headers such as credentials
-with `http:` and `https:` requests, you replace the default HTTP plugin with one
-configured with `headers`. Documents can reference any URL, so headers sent with
-every request could end up at any server. Instead, headers are given by URL.
-Only the URLs you list get them:
+with `http:` and `https:` requests, you replace the default HTTP plugin with a
+plugin configured with `headers`. Documents can reference any URL, so headers
+sent with every request could end up at any server. Instead, headers are given
+by URL. Only the URLs you list get them:
 
 ```typescript
 import { Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";
@@ -70,8 +70,8 @@ respect that `Vary`.
 
 Say Alice and Bob each have their own token for `https://api.example.com/me`. If
 their requests share a cache, Bob's request can get the response that was
-retrieved with Alice's token. Then Bob sees Alice's account. To keep them apart,
-give each user a `Hyperjump` with its own plugin:
+retrieved with Alice's token. To keep them apart, give each user a `Hyperjump`
+with its own plugin:
 
 ```typescript
 import { Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";

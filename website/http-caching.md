@@ -8,9 +8,12 @@ just like a private browser cache does:
   header. An unchanged document isn't downloaded again.
 - Concurrent requests for the same URL share one request.
 
-Every session from the same `Hyperjump` shares the cache, but each `Hyperjump`
-has its own. When you start a new session to see changes, it only retrieves what
-has changed.
+The HTTP cache is different from the documents a session keeps. A session keeps
+every document it retrieves, so reading through a session never shows a change.
+The HTTP cache is part of a `Hyperjump`'s HTTP plugin, so every session from
+that `Hyperjump` uses the same HTTP cache. When you start a new session to see
+changes, the new session only retrieves what has changed. See
+[Sessions](browsing.md#sessions).
 
 ## Where responses are kept
 

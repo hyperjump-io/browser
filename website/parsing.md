@@ -1,6 +1,6 @@
 # Parsing JSON and JRef
 
-You can use the JSON and JRef parsers on their own, without a `Hyperjump`.
+You can use the JSON and JRef parsers on their own without a `Hyperjump`.
 Import them from `@hyperjump/browser/json` and `@hyperjump/browser/jref`. They
 parse into a JSON AST, which is a [unist](https://github.com/syntax-tree/unist)
 tree with a position for every value.
@@ -52,7 +52,7 @@ URL with a JSON Pointer to the node. The `position` says where the node is in
 the text.
 
 To read values out of the AST, use the functions that `@hyperjump/browser/json`
-exports. This example gets a node with a JSON Pointer, then reads the node's
+exports. This example gets a node with a JSON Pointer then reads the node's
 value and its position:
 
 ```typescript

@@ -2,8 +2,8 @@
 
 Documents are browsed through a session. Give `get` a URL and it returns a node
 for the value that URL identifies. From there, the session's methods let you
-read the node and step to the values inside it, following references along the
-way.
+read the node and step to the values inside it while following references along
+the way.
 
 ```typescript
 const session = h.session();
@@ -55,7 +55,8 @@ for await (const [name, value] of session.entries(homeworld)) {
 
 The example skips objects and arrays because `value` throws for them. Getting
 the whole value would mean following every reference inside it, which could
-retrieve any number of documents. To read an object or an array, step into it.
+retrieve any number of documents and possibly the entire API. To read an object
+or an array, step into it.
 
 ## Fragments
 
@@ -70,11 +71,11 @@ const homeworld = await session.get(
 
 The [JRef spec](https://github.com/hyperjump-io/json-reference/blob/main/spec.md)
 says the pointer doesn't follow references because it's applied to the document
-as written. `#/homeworld` works anyway because the reference is the last thing
-the pointer reaches. The session follows that reference and gives you the
-homeworld. `#/homeworld/name` doesn't work because the pointer can't go through
-the reference. It looks for `name` in Luke's document, which doesn't have one.
-To get the name, get the homeworld and step into it.
+as written. `#/homeworld` works because the reference is the last thing the
+pointer reaches. The session follows that reference and gives you the homeworld.
+`#/homeworld/name` doesn't work because the pointer can't go through the
+reference. It looks for `name` in Luke's document, which doesn't have one. To
+get the name, get the homeworld and step into it.
 
 What a fragment means depends on the media type. In a plain JSON document, the
 fragment is ignored.

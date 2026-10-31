@@ -8,9 +8,8 @@ that it works almost exactly the same way.
 
 The API's documents are written in
 [JRef](https://github.com/hyperjump-io/json-reference/blob/main/spec.md). JRef
-is JSON with references. Any object with a `$ref` property is a reference. Its
-value is the URL of the value it refers to. Here's how the first film refers to
-its characters:
+is JSON with references. Any object with a `$ref` property is a URL reference to
+the value it refers to. Here's how the first film refers to its characters:
 
 ```jref
 {
@@ -23,23 +22,21 @@ its characters:
 }
 ```
 
-Each character lives in a document of its own, which the film refers to instead
-of duplicating. You won't have to retrieve them yourself because a reference is
-transparent like a reference in most programming languages. When you step into
-one, you get the value it refers to rather than the reference.
+Each character has its own document. The film refers to those documents instead
+of duplicating them. You won't have to retrieve them yourself because a
+reference is transparent like a reference in most programming languages. When
+you step into one, you get the value it refers to rather than the reference.
 
 ## Browse an API
 
-The API lives at
+The API can be found at
 [https://swapi.hyperjump.io](https://explore.hyperjump.io#https://swapi.hyperjump.io/api/films/1).
-It's a version of the [Star Wars API](https://swapi.dev) rewritten in JRef. That
-link opens it in an explorer where you can click through the references before
-you write any code.
+It's a version of the [Star Wars API](https://swapi.dev) rewritten in JRef. 
 
-Everything starts with a `Hyperjump` instance, which holds configuration such
-as what's allowed to be retrieved. A document can refer to anything anywhere, so
-`Hyperjump` won't retrieve anything from the network until you tell it where it
-may go. This one can only access the Star Wars API:
+Start by configuring a `Hyperjump` with what's allowed to be retrieved. A
+document can refer to anything anywhere, so `Hyperjump` won't retrieve anything
+from the network until you tell it where it may go. This one can only access the
+Star Wars API:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
@@ -99,9 +96,9 @@ you use the session. Start a new session when you want to see changes. See
 
 ## Browse files
 
-Files work the same way. Their media type comes from the file extension, which
-for JRef is `.jref`. Here's Luke again, this time as a file with a reference to
-his homeworld:
+Files work the same way. Their media type comes from the file extension. For
+JRef the extension is `.jref`. Here's Luke again, this time as a file with a
+reference to his homeworld:
 
 ```jref
 {
