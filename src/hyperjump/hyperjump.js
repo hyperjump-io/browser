@@ -102,7 +102,9 @@ export class Hyperjump {
    * Accept header for the media types that are supported, and the media type
    * of a URL's extension, for a scheme without a Content-Type. A response
    * without a URL gets the one that was retrieved, so a response from
-   * `options.retrieve` is checked against where it came from.
+   * `options.retrieve` is checked against where it came from. Without
+   * options, `options.retrieve` gets this retrieval's, so a plugin that
+   * leaves them out doesn't lose `referencedFrom`.
    *
    * @type (uri: string, options: API.GetOptions) => Promise<Response>
    */
@@ -118,7 +120,7 @@ export class Hyperjump {
       ...options,
       accept: this.#acceptableMediaTypes(),
       mediaTypeByExtension: (uri) => this.#mediaTypeByExtension(uri),
-      retrieve: (uri, options = {}) => this.#retrieve(uri, options)
+      retrieve: (uri, retrieveOptions = options) => this.#retrieve(uri, retrieveOptions)
     });
     if (!response.url) {
       Object.defineProperty(response, "url", { value: toAbsoluteIri(uri) });

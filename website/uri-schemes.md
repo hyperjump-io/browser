@@ -58,8 +58,10 @@ A plugin implements `UriSchemePlugin`. Its `retrieve` is given
 | `mediaTypeByExtension(uri)` | The media type of the URI's extension, or `undefined` if no media type plugin has it |
 | `retrieve(uri, options)` | Retrieves another URI with the plugin for that URI's scheme |
 
-Pass `options` on when you call `options.retrieve` so the other plugin gets the
-same options.
+When you call `options.retrieve` without options, the other plugin gets the
+same `referencedFrom` this plugin was given. A reference from a document on the
+web to a URN that maps to a file is refused the same way a reference straight
+to the file would be.
 
 A response needs a `Content-Type` so that it can be parsed. If your scheme
 doesn't have media types, like files don't, use `options.mediaTypeByExtension`

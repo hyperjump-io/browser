@@ -82,6 +82,12 @@ local to it.
 - The `retrieve` a URI scheme plugin is given (`options.retrieve`) isn't
   checked. It's for plugins that map to another URI, like `urn:`, and the
   response they give is checked by its URL.
+  - Without options, it's given the plugin's own, so the `file:` plugin
+    still knows the document the reference came from and refuses a file
+    for a document that isn't one. Before 2026-10-31, it was given none, so
+    a `urn:` that maps to a file could be read from a document on the web.
+    A plugin can still pass other options, because a plugin is the
+    application's own code and could read the file itself anyway.
 - An error about a list, or a refused URL's, says which list to change:
   the config's, or the session's own option, which replaces the config's
   so adding to the config wouldn't help. The default is the config's,

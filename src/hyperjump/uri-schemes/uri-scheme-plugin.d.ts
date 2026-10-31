@@ -27,6 +27,7 @@ export type RetrieveOptions = GetOptions & {
    * `Hyperjump` retrieved this one, for a scheme that maps to another URI,
    * like `urn:`. It isn't checked against `allowRetrieval`, but the response
    * is checked by the URL it came from, so that URL has to be allowed.
+   * Without options, it's given this retrieval's.
    */
   retrieve: (uri: string, options?: GetOptions) => Promise<Response>;
 };

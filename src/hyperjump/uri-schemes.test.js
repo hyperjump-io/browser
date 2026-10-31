@@ -184,6 +184,30 @@ describe("JSON Browser", () => {
         expect(toJson(subject)).to.equal(`{"foo":42}`);
       });
 
+      test("without options, gives the other plugin this retrieval's", async () => {
+        /** @type string | undefined */
+        let referencedFrom;
+        const hyperjump = new Hyperjump({
+          allowRetrieval: ["urn:example:foo", "foo:something"],
+          uriSchemePlugins: [
+            {
+              schemes: ["foo"],
+              retrieve: async (_uri, options) => {
+                referencedFrom = options.referencedFrom;
+                return new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } });
+              }
+            },
+            {
+              schemes: ["urn"],
+              retrieve: async (_urn, options) => options.retrieve("foo:something")
+            }
+          ]
+        });
+
+        await hyperjump.session().get("urn:example:foo", { referencedFrom: "https://example.com/doc" });
+        expect(referencedFrom).to.equal("https://example.com/doc");
+      });
+
       test("gives the other plugin the Accept header", async () => {
         /** @type string | undefined */
         let accept;

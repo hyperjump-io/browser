@@ -124,6 +124,27 @@ describe("JSON Browser", () => {
           }
         });
 
+        test("file references through another scheme's plugin aren't allowed from non-filesystem context", async () => {
+          const fooUri = `${testUri}/${fixtureDirectory}/foo.jref`;
+          await writeFile(fileURLToPath(fooUri), `42`);
+
+          mockAgent.get(testDomain)
+            .intercept({ method: "GET", path: "/main" })
+            .reply(200, `{ "$ref": "urn:example:foo" }`, { headers: { "content-type": "application/reference+json" } });
+
+          const hyperjump = new Hyperjump({
+            allowRetrieval: [`${testDomain}/`, "urn:example:foo", "./"],
+            uriSchemePlugins: [{
+              schemes: ["urn"],
+              retrieve: async (_urn, options) => options.retrieve(fooUri)
+            }]
+          });
+          const result = hyperjump.session().get(`${testDomain}/main`);
+
+          await expect(result).rejects.toBeInstanceOf(RetrievalError);
+          await expect(result).rejects.toHaveProperty("cause.message", expect.stringContaining("non-filesystem context"));
+        });
+
         test("file references are allowed from file context", async () => {
           const mainPath = `${fixtureDirectory}/main.jref`;
           const fooPath = `${fixtureDirectory}/foo.jref`;
