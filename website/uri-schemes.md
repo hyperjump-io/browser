@@ -9,8 +9,8 @@ schemes. `http:`, `https:`, and `file:` are supported by default, although
 A URI scheme plugin defines the `schemes` it handles and a `retrieve` function
 that returns a `Response`. You configure plugins with the `uriSchemePlugins`
 config when you create the `Hyperjump`. This example is a plugin for `urn:`.
-It's created with the URLs that URNs map to, and it retrieves a URN by
-retrieving that URN's URL with the `retrieve` function in its options:
+It's created with the URLs that URNs map to. It retrieves a URN by retrieving
+that URN's URL with the `retrieve` function in its options:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
@@ -48,7 +48,7 @@ const luke = await h.session().get("urn:example:luke");
 allow the URN. The response is then checked again against the URL it came from,
 so the URL that the URN maps to must be allowed too.
 
-A plugin implements `UriSchemePlugin`, and its `retrieve` is given
+A plugin implements `UriSchemePlugin`. Its `retrieve` is given
 `RetrieveOptions`. The options have what the request needs:
 
 | Option | What it is |

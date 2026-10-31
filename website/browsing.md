@@ -54,7 +54,7 @@ for await (const [name, value] of session.entries(homeworld)) {
 ```
 
 The example skips objects and arrays because `value` throws for them. Getting
-the whole value would mean following every reference inside it, and that could
+the whole value would mean following every reference inside it, which could
 retrieve any number of documents. To read an object or an array, step into it.
 
 ## Fragments

@@ -10,10 +10,10 @@ allows it.
 ## `allowRetrieval`
 
 `allowRetrieval` is a list of URLs. A URL that ends with `/` allows everything
-under that URL. Any other URL allows only that exact URL, and an empty list
-allows nothing. A relative URL is resolved against the working directory in
-Node.js and against the page in a browser. A worker has no page to resolve
-against, so use absolute URLs there.
+under that URL. Any other URL allows only that exact URL. An empty list allows
+nothing. A relative URL is resolved against the working directory in Node.js and
+against the page in a browser. A worker has no page to resolve against, so use
+absolute URLs there.
 
 The default is `["./"]`, which allows the files in the working directory in
 Node.js and what's in the page's directory in a browser. Setting your own list
@@ -27,8 +27,7 @@ const h = new Hyperjump({
 ```
 
 Retrieving a URL the list doesn't allow throws a `RetrievalNotAllowedError`. Its
-`uri` is the URL that was refused, and its message tells you how to allow that
-URL:
+`uri` is the URL that was refused. Its message tells you how to allow that URL:
 
 ```text
 Retrieving 'https://example.com/other' isn't allowed. Use the 'allowRetrieval' config to allow it.

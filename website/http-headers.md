@@ -3,8 +3,8 @@
 Requests are sent by the HTTP plugin, so to send headers such as credentials
 with `http:` and `https:` requests, you replace the default HTTP plugin with one
 configured with `headers`. Documents can reference any URL, so headers sent with
-every request could end up at any server. Instead, headers are given by URL, and
-only the URLs you list get them:
+every request could end up at any server. Instead, headers are given by URL.
+Only the URLs you list get them:
 
 ```typescript
 import { Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";
@@ -89,6 +89,6 @@ const alice = hyperjumpFor(await getToken("alice"));
 const bob = hyperjumpFor(await getToken("bob"));
 ```
 
-Each call creates a new plugin, and each plugin gets its own default cache. Bob
-never gets a response that was retrieved with Alice's token. If you give the
-plugins a cache yourself, don't give them the same one.
+Each call creates a new plugin with its own default cache. Bob never gets a
+response that was retrieved with Alice's token. If you give the plugins a cache
+yourself, don't give them the same one.

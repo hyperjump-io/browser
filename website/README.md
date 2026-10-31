@@ -21,8 +21,8 @@ It understands
 [JRef](https://github.com/hyperjump-io/json-reference/blob/main/spec.md), a JSON
 media type with references like `{ "$ref": "../people/1" }`. A reference can
 refer to a value in another document, a file, or on another server. When you
-step into it, that value is retrieved for you. Plain JSON works too, and you can
-add support for other media types and URI schemes.
+step into it, that value is retrieved for you. Plain JSON works too. You can add
+support for other media types and URI schemes.
 
 - **Safe with documents you don't trust.** A document can't make your
   application retrieve whatever it references. You allow what can be

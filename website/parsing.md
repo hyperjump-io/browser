@@ -1,9 +1,9 @@
 # Parsing JSON and JRef
 
-`@hyperjump/browser/json` and `@hyperjump/browser/jref` export the parsers the
-browser uses, so you can use them on their own. They parse into a JSON AST,
-which is a [unist](https://github.com/syntax-tree/unist) tree with a position
-for every value.
+You can use the JSON and JRef parsers on their own, without a `Hyperjump`.
+Import them from `@hyperjump/browser/json` and `@hyperjump/browser/jref`. They
+parse into a JSON AST, which is a [unist](https://github.com/syntax-tree/unist)
+tree with a position for every value.
 
 ## Parsing
 
@@ -47,9 +47,13 @@ const { node } = fromJref(jref, "https://example.com/doc");
 
 ## Reading the AST
 
-Each node has a `jsonType`, a `location`, and a `position` in the text. The
-`location` is a URI with a JSON Pointer to the node. These functions read the
-AST:
+Each node has a `jsonType`, a `location`, and a `position`. The `location` is a
+URL with a JSON Pointer to the node. The `position` says where the node is in
+the text.
+
+To read values out of the AST, use the functions that `@hyperjump/browser/json`
+exports. This example gets a node with a JSON Pointer, then reads the node's
+value and its position:
 
 ```typescript
 import { fromJson, jsonValue, pointerGet } from "@hyperjump/browser/json";
@@ -61,7 +65,7 @@ jsonValue(twenty); // 20
 twenty.position.start; // { line: 1, column: 20, offset: 19 }
 ```
 
-Here's what each one does:
+These are the functions for reading the AST:
 
 | Function | What it does |
 | --- | --- |
@@ -79,8 +83,8 @@ None of these follow references. To follow references, use a
 
 `rejsonParse` and `rejsonStringify` are [unified](https://unifiedjs.com/)
 plugins for pipelines that process JSON files. `jrefParse` and `jrefStringify`
-do the same for JRef. With `accept: "recovered"`, a file is
-still processed if the parser recovered from its syntax errors, and those errors
-are reported as warnings.
+do the same for JRef. With `accept: "recovered"`, a file is still processed when
+the parser recovers from its syntax errors. Those errors are reported as
+warnings.
 [`@hyperjump/json-schema`](https://github.com/hyperjump-io/json-schema/blob/v2/website/unified/README.md)
 uses these plugins to validate and lint JSON files.
