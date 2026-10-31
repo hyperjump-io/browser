@@ -13,10 +13,11 @@ document comes from:
 
 ## Adding a media type
 
-A media type plugin parses a response into a JRef-compatible AST. You configure
-plugins with the `mediaTypePlugins` config when you create the `Hyperjump`. This
-example is a plugin for a YAML version of JRef. It parses the YAML and hands the
-result to the JRef parser:
+A media type plugin defines the `mediaType` it parses and a `parse` function
+that turns a `Response` into a JRef-compatible AST. You configure plugins with
+the `mediaTypePlugins` config when you create the `Hyperjump`. This example is a
+plugin for a YAML version of JRef. It parses the YAML and hands the result to
+the JRef parser:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";

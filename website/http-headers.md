@@ -2,9 +2,9 @@
 
 Requests are sent by the HTTP plugin, so to send headers such as credentials
 with `http:` and `https:` requests, you replace the default HTTP plugin with one
-that has `headers`. Documents can reference any URL, so headers sent with every
-request could end up at any server. Instead, headers are given by URL, and only
-the URLs you list get them:
+configured with `headers`. Documents can reference any URL, so headers sent with
+every request could end up at any server. Instead, headers are given by URL, and
+only the URLs you list get them:
 
 ```typescript
 import { Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";
@@ -34,9 +34,9 @@ types that are supported.
 
 ## Headers that change
 
-Instead of headers, a URL can have a function that returns them. It's called
-with the URL of each request it matches and can be async, which lets you
-refresh a token before it's sent:
+Instead of headers, a URL can be given a function that returns them. It's called
+with the URL of each request it matches and can be async, which lets you refresh
+a token before it's sent:
 
 ```typescript
 new HttpUriSchemePlugin({

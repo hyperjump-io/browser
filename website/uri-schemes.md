@@ -7,10 +7,10 @@ schemes. `http:`, `https:`, and `file:` are supported by default, although
 ## Adding a URI scheme
 
 A URI scheme plugin defines the `schemes` it handles and a `retrieve` function
-that returns a `Response`. You configure plugins with `uriSchemePlugins` when
-you create the `Hyperjump`. This example is a plugin for `urn:`. It's created
-with the URLs that URNs map to, and it retrieves a URN by retrieving that URN's
-URL with the `retrieve` function in its options:
+that returns a `Response`. You configure plugins with the `uriSchemePlugins`
+config when you create the `Hyperjump`. This example is a plugin for `urn:`.
+It's created with the URLs that URNs map to, and it retrieves a URN by
+retrieving that URN's URL with the `retrieve` function in its options:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
@@ -69,5 +69,9 @@ A plugin for a scheme that's already supported replaces the existing plugin for
 that scheme. The existing plugin still handles any other schemes it lists. When
 more than one plugin in the list has the same scheme, the later one is used.
 Replacing the HTTP plugin this way is how you give it a different cache or
-headers. See [HTTP caching](http-caching.md) and
-[HTTP headers](http-headers.md).
+headers. `HttpUriSchemePlugin` takes these options:
+
+| Option | What it is |
+| --- | --- |
+| `cache` | Where to cache responses. Without one, the plugin gets its environment's default. `false` doesn't cache. See [HTTP caching](http-caching.md). |
+| `headers` | Headers to send with requests, by URL. See [HTTP headers](http-headers.md). |

@@ -22,7 +22,7 @@ Where responses are kept by default depends on the environment:
 | Browsers | No cache of its own because the browser already caches |
 
 The cache belongs to the HTTP plugin, so to keep responses somewhere else you
-replace the default HTTP plugin with one that has a different `cache`:
+replace the default HTTP plugin with one configured with a different `cache`:
 
 ```typescript
 import {
@@ -44,9 +44,16 @@ configured to send [headers](http-headers.md) still caches. To turn caching off,
 give it `cache: false`.
 
 To keep responses somewhere else, such as Redis, implement `HttpCacheStore`.
-It's an object with async `get(url)`, `set(url, entry)`, and `delete(url)`
-methods. Entries are JSON, so they can be stored anywhere. Plugins only share a
-cache when they're given the same store.
+Entries are JSON, so they can be stored anywhere. A store defines these async
+methods:
+
+| Method | What it does |
+| --- | --- |
+| `get(url)` | Returns the entry for a request URL, or `undefined` if there isn't one |
+| `set(url, entry)` | Stores the entry for a request URL |
+| `delete(url)` | Removes the entry for a request URL |
+
+Plugins only share a cache when they're given the same store.
 
 The cache is private, which means a response retrieved with one set of
 credentials can be used for a request to the same URL with another set of
