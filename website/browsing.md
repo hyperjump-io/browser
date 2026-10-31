@@ -68,12 +68,13 @@ const homeworld = await session.get(
 );
 ```
 
-The JRef spec says the pointer doesn't follow references because it's applied to
-the document as written. That has a consequence that can be surprising.
-`#/homeworld` works because the reference is the last thing the pointer reaches,
-so the session follows it and gives you the homeworld. `#/homeworld/name`
-doesn't work because there's no `name` in Luke's document for the pointer to
-find. To get the name, get the homeworld and step into it instead.
+The [JRef spec](https://github.com/hyperjump-io/json-reference/blob/main/spec.md)
+says the pointer doesn't follow references because it's applied to the document
+as written. That has a consequence that can be surprising. `#/homeworld` works
+because the reference is the last thing the pointer reaches, so the session
+follows it and gives you the homeworld. `#/homeworld/name` doesn't work because
+there's no `name` in Luke's document for the pointer to find. To get the name,
+get the homeworld and step into it instead.
 
 What a fragment means depends on the media type. In a plain JSON document, the
 fragment is ignored.

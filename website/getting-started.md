@@ -7,7 +7,7 @@ that it works almost exactly the same way.
 ## JRef
 
 The API's documents are written in
-[JRef](../src/jref/README.md), which
+[JRef](https://github.com/hyperjump-io/json-reference/blob/main/spec.md), which
 is JSON with references. Any object with a `$ref` property is a reference. Its
 value is the URL of the value it refers to. Here's how the first film refers to
 its characters:

@@ -10,7 +10,7 @@ built for the unified ecosystem. `@hyperjump/json-schema` v2 builds on it.
   are the rules decisions are made by, `style/` is how code is laid out,
   `components/` say how each part works and what was decided, with known
   limitations, and `benchmarks/` are dated measurements. The JRef spec is
-  `src/jref/README.md`.
+  https://github.com/hyperjump-io/json-reference/blob/main/spec.md.
 - `website/` is the user documentation.
   It's built into the site at hyperjump.io from `../hyperjump.io`, whose
   README has how to write it. A feature that isn't released gets

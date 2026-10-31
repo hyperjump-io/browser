@@ -18,7 +18,7 @@ session.value(director); // "George Lucas"
 ```
 
 It understands
-[JRef](../src/jref/README.md), a JSON
+[JRef](https://github.com/hyperjump-io/json-reference/blob/main/spec.md), a JSON
 media type with references like `{ "$ref": "../people/1" }`. A reference can
 refer to a value in another document, a file, or on another server. When you
 step into it, that value is retrieved for you. Plain JSON works too, and you can

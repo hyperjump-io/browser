@@ -13,7 +13,8 @@ stringify documents.
 
 The documentation is in [`website/`](website/README.md). Start with
 [Install](website/install.md) and [Getting started](website/getting-started.md).
-The JRef media type is specified in [`src/jref/README.md`](src/jref/README.md).
+The JRef media type is specified in the
+[JRef spec](https://github.com/hyperjump-io/json-reference/blob/main/spec.md).
 
 ## Contributing
 
@@ -34,4 +35,4 @@ npm test -- --watch
 The design docs, principles, and style guide are in
 [`design/`](design/README.md).
 
-[JRef]: https://github.com/hyperjump-io/browser/blob/main/src/jref/README.md
+[JRef]: https://github.com/hyperjump-io/json-reference/blob/main/spec.md

@@ -10,7 +10,9 @@ documents record the decisions made so far, and why. The `.d.ts` files in
 
 - **[Principles](principles/README.md)**: the rules decisions are made by.
 - **[Style](style/README.md)**: how code here is laid out and written.
-- **Specs**: [JRef](../src/jref/README.md), the media type.
+- **Specs**:
+  [JRef](https://github.com/hyperjump-io/json-reference/blob/main/spec.md),
+  the media type.
 - **Components**: how each part works, what was decided, and what was
   rejected, with known limitations.
 - **[Benchmarks](benchmarks/README.md)**: the measurements behind the
