@@ -1,9 +1,10 @@
 # Media types
 
-A response's media type decides how it's parsed and what references and
-fragments mean in it. JRef (`application/reference+json`, `.jref`) and JSON
-(`application/json`, `.json`) are supported by default. How the media type is
-found depends on where the document comes from:
+A document's media type defines how the document is parsed. It also defines
+what references and fragments mean in that document. JRef
+(`application/reference+json`, `.jref`) and JSON (`application/json`, `.json`)
+are supported by default. How the media type is found depends on where the
+document comes from:
 
 | Where a document comes from | How its media type is found |
 | --- | --- |
@@ -13,8 +14,8 @@ found depends on where the document comes from:
 ## Adding a media type
 
 A media type plugin parses a response into a JRef-compatible AST. You configure
-plugins with `mediaTypePlugins` when you create the `Hyperjump`. This example is
-a plugin for a YAML version of JRef. It parses the YAML and hands the
+plugins with the `mediaTypePlugins` config when you create the `Hyperjump`. This
+example is a plugin for a YAML version of JRef. It parses the YAML and hands the
 result to the JRef parser:
 
 ```typescript
@@ -71,13 +72,14 @@ A plugin has these properties:
 | `quality` | Optional. Its quality in the `Accept` header. |
 
 A plugin is a `MediaTypePlugin<D>`, where `D` is the type of the document node
-it parses. A `Hyperjump` can only browse documents made of JRef nodes, so this
-plugin's document type is `JrefMediaTypeDocument`, the same as the built-in JRef
-plugin's. That type is for a document that parsed without errors.
+it parses. A `Hyperjump` can only browse documents made of JRef nodes. This
+plugin's documents come from the JRef parser, so the plugin uses
+`JrefMediaTypeDocument`, which is the built-in JRef plugin's type for a document
+that parsed without errors.
 
 Errors and tools use the positions in the AST to point at the source. This
-example loses YAML's positions by going through JSON, so a real plugin would
-build the AST from the YAML parser's nodes instead.
+example loses YAML's positions by going through `JSON.parse`, so a real plugin
+would build the AST from the YAML parser's nodes instead.
 
 A plugin for a media type that's already supported replaces the existing plugin,
 including the existing plugin's place in the `Accept` header. When more than one
@@ -88,8 +90,8 @@ plugin in the list has the same media type, the later one is used.
 Every request sends an `Accept` header that lists every supported media type
 with its plugin's `quality`. To tell servers you prefer one, lower the quality
 of the others. The JRef and JSON plugins take a `quality` option. This example
-replaces the default JRef plugin with one that has a lower quality, so JRef is
-less preferred than JSON and YAML:
+replaces the default JRef plugin with one that gives JRef a quality of 0.9. JSON
+and YAML keep the default quality of 1, so servers are told to prefer them:
 
 ```typescript
 import { Hyperjump, JrefMediaTypePlugin } from "@hyperjump/browser";
