@@ -13,7 +13,9 @@ const h = new Hyperjump({
   allowRetrieval: ["https://api.example.com/"],
   uriSchemePlugins: [new HttpUriSchemePlugin({
     headers: {
-      "https://api.example.com/": { Authorization: `Bearer ${process.env.TOKEN}` }
+      "https://api.example.com/": {
+        Authorization: `Bearer ${process.env.TOKEN}`
+      }
     }
   })]
 });
