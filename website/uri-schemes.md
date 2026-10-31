@@ -42,7 +42,11 @@ from, so the URL that the URN maps to must be allowed too.
 
 `addUriSchemePlugin` takes a `UriSchemePlugin`, so `retrieve`'s parameters
 are typed. Pass `options` on to `retrieve`. It has what the request needs,
-such as which document the reference came from.
+such as which document the reference came from, and `accept`, an `Accept`
+header for the media types that are supported.
+
+A response doesn't need a `Content-Type`. One without it gets the media
+type of its URL's extension, the way a file does.
 
 ## Replacing a URI scheme
 

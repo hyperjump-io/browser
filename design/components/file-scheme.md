@@ -13,8 +13,9 @@
   response's URL said.
 - A file can't be retrieved from a reference in a document that isn't a
   file, so a document from the web can't read files.
-- A file's media type comes from its extension, the longest one a media
-  type plugin matches (see [Media types](media-types.md)).
+- A file's response has no `Content-Type`, so `Hyperjump` gives it the
+  media type of its extension, the longest one a media type plugin matches
+  (see [Media types](media-types.md)).
 - A missing file is a `FileNotFoundError` whose message is relative to the
   working directory, not Node.js's error (see [Local paths in
   errors](file-uris.md)).

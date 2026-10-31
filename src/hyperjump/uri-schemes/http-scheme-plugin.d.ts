@@ -1,10 +1,10 @@
-import type { GetOptions, Hyperjump } from "../hyperjump.js";
-import type { UriSchemePlugin } from "./uri-scheme-plugin.d.ts";
+import type { RetrieveOptions, UriSchemePlugin } from "./uri-scheme-plugin.d.ts";
 import type { HttpCacheStore } from "./http-cache-store.d.ts";
 
 /**
- * Support the `http:` and `https:` URI schemes. Sends an Accept header
- * representing all registered media types.
+ * Support the `http:` and `https:` URI schemes. Sends the Accept header
+ * {@link Hyperjump.retrieve} gives it, for the media types that are
+ * supported. A response has to have a `Content-Type`.
  *
  * With a cache, responses are cached according to their caching headers
  * (RFC 9111, as a private cache), and stale responses are revalidated when
@@ -13,15 +13,16 @@ import type { HttpCacheStore } from "./http-cache-store.d.ts";
  * browser, it doesn't have a cache, because `fetch` already caches.
  */
 export class HttpUriSchemePlugin implements UriSchemePlugin {
-  constructor(hyperjump: Hyperjump<any>, options?: HttpUriSchemePluginOptions);
+  constructor(options?: HttpUriSchemePluginOptions);
 
   schemes: string[];
 
   /**
    * @throws An {@link HttpError} if the response is an error or has a status
-   * code that isn't supported.
+   * code that isn't supported, or an `UnknownMediaTypeError` if it doesn't
+   * have a `Content-Type`.
    */
-  retrieve(uri: string, options: GetOptions): Promise<Response>;
+  retrieve(uri: string, options: RetrieveOptions): Promise<Response>;
 }
 
 export type HttpUriSchemePluginOptions = {
@@ -33,7 +34,7 @@ export type HttpUriSchemePluginOptions = {
    * each URL that's requested, so headers can be sent only to the origins
    * they're for. Documents can reference any URL, so don't send
    * credentials to every URL. It can be async, to refresh a token for
-   * example. The `Accept` header is always the plugin's.
+   * example. The `Accept` header is always the one `retrieve` is given.
    *
    * A redirected request is sent with the same headers. `fetch` drops
    * `Authorization` and `Cookie` on a redirect to another origin, but not

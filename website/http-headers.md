@@ -12,7 +12,7 @@ import {
 } from "@hyperjump/browser";
 
 const h = new Hyperjump({ allowRetrieval: ["https://api.example.com/"] });
-h.addUriSchemePlugin(new HttpUriSchemePlugin(h, {
+h.addUriSchemePlugin(new HttpUriSchemePlugin({
   cache: new MemoryHttpCacheStore(),
   headers: (url) => url.origin === "https://api.example.com"
     ? { Authorization: `Bearer ${process.env.TOKEN}` }
@@ -24,8 +24,8 @@ h.addUriSchemePlugin(new HttpUriSchemePlugin(h, {
   reference any URL, so check the URL. Return `undefined` to send no
   headers.
 - **It can be async.** That lets you refresh a token.
-- **The plugin always sets `Accept`.** It lists the media types the plugin
-  supports.
+- **`Accept` is always set for you.** It lists the media types that are
+  supported.
 - **Give it a cache.** Replacing the plugin replaces its cache too.
 
 ## Redirects

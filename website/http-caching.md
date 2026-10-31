@@ -30,12 +30,12 @@ import {
 const h = new Hyperjump();
 
 // Keep responses on disk, so they outlive the process
-h.addUriSchemePlugin(new HttpUriSchemePlugin(h, {
+h.addUriSchemePlugin(new HttpUriSchemePlugin({
   cache: new FileHttpCacheStore("./.cache/hyperjump")
 }));
 
 // Don't cache
-h.addUriSchemePlugin(new HttpUriSchemePlugin(h));
+h.addUriSchemePlugin(new HttpUriSchemePlugin());
 ```
 
 To keep them somewhere else, like Redis, implement `HttpCacheStore`. It's

@@ -59,6 +59,39 @@ describe("JSON Browser", () => {
         await session.get("foo:something");
       });
 
+      test("a plugin is given the Accept header", async () => {
+        /** @type string | undefined */
+        let accept;
+        hyperjump.addUriSchemePlugin({
+          schemes: ["foo"],
+          retrieve: async (_uri, options) => {
+            accept = options.accept;
+            return new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } });
+          }
+        });
+
+        await session.get("foo:something");
+        expect(accept).to.equal(hyperjump.acceptableMediaTypes());
+      });
+
+      test("a response without a Content-Type has its extension's media type", async () => {
+        hyperjump.addUriSchemePlugin({
+          schemes: ["foo"],
+          retrieve: async (uri) => {
+            // A string body would get a `Content-Type`
+            const response = new Response(new TextEncoder().encode(fixtureDocument));
+            Object.defineProperty(response, "url", { value: uri });
+            return response;
+          }
+        });
+
+        const response = await hyperjump.retrieve("foo:something.json", {});
+        expect(response.headers.get("content-type")).to.equal("application/json");
+        expect(response.url).to.equal("foo:something.json");
+        expect(await response.text()).to.equal(fixtureDocument);
+        await expect(hyperjump.retrieve("foo:something", {})).rejects.toThrow("could not be determined");
+      });
+
       test("removeUriSchemePlugin", async () => {
         hyperjump.removeUriSchemePlugin("foo");
 

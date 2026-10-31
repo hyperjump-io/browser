@@ -7,21 +7,13 @@ import { FileNotFoundError } from "../hyperjump.js";
 import { relativeFileUri } from "../file-uris.js";
 
 /**
- * @import { Hyperjump } from "../index.js"
  * @import * as API from "./file-scheme-plugin.d.ts"
  */
 
 /** @implements API.FileUriSchemePlugin */
 export class FileUriSchemePlugin {
-  #hyperjump;
-
-  /**
-   * @param {Hyperjump<any>} hyperjump
-   */
-  constructor(hyperjump) {
+  constructor() {
     this.schemes = ["file"];
-
-    this.#hyperjump = hyperjump;
   }
 
   /** @type API.FileUriSchemePlugin["retrieve"] */
@@ -53,11 +45,10 @@ export class FileUriSchemePlugin {
     }
     const responseUri = realFilePath === filePath ? toAbsoluteIri(uri) : pathToFileURL(realFilePath).toString();
 
-    const contentType = this.#hyperjump.getMediaType(responseUri);
+    // A file doesn't have a media type. `Hyperjump` gives it the one its
+    // extension has.
     const stream = /** @type ReadableStream<Uint8Array> */ (Readable.toWeb(createReadStream(realFilePath)));
-    const response = new Response(stream, {
-      headers: { "Content-Type": contentType }
-    });
+    const response = new Response(stream);
     Object.defineProperty(response, "url", { value: responseUri });
 
     return response;

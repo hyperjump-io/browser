@@ -33,7 +33,7 @@ describe("JSON Browser", () => {
     /** @type (cache?: HttpCacheStore) => Hyperjump */
     const withCache = (cache) => {
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
-      hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin(hyperjump, { cache }));
+      hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin({ cache }));
       return hyperjump;
     };
 
@@ -166,7 +166,7 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const headers = () => ({ Authorization: "Bearer token" });
-      hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin(hyperjump, { cache: new MemoryHttpCacheStore(), headers }));
+      hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin({ cache: new MemoryHttpCacheStore(), headers }));
       await hyperjump.session().get(uri);
       const subject = await hyperjump.session().get(uri);
 
@@ -184,7 +184,7 @@ describe("JSON Browser", () => {
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       let token = 1;
       const headers = () => ({ Authorization: `Bearer ${token}` });
-      hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin(hyperjump, { cache: new MemoryHttpCacheStore(), headers }));
+      hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin({ cache: new MemoryHttpCacheStore(), headers }));
       await hyperjump.session().get(uri);
       token = 2;
       const subject = await hyperjump.session().get(uri);

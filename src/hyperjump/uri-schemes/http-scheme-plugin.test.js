@@ -274,7 +274,7 @@ describe("JSON Browser", () => {
         /** @type (options: import("./http-scheme-plugin.d.ts").HttpUriSchemePluginOptions) => Hyperjump */
         const withOptions = (options) => {
           const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/", "https://other.example.com/"] });
-          hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin(hyperjump, options));
+          hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin(options));
           return hyperjump;
         };
 

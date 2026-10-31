@@ -84,6 +84,10 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * implementing {@link UriSchemePlugin}s for URI schemes that don't
    * have locating semantics (such as `urn:`) and instead map to another URI
    * where the resource can be retrieved from. See the example in the README.
+   *
+   * It gives the plugin the `Accept` header for the media types that are
+   * supported. A response without a `Content-Type` gets the media type of
+   * its URL's extension.
    */
   retrieve(uri: string, options: GetOptions): Promise<Response>;
 

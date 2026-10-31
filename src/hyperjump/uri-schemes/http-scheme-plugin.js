@@ -1,8 +1,8 @@
 import CachePolicy from "http-cache-semantics";
 import { toAbsoluteIri } from "@hyperjump/uri";
+import { UnknownMediaTypeError } from "../hyperjump.js";
 
 /**
- * @import { Hyperjump } from "../index.js"
  * @import { HttpCacheStore } from "./http-cache-store.d.ts"
  * @import * as API from "./http-scheme-plugin.d.ts"
  */
@@ -21,7 +21,6 @@ import { toAbsoluteIri } from "@hyperjump/uri";
 
 /** @implements API.HttpUriSchemePlugin */
 export class HttpUriSchemePlugin {
-  #hyperjump;
   #successStatus;
 
   /** @type HttpCacheStore | undefined */
@@ -39,13 +38,11 @@ export class HttpUriSchemePlugin {
   #pending;
 
   /**
-   * @param {Hyperjump<any>} hyperjump
    * @param {API.HttpUriSchemePluginOptions} [options]
    */
-  constructor(hyperjump, options = {}) {
+  constructor(options = {}) {
     this.schemes = ["http", "https"];
 
-    this.#hyperjump = hyperjump;
     this.#successStatus = new Set([200, 203]);
     this.#cache = options.cache;
     this.#headers = options.headers;
@@ -53,9 +50,9 @@ export class HttpUriSchemePlugin {
   }
 
   /** @type API.HttpUriSchemePlugin["retrieve"] */
-  async retrieve(uri) {
+  async retrieve(uri, { accept }) {
     if (!this.#cache) {
-      const response = await fetch(uri, { headers: await this.#requestHeaders(uri) });
+      const response = await fetch(uri, { headers: await this.#requestHeaders(uri, accept) });
       this.#assertSuccess(uri, response);
 
       return response;
@@ -64,7 +61,7 @@ export class HttpUriSchemePlugin {
     const url = toAbsoluteIri(uri);
     let pending = this.#pending.get(url);
     if (!pending) {
-      pending = this.#retrieveCached(url, this.#cache).finally(() => {
+      pending = this.#retrieveCached(url, accept, this.#cache).finally(() => {
         this.#pending.delete(url);
       });
       this.#pending.set(url, pending);
@@ -78,10 +75,10 @@ export class HttpUriSchemePlugin {
     return response;
   }
 
-  /** @type (url: string, cache: HttpCacheStore) => Promise<ReadResponse> */
-  async #retrieveCached(url, cache) {
+  /** @type (url: string, accept: string, cache: HttpCacheStore) => Promise<ReadResponse> */
+  async #retrieveCached(url, accept, cache) {
     // The cache needs every header sent so it can match a `Vary`
-    const request = { url, method: "GET", headers: await this.#requestHeaders(url) };
+    const request = { url, method: "GET", headers: await this.#requestHeaders(url, accept) };
 
     const cached = await cache.get(url);
     const cachedPolicy = cached && CachePolicy.fromObject(cached.policy);
@@ -122,10 +119,10 @@ export class HttpUriSchemePlugin {
     return { url: response.url, status: response.status, headers: responseHeaders, body };
   }
 
-  /** @type (uri: string) => Promise<Record<string, string>> */
-  async #requestHeaders(uri) {
+  /** @type (uri: string, accept: string) => Promise<Record<string, string>> */
+  async #requestHeaders(uri, accept) {
     const headers = new Headers(await this.#headers?.(new URL(uri)));
-    headers.set("accept", this.#hyperjump.acceptableMediaTypes());
+    headers.set("accept", accept);
 
     return Object.fromEntries(headers);
   }
@@ -138,6 +135,11 @@ export class HttpUriSchemePlugin {
 
     if (!this.#successStatus.has(response.status)) {
       throw new HttpError(response, "Unsupported HTTP response status code");
+    }
+
+    // A URL's extension doesn't say what's at it
+    if (!response.headers.has("content-type")) {
+      throw new UnknownMediaTypeError("The media type of the response could not be determined. Make sure the response includes a 'Content-Type' header.");
     }
   }
 }

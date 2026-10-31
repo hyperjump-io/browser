@@ -9,7 +9,8 @@
   `allowRetrieval` allows, so a fixed set of headers would send credentials
   to every origin. A function lets them go only where they belong, and lets
   a token be refreshed.
-- `Accept` is always the plugin's, because media type plugins depend on it.
+- `Accept` is always the one `retrieve` gives the plugin (`options.accept`),
+  because media type plugins depend on it.
 - The headers are in the request the HTTP cache sees, so a `Vary` on them is
   respected, and revalidating sends them too. The cache is private and
   shared by every session, so headers belong to the plugin, not a session.

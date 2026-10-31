@@ -8,7 +8,6 @@ import { defaultUriSchemePlugins } from "./hyperjump/uri-schemes/default-uri-sch
 import { FileUriSchemePlugin } from "./hyperjump/uri-schemes/file-scheme-plugin.browser.js";
 import { pathToUri as browserPathToUri } from "./jref/path-to-uri.browser.js";
 import { pathToUri } from "./jref/path-to-uri.js";
-import { Hyperjump } from "./hyperjump/index.js";
 
 /**
  * @typedef {{
@@ -70,12 +69,12 @@ describe("Browser compatibility", () => {
     });
 
     test("the file: scheme isn't a default URI scheme", () => {
-      const schemes = defaultUriSchemePlugins(new Hyperjump()).flatMap((plugin) => plugin.schemes);
+      const schemes = defaultUriSchemePlugins().flatMap((plugin) => plugin.schemes);
       expect(schemes).to.eql(["http", "https"]);
     });
 
     test("FileUriSchemePlugin can't be constructed", () => {
-      expect(() => new FileUriSchemePlugin(new Hyperjump())).to.throw();
+      expect(() => new FileUriSchemePlugin()).to.throw();
     });
 
     describe("pathToUri matches the Node.js implementation", () => {

@@ -8,7 +8,18 @@ fragments identify. JSON and JRef are built in.
 - `content-type` v3 doesn't throw for a malformed header, so the type is
   validated, to keep rejecting an invalid `Content-Type`.
 - The `Accept` header lists every plugin with its quality, `q=0` included,
-  and `*/*` last.
+  and `*/*` last. `Hyperjump.retrieve` gives it to the URI scheme plugin
+  (`options.accept`).
+- A response without a `Content-Type` gets the media type of its URL's
+  extension, in `Hyperjump.retrieve`. That's how a file gets one. The
+  `http(s):` plugin rejects a response without one, because a URL's
+  extension doesn't say what's at it.
+- URI scheme plugins don't get the `Hyperjump`. Before 2026-10-30, they
+  were constructed with it, and the `http(s):` plugin only used it for the
+  `Accept` header and the `file:` plugin for a file's media type, which
+  made the client and its plugins depend on each other. What they needed
+  is a value `retrieve` gives them, or something it does with what they
+  return.
 - A file's media type is the plugin with the longest matching extension, so
   a plugin for `.schema.json` takes precedence over the JSON plugin, whatever
   order they were added in. Before, the first plugin with a matching

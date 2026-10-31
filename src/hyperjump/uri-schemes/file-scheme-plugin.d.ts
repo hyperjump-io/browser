@@ -1,8 +1,8 @@
-import type { UriSchemePlugin } from "./uri-scheme-plugin.d.ts";
-import type { GetOptions, Hyperjump } from "../hyperjump.js";
+import type { RetrieveOptions, UriSchemePlugin } from "./uri-scheme-plugin.d.ts";
 
 /**
- * Supports the `file:` URI scheme. Media type is determined by file extensions.
+ * Supports the `file:` URI scheme. A file's response doesn't have a
+ * `Content-Type`, so its media type is its extension's.
  *
  * A file is read from its real path, with every symlink in the path
  * resolved, and the response's URL is that real path. References in the file
@@ -13,7 +13,7 @@ import type { GetOptions, Hyperjump } from "../hyperjump.js";
  * environments, such as the browser, constructing it throws an error.
  */
 export class FileUriSchemePlugin implements UriSchemePlugin {
-  constructor(hyperjump: Hyperjump<any>);
+  constructor();
   schemes: string[];
-  retrieve(uri: string, options: GetOptions): Promise<Response>;
+  retrieve(uri: string, options: RetrieveOptions): Promise<Response>;
 }

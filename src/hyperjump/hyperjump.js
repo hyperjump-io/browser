@@ -54,7 +54,7 @@ export class Hyperjump {
     this.#mediaTypePlugins = {};
 
     // Load default URI scheme plugins
-    for (const plugin of defaultUriSchemePlugins(this)) {
+    for (const plugin of defaultUriSchemePlugins()) {
       this.addUriSchemePlugin(plugin);
     }
 
@@ -88,7 +88,23 @@ export class Hyperjump {
       throw new UnsupportedUriSchemeError(scheme, `The '${scheme}:' URI scheme is not supported. Use the 'addUriSchemePlugin' function to add support for '${scheme}:' URIs.`);
     }
 
-    return this.#uriSchemePlugins[scheme].retrieve(uri, options);
+    const response = await this.#uriSchemePlugins[scheme].retrieve(uri, { ...options, accept: this.acceptableMediaTypes() });
+    if (response.headers.has("content-type")) {
+      return response;
+    }
+
+    // The headers of a response from `fetch` can't be changed
+    const url = response.url || toAbsoluteIri(uri);
+    const headers = new Headers(response.headers);
+    try {
+      headers.set("content-type", this.getMediaType(url));
+    } catch (error) {
+      await response.body?.cancel();
+      throw error;
+    }
+    const typed = new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+    Object.defineProperty(typed, "url", { value: url });
+    return typed;
   }
 
   /** @type API.Hyperjump<JrefNode>["acceptableMediaTypes"] */

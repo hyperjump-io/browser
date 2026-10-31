@@ -1,5 +1,4 @@
 /**
- * @import { Hyperjump } from "../index.js"
  * @import * as API from "./file-scheme-plugin.d.ts"
  */
 
@@ -10,10 +9,7 @@ export class FileUriSchemePlugin {
   /** @type string[] */
   schemes = [];
 
-  /**
-   * @param {Hyperjump<any>} _hyperjump
-   */
-  constructor(_hyperjump) {
+  constructor() {
     throw Error(notSupported);
   }
 
