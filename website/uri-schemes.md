@@ -6,31 +6,39 @@ schemes. `http:`, `https:`, and `file:` are supported by default, although
 
 ## Adding a URI scheme
 
-A plugin has the `schemes` it handles and a `retrieve` function that returns a
-`Response`. You configure plugins with `uriSchemePlugins` when you create the
-`Hyperjump`. This example supports `urn:` by mapping each URN to a URL
-and retrieving the URL with the `retrieve` function the plugin is given:
+A URI scheme plugin defines the `schemes` it handles and a `retrieve` function
+that returns a `Response`. You configure plugins with `uriSchemePlugins` when
+you create the `Hyperjump`. This example is a plugin for `urn:`. It's created
+with the URLs that URNs map to, and it retrieves a URN by retrieving that URN's
+URL with the `retrieve` function in its options:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
+import type { RetrieveOptions, UriSchemePlugin } from "@hyperjump/browser";
 
-const mappings: Record<string, string> = {
-  "urn:example:luke": "https://swapi.hyperjump.io/api/people/1"
-};
+class UrnUriSchemePlugin implements UriSchemePlugin {
+  schemes = ["urn"];
+  #mappings: Record<string, string>;
+
+  constructor(mappings: Record<string, string>) {
+    this.#mappings = mappings;
+  }
+
+  async retrieve(urn: string, options: RetrieveOptions): Promise<Response> {
+    const url = this.#mappings[urn.toLowerCase()];
+    if (!url) {
+      throw Error(`Not found: ${urn}`);
+    }
+
+    return await options.retrieve(url, options);
+  }
+}
 
 const h = new Hyperjump({
   allowRetrieval: ["urn:example:luke", "https://swapi.hyperjump.io/"],
-  uriSchemePlugins: [{
-    schemes: ["urn"],
-    async retrieve(urn, options) {
-      const url = mappings[urn.toLowerCase()];
-      if (!url) {
-        throw Error(`Not found: ${urn}`);
-      }
-
-      return await options.retrieve(url, options);
-    }
-  }]
+  uriSchemePlugins: [new UrnUriSchemePlugin({
+    "urn:example:luke": "https://swapi.hyperjump.io/api/people/1"
+  })]
 });
 
 const luke = await h.session().get("urn:example:luke");
@@ -40,12 +48,14 @@ const luke = await h.session().get("urn:example:luke");
 allow the URN. The response is then checked again against the URL it came from,
 so the URL that the URN maps to must be allowed too.
 
-`uriSchemePlugins` is a list of `UriSchemePlugin`s, so `retrieve`'s parameters
-are typed for you. `options` has what the request needs:
+A plugin implements `UriSchemePlugin`, and its `retrieve` is given
+`RetrieveOptions`. The options have what the request needs:
 
-- Which document the reference came from
-- `accept`, an `Accept` header for the media types that are supported
-- `retrieve`, which retrieves another URI with the plugin for that URI's scheme
+| Option | What it is |
+| --- | --- |
+| `referencedFrom` | The URL of the document the reference came from, if there is one |
+| `accept` | An `Accept` header for the media types that are supported |
+| `retrieve(uri, options)` | Retrieves another URI with the plugin for that URI's scheme |
 
 Pass `options` on when you call `options.retrieve` so the other plugin gets the
 same options.
