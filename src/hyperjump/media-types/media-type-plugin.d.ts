@@ -24,6 +24,13 @@ export interface MediaTypePlugin<T extends DocumentNode<unknown>> {
    * Filenames start with `/` (Example: `/.bowerrc`)
    */
   extensions: string[];
+
+  /**
+   * The quality of the media type in the `Accept` header, a number from 0 to
+   * 1 with at most three decimal places. The `Hyperjump` throws for any
+   * other value when it's created. It's read then, so changing it later
+   * doesn't change the header.
+   */
   quality?: number;
   /**
    * @param session - The session the document is being retrieved for. A

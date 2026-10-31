@@ -65,6 +65,38 @@ describe("JSON Browser", () => {
         expect(accept).to.equal("application/reference+json, application/json, application/foo; q=0, */*; q=0.001");
       });
 
+      test.each([
+        [1.5],
+        [-0.1],
+        [0.0001],
+        [Number.NaN],
+        ["0.5"]
+      ])("a quality of %s throws when it's configured", (quality) => {
+        const plugin = { ...fooPlugin(), quality: /** @type number */ (quality) };
+        expect(() => new Hyperjump({ mediaTypePlugins: [plugin] })).toThrow(RangeError);
+      });
+
+      test("changing a quality after it's configured doesn't change it", async () => {
+        const plugin = fooPlugin(0.8);
+        /** @type string | undefined */
+        let accept;
+        const hyperjump = new Hyperjump({
+          allowRetrieval: ["test:/"],
+          mediaTypePlugins: [plugin],
+          uriSchemePlugins: [{
+            schemes: ["test"],
+            retrieve: async (_uri, options) => {
+              accept = options.accept;
+              return new Response(`42`, { headers: { "Content-Type": "application/json" } });
+            }
+          }]
+        });
+        plugin.quality = 0.1;
+        await hyperjump.session().get("test:/document");
+
+        expect(accept).to.equal("application/reference+json, application/json, application/foo; q=0.8, */*; q=0.001");
+      });
+
       test("a default's quality is configured with a replacement", async () => {
         const accept = await acceptFor({ mediaTypePlugins: [new JsonMediaTypePlugin({ quality: 0.5 })] });
         expect(accept).to.equal("application/reference+json, application/json; q=0.5, */*; q=0.001");

@@ -91,7 +91,7 @@ State is separated by how long it lives.
   - It's a function, like `accept`, not the `Hyperjump`, so a plugin
     still doesn't depend on it (see [Media types](media-types.md)).
 - What only the library uses is private: `#retrieve`, `#parseResponse`,
-  `#acceptableMediaTypes`, and `#mediaTypeByExtension`. They used to be public
+  and `#mediaTypeByExtension`. They used to be public
   because something inside the library needed them, which made them look
   like something an application calls. `Session` gets `#retrieve` and
   `#parseResponse` through module functions that `Hyperjump`'s static

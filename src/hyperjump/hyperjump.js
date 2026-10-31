@@ -30,6 +30,34 @@ let retrieve;
 let parseResponse;
 
 /**
+ * Every media type plugin with its quality, and any media type last. A
+ * quality is a number from 0 to 1 with at most three decimal places (RFC
+ * 9110, section 12.4.2), or the `Hyperjump` throws when it's created.
+ *
+ * @type (mediaTypePlugins: Map<string, MediaTypePlugin<DocumentNode>>) => string
+ */
+const acceptHeader = (mediaTypePlugins) => {
+  const mediaTypes = [];
+  for (const [mediaType, { quality }] of mediaTypePlugins) {
+    if (quality === undefined) {
+      mediaTypes.push(mediaType);
+    } else if (isQuality(quality)) {
+      mediaTypes.push(`${mediaType}; q=${quality}`);
+    } else {
+      throw RangeError(`The quality of the '${mediaType}' media type plugin is ${String(quality)}. It must be a number from 0 to 1 with at most three decimal places.`);
+    }
+  }
+  mediaTypes.push("*/*; q=0.001");
+
+  return mediaTypes.join(", ");
+};
+
+/** @type (quality: unknown) => boolean */
+const isQuality = (quality) => typeof quality === "number"
+  && quality >= 0 && quality <= 1
+  && Math.round(quality * 1000) / 1000 === quality;
+
+/**
  * @class
  * @implements API.Hyperjump<JrefNode>
  */
@@ -52,6 +80,15 @@ export class Hyperjump {
 
   /** @type Map<string, MediaTypePlugin<DocumentNode>> */
   #mediaTypePlugins;
+
+  /**
+   * The `Accept` header for the media type plugins. It's built when the
+   * `Hyperjump` is created, so changing a plugin's quality after that
+   * doesn't change it.
+   *
+   * @type string
+   */
+  #accept;
 
   /**
    * @param {API.HyperjumpConfig} [config]
@@ -86,6 +123,8 @@ export class Hyperjump {
     for (const plugin of [new JrefMediaTypePlugin(), new JsonMediaTypePlugin(), ...config.mediaTypePlugins ?? []]) {
       this.#mediaTypePlugins.set(plugin.mediaType, plugin);
     }
+
+    this.#accept = acceptHeader(this.#mediaTypePlugins);
   }
 
   get config() {
@@ -118,7 +157,7 @@ export class Hyperjump {
 
     const response = await plugin.retrieve(uri, {
       ...options,
-      accept: this.#acceptableMediaTypes(),
+      accept: this.#accept,
       mediaTypeByExtension: (uri) => this.#mediaTypeByExtension(uri),
       retrieve: (uri, retrieveOptions = options) => this.#retrieve(uri, retrieveOptions)
     });
@@ -127,30 +166,6 @@ export class Hyperjump {
     }
 
     return response;
-  }
-
-  /** @type () => string */
-  #acceptableMediaTypes() {
-    let accept = "";
-
-    for (const [contentType, plugin] of this.#mediaTypePlugins) {
-      accept = this.#addAcceptableMediaType(accept, contentType, plugin.quality);
-    }
-
-    return this.#addAcceptableMediaType(accept, "*/*", 0.001);
-  }
-
-  /** @type (accept: string, contentType: string, quality: number | undefined) => string */
-  #addAcceptableMediaType(accept, contentType, quality) {
-    if (accept.length > 0) {
-      accept += ", ";
-    }
-    accept += contentType;
-    if (quality !== undefined) {
-      accept += `; q=${quality}`;
-    }
-
-    return accept;
   }
 
   /**

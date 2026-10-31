@@ -70,7 +70,7 @@ A plugin has these properties:
 | `extensions` | File extensions for it, like `.yref`. A name that starts with `/` is a whole filename, like `/.bowerrc`. |
 | `parse(response, session)` | Parses a `Response` into a document node. If parsing needs other documents, retrieve them with `session`. Throw if the document can't be parsed. |
 | `fragmentPointer(document, fragment)` | Returns the JSON Pointer a fragment identifies. Without it, fragments are ignored. |
-| `quality` | Optional. Its quality in the `Accept` header. |
+| `quality` | Optional. Its quality in the `Accept` header, a number from 0 to 1 with at most three decimal places. The `Hyperjump` throws for any other value when it's created. |
 
 A plugin is a `MediaTypePlugin<D>`, where `D` is the type of the document node
 it parses. A `Hyperjump` can only browse documents made of JRef nodes. This

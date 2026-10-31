@@ -14,6 +14,16 @@ fragments identify. JSON and JRef are built in.
   the JRef and JSON plugins take it as a constructor option. Changing a
   default's quality is configuring a replacement. Before 2026-10-30,
   `setMediaTypeQuality` changed a registered plugin's quality.
+  - The header is built when the `Hyperjump` is created, so a plugin's
+    quality can't change it later, and a `Hyperjump`'s configuration stays
+    what it was created with. A quality has to be a number from 0 to 1 with
+    at most three decimal places, RFC 9110's `qvalue`, or the `Hyperjump`
+    throws when it's created. Before 2026-10-31, the header was built for
+    each request from the plugins' qualities as they were then, and any
+    value was sent.
+  - The JRef and JSON plugins don't check their `quality` option
+    themselves. The `Hyperjump` checks every plugin's, including ones an
+    application writes.
 - A response without a `Content-Type` can't be parsed. A plugin for a
   scheme without media types, like `file:`, gives a response the media type
   of its URL's extension with `options.mediaTypeByExtension`. The
