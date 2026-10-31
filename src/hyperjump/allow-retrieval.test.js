@@ -111,6 +111,12 @@ describe("allowRetrieval", () => {
       await expect(session.get(fileUri(join(inside, "inside.json.bak")))).rejects.toThrow(RetrievalNotAllowedError);
     });
 
+    test("an origin without a '/' allows everything on it", async () => {
+      const allowed = new AllowedUrls(resolveAllowRetrieval(["https://example.com"], "", configSource), "");
+      expect(await allowed.allows("https://example.com/foo/bar")).to.equal(true);
+      expect(await allowed.allows("https://other.example.com/foo")).to.equal(false);
+    });
+
     test("a relative entry is resolved against the working directory", async () => {
       const session = hyperjumpWith({ allowRetrieval: [`./${relative(cwd(), inside)}/`] }).session();
       const node = await session.get(fileUri(join(inside, "inside.json")));

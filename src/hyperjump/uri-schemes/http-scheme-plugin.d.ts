@@ -37,7 +37,9 @@ export type HttpUriSchemePluginOptions = {
   /**
    * Headers to send with requests, such as credentials, by URL. A URL that
    * ends with `/` gets its headers for everything under it. Any other gets
-   * them only for itself. Only the URLs listed get headers, because
+   * them only for itself. An origin, with or without the `/`, gets them for
+   * everything on it, because it's the URL of its root. Only the URLs listed
+   * get headers, because
    * documents can reference any URL. A URL has to be an absolute `http:` or
    * `https:` URL, or the plugin throws when it's created.
    *

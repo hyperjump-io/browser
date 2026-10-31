@@ -10,6 +10,13 @@ local to it.
   with `/` allows everything under it. Any other allows only itself. They're
   compared after the URL is parsed, so dot segments and the host can't get
   around it. An entry's fragment is ignored.
+  - An origin without a `/`, like `https://example.com`, allows everything
+    on it. It parses to the origin's root, `https://example.com/`, which
+    ends with `/`. Making it allow only the root would go against how it
+    parses, and no one means only the root. Throwing for it, to make the
+    `/` explicit, was considered and rejected, because it would refuse a
+    spelling of the same URL. Both are the same for `headers` keys (see
+    [Request headers](request-headers.md)).
 - A relative entry is resolved against the context URI, like a relative
   path is. That's the working directory in Node.js and the page in a
   browser (`#context-uri`). Each session resolves its entries, or the

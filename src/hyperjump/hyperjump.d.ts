@@ -17,7 +17,8 @@ export type HyperjumpConfig<T extends JsonNode<{ type: string }> = JrefNode> = {
    * refuses is a {@link RetrievalNotAllowedError}.
    *
    * It's a list of URLs. One that ends with `/` allows everything under it.
-   * Any other allows only itself. A relative one is resolved against the
+   * Any other allows only itself. An origin, with or without the `/`, allows
+   * everything on it, because it's the URL of its root. A relative one is resolved against the
    * working directory in Node.js and the page in a browser. Where there's
    * nothing to resolve it against, such as in a worker, it throws.
    *

@@ -23,7 +23,9 @@ const h = new Hyperjump({
 
 URLs match the way they do in [`allowRetrieval`](allow-retrieval.md). Headers
 for a URL that ends with `/` are sent with every request under that URL. Headers
-for any other URL are sent only with requests to that exact URL. Every URL in
+for any other URL are sent only with requests to that exact URL. Headers for an
+origin like `https://api.example.com` are sent with every request to it, with or
+without the `/`, because it's the URL of the origin's root. Every URL in
 `headers` has to be an absolute `http:` or `https:` URL. This plugin wasn't
 given a `cache`, so the default [cache](http-caching.md) still applies.
 

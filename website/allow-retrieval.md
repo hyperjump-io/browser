@@ -10,7 +10,9 @@ allows it.
 ## `allowRetrieval`
 
 `allowRetrieval` is a list of URLs. A URL that ends with `/` allows everything
-under that URL. Any other URL allows only that exact URL. An empty list allows
+under that URL. Any other URL allows only that exact URL. An origin like
+`https://example.com` allows everything on it, with or without the `/`, because
+it's the URL of the origin's root, `https://example.com/`. An empty list allows
 nothing. A relative URL is resolved against the working directory in Node.js and
 against the page in a browser. A worker has no page to resolve against, so use
 absolute URLs there.

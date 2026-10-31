@@ -390,6 +390,17 @@ describe("JSON Browser", () => {
           expect(toJson(subject)).to.equal(`42`);
         });
 
+        test("for an origin without a slash are sent to everything on it", async () => {
+          mockAgent.get(testDomain)
+            .intercept({ method: "GET", path: "/foo/bar", headers: { authorization: "Bearer token" } })
+            .reply(200, `42`, { headers: contentType });
+
+          const hyperjump = withOptions({ headers: { "https://example.com": { Authorization: "Bearer token" } } });
+          const subject = await hyperjump.session().get(`${testDomain}/foo/bar`);
+
+          expect(toJson(subject)).to.equal(`42`);
+        });
+
         test("are compared after the URL is parsed", async () => {
           mockAgent.get(testDomain)
             .intercept({ method: "GET", path: "/foo", headers: { authorization: "Bearer token" } })
