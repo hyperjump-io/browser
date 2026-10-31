@@ -106,22 +106,18 @@ describe("JSON Browser", () => {
         });
 
         test("file references not allowed from non-filesystem context", async () => {
-          const jref = `{ "$ref": "${testUri}/foo.jref" }`;
+          const fooUri = `${testUri}/${fixtureDirectory}/foo.jref`;
+          await writeFile(fileURLToPath(fooUri), `42`);
 
           mockAgent.get(testDomain)
             .intercept({ method: "GET", path: "/main" })
-            .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
+            .reply(200, `{ "$ref": "${fooUri}" }`, { headers: { "content-type": "application/reference+json" } });
 
-          const hyperjump = new Hyperjump();
-          const session = hyperjump.session();
+          const hyperjump = new Hyperjump({ allowRetrieval: [`${testDomain}/`, "./"] });
+          const result = hyperjump.session().get(`${testDomain}/main`);
 
-          try {
-            const uri = `${testDomain}/main`;
-            await session.get(uri);
-            expect.fail("Expected Error: Accessing a file from a non-filesystem document is not allowed");
-          } catch (error) {
-            expect(error).to.be.instanceof(Error);
-          }
+          await expect(result).rejects.toBeInstanceOf(RetrievalError);
+          await expect(result).rejects.toHaveProperty("cause.message", expect.stringContaining("non-filesystem context"));
         });
 
         test("file references through another scheme's plugin aren't allowed from non-filesystem context", async () => {
