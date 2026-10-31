@@ -18,8 +18,8 @@ for you. Vite, webpack, esbuild, and Rollup all do.
 
 A few things work differently in a browser:
 
-- Relative URIs are resolved against the page's URI.
-- `file:` URIs aren't available.
+- Relative URLs are resolved against the page's URL.
+- `file:` URLs aren't available.
 - The package doesn't have its own HTTP cache because the browser already
   caches. See [HTTP caching](http-caching.md).
 - The default [`allowRetrieval`](allow-retrieval.md) allows what's in the

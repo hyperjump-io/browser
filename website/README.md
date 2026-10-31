@@ -1,7 +1,7 @@
 # Browser
 
 A client for JSON documents that reference each other. It retrieves documents
-over HTTP or from files and follows the references between them for you, so you
+over HTTP or from files. It follows the references between them for you, so you
 can work with linked documents as if they were one value.
 
 ```typescript

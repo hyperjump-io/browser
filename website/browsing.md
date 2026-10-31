@@ -13,8 +13,8 @@ const luke = await session.get("https://swapi.hyperjump.io/api/people/1");
 ## Nodes
 
 A node is a JRef AST node for a value in a document. Its `jsonType` tells you
-what kind of JSON value it is. Its `location` is the URI that identifies the
-value. The URI's fragment is a JSON Pointer to where the value is in its
+what kind of JSON value it is. Its `location` is the URL that identifies the
+value. The URL's fragment is a JSON Pointer to where the value is in its
 document.
 
 ```typescript
@@ -90,7 +90,7 @@ When something goes wrong, `get` and `step` throw one of these errors:
 | `JsonPointerError` | A fragment or a step doesn't find a value |
 | `ReferenceCycleError` | Following references leads back to a reference that was already followed |
 | `UnsupportedMediaTypeError` | No media type plugin handles the response's `Content-Type` |
-| `UnsupportedUriSchemeError` | No URI scheme plugin handles the URI |
+| `UnsupportedUriSchemeError` | No URI scheme plugin handles the URL |
 
 Error messages often end up in logs and bug reports. To keep them from revealing
 where your files are, a `file:` URL in a message is shown relative to the

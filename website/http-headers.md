@@ -2,8 +2,9 @@
 
 Requests are sent by the HTTP plugin, so to send headers such as credentials
 with `http:` and `https:` requests, you replace the default HTTP plugin with one
-that has `headers`. Documents can reference any URL, so headers are given by URL
-and only the URLs you list get them:
+that has `headers`. Documents can reference any URL, so headers sent with every
+request could end up at any server. Instead, headers are given by URL, and only
+the URLs you list get them:
 
 ```typescript
 import { Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";
@@ -26,8 +27,8 @@ given a `cache`, so the default [cache](http-caching.md) still applies.
 
 When more than one URL matches a request, their headers are merged and the
 longer URL's headers win. So, an API can have one token and a path under it can
-have another. `Accept` is always set for you, because it lists the media types
-that are supported.
+have another. You don't need to set `Accept`. It's always set to the media
+types that are supported.
 
 ## Headers that change
 

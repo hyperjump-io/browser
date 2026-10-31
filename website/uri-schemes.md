@@ -51,7 +51,7 @@ Pass `options` on when you call `options.retrieve` so the other plugin gets the
 same options.
 
 A response doesn't need a `Content-Type`. When it doesn't have one, its media
-type comes from its URL's extension the same way a file's does.
+type comes from its URL's extension just like a file's media type does.
 
 ## Replacing a URI scheme
 

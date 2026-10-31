@@ -78,8 +78,8 @@ None of these follow references. To follow references, use a
 ## In a unified pipeline
 
 `rejsonParse` and `rejsonStringify` are [unified](https://unifiedjs.com/)
-plugins for pipelines that process JSON files, and `jrefParse` and
-`jrefStringify` do the same for JRef. With `accept: "recovered"`, a file is
+plugins for pipelines that process JSON files. `jrefParse` and `jrefStringify`
+do the same for JRef. With `accept: "recovered"`, a file is
 still processed if the parser recovered from its syntax errors, and those errors
 are reported as warnings.
 [`@hyperjump/json-schema`](https://github.com/hyperjump-io/json-schema/blob/v2/website/unified/README.md)
