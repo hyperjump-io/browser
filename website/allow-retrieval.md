@@ -50,12 +50,12 @@ Checking a URL before it's retrieved isn't enough on its own because there are
 other ways to end up somewhere you didn't allow. `allowRetrieval` covers these
 too:
 
-- **Symlinks.** In Node.js, `file:` URLs are compared by their real paths, so a
+- **Symlinks.** In Node.js, `file:` URLs are compared by their real paths so a
   symlink in an allowed directory can't lead outside it.
-- **Redirects.** A response is checked again against the URL it came from, so a
+- **Redirects.** A response is checked again against the URL it came from so a
   redirect can't lead somewhere you didn't allow. The redirected request is
   still sent, but its response isn't used.
-- **The cache.** The check happens before the URI scheme plugins run, so a
+- **The cache.** The check happens before the URI scheme plugins run so a
   cached response can't get around the check.
 
 The check applies to every URI scheme, including the ones you add. Some plugins

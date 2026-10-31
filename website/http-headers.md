@@ -65,7 +65,7 @@ Different credentials for the same URL are another matter. The cache is private,
 which means it's meant for one user. A response retrieved with credentials is
 used for later requests to the same URL even when those requests send different
 credentials. The only exception is a response with a `Vary` header that names
-the headers that differ. The cache sees every header that's sent, so it can
+the headers that differ. The cache sees every header that's sent so it can
 respect that `Vary`.
 
 Say Alice and Bob each have their own token for `https://api.example.com/me`. If

@@ -101,7 +101,7 @@ way, use `relativeFileUri(uri)`.
 ## Sessions
 
 A session keeps every document it retrieves for as long as you use it. Each
-document is retrieved only once, so everything you read through a session gives
+document is retrieved only once so everything you read through a session gives
 you a consistent view. To see changes, start a new session.
 
 A new session doesn't mean downloading everything again. Sessions from the same
