@@ -19,9 +19,7 @@ they are.
 - `relativeFileUri` is exported, so applications say URLs the same way in
   their own messages.
 - A URL is normalized before it's made relative, so one written as
-  `FILE:///…`, as a schema author might, is relative too. Before
-  2026-10-27, only its scheme was compared without case, and it was said
-  whole.
+  `FILE:///…`, as a schema author might, is relative too.
 - Where the working directory isn't a folder, as in a browser, there are no
   `file:` URLs, and one is said by its file name.
 

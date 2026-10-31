@@ -58,8 +58,6 @@ status with it:
   (`appendToLocation`, `@hyperjump/uri`'s `encodeIriFragment`), so
   locations are valid, normalized IRIs. `get` decodes a fragment before
   following it as a JSON Pointer.
-- `appendToLocation` caches the encoded form of each segment (up to 10,000
-  names of up to 100 characters, cleared when full), because encoding was
-  most of the time `fromJs` took and most names repeat. Array indexes are
-  appended without encoding, because they never need it (see
+- `appendToLocation` caches the encoded form of each segment, because
+  encoding was most of the time `fromJs` took (see
   [Node locations](../benchmarks/node-locations.md)).

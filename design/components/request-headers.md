@@ -24,8 +24,7 @@
   have one token and a path under it another.
 - A value can be a function of the requested URL, `HeadersFunction`, and
   can be async, so a token can be refreshed. The URL doesn't have its
-  fragment, which isn't part of a request. Before 2026-10-31, it had the
-  fragment without a cache and didn't with one.
+  fragment, which isn't part of a request.
 - Until 2026-10-30, `headers` was one function of every URL,
   `(url: URL) => HeadersInit | undefined`. For one token for one API, most
   of it was the origin check, which is the part that's easy to get wrong.

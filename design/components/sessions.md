@@ -40,10 +40,10 @@ State is separated by how long it lives.
   `allowRetrieval`. So `hyperjump.config` is all of its configuration, and
   nothing changes it later.
   - It's a frozen copy of the config, with frozen copies of its lists.
-    Before 2026-10-31, it was the object the `Hyperjump` was created with,
-    so changing that object's `allowRetrieval` changed what new sessions
-    allowed, without the check the constructor does. Changing its plugins
-    did nothing, because they're read once. A subclass's own config,
+    Otherwise, changing the object the `Hyperjump` was created with would
+    change what new sessions allow, without the check the constructor
+    does, and changing its plugins would do nothing, because they're read
+    once. A subclass's own config,
     like `@hyperjump/json-schema`'s `dialects`, is copied but its lists
     aren't, because only the subclass knows what they are.
 - The defaults come first, then the config's plugins in order, and a later

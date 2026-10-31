@@ -21,18 +21,17 @@ local to it.
   path is. That's the working directory in Node.js and the page in a
   browser (`#context-uri`). Each session resolves its entries, or the
   config's (`hyperjump.config`), or the default, against its own context
-  URI (see [Sessions](sessions.md)). The config's are checked when the
-  `Hyperjump` is created too, so one that isn't a URL throws there. Before
-  2026-10-30, the config's were resolved once, when the `Hyperjump` was
-  created, and sessions got them through a `WeakMap`. `allowed-urls.js`
-  is given the context URI rather than reading it, so its tests give it a
-  page or nothing instead of mocking modules. Without a page, it's `""`, which counts as
-  none. Entries are resolved when the config or the session's options are
-  given, and one that isn't a URL throws there. A relative entry where
-  there's no context URI, such as in a worker, throws and says to use an
-  absolute URL, instead of quietly allowing nothing. The default is resolved
-  when a session first checks a URL, so an application without a context
-  URI that never retrieves anything doesn't need the config.
+  URI (see [Sessions](sessions.md)). Resolving the config's once, when the
+  `Hyperjump` was created, and giving them to sessions through a `WeakMap`
+  was replaced by this. `allowed-urls.js` is given the context URI rather
+  than reading it, so its tests give it a page or nothing instead of
+  mocking modules. Without a page, it's `""`, which counts as none.
+  - Entries are resolved when the config or the session's options are
+    given, so one that isn't a URL throws there. A relative entry where
+    there's no context URI, such as in a worker, throws and says to use an
+    absolute URL, instead of quietly allowing nothing. The default is
+    resolved when a session first checks a URL, so an application without
+    a context URI that never retrieves anything doesn't need the config.
 - The default is `["./"]` everywhere: the working directory in Node.js, and
   the page's directory in a browser. Browsers can't read `file:` URLs
   anyway.
@@ -91,17 +90,14 @@ local to it.
   response they give is checked by its URL.
   - Without options, it's given the plugin's own, so the `file:` plugin
     still knows the document the reference came from and refuses a file
-    for a document that isn't one. Before 2026-10-31, it was given none, so
-    a `urn:` that maps to a file could be read from a document on the web.
-    A plugin can still pass other options, because a plugin is the
+    for a document that isn't one. A plugin can still pass other options, because a plugin is the
     application's own code and could read the file itself anyway.
 - An error about a list, or a refused URL's, says which list to change:
   the config's, or the session's own option, which replaces the config's
   so adding to the config wouldn't help. The default is the config's,
   because configuring a list is how it's changed. Without a context URI,
   the default's error says to configure absolute URLs, not to use one, since
-  the application didn't write `./`. Before 2026-10-31, every message said
-  the config.
+  the application didn't write `./`.
 - A refused URL is a `RetrievalNotAllowedError`, thrown as it is, not
   wrapped in a `RetrievalError`. It's distinct from a `RetrievalError` for
   a URL that was allowed and couldn't be retrieved, so tools can tell a
