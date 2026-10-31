@@ -98,6 +98,14 @@ State is separated by how long it lives.
   block sets. A static block can read the class's private methods, and the
   functions aren't exported. A `WeakMap` would do the same with something
   to keep in sync.
+  - Giving `Session` the functions instead, from `Hyperjump.session`, was
+    rejected. A subclass constructs its session with `new Session(hyperjump,
+    options)`, like `@hyperjump/json-schema`'s `JsonSchemaSession`, and
+    only `Hyperjump`'s class body can read its private methods, so a
+    subclass would need them public again or a second way to construct a
+    session that brings the module functions back. A `Session` that built
+    its own plugins from `hyperjump.config` would create the default
+    plugins for each session, which wouldn't share the HTTP cache.
   - `fragmentPointer` is public. `getDocument` ignores the fragment, and
     `fragmentPointer` is what finds the node it identifies, according to
     the media type plugin that parsed the document. `@hyperjump/json-schema`
