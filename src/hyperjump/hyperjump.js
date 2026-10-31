@@ -222,13 +222,13 @@ export class Hyperjump {
   #mediaTypePluginFor(response) {
     const contentTypeText = response.headers.get("content-type");
     if (contentTypeText === null) {
-      throw new UnknownMediaTypeError(`The media type of '${relativeFileUri(response.url)}' could not be determined. A response needs a 'Content-Type' header, and a file needs an extension that a media type plugin has. Use the 'mediaTypePlugins' config to add support for a media type.`);
+      throw new UnsupportedMediaTypeError(undefined, `The media type of '${relativeFileUri(response.url)}' could not be determined. A response needs a 'Content-Type' header, and a file needs an extension that a media type plugin has. Use the 'mediaTypePlugins' config to add support for a media type.`);
     }
 
     // The parser is lenient, so the type needs to be validated
     const contentType = parseContentType(contentTypeText);
     if (!isTypeValid(contentType.type)) {
-      throw new UnknownMediaTypeError(`The media type of the response could not be determined. The 'Content-Type' header isn't valid: '${contentTypeText}'`);
+      throw new UnsupportedMediaTypeError(undefined, `The media type of the response could not be determined. The 'Content-Type' header isn't valid: '${contentTypeText}'`);
     }
 
     /** @type [string, MediaTypePlugin<DocumentNode>] | undefined */
@@ -521,26 +521,16 @@ export class UnsupportedUriSchemeError extends Error {
 }
 
 export class UnsupportedMediaTypeError extends Error {
-  /** @type string */
+  /** @type string | undefined */
   mediaType;
 
   /**
-   * @param {string} mediaType
+   * @param {string | undefined} mediaType
    * @param {string} [message]
    */
   constructor(mediaType, message) {
     super(message);
     this.name = this.constructor.name;
     this.mediaType = mediaType;
-  }
-}
-
-export class UnknownMediaTypeError extends Error {
-  /**
-   * @param {string} [message]
-   */
-  constructor(message) {
-    super(message);
-    this.name = this.constructor.name;
   }
 }

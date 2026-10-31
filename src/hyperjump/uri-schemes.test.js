@@ -126,7 +126,7 @@ describe("JSON Browser", () => {
 
         const result = hyperjump.session().get("foo:something.json");
         await expect(result).rejects.toBeInstanceOf(RetrievalError);
-        await expect(result).rejects.toHaveProperty("cause", expect.objectContaining({ name: "UnknownMediaTypeError" }));
+        await expect(result).rejects.toHaveProperty("cause", expect.objectContaining({ name: "UnsupportedMediaTypeError" }));
       });
 
       test.each([

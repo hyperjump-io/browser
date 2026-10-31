@@ -90,8 +90,8 @@ When something goes wrong, `get` and `step` throw one of these errors:
 | `RetrievalError` | The URL is allowed, but the document can't be retrieved or parsed. Its `cause` says why. For example, it's an `HttpError` for a `404`, or a `FileNotFoundError`. Its `uri` is the URL. |
 | `JsonPointerError` | A fragment or a step doesn't find a value |
 | `ReferenceCycleError` | Following references leads back to a reference that was already followed |
-| `UnsupportedMediaTypeError` | No media type plugin handles the response's `Content-Type` |
-| `UnsupportedUriSchemeError` | No URI scheme plugin handles the URL |
+| `UnsupportedMediaTypeError` | The response doesn't have a valid `Content-Type`, or no media type plugin handles it. It's the `cause` of a `RetrievalError`. |
+| `UnsupportedUriSchemeError` | No URI scheme plugin handles the URL. It's the `cause` of a `RetrievalError`. |
 
 Error messages often end up in logs and bug reports. To keep them from revealing
 where your files are, a `file:` URL in a message is shown relative to the

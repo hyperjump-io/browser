@@ -1,6 +1,6 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump, JrefMediaTypePlugin, JsonMediaTypePlugin, RetrievalError, UnknownMediaTypeError } from "./index.js";
+import { Hyperjump, JrefMediaTypePlugin, JsonMediaTypePlugin, RetrievalError, UnsupportedMediaTypeError } from "./index.js";
 import { fromJs, toJson } from "../json/jsonast-util.js";
 
 /**
@@ -37,7 +37,7 @@ describe("JSON Browser", () => {
         const result = mediaTypeFor({}, "test:/path/to/bar");
 
         await expect(result).rejects.toBeInstanceOf(RetrievalError);
-        await expect(result).rejects.toHaveProperty("cause", expect.any(UnknownMediaTypeError));
+        await expect(result).rejects.toHaveProperty("cause", expect.any(UnsupportedMediaTypeError));
       });
     });
 
@@ -150,7 +150,7 @@ describe("JSON Browser", () => {
         const result = session.get(`${testDomain}/foo`);
 
         await expect(result).rejects.toBeInstanceOf(RetrievalError);
-        await expect(result).rejects.toHaveProperty("cause", expect.any(UnknownMediaTypeError));
+        await expect(result).rejects.toHaveProperty("cause", expect.any(UnsupportedMediaTypeError));
       });
     });
 

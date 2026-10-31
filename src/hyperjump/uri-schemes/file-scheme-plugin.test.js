@@ -61,12 +61,12 @@ describe("JSON Browser", () => {
         const session = hyperjump.session();
         try {
           await session.get(path);
-          expect.fail("Expected RetrievalError => UnknownMediaTypeError");
+          expect.fail("Expected RetrievalError => UnsupportedMediaTypeError");
         } catch (error) {
           expect(error).to.be.instanceof(RetrievalError);
           const retrievalError = /** @type RetrievalError */ (error);
           const cause = /** @type Error */ (retrievalError.cause);
-          expect(cause.name).to.equal("UnknownMediaTypeError");
+          expect(cause.name).to.equal("UnsupportedMediaTypeError");
         }
       });
 
@@ -80,12 +80,12 @@ describe("JSON Browser", () => {
         const session = hyperjump.session();
         try {
           await session.get(path);
-          expect.fail("Expected RetrievalError => UnknownMediaTypeError");
+          expect.fail("Expected RetrievalError => UnsupportedMediaTypeError");
         } catch (error) {
           expect(error).to.be.instanceof(RetrievalError);
           const retrievalError = /** @type RetrievalError */ (error);
           const cause = /** @type Error */ (retrievalError.cause);
-          expect(cause.name).to.equal("UnknownMediaTypeError");
+          expect(cause.name).to.equal("UnsupportedMediaTypeError");
         }
       });
 

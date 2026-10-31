@@ -243,12 +243,14 @@ export class UnsupportedUriSchemeError extends Error {
   constructor(scheme: string, message?: string);
 }
 
+/**
+ * No media type plugin can parse a response, because it doesn't have a
+ * `Content-Type`, its `Content-Type` isn't valid, or no plugin supports it.
+ * It's the cause of a {@link RetrievalError}.
+ */
 export class UnsupportedMediaTypeError extends Error {
-  mediaType: string;
+  /** The response's media type, or `undefined` if it doesn't have a valid one */
+  mediaType: string | undefined;
 
-  constructor(mediaType: string, message?: string);
-}
-
-export class UnknownMediaTypeError extends Error {
-  constructor(message?: string);
+  constructor(mediaType: string | undefined, message?: string);
 }
