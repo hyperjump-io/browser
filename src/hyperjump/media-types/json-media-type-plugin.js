@@ -7,9 +7,13 @@ import { fatalSyntaxError } from "../../json/report-syntax-errors.js";
 
 /** @implements API.JsonMediaTypePlugin */
 export class JsonMediaTypePlugin {
-  constructor() {
+  /**
+   * @param {API.JsonMediaTypePluginOptions} [options]
+   */
+  constructor(options = {}) {
     this.mediaType = "application/json";
     this.extensions = [".json"];
+    this.quality = options.quality;
   }
 
   /** @type API.JsonMediaTypePlugin["parse"] */

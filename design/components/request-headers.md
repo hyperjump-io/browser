@@ -2,8 +2,9 @@
 
 - Headers to send with `http(s):` requests, such as credentials, are a
   `headers` option of `HttpUriSchemePlugin`, like `cache`, because they're
-  HTTP's. Setting them replaces the plugin with `addUriSchemePlugin`. The
-  new plugin has the default cache unless it's given another (see
+  HTTP's. Setting them is configuring an HTTP plugin in the
+  `uriSchemePlugins` config, which replaces the default. The new plugin has
+  the default cache unless it's given another (see
   [HTTP cache](http-cache.md)).
 - They're by URL, `Record<string, HeadersInit | HeadersFunction>`.
   Documents aren't trusted and can name any URL `allowRetrieval` allows, so

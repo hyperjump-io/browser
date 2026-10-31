@@ -22,7 +22,7 @@ Where responses are kept by default depends on the environment:
 | Browsers | No cache of its own because `fetch` already caches |
 
 The cache belongs to the HTTP plugin, so to keep responses somewhere else you
-add an HTTP plugin with a different `cache`. It replaces the default one:
+configure an HTTP plugin with a different `cache`. It replaces the default one:
 
 ```typescript
 import {
@@ -31,16 +31,16 @@ import {
   HttpUriSchemePlugin
 } from "@hyperjump/browser";
 
-const h = new Hyperjump();
-
 // Keep responses on disk, so they outlive the process
-h.addUriSchemePlugin(new HttpUriSchemePlugin({
-  cache: new FileHttpCacheStore("./.cache/hyperjump")
-}));
+const h = new Hyperjump({
+  uriSchemePlugins: [new HttpUriSchemePlugin({
+    cache: new FileHttpCacheStore("./.cache/hyperjump")
+  })]
+});
 ```
 
 A plugin without a `cache` gets the default for its environment, so a plugin
-added to send [headers](http-headers.md) still caches. To turn caching off,
+configured to send [headers](http-headers.md) still caches. To turn caching off,
 give it `cache: false`.
 
 To keep responses somewhere else, such as Redis, implement `HttpCacheStore`.

@@ -2,9 +2,9 @@ import type { RetrieveOptions, UriSchemePlugin } from "./uri-scheme-plugin.d.ts"
 import type { HttpCacheStore } from "./http-cache-store.d.ts";
 
 /**
- * Support the `http:` and `https:` URI schemes. Sends the Accept header
- * {@link Hyperjump.retrieve} gives it, for the media types that are
- * supported. A response has to have a `Content-Type`.
+ * Support the `http:` and `https:` URI schemes. Sends the Accept header it's
+ * given (`options.accept`), for the media types that are supported. A
+ * response has to have a `Content-Type`.
  *
  * With a cache, responses are cached according to their caching headers
  * (RFC 9111, as a private cache), and stale responses are revalidated when

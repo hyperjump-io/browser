@@ -238,21 +238,20 @@ describe("JSON Browser", () => {
         await writeFile(join(testPath, "real", "foo.jref"), `42`);
         await symlink(join(testPath, "real"), join(testPath, "linked"));
 
-        const hyperjump = new Hyperjump();
-        const response = await hyperjump.retrieve(`${testUri}/${fixtureDirectory}/linked/foo.jref`, {});
+        const session = new Hyperjump().session();
+        const document = await session.getDocument(`${testUri}/${fixtureDirectory}/linked/foo.jref`);
 
-        expect(response.url).to.equal(pathToFileURL(await realpath(join(testPath, "real", "foo.jref"))).toString());
-        await response.body?.cancel();
+        // A JRef document's URI is its response's URL
+        expect(document.uri).to.equal(pathToFileURL(await realpath(join(testPath, "real", "foo.jref"))).toString());
       });
 
       test("without a symlink, the response's URL is the requested URI", async () => {
         await writeFile(join(testPath, "foo.jref"), `42`);
 
-        const hyperjump = new Hyperjump();
-        const response = await hyperjump.retrieve(`${testUri}/${fixtureDirectory}/foo.jref#/foo`, {});
+        const session = new Hyperjump().session();
+        const document = await session.getDocument(`${testUri}/${fixtureDirectory}/foo.jref#/foo`);
 
-        expect(response.url).to.equal(`${testUri}/${fixtureDirectory}/foo.jref`);
-        await response.body?.cancel();
+        expect(document.uri).to.equal(`${testUri}/${fixtureDirectory}/foo.jref`);
       });
 
       test("chained symlinks", async () => {

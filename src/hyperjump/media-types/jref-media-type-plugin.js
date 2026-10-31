@@ -7,9 +7,13 @@ import { fatalSyntaxError } from "../../json/report-syntax-errors.js";
 
 /** @implements API.JrefMediaTypePlugin */
 export class JrefMediaTypePlugin {
-  constructor() {
+  /**
+   * @param {API.JrefMediaTypePluginOptions} [options]
+   */
+  constructor(options = {}) {
     this.mediaType = "application/reference+json";
     this.extensions = [".jref"];
+    this.quality = options.quality;
   }
 
   /** @type API.JrefMediaTypePlugin["parse"] */

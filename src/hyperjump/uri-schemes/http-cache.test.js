@@ -32,9 +32,10 @@ describe("JSON Browser", () => {
 
     /** @type (cache?: HttpCacheStore | false) => Hyperjump */
     const withCache = (cache) => {
-      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
-      hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin({ cache }));
-      return hyperjump;
+      return new Hyperjump({
+        allowRetrieval: ["https://example.com/"],
+        uriSchemePlugins: [new HttpUriSchemePlugin({ cache })]
+      });
     };
 
     test("a fresh response is used by another session", async () => {
@@ -176,9 +177,11 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo", headers: { "if-none-match": `"1"`, "authorization": "Bearer token" } })
         .reply(304, "", { headers: { etag: `"1"` } });
 
-      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const headers = { "https://example.com/": { Authorization: "Bearer token" } };
-      hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin({ cache: new MemoryHttpCacheStore(), headers }));
+      const hyperjump = new Hyperjump({
+        allowRetrieval: ["https://example.com/"],
+        uriSchemePlugins: [new HttpUriSchemePlugin({ cache: new MemoryHttpCacheStore(), headers })]
+      });
       await hyperjump.session().get(uri);
       const subject = await hyperjump.session().get(uri);
 
@@ -193,10 +196,12 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo", headers: { authorization: "Bearer 2" } })
         .reply(200, `{ "foo": 24 }`, { headers: contentType });
 
-      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       let token = 1;
       const headers = { "https://example.com/": () => ({ Authorization: `Bearer ${token}` }) };
-      hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin({ cache: new MemoryHttpCacheStore(), headers }));
+      const hyperjump = new Hyperjump({
+        allowRetrieval: ["https://example.com/"],
+        uriSchemePlugins: [new HttpUriSchemePlugin({ cache: new MemoryHttpCacheStore(), headers })]
+      });
       await hyperjump.session().get(uri);
       token = 2;
       const subject = await hyperjump.session().get(uri);

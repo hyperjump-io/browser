@@ -74,14 +74,14 @@ local to it.
 ## Where it's checked
 
 - `Session` checks it when it retrieves a document that isn't in its
-  cache, before it calls `Hyperjump.retrieve`, so it covers `get`,
+  cache, before it retrieves it with a URI scheme plugin, so it covers `get`,
   `getDocument`, and following references. A subclass that overrides
   `getDocument` to find documents elsewhere first isn't checked for those.
   It's before the URI scheme plugins, so it's before the HTTP cache too,
   and a cached response isn't a way around it.
-- `Hyperjump.retrieve` itself isn't checked. It's for URI scheme plugins
-  that map to another URI, like `urn:`, and the response they give is
-  checked by its URL.
+- The `retrieve` a URI scheme plugin is given (`options.retrieve`) isn't
+  checked. It's for plugins that map to another URI, like `urn:`, and the
+  response they give is checked by its URL.
 - A refused URL is a `RetrievalNotAllowedError`, thrown as it is, not
   wrapped in a `RetrievalError`. It's distinct from a `RetrievalError` for
   a URL that was allowed and couldn't be retrieved, so tools can tell a

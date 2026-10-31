@@ -71,15 +71,17 @@ describe("JSON Browser", () => {
       /** @type unknown */
       let parsedFor;
 
-      const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const jref = new JrefMediaTypePlugin();
-      hyperjump.addMediaTypePlugin({
-        mediaType: "application/prs.hyperjump-session-test",
-        extensions: [],
-        parse: async (response, session) => {
-          parsedFor = session;
-          return jref.parse(response);
-        }
+      const hyperjump = new Hyperjump({
+        allowRetrieval: ["https://example.com/"],
+        mediaTypePlugins: [{
+          mediaType: "application/prs.hyperjump-session-test",
+          extensions: [],
+          parse: async (response, session) => {
+            parsedFor = session;
+            return jref.parse(response);
+          }
+        }]
       });
       const session = hyperjump.session();
       await session.get(`${testDomain}/foo`);

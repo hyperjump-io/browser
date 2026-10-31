@@ -19,11 +19,26 @@ import { relativeFileUri } from "./file-uris.js";
 // TODO: Support fetch options in get
 // TODO: Support filters
 
+// A `Hyperjump`'s private retrieve and parse, for `Session`. They're set in
+// `Hyperjump`'s static block, which can read its private methods, and
+// aren't exported, so they aren't part of the API.
+
+/** @type (hyperjump: Hyperjump, uri: string, options: API.GetOptions) => Promise<Response> */
+let retrieve;
+
+/** @type (hyperjump: Hyperjump, response: Response, session: Session) => Promise<DocumentNode> */
+let parseResponse;
+
 /**
+ * @class
  * @implements API.Hyperjump<JrefNode>
  */
 export class Hyperjump {
-  // TODO: Add config to enable schemes and media types
+  static {
+    retrieve = (hyperjump, uri, options) => hyperjump.#retrieve(uri, options);
+    parseResponse = (hyperjump, response, session) => hyperjump.#parseResponse(response, session);
+  }
+
   /** @type API.HyperjumpConfig */
   #config;
 
@@ -45,17 +60,20 @@ export class Hyperjump {
       resolveAllowRetrieval(config.allowRetrieval, contextUri());
     }
 
+    // The config's plugins come after the defaults, and a later plugin for a
+    // scheme or media type replaces an earlier one. A replacement keeps its
+    // place, which is the order of the Accept header and of ties.
     this.#uriSchemePlugins = {};
-    this.#mediaTypePlugins = {};
-
-    // Load default URI scheme plugins
-    for (const plugin of defaultUriSchemePlugins()) {
-      this.addUriSchemePlugin(plugin);
+    for (const plugin of [...defaultUriSchemePlugins(), ...config.uriSchemePlugins ?? []]) {
+      for (const scheme of plugin.schemes) {
+        this.#uriSchemePlugins[scheme] = plugin;
+      }
     }
 
-    // Load default MediaType plugins
-    this.addMediaTypePlugin(new JrefMediaTypePlugin());
-    this.addMediaTypePlugin(new JsonMediaTypePlugin());
+    this.#mediaTypePlugins = {};
+    for (const plugin of [new JrefMediaTypePlugin(), new JsonMediaTypePlugin(), ...config.mediaTypePlugins ?? []]) {
+      this.#mediaTypePlugins[plugin.mediaType] = plugin;
+    }
   }
 
   get config() {
@@ -67,27 +85,25 @@ export class Hyperjump {
     return new Session(this, options);
   }
 
-  /** @type API.Hyperjump<JrefNode>["addUriSchemePlugin"] */
-  addUriSchemePlugin(plugin) {
-    for (const scheme of plugin.schemes) {
-      this.#uriSchemePlugins[scheme] = plugin;
-    }
-  }
-
-  /** @type API.Hyperjump<JrefNode>["removeUriSchemePlugin"] */
-  removeUriSchemePlugin(scheme) {
-    delete this.#uriSchemePlugins[scheme];
-  }
-
-  /** @type API.Hyperjump<JrefNode>["retrieve"] */
-  async retrieve(uri, options) {
+  /**
+   * Retrieve with the plugin for the URI's scheme. It gives the plugin the
+   * Accept header for the media types that are supported, and a response
+   * without a Content-Type gets the media type of its URL's extension.
+   *
+   * @type (uri: string, options: API.GetOptions) => Promise<Response>
+   */
+  async #retrieve(uri, options) {
     const { scheme } = parseIri(uri);
 
     if (!(scheme in this.#uriSchemePlugins)) {
-      throw new UnsupportedUriSchemeError(scheme, `The '${scheme}:' URI scheme is not supported. Use the 'addUriSchemePlugin' function to add support for '${scheme}:' URIs.`);
+      throw new UnsupportedUriSchemeError(scheme, `The '${scheme}:' URI scheme is not supported. Use the 'uriSchemePlugins' config to add support for '${scheme}:' URIs.`);
     }
 
-    const response = await this.#uriSchemePlugins[scheme].retrieve(uri, { ...options, accept: this.acceptableMediaTypes() });
+    const response = await this.#uriSchemePlugins[scheme].retrieve(uri, {
+      ...options,
+      accept: this.#acceptableMediaTypes(),
+      retrieve: (uri, options = {}) => this.#retrieve(uri, options)
+    });
     if (response.headers.has("content-type")) {
       return response;
     }
@@ -96,7 +112,7 @@ export class Hyperjump {
     const url = response.url || toAbsoluteIri(uri);
     const headers = new Headers(response.headers);
     try {
-      headers.set("content-type", this.getMediaType(url));
+      headers.set("content-type", this.#getMediaType(url));
     } catch (error) {
       await response.body?.cancel();
       throw error;
@@ -106,8 +122,8 @@ export class Hyperjump {
     return typed;
   }
 
-  /** @type API.Hyperjump<JrefNode>["acceptableMediaTypes"] */
-  acceptableMediaTypes() {
+  /** @type () => string */
+  #acceptableMediaTypes() {
     let accept = "";
 
     for (const contentType in this.#mediaTypePlugins) {
@@ -130,8 +146,12 @@ export class Hyperjump {
     return accept;
   }
 
-  /** @type API.Hyperjump<JrefNode>["getMediaType"] */
-  getMediaType(uri) {
+  /**
+   * The media type of a URL's extension
+   *
+   * @type (uri: string) => string
+   */
+  #getMediaType(uri) {
     // Use the plugin with the longest matching extension so `.schema.json`
     // takes precedence over `.json`. If there's a tie, the plugin that was
     // registered first wins.
@@ -152,30 +172,16 @@ export class Hyperjump {
       return bestContentType;
     }
 
-    throw new UnknownMediaTypeError(`The media type of the file at '${relativeFileUri(uri)}' could not be determined. Use the 'addMediaTypePlugin' function to add support for this media type.`);
+    throw new UnknownMediaTypeError(`The media type of the file at '${relativeFileUri(uri)}' could not be determined. Use the 'mediaTypePlugins' config to add support for this media type.`);
   }
 
-  /** @type API.Hyperjump<JrefNode>["addMediaTypePlugin"] */
-  addMediaTypePlugin(plugin) {
-    this.#mediaTypePlugins[plugin.mediaType] = plugin;
-  }
-
-  /** @type API.Hyperjump<JrefNode>["removeMediaTypePlugin"] */
-  removeMediaTypePlugin(contentType) {
-    delete this.#mediaTypePlugins[contentType];
-  }
-
-  /** @type API.Hyperjump<JrefNode>["setMediaTypeQuality"] */
-  setMediaTypeQuality(contentType, quality) {
-    if (!(contentType in this.#mediaTypePlugins)) {
-      throw new UnsupportedMediaTypeError(contentType, `'${contentType}' is not supported. Use the 'addMediaTypePlugin' function to add support for this media type.`);
-    }
-
-    this.#mediaTypePlugins[contentType].quality = quality;
-  }
-
-  /** @type API.Hyperjump<JrefNode>["parseResponse"] */
-  async parseResponse(response, session) {
+  /**
+   * Parse a response with the media type plugin for its Content-Type. The
+   * document's `mediaType` is the plugin's, unless the plugin set another.
+   *
+   * @type (response: Response, session: Session) => Promise<DocumentNode>
+   */
+  async #parseResponse(response, session) {
     const contentTypeText = response.headers.get("content-type");
     if (contentTypeText === null) {
       throw new UnknownMediaTypeError("The media type of the response could not be determined. Make sure the response includes a 'Content-Type' header.");
@@ -207,7 +213,7 @@ export class Hyperjump {
       return document;
     }
 
-    throw new UnsupportedMediaTypeError(contentType.type, `'${contentType.type}' is not supported. Use the 'addMediaTypePlugin' function to add support for this media type.`);
+    throw new UnsupportedMediaTypeError(contentType.type, `'${contentType.type}' is not supported. Use the 'mediaTypePlugins' config to add support for this media type.`);
   }
 
   /** @type API.Hyperjump<JrefNode>["fragmentPointer"] */
@@ -321,7 +327,7 @@ export class Session {
 
     let response;
     try {
-      response = await this.#hyperjump.retrieve(uri, options);
+      response = await retrieve(this.#hyperjump, uri, options);
     } catch (error) {
       throw new RetrievalError(uri, { cause: error });
     }
@@ -332,7 +338,7 @@ export class Session {
     }
 
     try {
-      const document = await this.#hyperjump.parseResponse(response, this);
+      const document = await parseResponse(this.#hyperjump, response, this);
 
       // References within the document are relative to the URI it was
       // retrieved from, which can differ from the requested URI (redirects,

@@ -9,7 +9,7 @@ import { AllowedUrls, resolveAllowRetrieval } from "./allowed-urls.js";
 import { toJson } from "../json/jsonast-util.js";
 
 /**
- * @import { HyperjumpConfig } from "./index.js"
+ * @import { HyperjumpConfig, UriSchemePlugin } from "./index.js"
  */
 
 const document = `{ "foo": 42 }`;
@@ -124,8 +124,7 @@ describe("allowRetrieval", () => {
     });
 
     test("an entry's fragment is ignored", async () => {
-      const hyperjump = hyperjumpWith({ allowRetrieval: ["test:/document#foo"] });
-      addTestScheme(hyperjump);
+      const hyperjump = hyperjumpWith({ allowRetrieval: ["test:/document#foo"], uriSchemePlugins: [testScheme()] });
       const node = await hyperjump.session().get("test:/document");
       expect(toJson(node)).to.equal(`{"foo":42}`);
     });
@@ -147,8 +146,7 @@ describe("allowRetrieval", () => {
     });
 
     test("a response from a refused URL isn't used", async () => {
-      const hyperjump = hyperjumpWith({ allowRetrieval: ["test:/"] });
-      addTestScheme(hyperjump, "https://internal.example.com/document");
+      const hyperjump = hyperjumpWith({ allowRetrieval: ["test:/"], uriSchemePlugins: [testScheme("https://internal.example.com/document")] });
 
       const error = await hyperjump.session().get("test:/document")
         .catch((/** @type unknown */ error) => error);
@@ -183,8 +181,7 @@ describe("allowRetrieval", () => {
     });
 
     test("it checks where a response came from", async () => {
-      const hyperjump = hyperjumpWith({ allowRetrieval: ["test:/", "https://internal.example.com/"] });
-      addTestScheme(hyperjump, "https://internal.example.com/document");
+      const hyperjump = hyperjumpWith({ allowRetrieval: ["test:/", "https://internal.example.com/"], uriSchemePlugins: [testScheme("https://internal.example.com/document")] });
 
       const session = hyperjump.session({ allowRetrieval: ["test:/"] });
       await expect(session.get("test:/document")).rejects.toThrow("'test:/document' led to 'https://internal.example.com/document'");
@@ -249,18 +246,16 @@ const directoryUri = (path) => pathToFileURL(join(path, "/")).href;
 /**
  * A plugin for `test:` URIs whose response claims to come from `url`
  *
- * @type (hyperjump: Hyperjump, url?: string) => void
+ * @type (url?: string) => UriSchemePlugin
  */
-const addTestScheme = (hyperjump, url) => {
-  hyperjump.addUriSchemePlugin({
-    schemes: ["test"],
-    retrieve: async (uri) => {
-      const response = new Response(document, { headers: { "Content-Type": "application/json" } });
-      Object.defineProperty(response, "url", { value: url ?? uri });
-      return response;
-    }
-  });
-};
+const testScheme = (url) => ({
+  schemes: ["test"],
+  retrieve: async (uri) => {
+    const response = new Response(document, { headers: { "Content-Type": "application/json" } });
+    Object.defineProperty(response, "url", { value: url ?? uri });
+    return response;
+  }
+});
 
 /** @type (config?: HyperjumpConfig) => Hyperjump */
 const hyperjumpWith = (config) => new Hyperjump(config);

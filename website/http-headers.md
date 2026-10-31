@@ -1,19 +1,21 @@
 # HTTP headers
 
 Requests are sent by the HTTP plugin, so to send headers such as credentials
-with `http:` and `https:` requests, you add an HTTP plugin with `headers`. It
-replaces the default one. Documents can reference any URL, so headers are given
-by URL and only the URLs you list get them:
+with `http:` and `https:` requests, you configure an HTTP plugin with
+`headers`. It replaces the default one. Documents can reference any URL, so
+headers are given by URL and only the URLs you list get them:
 
 ```typescript
 import { Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";
 
-const h = new Hyperjump({ allowRetrieval: ["https://api.example.com/"] });
-h.addUriSchemePlugin(new HttpUriSchemePlugin({
-  headers: {
-    "https://api.example.com/": { Authorization: `Bearer ${process.env.TOKEN}` }
-  }
-}));
+const h = new Hyperjump({
+  allowRetrieval: ["https://api.example.com/"],
+  uriSchemePlugins: [new HttpUriSchemePlugin({
+    headers: {
+      "https://api.example.com/": { Authorization: `Bearer ${process.env.TOKEN}` }
+    }
+  })]
+});
 ```
 
 A URL that ends with `/` gets its headers for everything under it, and any other
@@ -34,13 +36,13 @@ with the URL of each request it matches and can be async, which lets you
 refresh a token before it's sent:
 
 ```typescript
-h.addUriSchemePlugin(new HttpUriSchemePlugin({
+new HttpUriSchemePlugin({
   headers: {
     "https://api.example.com/": async () => ({
       Authorization: `Bearer ${await getToken()}`
     })
   }
-}));
+});
 ```
 
 Return `undefined` to send no headers for that request.

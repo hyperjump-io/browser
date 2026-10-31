@@ -13,8 +13,18 @@ import type { MediaTypePlugin } from "./media-type-plugin.d.ts";
 export type JsonMediaTypeDocument = JsonDocumentNode<"success">;
 
 export class JsonMediaTypePlugin implements MediaTypePlugin<JsonMediaTypeDocument> {
+  constructor(options?: JsonMediaTypePluginOptions);
+
   mediaType: string;
   extensions: string[];
   quality?: number;
   parse(response: Response): Promise<JsonMediaTypeDocument>;
 }
+
+export type JsonMediaTypePluginOptions = {
+  /**
+   * The quality of the media type in the `Accept` header, from 0 to 1.
+   * Without it, there's no quality, which servers take to be 1.
+   */
+  quality?: number;
+};

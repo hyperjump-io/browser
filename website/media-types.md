@@ -12,9 +12,10 @@ found depends on where the document comes from:
 
 ## Adding a media type
 
-A media type plugin parses a response into a JRef-compatible AST. This example
-is a plugin for a YAML version of JRef. It parses the YAML and hands the result
-to the JRef parser:
+A media type plugin parses a response into a JRef-compatible AST. Plugins are
+configured when you create the `Hyperjump`, with `mediaTypePlugins`. This
+example is a plugin for a YAML version of JRef. It parses the YAML and hands the
+result to the JRef parser:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
@@ -54,8 +55,9 @@ class YrefMediaTypePlugin implements MediaTypePlugin<YrefDocument> {
   }
 }
 
-const h = new Hyperjump();
-h.addMediaTypePlugin(new YrefMediaTypePlugin());
+const h = new Hyperjump({
+  mediaTypePlugins: [new YrefMediaTypePlugin()]
+});
 ```
 
 A plugin has these properties:
@@ -77,26 +79,31 @@ Errors and tools use the positions in the AST to point at the source. This
 example loses YAML's positions by going through JSON, so a real plugin would
 build the AST from the YAML parser's nodes instead.
 
+A plugin for a media type that's already supported replaces the plugin that
+supported it and takes its place in the `Accept` header. When more than one
+plugin in the list has the same media type, the later one is used.
+
 ## Preferring a media type
 
-Every request sends an `Accept` header that lists every supported media type.
-To tell servers you prefer one, lower the quality of the others. This makes JRef
-less preferred than JSON and the YAML plugin's media type:
+Every request sends an `Accept` header that lists every supported media type
+with its plugin's `quality`. To tell servers you prefer one, lower the quality
+of the others. The JRef and JSON plugins take a `quality` option, so this
+replaces the default JRef plugin with one that makes JRef less preferred than
+JSON and the YAML plugin's media type:
 
 ```typescript
-h.setMediaTypeQuality("application/reference+json", 0.9);
+import { Hyperjump, JrefMediaTypePlugin } from "@hyperjump/browser";
+
+const h = new Hyperjump({
+  mediaTypePlugins: [
+    new JrefMediaTypePlugin({ quality: 0.9 }),
+    new YrefMediaTypePlugin()
+  ]
+});
 ```
 
 With that, requests send:
 
 ```text
 Accept: application/reference+json; q=0.9, application/json, application/reference+yaml, */*; q=0.001
-```
-
-## Removing a media type
-
-To stop supporting a media type, remove its plugin:
-
-```typescript
-h.removeMediaTypePlugin("application/reference+json");
 ```

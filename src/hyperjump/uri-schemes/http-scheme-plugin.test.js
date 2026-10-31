@@ -273,9 +273,10 @@ describe("JSON Browser", () => {
 
         /** @type (options: import("./http-scheme-plugin.d.ts").HttpUriSchemePluginOptions) => Hyperjump */
         const withOptions = (options) => {
-          const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/", "https://other.example.com/"] });
-          hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin(options));
-          return hyperjump;
+          return new Hyperjump({
+            allowRetrieval: ["https://example.com/", "https://other.example.com/"],
+            uriSchemePlugins: [new HttpUriSchemePlugin(options)]
+          });
         };
 
         test("are sent to a URL under one that ends with a slash", async () => {
@@ -430,7 +431,7 @@ describe("JSON Browser", () => {
           });
 
           mockAgent.get(testDomain)
-            .intercept({ method: "GET", path: "/foo", headers: { accept: hyperjump.acceptableMediaTypes() } })
+            .intercept({ method: "GET", path: "/foo", headers: { accept: "application/reference+json, application/json, */*; q=0.001" } })
             .reply(200, `42`, { headers: contentType });
 
           const subject = await hyperjump.session().get(`${testDomain}/foo`);

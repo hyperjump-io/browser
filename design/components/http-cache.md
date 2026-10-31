@@ -5,7 +5,11 @@
   documents, so it doesn't depend on how a response is parsed, and every
   session from a `Hyperjump` shares it.
 - It's part of `HttpUriSchemePlugin` (a `cache` option), because caching
-  headers are HTTP's. It uses `http-cache-semantics`, as a private cache. A
+  headers are HTTP's. Changing it is configuring an HTTP plugin in the
+  `uriSchemePlugins` config. A `config.http` for the default plugin's
+  options was considered and rejected: no other plugin had config of its
+  own, and it didn't say what the plugin had once the plugin was replaced.
+  With plugins in the config, it adds nothing. It uses `http-cache-semantics`, as a private cache. A
   stale response with an `ETag` or `Last-Modified` is revalidated. A 304
   that doesn't match the cached response is retried without revalidating.
 - A response that's stale as soon as it's stored and can't be revalidated

@@ -9,7 +9,7 @@ import type { FileUriSchemePlugin } from "./uri-schemes/file-scheme-plugin.d.ts"
 import type { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.d.ts";
 import type { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.d.ts";
 
-export type HyperjumpConfig = {
+export type HyperjumpConfig<T extends JsonNode<{ type: string }> = JrefNode> = {
   /**
    * What can be retrieved. Documents aren't trusted, so a reference
    * shouldn't be able to make the application retrieve whatever it names,
@@ -38,6 +38,28 @@ export type HyperjumpConfig = {
    * instead.
    */
   allowRetrieval?: string[];
+
+  /**
+   * Support for more
+   * {@link https://www.rfc-editor.org/rfc/rfc3986#section-3.1 | URI schemes},
+   * or different plugins for the ones that are supported by default:
+   * {@link HttpUriSchemePlugin | `http(s):`} and, in Node.js,
+   * {@link FileUriSchemePlugin | `file:`}. A plugin replaces the default,
+   * or an earlier plugin in the list, for each scheme it lists, so one with
+   * different HTTP caching or headers replaces the default for `http:` and
+   * `https:`.
+   */
+  uriSchemePlugins?: UriSchemePlugin[];
+
+  /**
+   * Support for more media types, or different plugins for the ones that are
+   * supported by default: {@link JrefMediaTypePlugin | JRef} and
+   * {@link JsonMediaTypePlugin | JSON}. A plugin replaces the default, or an
+   * earlier plugin in the list, for its media type, and takes its place in
+   * the `Accept` header. The `Accept` header lists the media types in that
+   * order, with each plugin's `quality`.
+   */
+  mediaTypePlugins?: MediaTypePlugin<DocumentNode<T>>[];
 };
 
 export type SessionOptions = {
@@ -55,10 +77,14 @@ export type GetOptions = {
 };
 
 export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
-  constructor(config?: HyperjumpConfig);
+  /**
+   * Plugins are only configured here, so a `Hyperjump`'s configuration
+   * doesn't change after it's created.
+   */
+  constructor(config?: HyperjumpConfig<T>);
 
   /** The config it was created with */
-  readonly config: HyperjumpConfig;
+  readonly config: HyperjumpConfig<T>;
 
   /**
    * Start a session. Each session has its own documents, so nothing one
@@ -66,79 +92,6 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * plugins (such as an HTTP cache).
    */
   session(options?: SessionOptions): Session<T>;
-
-  /**
-   * Add support for a
-   * {@link https://www.rfc-editor.org/rfc/rfc3986#section-3.1 | URI scheme}.
-   * Support for the {@link HttpUriSchemePlugin | `http(s):`} and
-   * {@link FileUriSchemePlugin | `file:`} URI schemes are enabled by default.
-   */
-  addUriSchemePlugin(plugin: UriSchemePlugin): void;
-
-  /**
-   * This is mostly useful for disabling a scheme that's enabled by default.
-   */
-  removeUriSchemePlugin(scheme: string): void;
-
-  /**
-   * Unless you're using it in a {@link UriSchemePlugin.retrieve} method, this
-   * is not the method you're looking for. It's used internally to fetch a
-   * resource before processing it based on its media type. You might use it for
-   * implementing {@link UriSchemePlugin}s for URI schemes that don't
-   * have locating semantics (such as `urn:`) and instead map to another URI
-   * where the resource can be retrieved from. See the example in the README.
-   *
-   * It gives the plugin the `Accept` header for the media types that are
-   * supported. A response without a `Content-Type` gets the media type of
-   * its URL's extension.
-   */
-  retrieve(uri: string, options: GetOptions): Promise<Response>;
-
-  /**
-   * Constructs an `Accept` header based on the registered media types.
-   */
-  acceptableMediaTypes(): string;
-
-  /**
-   * Returns the media type of the resource based on its URI. This is usually
-   * based on the extension and configured by {@link MediaTypePlugin}s.
-   */
-  getMediaType(uri: string): string;
-
-  /**
-   * Add support for a media type. Support for the
-   * {@link JrefMediaTypePlugin | `JRef`} and
-   * {@link JsonMediaTypePlugin | `JSON`} media types are enabled by
-   * default.
-   */
-  addMediaTypePlugin<A extends DocumentNode<T>>(plugin: MediaTypePlugin<A>): void;
-
-  /**
-   * This is mostly useful for disabling a media type that's enabled by default.
-   */
-  removeMediaTypePlugin(contentType: string): void;
-
-  /**
-   * Set the
-   * {@link https://developer.mozilla.org/en-US/docs/Glossary/Quality_values | quality}
-   * that will be used in the Accept header of requests to indicate to servers
-   * which media types are preferred over others.
-   *
-   * @throws An {@link UnsupportedMediaTypeError} if there is no plugin
-   * registered for the media type.
-   */
-  setMediaTypeQuality(contentType: string, quality: number): void;
-
-  /**
-   * Parse a response with the media type plugin for its `Content-Type`, for
-   * a session. The document's `mediaType` is set to the plugin's media type.
-   *
-   * @throws An {@link UnknownMediaTypeError} if the response doesn't have a
-   * valid `Content-Type`.
-   * @throws An {@link UnsupportedMediaTypeError} if there is no plugin
-   * registered for the media type.
-   */
-  parseResponse(response: Response, session: Session<T>): Promise<DocumentNode<T>>;
 
   /**
    * The JSON Pointer a fragment identifies in a document, according to the
@@ -164,12 +117,12 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    * browser, the base URI is the URI of the page. It's the one there was when
    * the session was created.
    *
-   * @see Use {@link Hyperjump.addUriSchemePlugin} to add support for additional
-   * URI schemes.
+   * @see Use the `uriSchemePlugins` config ({@link HyperjumpConfig}) to add
+   * support for additional URI schemes.
    * @see Support for {@link JrefMediaTypePlugin | JRef} and
-   * {@link JsonMediaTypePlugin | JSON} is built in. Use
-   * {@link Hyperjump.addMediaTypePlugin} to add support for additional media
-   * types.
+   * {@link JsonMediaTypePlugin | JSON} is built in. Use the
+   * `mediaTypePlugins` config ({@link HyperjumpConfig}) to add support for
+   * additional media types.
    *
    * @throws A {@link RetrievalNotAllowedError} if `allowRetrieval` refuses
    * the document's URL.

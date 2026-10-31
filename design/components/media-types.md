@@ -4,14 +4,18 @@ A media type plugin parses a response into a document, and says what its
 fragments identify. JSON and JRef are built in.
 
 - A response is parsed by the plugin with the most specific match for its
-  `Content-Type`. If there's a tie, the plugin that was added first wins.
+  `Content-Type`. If there's a tie, the plugin that comes first wins (see
+  [Configuring plugins](sessions.md#configuring-plugins)).
 - `content-type` v3 doesn't throw for a malformed header, so the type is
   validated, to keep rejecting an invalid `Content-Type`.
 - The `Accept` header lists every plugin with its quality, `q=0` included,
-  and `*/*` last. `Hyperjump.retrieve` gives it to the URI scheme plugin
-  (`options.accept`).
+  and `*/*` last. The `Hyperjump` gives it to the URI scheme plugin
+  (`options.accept`). A plugin's quality is the plugin's (`quality`), and
+  the JRef and JSON plugins take it as a constructor option. Changing a
+  default's quality is configuring a replacement. Before 2026-10-30,
+  `setMediaTypeQuality` changed a registered plugin's quality.
 - A response without a `Content-Type` gets the media type of its URL's
-  extension, in `Hyperjump.retrieve`. That's how a file gets one. The
+  extension, when the `Hyperjump` retrieves it. That's how a file gets one. The
   `http(s):` plugin rejects a response without one, because a URL's
   extension doesn't say what's at it.
 - URI scheme plugins don't get the `Hyperjump`. Before 2026-10-30, they
@@ -19,7 +23,8 @@ fragments identify. JSON and JRef are built in.
   `Accept` header and the `file:` plugin for a file's media type, which
   made the client and its plugins depend on each other. What they needed
   is a value `retrieve` gives them, or something it does with what they
-  return.
+  return. A plugin for a scheme that maps to another URI, like `urn:`, is
+  given `options.retrieve` (see [Sessions](sessions.md#configuring-plugins)).
 - A file's media type is the plugin with the longest matching extension, so
   a plugin for `.schema.json` takes precedence over the JSON plugin, whatever
   order they were added in. Before, the first plugin with a matching
