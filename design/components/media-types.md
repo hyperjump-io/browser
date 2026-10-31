@@ -35,6 +35,10 @@ fragments identify. JSON and JRef are built in.
   - Only a plugin knows whether its scheme has media types, so a plugin
     could also use the extension for a server it knows sends the wrong
     `Content-Type`. That isn't an option of the `http(s):` plugin yet.
+- A response that no plugin can parse, for a missing, invalid or
+  unsupported `Content-Type`, has its body cancelled, so its file or
+  connection is released. The `file:` plugin opens a file before its media
+  type is known, because the media type is the `Hyperjump`'s to decide.
 - A response without a URL gets the URI that was retrieved, so a response
   from `options.retrieve` is checked against the URL it came from.
 - URI scheme plugins don't get the `Hyperjump`. Before 2026-10-30, they

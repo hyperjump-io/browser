@@ -129,6 +129,30 @@ describe("JSON Browser", () => {
         await expect(result).rejects.toHaveProperty("cause", expect.objectContaining({ name: "UnknownMediaTypeError" }));
       });
 
+      test.each([
+        ["no Content-Type", undefined],
+        ["an unsupported Content-Type", "application/foo"]
+      ])("a response with %s has its body cancelled", async (_name, contentType) => {
+        let cancelled = false;
+        const hyperjump = new Hyperjump({
+          allowRetrieval: ["foo:something"],
+          uriSchemePlugins: [{
+            schemes: ["foo"],
+            retrieve: async () => {
+              const body = new ReadableStream({
+                cancel: () => {
+                  cancelled = true;
+                }
+              });
+              return new Response(body, contentType ? { headers: { "Content-Type": contentType } } : {});
+            }
+          }]
+        });
+
+        await expect(hyperjump.session().get("foo:something")).rejects.toBeInstanceOf(RetrievalError);
+        expect(cancelled).to.equal(true);
+      });
+
       test("a response without a URL gets the URI that was retrieved", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:something"],

@@ -178,11 +178,35 @@ export class Hyperjump {
 
   /**
    * Parse a response with the media type plugin for its Content-Type. The
-   * document's `mediaType` is the plugin's, unless the plugin set another.
+   * document's `mediaType` is the plugin's, unless the plugin set another. A
+   * response that no plugin can parse has its body cancelled, so its file or
+   * connection is released.
    *
    * @type (response: Response, session: Session) => Promise<DocumentNode>
    */
   async #parseResponse(response, session) {
+    let pattern, plugin;
+    try {
+      [pattern, plugin] = this.#mediaTypePluginFor(response);
+    } catch (error) {
+      await response.body?.cancel();
+      throw error;
+    }
+
+    // A plugin can say the document is a more specific media type, like a
+    // JSON document that turns out to be in a media type of its own
+    const document = await plugin.parse(response, session);
+    document.mediaType ??= pattern;
+    return document;
+  }
+
+  /**
+   * The media type plugin with the most specific match for a response's
+   * Content-Type. If there's a tie, the plugin that was registered first wins.
+   *
+   * @type (response: Response) => [string, MediaTypePlugin<DocumentNode>]
+   */
+  #mediaTypePluginFor(response) {
     const contentTypeText = response.headers.get("content-type");
     if (contentTypeText === null) {
       throw new UnknownMediaTypeError(`The media type of '${relativeFileUri(response.url)}' could not be determined. A response needs a 'Content-Type' header, and a file needs an extension that a media type plugin has. Use the 'mediaTypePlugins' config to add support for a media type.`);
@@ -194,8 +218,6 @@ export class Hyperjump {
       throw new UnknownMediaTypeError(`The media type of the response could not be determined. The 'Content-Type' header isn't valid: '${contentTypeText}'`);
     }
 
-    // Use the plugin with the most specific match. If there's a tie, the plugin
-    // that was registered first wins.
     /** @type [string, MediaTypePlugin<DocumentNode>] | undefined */
     let best;
     let bestSpecificity = 0;
@@ -207,16 +229,11 @@ export class Hyperjump {
       }
     }
 
-    if (best) {
-      // A plugin can say the document is a more specific media type, like a
-      // JSON document that turns out to be in a media type of its own
-      const [pattern, plugin] = best;
-      const document = await plugin.parse(response, session);
-      document.mediaType ??= pattern;
-      return document;
+    if (!best) {
+      throw new UnsupportedMediaTypeError(contentType.type, `'${contentType.type}' is not supported. Use the 'mediaTypePlugins' config to add support for this media type.`);
     }
 
-    throw new UnsupportedMediaTypeError(contentType.type, `'${contentType.type}' is not supported. Use the 'mediaTypePlugins' config to add support for this media type.`);
+    return best;
   }
 
   /** @type API.Hyperjump<JrefNode>["fragmentPointer"] */
