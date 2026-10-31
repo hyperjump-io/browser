@@ -1,8 +1,8 @@
 # Browser
 
-A client for JSON documents that reference each other. It retrieves
-documents over HTTP or from files and follows references for you. You work
-with linked documents as if they were one value.
+A client for JSON documents that reference each other. It retrieves documents
+over HTTP or from files and follows the references between them for you, so you
+can work with linked documents as if they were one value.
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
@@ -17,19 +17,20 @@ const director = await session.step("director", film);
 session.value(director); // "George Lucas"
 ```
 
-It understands [JRef](../src/jref/README.md), a JSON media type with
-references, like `{ "$ref": "../people/1" }`. Stepping into a reference
-retrieves what it refers to, from another document, a file, or another
-server. Plain JSON works too, and you can add other media types and URI
-schemes.
+It understands
+[JRef](../src/jref/README.md), a JSON
+media type with references like `{ "$ref": "../people/1" }`. A reference can
+refer to a value in another document, a file, or on another server. When you
+step into it, that value is retrieved for you. Plain JSON works too, and you can
+add support for other media types and URI schemes.
 
 - **Safe with documents you don't trust.** A document can't make your
   application retrieve whatever it references. You allow what can be
   retrieved.
 - **HTTP done properly.** Responses are cached according to their caching
-  headers. Stale responses are revalidated. Concurrent requests for the same
-  URL share one request.
-- **Node.js and browsers.**
+  headers, and stale responses are revalidated. Concurrent requests for the
+  same URL share one request.
+- **Node.js and browsers.** Works everywhere you need it.
 
 [`@hyperjump/json-schema`](https://github.com/hyperjump-io/json-schema/blob/v2/website/README.md)
 is built on it.

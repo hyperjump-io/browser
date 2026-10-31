@@ -1,12 +1,16 @@
 # Getting started
 
-This tutorial browses a small API whose documents link to each other. Then
-it does the same with files.
+This tutorial explores a small Star Wars API by following the links between its
+documents. Once that works you'll point the same code at files on disk and find
+that it works almost exactly the same way.
 
 ## JRef
 
-The documents are [JRef](../src/jref/README.md): JSON, where an object with
-a `$ref` string is a reference to another value, by URI.
+The API's documents are written in
+[JRef](../src/jref/README.md), which
+is JSON with references. Any object with a `$ref` property is a reference. Its
+value is the URL of the value it refers to. Here's how the first film refers to
+its characters:
 
 ```jref
 {
@@ -19,17 +23,24 @@ a `$ref` string is a reference to another value, by URI.
 }
 ```
 
-A reference is like a pointer in a programming language. When you step
-into one, you get the value it refers to, not the reference.
+Each character lives in a document of its own and the film refers to those
+documents instead of duplicating them. You won't have to retrieve them yourself
+because a reference is transparent like a reference in most programming
+languages. When you step into one, you get the value it refers to rather than
+the reference.
 
 ## Browse an API
 
-The API at [https://swapi.hyperjump.io](https://explore.hyperjump.io#https://swapi.hyperjump.io/api/films/1)
-is a version of the [Star Wars API](https://swapi.dev) written in JRef.
+The API lives at
+[https://swapi.hyperjump.io](https://explore.hyperjump.io#https://swapi.hyperjump.io/api/films/1).
+It's a version of the [Star Wars API](https://swapi.dev) rewritten in JRef. That
+link opens it in an explorer where you can click through the references before
+you write any code.
 
-Create a `Hyperjump`. It holds the configuration, such as what can be
-retrieved. By default nothing on the network can be retrieved, so allow
-the API.
+Everything starts with a `Hyperjump` instance, which holds configuration such
+as what's allowed to be retrieved. A document can refer to anything anywhere, so
+`Hyperjump` won't retrieve anything from the network until you tell it where it
+may go. This one can only access the Star Wars API:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
@@ -39,7 +50,7 @@ const h = new Hyperjump({
 });
 ```
 
-Documents are retrieved through a session. Start one and get the first
+Retrieving happens through a `session`. Start one and use it to get the first
 film:
 
 ```typescript
@@ -49,18 +60,18 @@ const aNewHope = await session.get(
 );
 ```
 
-`get` returns a node, which is a value in the document. Step into it to get
-its properties. `value` converts a node to a JavaScript value. It works for
-anything that isn't an object or an array.
+`get` returns a JRef AST node for the value identified by that URL. You reach
+the film's properties by stepping into it. Once you get to a value that isn't an
+object or an array, `value` hands it back as plain JavaScript:
 
 ```typescript
 const title = await session.step("title", aNewHope);
 session.value(title); // "A New Hope"
 ```
 
-`characters` is an array of references to other documents. When you
-iterate over it, each reference is followed. You get each character, which
-is retrieved from its own URL:
+The film's `characters` property is where the references come in. Iterating over
+it follows each reference as you reach it, so every character you get back was
+retrieved from its own URL:
 
 ```typescript
 const characters = await session.step("characters", aNewHope);
@@ -78,13 +89,20 @@ R2-D2
 ...
 ```
 
-You never see a `$ref`. Each document is retrieved once per session, the
-first time it's needed.
+Notice that the loop never mentions a `$ref` or a URL. The session followed each
+reference for you and retrieved each document the first time it was needed.
+
+The session also keeps every document it retrieves. If another film refers to
+Luke, the session uses the copy of his document it already has instead of
+retrieving it again. That gives you a consistent view of the API for as long as
+you use the session. Start a new session when you want to see changes. See
+[Sessions](browsing.md#sessions) for how sessions share the HTTP cache.
 
 ## Browse files
 
-Files work the same way. A file's media type comes from its extension, and
-JRef files end with `.jref`.
+Files work the same way. Their media type comes from the file extension, which
+for JRef is `.jref`. Here's Luke again, this time as a file with a reference to
+his homeworld:
 
 ```jref
 {
@@ -92,6 +110,9 @@ JRef files end with `.jref`.
   "homeworld": { "$ref": "../planets/1.jref" }
 }
 ```
+
+The default is to allow access to all files in the working directory, so no
+configuration is needed:
 
 ```typescript
 const session = new Hyperjump().session();
@@ -102,8 +123,10 @@ const name = await session.step("name", homeworld);
 session.value(name); // "Tatooine"
 ```
 
-Relative paths are resolved against the working directory. By default,
-only files in the working directory can be retrieved.
+Everything after `get` is the same code you used for the API. Keep in mind that
+`./api/people/1.jref` isn't a file path, it's a URL. That means the string you
+pass to `get` is the same regardless of what operating system you're using.
+`.\api\people\1.jref` won't work, not even on Windows.
 
 ## Next steps
 
