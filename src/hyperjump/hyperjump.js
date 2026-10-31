@@ -6,7 +6,7 @@ import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
 import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
 import { jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonObjectValues, jsonValue, pointerGet, pointerStep } from "../json/jsonast-util.js";
 import { mimeMatchSpecificity } from "./utilities.js";
-import { AllowedUrls, resolveAllowRetrieval } from "./allowed-urls.js";
+import { AllowedUrls, configSource, resolveAllowRetrieval, sessionSource } from "./allowed-urls.js";
 import { relativeFileUri } from "./file-uris.js";
 
 /**
@@ -55,7 +55,7 @@ export class Hyperjump {
     // Each session resolves it, but a config that isn't a list of URLs
     // throws here
     if (config.allowRetrieval !== undefined) {
-      resolveAllowRetrieval(config.allowRetrieval, contextUri());
+      resolveAllowRetrieval(config.allowRetrieval, contextUri(), configSource);
     }
 
     // A frozen copy, so a change to the object it was given, after it was
@@ -248,6 +248,15 @@ export class Session {
   #allowedUrls;
 
   /**
+   * Where the session's `allowRetrieval` came from, so a refused URL's error
+   * says which list to change. A session's own list replaces the config's,
+   * so adding to the config wouldn't allow it.
+   *
+   * @type string
+   */
+  #allowRetrievalSource;
+
+  /**
    * What relative URIs are resolved against, as it was when the session was
    * created, so it's the same for everything the session does. A new
    * session sees a change, like any other.
@@ -266,8 +275,11 @@ export class Session {
     this.#contextUri = contextUri();
     // Only a missing list falls back to the config's. Anything else is the
     // session's, so one that isn't a list throws, like the config's.
-    const allowRetrieval = options.allowRetrieval === undefined ? hyperjump.config.allowRetrieval : options.allowRetrieval;
-    this.#allowedUrls = new AllowedUrls(allowRetrieval === undefined ? undefined : resolveAllowRetrieval(allowRetrieval, this.#contextUri), this.#contextUri);
+    const [allowRetrieval, source] = options.allowRetrieval === undefined
+      ? [hyperjump.config.allowRetrieval, configSource]
+      : [options.allowRetrieval, sessionSource];
+    this.#allowRetrievalSource = source;
+    this.#allowedUrls = new AllowedUrls(allowRetrieval === undefined ? undefined : resolveAllowRetrieval(allowRetrieval, this.#contextUri, source), this.#contextUri);
   }
 
   get hyperjump() {
@@ -326,7 +338,7 @@ export class Session {
   async #retrieveDocument(uri, options) {
     const id = toAbsoluteIri(uri);
     if (!await this.#allowedUrls.allows(id)) {
-      throw new RetrievalNotAllowedError(id);
+      throw new RetrievalNotAllowedError(id, `Retrieving '${relativeFileUri(id)}' isn't allowed. Use the ${this.#allowRetrievalSource} to allow it.`);
     }
 
     let response;
@@ -338,7 +350,7 @@ export class Session {
 
     if (response.url && response.url !== id && !await this.#allowedUrls.allows(response.url)) {
       await response.body?.cancel();
-      throw new RetrievalNotAllowedError(response.url, `Retrieving '${relativeFileUri(id)}' led to '${relativeFileUri(response.url)}', which isn't allowed. Use the 'allowRetrieval' config to allow it.`);
+      throw new RetrievalNotAllowedError(response.url, `Retrieving '${relativeFileUri(id)}' led to '${relativeFileUri(response.url)}', which isn't allowed. Use the ${this.#allowRetrievalSource} to allow it.`);
     }
 
     try {

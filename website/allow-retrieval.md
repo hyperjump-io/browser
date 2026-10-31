@@ -33,6 +33,10 @@ Retrieving a URL the list doesn't allow throws a `RetrievalNotAllowedError`. Its
 Retrieving 'https://example.com/other' isn't allowed. Use the 'allowRetrieval' config to allow it.
 ```
 
+When the URL was refused by a session's own list, the message says to use the
+session's `allowRetrieval` option instead, because that list replaces the
+config's.
+
 ## Per session
 
 Different parts of an application don't always trust the same things, so a

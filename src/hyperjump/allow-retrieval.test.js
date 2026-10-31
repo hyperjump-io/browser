@@ -5,7 +5,7 @@ import { cwd } from "node:process";
 import { pathToFileURL } from "node:url";
 import { describe, test, beforeAll, afterAll, expect } from "vitest";
 import { FileNotFoundError, Hyperjump, RetrievalError, RetrievalNotAllowedError } from "./index.js";
-import { AllowedUrls, resolveAllowRetrieval } from "./allowed-urls.js";
+import { AllowedUrls, configSource, resolveAllowRetrieval } from "./allowed-urls.js";
 import { toJson } from "../json/jsonast-util.js";
 
 /**
@@ -169,7 +169,7 @@ describe("allowRetrieval", () => {
         .catch((/** @type unknown */ error) => error);
       expect(error).to.be.instanceOf(RetrievalNotAllowedError);
       expect(/** @type RetrievalNotAllowedError */ (error).uri).to.equal("https://internal.example.com/document");
-      expect(/** @type Error */ (error).message).to.contain("'test:/document' led to 'https://internal.example.com/document'");
+      expect(/** @type Error */ (error).message).to.equal("Retrieving 'test:/document' led to 'https://internal.example.com/document', which isn't allowed. Use the 'allowRetrieval' config to allow it.");
     });
   });
 
@@ -201,17 +201,22 @@ describe("allowRetrieval", () => {
       const hyperjump = hyperjumpWith({ allowRetrieval: ["test:/", "https://internal.example.com/"], uriSchemePlugins: [testScheme("https://internal.example.com/document")] });
 
       const session = hyperjump.session({ allowRetrieval: ["test:/"] });
-      await expect(session.get("test:/document")).rejects.toThrow("'test:/document' led to 'https://internal.example.com/document'");
+      await expect(session.get("test:/document")).rejects.toThrow("'test:/document' led to 'https://internal.example.com/document', which isn't allowed. Use the session's 'allowRetrieval' option to allow it.");
+    });
+
+    test("a URL it refuses says to change it, not the config", async () => {
+      const session = hyperjumpWith({ allowRetrieval: [directoryUri(inside)] }).session({ allowRetrieval: [] });
+      await expect(session.get(fileUri(join(inside, "inside.json")))).rejects.toThrow("isn't allowed. Use the session's 'allowRetrieval' option to allow it.");
     });
 
     test("null throws instead of using the config's", () => {
       /** @type unknown */
       const allowRetrieval = null;
-      expect(() => hyperjumpWith({ allowRetrieval: [directoryUri(inside)] }).session({ allowRetrieval: /** @type string[] */ (allowRetrieval) })).to.throw("must be a list of URLs");
+      expect(() => hyperjumpWith({ allowRetrieval: [directoryUri(inside)] }).session({ allowRetrieval: /** @type string[] */ (allowRetrieval) })).to.throw("The session's 'allowRetrieval' option must be a list of URLs");
     });
 
     test("an entry that isn't a URL throws when the session is created", () => {
-      expect(() => hyperjumpWith().session({ allowRetrieval: ["http://[example"] })).to.throw("isn't a URL");
+      expect(() => hyperjumpWith().session({ allowRetrieval: ["http://[example"] })).to.throw("'http://[example' in the session's 'allowRetrieval' option isn't a URL");
     });
   });
 
@@ -224,16 +229,16 @@ describe("allowRetrieval", () => {
     });
 
     test("a relative entry without a page throws", () => {
-      expect(() => resolveAllowRetrieval(["./documents/"], "")).to.throw("'./documents/' in the 'allowRetrieval' config is relative");
+      expect(() => resolveAllowRetrieval(["./documents/"], "", configSource)).to.throw("'./documents/' in the 'allowRetrieval' config is relative");
     });
 
     test("an absolute entry without a page is fine", () => {
-      expect(resolveAllowRetrieval(["https://example.com/documents/"], "")).to.eql(["https://example.com/documents/"]);
+      expect(resolveAllowRetrieval(["https://example.com/documents/"], "", configSource)).to.eql(["https://example.com/documents/"]);
     });
 
     test("the default without a page throws when it's checked, not before", async () => {
       const allowed = new AllowedUrls(undefined, "");
-      await expect(allowed.allows("https://example.com/document")).rejects.toThrow("is relative");
+      await expect(allowed.allows("https://example.com/document")).rejects.toThrow("The default 'allowRetrieval' is './', which is relative, and there's nothing to resolve it against here. Use the 'allowRetrieval' config with absolute URLs.");
     });
   });
 });
@@ -243,7 +248,7 @@ describe("the working directory's entry", () => {
   let allowed;
 
   beforeAll(() => {
-    allowed = new AllowedUrls(resolveAllowRetrieval(["./"], directoryUri(cwd())), directoryUri(cwd()));
+    allowed = new AllowedUrls(resolveAllowRetrieval(["./"], directoryUri(cwd()), configSource), directoryUri(cwd()));
   });
 
   test("a sibling directory whose name starts with the working directory's isn't in it", async () => {

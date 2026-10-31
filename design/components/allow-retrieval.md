@@ -82,6 +82,13 @@ local to it.
 - The `retrieve` a URI scheme plugin is given (`options.retrieve`) isn't
   checked. It's for plugins that map to another URI, like `urn:`, and the
   response they give is checked by its URL.
+- An error about a list, or a refused URL's, says which list to change:
+  the config's, or the session's own option, which replaces the config's
+  so adding to the config wouldn't help. The default is the config's,
+  because configuring a list is how it's changed. Without a context URI,
+  the default's error says to configure absolute URLs, not to use one, since
+  the application didn't write `./`. Before 2026-10-31, every message said
+  the config.
 - A refused URL is a `RetrievalNotAllowedError`, thrown as it is, not
   wrapped in a `RetrievalError`. It's distinct from a `RetrievalError` for
   a URL that was allowed and couldn't be retrieved, so tools can tell a

@@ -1,15 +1,22 @@
 import { realUrl } from "#real-url";
 
 /**
+ * Where a session's `allowRetrieval` came from, said the way an error says
+ * where to change it: `The ${source} must be ...`, `in the ${source}`.
+ */
+export const configSource = "'allowRetrieval' config";
+export const sessionSource = "session's 'allowRetrieval' option";
+
+/**
  * Resolve `allowRetrieval` entries against the context URI. One that isn't a
  * URL, or is relative where there's no context URI (`""`), such as in a
- * worker, throws.
+ * worker, throws, and the error says where the list came from (`source`).
  *
- * @type (allowRetrieval: unknown, contextUri: string) => string[]
+ * @type (allowRetrieval: unknown, contextUri: string, source: string) => string[]
  */
-export const resolveAllowRetrieval = (allowRetrieval, contextUri) => {
+export const resolveAllowRetrieval = (allowRetrieval, contextUri, source) => {
   if (!Array.isArray(allowRetrieval) || allowRetrieval.some((entry) => typeof entry !== "string")) {
-    throw TypeError("The 'allowRetrieval' config must be a list of URLs");
+    throw TypeError(`The ${source} must be a list of URLs`);
   }
 
   return allowRetrieval.map((/** @type string */ entry) => {
@@ -18,13 +25,13 @@ export const resolveAllowRetrieval = (allowRetrieval, contextUri) => {
       url = new URL(entry);
     } catch {
       if (contextUri === "") {
-        throw Error(`'${entry}' in the 'allowRetrieval' config is relative, and there's nothing to resolve it against here. Use an absolute URL.`);
+        throw Error(`'${entry}' in the ${source} is relative, and there's nothing to resolve it against here. Use an absolute URL.`);
       }
 
       try {
         url = new URL(entry, contextUri);
       } catch {
-        throw Error(`'${entry}' in the 'allowRetrieval' config isn't a URL`);
+        throw Error(`'${entry}' in the ${source} isn't a URL`);
       }
     }
 
@@ -66,12 +73,26 @@ export class AllowedUrls {
 
   /** @type (uri: string) => Promise<boolean> */
   async allows(uri) {
-    this.#realEntries ??= Promise.all((this.#entries ?? resolveAllowRetrieval(defaultAllowRetrieval, this.#contextUri)).map(realEntry));
+    this.#realEntries ??= Promise.all((this.#entries ?? resolveDefault(this.#contextUri)).map(realEntry));
     const entries = await this.#realEntries;
     const { href } = await realUrl(new URL(uri));
     return entries.some((entry) => entry.endsWith("/") ? href.startsWith(entry) : href === entry);
   }
 }
+
+/**
+ * The default is relative, so without a context URI the application has to
+ * configure a list of absolute URLs
+ *
+ * @type (contextUri: string) => string[]
+ */
+const resolveDefault = (contextUri) => {
+  if (contextUri === "") {
+    throw Error(`The default 'allowRetrieval' is '${defaultAllowRetrieval.join("', '")}', which is relative, and there's nothing to resolve it against here. Use the ${configSource} with absolute URLs.`);
+  }
+
+  return resolveAllowRetrieval(defaultAllowRetrieval, contextUri, configSource);
+};
 
 /**
  * A real path doesn't end with `/`, so a directory's entry gets it back
