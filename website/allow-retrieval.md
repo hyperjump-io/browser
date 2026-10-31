@@ -58,7 +58,7 @@ too:
 - **The cache.** The check happens before the URI scheme plugins run so a
   cached response can't get around the check.
 
-The check applies to every URI scheme. That includes the ones you add. Some plugins
-retrieve another URL along the way, such as a `urn:` plugin that maps URNs to
-URLs. Both the URN and the URL need to be allowed for that to work. See
+The check applies to every URI scheme. That includes the ones you add. Some
+plugins retrieve another URL along the way, such as a `urn:` plugin that maps
+URNs to URLs. Both the URN and the URL need to be allowed for that to work. See
 [URI schemes](uri-schemes.md).

@@ -31,7 +31,7 @@ you step into one, you get the value it refers to rather than the reference.
 
 The API can be found at
 [https://swapi.hyperjump.io](https://explore.hyperjump.io#https://swapi.hyperjump.io/api/films/1).
-It's a version of the [Star Wars API](https://swapi.dev) rewritten in JRef. 
+It's a version of the [Star Wars API](https://swapi.dev) rewritten in JRef.
 
 Start by configuring a `Hyperjump` with what's allowed to be retrieved. A
 document can refer to anything anywhere, so `Hyperjump` won't retrieve anything
