@@ -128,7 +128,13 @@ export class HttpUriSchemePlugin {
     return { url: response.url, status: response.status, headers: responseHeaders, body };
   }
 
-  /** @type (uri: string, accept: string) => Promise<Record<string, string>> */
+  /**
+   * A HeadersFunction is called with the URL that's requested, without its
+   * fragment, which isn't part of a request. It's a copy for each function,
+   * so one that changes it doesn't change what the next one sees.
+   *
+   * @type (uri: string, accept: string) => Promise<Record<string, string>>
+   */
   async #requestHeaders(uri, accept) {
     const url = new URL(uri);
     url.hash = "";
@@ -136,7 +142,7 @@ export class HttpUriSchemePlugin {
     const headers = new Headers();
     for (const [entry, value] of this.#headers) {
       if (entry.endsWith("/") ? url.href.startsWith(entry) : url.href === entry) {
-        const entryHeaders = new Headers(typeof value === "function" ? await value(new URL(uri)) : value);
+        const entryHeaders = new Headers(typeof value === "function" ? await value(new URL(url)) : value);
         for (const [name, headerValue] of entryHeaders) {
           headers.set(name, headerValue);
         }

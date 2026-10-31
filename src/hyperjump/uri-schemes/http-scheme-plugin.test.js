@@ -441,6 +441,30 @@ describe("JSON Browser", () => {
           expect(toJson(subject)).to.equal(`42`);
         });
 
+        test.each([
+          ["with", new MemoryHttpCacheStore()],
+          ["without", /** @type const */ (false)]
+        ])("a function gets the URL without its fragment %s a cache", async (_name, cache) => {
+          mockAgent.get(testDomain)
+            .intercept({ method: "GET", path: "/foo" })
+            .reply(200, `{ "bar": 42 }`, { headers: contentType });
+
+          /** @type string | undefined */
+          let href;
+          const hyperjump = withOptions({
+            cache,
+            headers: {
+              "https://example.com/": (url) => {
+                href = url.href;
+                return {};
+              }
+            }
+          });
+          await hyperjump.session().get(`${testDomain}/foo#/bar`);
+
+          expect(href).to.equal(`${testDomain}/foo`);
+        });
+
         test("can be an async function", async () => {
           mockAgent.get(testDomain)
             .intercept({ method: "GET", path: "/foo", headers: { authorization: "Bearer token" } })

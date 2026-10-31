@@ -62,8 +62,8 @@ export type HttpUriSchemePluginOptions = {
 };
 
 /**
- * Headers for a request, called with the URL that's requested. It can be
- * async.
+ * Headers for a request, called with the URL that's requested, without its
+ * fragment. It can be async.
  */
 export type HeadersFunction = (url: URL) => HeadersInit | undefined | Promise<HeadersInit | undefined>;
 
