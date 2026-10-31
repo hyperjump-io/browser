@@ -1,8 +1,11 @@
 # Browser
 
-A client for JSON documents that reference each other. It retrieves documents
-over HTTP or from files. It follows the references between them for you, so you
-can work with linked documents as if they were one value.
+The Hyperjump browser is a hypermedia client for
+[JRef](https://github.com/hyperjump-io/json-reference/blob/main/spec.md). JRef
+is JSON with references like `{ "$ref": "../people/1" }`. The browser retrieves
+JRef documents over HTTP or from files. It follows the references between them
+for you so you can work with linked documents as if they were one value. This
+example gets the director of a film from an API written in JRef:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
@@ -17,12 +20,12 @@ const director = await session.step("director", film);
 session.value(director); // "George Lucas"
 ```
 
-It understands
-[JRef](https://github.com/hyperjump-io/json-reference/blob/main/spec.md), a JSON
-media type with references like `{ "$ref": "../people/1" }`. A reference can
-refer to a value in another document, a file, or on another server. When you
-step into it, that value is retrieved for you. Plain JSON works too. You can add
-support for other media types and URI schemes.
+A reference can refer to a value in another document, in a file, or on another
+server. When you step into a reference, that value is retrieved for you.
+
+The Hyperjump browser also works with other media types, as long as they can be
+parsed into a JRef AST. Plain JSON is supported by default. You can add support
+for other [media types](media-types.md) and [URI schemes](uri-schemes.md).
 
 - **Safe with documents you don't trust.** A document can't make your
   application retrieve whatever it references. You allow what can be
@@ -33,7 +36,7 @@ support for other media types and URI schemes.
 - **Node.js and browsers.** Works everywhere you need it.
 
 [`@hyperjump/json-schema`](https://github.com/hyperjump-io/json-schema/blob/v2/website/README.md)
-is built on it.
+is built on the Hyperjump browser.
 
 Using version 1.x? Its docs are in the
 [1.x README](https://github.com/hyperjump-io/browser/tree/v1#readme).
