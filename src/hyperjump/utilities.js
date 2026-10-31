@@ -3,9 +3,6 @@ const token = `[!#$%&'*\\-_.^\`|~\\d${alpha}]+`;
 const mediaRange = `(?<type>${token})/(?<subType>${token}(?:\\+(?<suffix>${token}))?)`;
 const mediaRangePattern = new RegExp(mediaRange);
 
-/** @type (expected: string, actual: string) => boolean */
-export const mimeMatch = (expected, actual) => mimeMatchSpecificity(expected, actual) > 0;
-
 /**
  * How specifically a media-range matches a media-type. Returns 0 if it doesn't
  * match. Higher numbers are more specific. Subtype specificity (exact,

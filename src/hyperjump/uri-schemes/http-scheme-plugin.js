@@ -19,10 +19,10 @@ import { defaultHttpCache } from "#default-http-cache";
  * }} ReadResponse
  */
 
+const successStatuses = new Set([200, 203]);
+
 /** @implements API.HttpUriSchemePlugin */
 export class HttpUriSchemePlugin {
-  #successStatus;
-
   /** @type HttpCacheStore | undefined */
   #cache;
 
@@ -51,7 +51,6 @@ export class HttpUriSchemePlugin {
   constructor(options = {}) {
     this.schemes = ["http", "https"];
 
-    this.#successStatus = new Set([200, 203]);
     this.#cache = options.cache === false ? undefined : options.cache ?? defaultHttpCache();
     this.#headers = resolveHeaders(options.headers ?? {});
     this.#pending = new Map();
@@ -61,7 +60,7 @@ export class HttpUriSchemePlugin {
   async retrieve(uri, { accept }) {
     if (!this.#cache) {
       const response = await fetch(uri, { headers: await this.#requestHeaders(uri, accept) });
-      await this.#assertSuccess(uri, response);
+      await assertSuccess(uri, response);
 
       return response;
     }
@@ -115,7 +114,7 @@ export class HttpUriSchemePlugin {
       }
     }
 
-    await this.#assertSuccess(url, response);
+    await assertSuccess(url, response);
     const body = await response.text();
 
     const policy = new CachePolicy(request, { status: response.status, headers: responseHeaders }, { shared: false });
@@ -151,32 +150,6 @@ export class HttpUriSchemePlugin {
     headers.set("accept", accept);
 
     return Object.fromEntries(headers);
-  }
-
-  /**
-   * A response that isn't used has its body cancelled, so its connection is
-   * released
-   *
-   * @type (uri: string, response: Response) => Promise<void>
-   */
-  async #assertSuccess(uri, response) {
-    try {
-      this.#assertUsable(uri, response);
-    } catch (error) {
-      await response.body?.cancel();
-      throw error;
-    }
-  }
-
-  /** @type (uri: string, response: Response) => void */
-  #assertUsable(uri, response) {
-    if (response.status >= 400) {
-      throw new HttpError(response, `Failed to retrieve '${uri}'`);
-    }
-
-    if (!this.#successStatus.has(response.status)) {
-      throw new HttpError(response, "Unsupported HTTP response status code");
-    }
   }
 }
 
@@ -222,6 +195,21 @@ const resolveHeaders = (headers) => {
       return /** @type [string, HeadersInit | API.HeadersFunction] */ ([url.href, value]);
     })
     .sort(([a], [b]) => a.length - b.length);
+};
+
+/**
+ * A response that isn't used has its body cancelled, so its connection is
+ * released
+ *
+ * @type (uri: string, response: Response) => Promise<void>
+ */
+const assertSuccess = async (uri, response) => {
+  if (successStatuses.has(response.status)) {
+    return;
+  }
+
+  await response.body?.cancel();
+  throw new HttpError(response, response.status >= 400 ? `Failed to retrieve '${uri}'` : "Unsupported HTTP response status code");
 };
 
 /**

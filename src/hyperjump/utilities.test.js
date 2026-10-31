@@ -1,61 +1,61 @@
 import { describe, expect, test } from "vitest";
-import { mimeMatch, mimeMatchSpecificity } from "./utilities.js";
+import { mimeMatchSpecificity } from "./utilities.js";
 
-describe("mimeMatch", () => {
+describe("mimeMatchSpecificity matches", () => {
   test("Exact match", () => {
-    expect(mimeMatch("application/json", "application/json")).to.equal(true);
+    expect(mimeMatchSpecificity("application/json", "application/json")).to.be.greaterThan(0);
   });
 
   test("Type doesn't match", () => {
-    expect(mimeMatch("application/xml", "text/xml")).to.equal(false);
+    expect(mimeMatchSpecificity("application/xml", "text/xml")).to.equal(0);
   });
 
   test("Subtype doesn't match", () => {
-    expect(mimeMatch("application/json", "application/xml")).to.equal(false);
+    expect(mimeMatchSpecificity("application/json", "application/xml")).to.equal(0);
   });
 
   test("Wildcard subtype", () => {
-    expect(mimeMatch("application/*", "application/json")).to.equal(true);
+    expect(mimeMatchSpecificity("application/*", "application/json")).to.be.greaterThan(0);
   });
 
   test("Structured suffix subtype, exact match", () => {
-    expect(mimeMatch("application/reference+json", "application/reference+json")).to.equal(true);
+    expect(mimeMatchSpecificity("application/reference+json", "application/reference+json")).to.be.greaterThan(0);
   });
 
   test("Structured suffix subtype, type doesn't match", () => {
-    expect(mimeMatch("application/xml", "text/foo+xml")).to.equal(false);
+    expect(mimeMatchSpecificity("application/xml", "text/foo+xml")).to.equal(0);
   });
 
   test("Structured suffix subtype, subtype doesn't match", () => {
-    expect(mimeMatch("application/reference+json", "application/schema+json")).to.equal(false);
+    expect(mimeMatchSpecificity("application/reference+json", "application/schema+json")).to.equal(0);
   });
 
-  test("Structured suffix subtype, subtype doesn't match", () => {
-    expect(mimeMatch("application/json", "application/foo+xml")).to.equal(false);
+  test("Structured suffix subtype, suffix doesn't match", () => {
+    expect(mimeMatchSpecificity("application/json", "application/foo+xml")).to.equal(0);
   });
 
   test("Structured suffix subtype, subtype matches", () => {
-    expect(mimeMatch("application/json", "application/reference+json")).to.equal(true);
+    expect(mimeMatchSpecificity("application/json", "application/reference+json")).to.be.greaterThan(0);
   });
 
   test("Wildcard type, subtype matches", () => {
-    expect(mimeMatch("*/xml", "application/xml")).to.equal(true);
+    expect(mimeMatchSpecificity("*/xml", "application/xml")).to.be.greaterThan(0);
   });
 
   test("Wildcard type, subtype doesn't match", () => {
-    expect(mimeMatch("*/xml", "application/json")).to.equal(false);
+    expect(mimeMatchSpecificity("*/xml", "application/json")).to.equal(0);
   });
 
   test("Wildcard type, structured suffix subtype matches", () => {
-    expect(mimeMatch("*/xml", "application/foo+xml")).to.equal(true);
+    expect(mimeMatchSpecificity("*/xml", "application/foo+xml")).to.be.greaterThan(0);
   });
 
   test("Wildcard type, structured suffix subtype doesn't match", () => {
-    expect(mimeMatch("*/xml", "application/reference+json")).to.equal(false);
+    expect(mimeMatchSpecificity("*/xml", "application/reference+json")).to.equal(0);
   });
 
   test("Wildcard type, wildcard subtype", () => {
-    expect(mimeMatch("*/*", "application/reference+json")).to.equal(true);
+    expect(mimeMatchSpecificity("*/*", "application/reference+json")).to.be.greaterThan(0);
   });
 });
 

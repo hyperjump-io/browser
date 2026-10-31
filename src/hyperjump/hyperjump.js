@@ -16,9 +16,6 @@ import { relativeFileUri } from "./file-uris.js";
  * @import * as API from "./hyperjump.d.ts"
  */
 
-// TODO: Support fetch options in get
-// TODO: Support filters
-
 // A `Hyperjump`'s private retrieve and parse, for `Session`. They're set in
 // `Hyperjump`'s static block, which can read its private methods, and
 // aren't exported, so they aren't part of the API.
@@ -419,7 +416,6 @@ export class Session {
     }
   }
 
-  // TODO: Follow references in structured values
   // eslint-disable-next-line @stylistic/no-extra-parens
   value = /** @type API.Session<JrefNode>["value"] */ ((/** @type JrefNode */ node) => {
     if (node.jsonType === "object" || node.jsonType === "array") {

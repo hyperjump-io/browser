@@ -1,6 +1,5 @@
 import { VFileMessage } from "vfile-message";
 import { jsonSyntaxErrorMessage } from "./json-parser.js";
-import { withoutStackTraces } from "./without-stack-traces.js";
 
 /**
  * @import { Parser } from "unified"
@@ -55,3 +54,23 @@ export const fatalSyntaxError = (error) => withoutStackTraces(() => {
   message.fatal = true;
   return message;
 });
+
+/**
+ * Run `fn` without capturing stack traces for any errors it creates.
+ *
+ * A VFileMessage is an Error, so creating one captures a stack trace. For a
+ * syntax error, that trace doesn't say anything about the problem and it's the
+ * most expensive part of creating the message. `Error.stackTraceLimit` is
+ * only supported by V8. Elsewhere, setting it has no effect.
+ *
+ * @type <T>(fn: () => T) => T
+ */
+const withoutStackTraces = (fn) => {
+  const stackTraceLimit = Error.stackTraceLimit;
+  Error.stackTraceLimit = 0;
+  try {
+    return fn();
+  } finally {
+    Error.stackTraceLimit = stackTraceLimit;
+  }
+};
