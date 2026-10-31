@@ -1,4 +1,4 @@
-import { describe, test, beforeEach, afterEach, expect } from "vitest";
+import { describe, test, beforeEach, afterEach, expect, vi } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump, HttpError, HttpUriSchemePlugin, MemoryHttpCacheStore, RetrievalError } from "../index.js";
 import { toJson } from "../../json/jsonast-util.js";
@@ -19,6 +19,7 @@ describe("JSON Browser", () => {
 
       afterEach(async () => {
         await mockAgent.close();
+        vi.unstubAllGlobals();
       });
 
       test("not found", async () => {
@@ -60,6 +61,34 @@ describe("JSON Browser", () => {
           const cause = /** @type Error */ (retrievalError.cause);
           expect(cause.name).to.equal("UnknownMediaTypeError");
         }
+      });
+
+      describe.each([
+        ["with a cache", new MemoryHttpCacheStore()],
+        ["without a cache", /** @type const */ (false)]
+      ])("a response that isn't used has its body cancelled, %s", (_name, cache) => {
+        // 202 is a success that isn't supported
+        test.each([404, 202])("%i", async (status) => {
+          let cancelled = false;
+          vi.stubGlobal("fetch", async () => {
+            const body = new ReadableStream({
+              pull: (controller) => {
+                controller.enqueue(new TextEncoder().encode("{}"));
+              },
+              cancel: () => {
+                cancelled = true;
+              }
+            });
+            return new Response(body, { status, headers: { "content-type": "application/json" } });
+          });
+
+          const hyperjump = new Hyperjump({
+            allowRetrieval: ["https://example.com/"],
+            uriSchemePlugins: [new HttpUriSchemePlugin({ cache })]
+          });
+          await expect(hyperjump.session().get(`${testDomain}/foo`)).rejects.toBeInstanceOf(RetrievalError);
+          expect(cancelled).to.equal(true);
+        });
       });
 
       test("unsupported content type", async () => {

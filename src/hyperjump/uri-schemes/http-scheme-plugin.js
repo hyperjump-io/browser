@@ -59,7 +59,7 @@ export class HttpUriSchemePlugin {
   async retrieve(uri, { accept }) {
     if (!this.#cache) {
       const response = await fetch(uri, { headers: await this.#requestHeaders(uri, accept) });
-      this.#assertSuccess(uri, response);
+      await this.#assertSuccess(uri, response);
 
       return response;
     }
@@ -112,7 +112,7 @@ export class HttpUriSchemePlugin {
       }
     }
 
-    this.#assertSuccess(url, response);
+    await this.#assertSuccess(url, response);
     const body = await response.text();
 
     const policy = new CachePolicy(request, { status: response.status, headers: responseHeaders }, { shared: false });
@@ -144,8 +144,23 @@ export class HttpUriSchemePlugin {
     return Object.fromEntries(headers);
   }
 
+  /**
+   * A response that isn't used has its body cancelled, so its connection is
+   * released
+   *
+   * @type (uri: string, response: Response) => Promise<void>
+   */
+  async #assertSuccess(uri, response) {
+    try {
+      this.#assertUsable(uri, response);
+    } catch (error) {
+      await response.body?.cancel();
+      throw error;
+    }
+  }
+
   /** @type (uri: string, response: Response) => void */
-  #assertSuccess(uri, response) {
+  #assertUsable(uri, response) {
     if (response.status >= 400) {
       throw new HttpError(response, `Failed to retrieve '${uri}'`);
     }
