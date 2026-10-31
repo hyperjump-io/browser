@@ -4,9 +4,9 @@
 npm install @hyperjump/browser
 ```
 
-It's an ES module with TypeScript types that runs in Node.js and browsers. It
-should also work in Bun and Deno. Its tests don't run there, so it's less proven
-in them.
+The Hyperjump browser is an ES module with TypeScript types that runs in Node.js
+and browsers. It should also work in Bun and Deno. Its tests don't run there, so
+it's less proven in those runtimes.
 
 ## Browsers
 

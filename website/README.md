@@ -33,7 +33,7 @@ for other [media types](media-types.md) and [URI schemes](uri-schemes.md).
 - **HTTP done properly.** Responses are cached according to their caching
   headers, and stale responses are revalidated. Concurrent requests for the
   same URL share one request.
-- **Node.js and browsers.** Works everywhere you need it.
+- **Node.js and browsers.** Browsing is supported on the server and in browsers.
 
 [`@hyperjump/json-schema`](https://github.com/hyperjump-io/json-schema/blob/v2/website/README.md)
 is built on the Hyperjump browser.
