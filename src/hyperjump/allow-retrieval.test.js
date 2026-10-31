@@ -204,6 +204,12 @@ describe("allowRetrieval", () => {
       await expect(session.get("test:/document")).rejects.toThrow("'test:/document' led to 'https://internal.example.com/document'");
     });
 
+    test("null throws instead of using the config's", () => {
+      /** @type unknown */
+      const allowRetrieval = null;
+      expect(() => hyperjumpWith({ allowRetrieval: [directoryUri(inside)] }).session({ allowRetrieval: /** @type string[] */ (allowRetrieval) })).to.throw("must be a list of URLs");
+    });
+
     test("an entry that isn't a URL throws when the session is created", () => {
       expect(() => hyperjumpWith().session({ allowRetrieval: ["http://[example"] })).to.throw("isn't a URL");
     });

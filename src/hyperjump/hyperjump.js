@@ -264,7 +264,9 @@ export class Session {
     this.#hyperjump = hyperjump;
     this.#cache = {};
     this.#contextUri = contextUri();
-    const allowRetrieval = options.allowRetrieval ?? hyperjump.config.allowRetrieval;
+    // Only a missing list falls back to the config's. Anything else is the
+    // session's, so one that isn't a list throws, like the config's.
+    const allowRetrieval = options.allowRetrieval === undefined ? hyperjump.config.allowRetrieval : options.allowRetrieval;
     this.#allowedUrls = new AllowedUrls(allowRetrieval === undefined ? undefined : resolveAllowRetrieval(allowRetrieval, this.#contextUri), this.#contextUri);
   }
 
