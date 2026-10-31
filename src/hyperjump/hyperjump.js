@@ -91,8 +91,7 @@ export class Hyperjump {
    * @param {API.HyperjumpConfig} [config]
    */
   constructor(config = {}) {
-    // Each session resolves it, but a config that isn't a list of URLs
-    // throws here
+    // Each session resolves it, but an entry that isn't a URL throws here
     if (config.allowRetrieval !== undefined) {
       resolveAllowRetrieval(config.allowRetrieval, contextUri(), configSource);
     }
@@ -312,8 +311,6 @@ export class Session {
     this.#hyperjump = hyperjump;
     this.#cache = {};
     this.#contextUri = contextUri();
-    // Only a missing list falls back to the config's. Anything else is the
-    // session's, so one that isn't a list throws, like the config's.
     const [allowRetrieval, source] = options.allowRetrieval === undefined
       ? [hyperjump.config.allowRetrieval, configSource]
       : [options.allowRetrieval, sessionSource];

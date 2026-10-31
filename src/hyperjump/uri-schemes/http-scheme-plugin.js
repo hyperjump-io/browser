@@ -171,13 +171,9 @@ export class HttpError extends Error {
  * `allowRetrieval` entry, and its fragment is ignored. One that isn't an
  * absolute `http(s):` URL would never match, so it throws.
  *
- * @type (headers: unknown) => [string, HeadersInit | API.HeadersFunction][]
+ * @type (headers: Record<string, HeadersInit | API.HeadersFunction>) => [string, HeadersInit | API.HeadersFunction][]
  */
 const resolveHeaders = (headers) => {
-  if (typeof headers !== "object" || headers === null || Array.isArray(headers)) {
-    throw TypeError("The 'headers' option must be an object of headers by URL");
-  }
-
   return Object.entries(headers)
     .map(([entry, value]) => {
       let url;

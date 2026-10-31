@@ -2,7 +2,7 @@ import { realUrl } from "#real-url";
 
 /**
  * Where a session's `allowRetrieval` came from, said the way an error says
- * where to change it: `The ${source} must be ...`, `in the ${source}`.
+ * where to change it: `in the ${source}`, `Use the ${source}`.
  */
 export const configSource = "'allowRetrieval' config";
 export const sessionSource = "session's 'allowRetrieval' option";
@@ -12,14 +12,10 @@ export const sessionSource = "session's 'allowRetrieval' option";
  * URL, or is relative where there's no context URI (`""`), such as in a
  * worker, throws, and the error says where the list came from (`source`).
  *
- * @type (allowRetrieval: unknown, contextUri: string, source: string) => string[]
+ * @type (allowRetrieval: string[], contextUri: string, source: string) => string[]
  */
 export const resolveAllowRetrieval = (allowRetrieval, contextUri, source) => {
-  if (!Array.isArray(allowRetrieval) || allowRetrieval.some((entry) => typeof entry !== "string")) {
-    throw TypeError(`The ${source} must be a list of URLs`);
-  }
-
-  return allowRetrieval.map((/** @type string */ entry) => {
+  return allowRetrieval.map((entry) => {
     let url;
     try {
       url = new URL(entry);

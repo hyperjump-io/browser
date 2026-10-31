@@ -144,13 +144,6 @@ describe("allowRetrieval", () => {
       expect(() => hyperjumpWith({ allowRetrieval: ["http://[example"] })).to.throw("'http://[example' in the 'allowRetrieval' config isn't a URL");
     });
 
-    test("a predicate throws when it's configured", () => {
-      /** @type unknown */
-      const predicate = () => true;
-      const allowRetrieval = /** @type string[] */ (predicate);
-      expect(() => hyperjumpWith({ allowRetrieval })).to.throw("must be a list of URLs");
-    });
-
     test("changing the list it was configured with doesn't change it", async () => {
       const allowRetrieval = /** @type string[] */ ([]);
       const config = { allowRetrieval };
@@ -213,12 +206,6 @@ describe("allowRetrieval", () => {
     test("a URL it refuses says to change it, not the config", async () => {
       const session = hyperjumpWith({ allowRetrieval: [directoryUri(inside)] }).session({ allowRetrieval: [] });
       await expect(session.get(fileUri(join(inside, "inside.json")))).rejects.toThrow("isn't allowed. Use the session's 'allowRetrieval' option to allow it.");
-    });
-
-    test("null throws instead of using the config's", () => {
-      /** @type unknown */
-      const allowRetrieval = null;
-      expect(() => hyperjumpWith({ allowRetrieval: [directoryUri(inside)] }).session({ allowRetrieval: /** @type string[] */ (allowRetrieval) })).to.throw("The session's 'allowRetrieval' option must be a list of URLs");
     });
 
     test("an entry that isn't a URL throws when the session is created", () => {

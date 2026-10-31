@@ -497,13 +497,6 @@ describe("JSON Browser", () => {
           expect(() => new HttpUriSchemePlugin({ headers: { "file:///foo/": {} } })).to.throw("isn't an 'http:' or 'https:' URL");
         });
 
-        test("a function for every URL throws", () => {
-          /** @type unknown */
-          const headersFunction = () => ({});
-          const headers = /** @type Record<string, HeadersInit> */ (headersFunction);
-          expect(() => new HttpUriSchemePlugin({ headers })).to.throw("must be an object");
-        });
-
         test("can't replace Accept", async () => {
           const hyperjump = withOptions({
             headers: { "https://example.com/": { Accept: "text/plain" } }
