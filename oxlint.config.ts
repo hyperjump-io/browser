@@ -7,9 +7,6 @@ export default defineConfig({
   options: {
     typeAware: true
   },
-  ignorePatterns: [
-    "coverage/**"
-  ],
   plugins: [
     "typescript",
     "import",

@@ -18,6 +18,11 @@
   },
   "type": "module",
   "sideEffects": false,
+  "files": [
+    "src/",
+    "!**/*.test.js",
+    "!src/json/jsonast-util-tests/"
+  ],
   "exports": {
     ".": {
       "types": "./src/hyperjump/index.d.ts",
@@ -71,7 +76,6 @@
   "devDependencies": {
     "@stylistic/eslint-plugin": "*",
     "@types/node": "*",
-    "@vitest/coverage-v8": "*",
     "oxlint": "*",
     "oxlint-tsgolint": "*",
     "typescript": "*",
