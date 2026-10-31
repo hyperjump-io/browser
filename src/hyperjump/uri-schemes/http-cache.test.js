@@ -128,6 +128,32 @@ describe("JSON Browser", () => {
       expect(toJson(second)).to.equal(`42`);
     });
 
+    test("requests at the same time with different Accept headers don't share a request", async () => {
+      const plugin = new HttpUriSchemePlugin({ cache: new MemoryHttpCacheStore() });
+      const fooPlugin = {
+        mediaType: "application/foo+json",
+        extensions: [],
+        parse: async () => ({ type: "foo-document", children: [] })
+      };
+      const jrefOnly = new Hyperjump({ allowRetrieval: ["https://example.com/"], uriSchemePlugins: [plugin] });
+      const withFoo = new Hyperjump({ allowRetrieval: ["https://example.com/"], uriSchemePlugins: [plugin], mediaTypePlugins: [fooPlugin] });
+
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo", headers: (headers) => !headers.accept.includes("application/foo+json") })
+        .reply(200, `{ "foo": 42 }`, { headers: { ...contentType, vary: "accept" } });
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo", headers: (headers) => headers.accept.includes("application/foo+json") })
+        .reply(200, `{}`, { headers: { "content-type": "application/foo+json", "vary": "accept" } });
+
+      const [jref, foo] = await Promise.all([
+        jrefOnly.session().getDocument(uri),
+        withFoo.session().getDocument(uri)
+      ]);
+
+      expect(jref.mediaType).to.equal("application/reference+json");
+      expect(foo.mediaType).to.equal("application/foo+json");
+    });
+
     test("a plugin without a cache has the default", async () => {
       mockAgent.get(testDomain)
         .intercept({ method: "GET", path: "/foo" })

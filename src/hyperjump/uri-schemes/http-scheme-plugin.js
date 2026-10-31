@@ -35,8 +35,11 @@ export class HttpUriSchemePlugin {
   #headers;
 
   /**
-   * Responses being retrieved, by URL, so concurrent requests for the same
-   * URL share one request.
+   * Responses being retrieved, by URL and Accept header, so concurrent
+   * requests for the same URL share one request. A plugin can be in more
+   * than one `Hyperjump`, whose media types, and so Accept headers, can
+   * differ. Its other headers come from its own options, so they're the
+   * same for every request for a URL.
    *
    * @type Map<string, Promise<ReadResponse>>
    */
@@ -64,12 +67,13 @@ export class HttpUriSchemePlugin {
     }
 
     const url = toAbsoluteIri(uri);
-    let pending = this.#pending.get(url);
+    const key = JSON.stringify([url, accept]);
+    let pending = this.#pending.get(key);
     if (!pending) {
       pending = this.#retrieveCached(url, accept, this.#cache).finally(() => {
-        this.#pending.delete(url);
+        this.#pending.delete(key);
       });
-      this.#pending.set(url, pending);
+      this.#pending.set(key, pending);
     }
 
     const { body, status, headers, url: responseUrl } = await pending;
