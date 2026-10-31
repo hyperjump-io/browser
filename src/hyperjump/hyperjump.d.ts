@@ -57,6 +57,9 @@ export type GetOptions = {
 export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
   constructor(config?: HyperjumpConfig);
 
+  /** The config it was created with */
+  readonly config: HyperjumpConfig;
+
   /**
    * Start a session. Each session has its own documents, so nothing one
    * session retrieves is seen by another, except through the URI scheme

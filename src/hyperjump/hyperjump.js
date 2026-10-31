@@ -20,18 +20,11 @@ import { relativeFileUri } from "./file-uris.js";
 // TODO: Support filters
 
 /**
- * Each `Hyperjump`'s resolved `allowRetrieval` config. It isn't there if
- * it's the default.
- *
- * @type WeakMap<Hyperjump, string[]>
- */
-const configuredAllowRetrieval = new WeakMap();
-
-/**
  * @implements API.Hyperjump<JrefNode>
  */
 export class Hyperjump {
   // TODO: Add config to enable schemes and media types
+  /** @type API.HyperjumpConfig */
   #config;
 
   /** @type Record<string, UriSchemePlugin> */
@@ -46,8 +39,10 @@ export class Hyperjump {
   constructor(config = {}) {
     this.#config = config;
 
+    // Each session resolves it, but a config that isn't a list of URLs
+    // throws here
     if (config.allowRetrieval !== undefined) {
-      configuredAllowRetrieval.set(this, resolveAllowRetrieval(config.allowRetrieval, contextUri()));
+      resolveAllowRetrieval(config.allowRetrieval, contextUri());
     }
 
     this.#uriSchemePlugins = {};
@@ -61,6 +56,10 @@ export class Hyperjump {
     // Load default MediaType plugins
     this.addMediaTypePlugin(new JrefMediaTypePlugin());
     this.addMediaTypePlugin(new JsonMediaTypePlugin());
+  }
+
+  get config() {
+    return this.#config;
   }
 
   /** @type API.Hyperjump<JrefNode>["session"] */
@@ -257,9 +256,8 @@ export class Session {
     this.#hyperjump = hyperjump;
     this.#cache = {};
     this.#contextUri = contextUri();
-    this.#allowedUrls = new AllowedUrls(options.allowRetrieval === undefined
-      ? configuredAllowRetrieval.get(hyperjump)
-      : resolveAllowRetrieval(options.allowRetrieval, this.#contextUri), this.#contextUri);
+    const allowRetrieval = options.allowRetrieval ?? hyperjump.config.allowRetrieval;
+    this.#allowedUrls = new AllowedUrls(allowRetrieval === undefined ? undefined : resolveAllowRetrieval(allowRetrieval, this.#contextUri), this.#contextUri);
   }
 
   get hyperjump() {
