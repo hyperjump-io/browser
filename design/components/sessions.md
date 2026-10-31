@@ -53,6 +53,13 @@ State is separated by how long it lives.
   it changes it. That's what lets the defaults be different in Node.js and
   browsers. A replacement keeps the place of what it replaced, which is the
   order of the `Accept` header and which plugin wins a tie.
+  - The defaults are always created, even when the config replaces them.
+    Creating only the ones that aren't replaced was rejected. The
+    `Hyperjump` would need each default's schemes before creating it, in
+    a table to keep in sync with the plugins, and a default whose schemes
+    are only partly replaced is still needed. On 2026-10-31, a
+    `Hyperjump` took about 0.5 µs to create in Node.js, the same whether
+    the HTTP plugin was replaced or not.
 - Before 2026-10-30, plugins were added after a `Hyperjump` was created
   (`addUriSchemePlugin`, `addMediaTypePlugin`), and adding one for a scheme
   or media type that was supported replaced it. Changing the HTTP cache or
