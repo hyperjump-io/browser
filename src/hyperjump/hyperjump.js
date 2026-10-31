@@ -375,7 +375,8 @@ export class Session {
       throw new RetrievalError(uri, { cause: error });
     }
 
-    if (response.url && response.url !== id && !await this.#allowedUrls.allows(response.url)) {
+    // `retrieve` gives every response a URL
+    if (response.url !== id && !await this.#allowedUrls.allows(response.url)) {
       await response.body?.cancel();
       throw new RetrievalNotAllowedError(response.url, `Retrieving '${relativeFileUri(id)}' led to '${relativeFileUri(response.url)}', which isn't allowed. Use the ${this.#allowRetrievalSource} to allow it.`);
     }
@@ -386,9 +387,7 @@ export class Session {
       // References within the document are relative to the URI it was
       // retrieved from, which can differ from the requested URI (redirects,
       // symlinks), so it needs to be cached under both.
-      if (response.url) {
-        this.#cache[toAbsoluteIri(response.url)] ??= Promise.resolve(document);
-      }
+      this.#cache[toAbsoluteIri(response.url)] ??= Promise.resolve(document);
 
       return document;
     } catch (error) {
