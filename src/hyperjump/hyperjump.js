@@ -52,13 +52,20 @@ export class Hyperjump {
    * @param {API.HyperjumpConfig} [config]
    */
   constructor(config = {}) {
-    this.#config = config;
-
     // Each session resolves it, but a config that isn't a list of URLs
     // throws here
     if (config.allowRetrieval !== undefined) {
       resolveAllowRetrieval(config.allowRetrieval, contextUri());
     }
+
+    // A frozen copy, so a change to the object it was given, after it was
+    // checked, doesn't change what new sessions allow
+    this.#config = Object.freeze({
+      ...config,
+      allowRetrieval: frozenCopy(config.allowRetrieval),
+      uriSchemePlugins: frozenCopy(config.uriSchemePlugins),
+      mediaTypePlugins: frozenCopy(config.mediaTypePlugins)
+    });
 
     // The config's plugins come after the defaults, and a later plugin for a
     // scheme or media type replaces an earlier one. A replacement keeps its
@@ -214,6 +221,13 @@ export class Hyperjump {
     return this.#mediaTypePlugins[document.mediaType]?.fragmentPointer?.(document, fragment) ?? "";
   }
 }
+
+/**
+ * @template T
+ * @param {T[] | undefined} array
+ * @returns {T[] | undefined}
+ */
+const frozenCopy = (array) => array && /** @type T[] */ (Object.freeze([...array]));
 
 /**
  * @implements API.Session<JrefNode>

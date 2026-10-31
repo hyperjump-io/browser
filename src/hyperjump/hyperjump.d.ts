@@ -83,7 +83,11 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    */
   constructor(config?: HyperjumpConfig<T>);
 
-  /** The config it was created with */
+  /**
+   * The config it was created with. It's a frozen copy, with frozen copies
+   * of its lists, so changing the object it was created with doesn't
+   * change it.
+   */
   readonly config: HyperjumpConfig<T>;
 
   /**

@@ -145,6 +145,23 @@ describe("allowRetrieval", () => {
       expect(() => hyperjumpWith({ allowRetrieval })).to.throw("must be a list of URLs");
     });
 
+    test("changing the list it was configured with doesn't change it", async () => {
+      const allowRetrieval = /** @type string[] */ ([]);
+      const config = { allowRetrieval };
+      const hyperjump = hyperjumpWith(config);
+      allowRetrieval.push(directoryUri(inside));
+      config.allowRetrieval = [directoryUri(inside)];
+
+      await expect(hyperjump.session().get(fileUri(join(inside, "inside.json")))).rejects.toThrow(RetrievalNotAllowedError);
+    });
+
+    test("the config's list can't be changed", () => {
+      const hyperjump = hyperjumpWith({ allowRetrieval: [] });
+
+      expect(Object.isFrozen(hyperjump.config)).to.equal(true);
+      expect(() => hyperjump.config.allowRetrieval?.push(directoryUri(inside))).to.throw(TypeError);
+    });
+
     test("a response from a refused URL isn't used", async () => {
       const hyperjump = hyperjumpWith({ allowRetrieval: ["test:/"], uriSchemePlugins: [testScheme("https://internal.example.com/document")] });
 
