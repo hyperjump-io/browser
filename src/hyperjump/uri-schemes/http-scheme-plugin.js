@@ -1,5 +1,6 @@
 import CachePolicy from "http-cache-semantics";
 import { toAbsoluteIri } from "@hyperjump/uri";
+import { defaultHttpCache } from "#default-http-cache";
 import { UnknownMediaTypeError } from "../hyperjump.js";
 
 /**
@@ -26,7 +27,12 @@ export class HttpUriSchemePlugin {
   /** @type HttpCacheStore | undefined */
   #cache;
 
-  /** @type API.HttpUriSchemePluginOptions["headers"] */
+  /**
+   * The `headers` option's entries, from the shortest URL to the longest, so
+   * a longer one's headers win when they're merged
+   *
+   * @type [string, HeadersInit | API.HeadersFunction][]
+   */
   #headers;
 
   /**
@@ -44,8 +50,8 @@ export class HttpUriSchemePlugin {
     this.schemes = ["http", "https"];
 
     this.#successStatus = new Set([200, 203]);
-    this.#cache = options.cache;
-    this.#headers = options.headers;
+    this.#cache = options.cache === false ? undefined : options.cache ?? defaultHttpCache();
+    this.#headers = resolveHeaders(options.headers ?? {});
     this.#pending = new Map();
   }
 
@@ -121,7 +127,18 @@ export class HttpUriSchemePlugin {
 
   /** @type (uri: string, accept: string) => Promise<Record<string, string>> */
   async #requestHeaders(uri, accept) {
-    const headers = new Headers(await this.#headers?.(new URL(uri)));
+    const url = new URL(uri);
+    url.hash = "";
+
+    const headers = new Headers();
+    for (const [entry, value] of this.#headers) {
+      if (entry.endsWith("/") ? url.href.startsWith(entry) : url.href === entry) {
+        const entryHeaders = new Headers(typeof value === "function" ? await value(new URL(uri)) : value);
+        for (const [name, headerValue] of entryHeaders) {
+          headers.set(name, headerValue);
+        }
+      }
+    }
     headers.set("accept", accept);
 
     return Object.fromEntries(headers);
@@ -155,6 +172,38 @@ export class HttpError extends Error {
     this.response = response;
   }
 }
+
+/**
+ * Check the `headers` option's URLs and sort its entries from the shortest
+ * URL to the longest. A URL is compared after it's parsed, like an
+ * `allowRetrieval` entry, and its fragment is ignored. One that isn't an
+ * absolute `http(s):` URL would never match, so it throws.
+ *
+ * @type (headers: unknown) => [string, HeadersInit | API.HeadersFunction][]
+ */
+const resolveHeaders = (headers) => {
+  if (typeof headers !== "object" || headers === null || Array.isArray(headers)) {
+    throw TypeError("The 'headers' option must be an object of headers by URL");
+  }
+
+  return Object.entries(headers)
+    .map(([entry, value]) => {
+      let url;
+      try {
+        url = new URL(entry);
+      } catch {
+        throw Error(`'${entry}' in the 'headers' option isn't an absolute URL`);
+      }
+
+      if (url.protocol !== "http:" && url.protocol !== "https:") {
+        throw Error(`'${entry}' in the 'headers' option isn't an 'http:' or 'https:' URL`);
+      }
+
+      url.hash = "";
+      return /** @type [string, HeadersInit | API.HeadersFunction] */ ([url.href, value]);
+    })
+    .sort(([a], [b]) => a.length - b.length);
+};
 
 /**
  * A response that's stale as soon as it's stored and can't be revalidated

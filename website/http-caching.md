@@ -18,11 +18,11 @@ Where responses are kept by default depends on the environment:
 
 | Environment | Default |
 | --- | --- |
-| Node.js | In memory for the life of the `Hyperjump` |
+| Node.js | In memory for the life of the HTTP plugin |
 | Browsers | No cache of its own because `fetch` already caches |
 
-The cache belongs to the HTTP plugin, so to change it you replace the HTTP
-plugin with one that has a different cache:
+The cache belongs to the HTTP plugin, so to keep responses somewhere else you
+add an HTTP plugin with a different `cache`. It replaces the default one:
 
 ```typescript
 import {
@@ -37,15 +37,18 @@ const h = new Hyperjump();
 h.addUriSchemePlugin(new HttpUriSchemePlugin({
   cache: new FileHttpCacheStore("./.cache/hyperjump")
 }));
-
-// Don't cache
-h.addUriSchemePlugin(new HttpUriSchemePlugin());
 ```
+
+A plugin without a `cache` gets the default for its environment, so a plugin
+added to send [headers](http-headers.md) still caches. To turn caching off,
+give it `cache: false`.
 
 To keep responses somewhere else, such as Redis, implement `HttpCacheStore`.
 It's an object with async `get(url)`, `set(url, entry)`, and `delete(url)`
-methods. Entries are JSON, so they can be stored anywhere.
+methods. Entries are JSON, so they can be stored anywhere. Plugins only share a
+cache when they're given the same store.
 
 The cache is private, which means a response retrieved with one set of
-credentials can be used for a request with another. Don't share a cache between
-plugins that send different credentials. See [HTTP headers](http-headers.md).
+credentials can be used for a request to the same URL with another. Don't share
+a cache between plugins that send different credentials to the same URLs. See
+[HTTP headers](http-headers.md).

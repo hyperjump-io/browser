@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, test, expect } from "vitest";
 import { build } from "vite";
 import { contextUri } from "./hyperjump/context-uri.browser.js";
+import { defaultHttpCache } from "./hyperjump/uri-schemes/default-http-cache.browser.js";
 import { defaultUriSchemePlugins } from "./hyperjump/uri-schemes/default-uri-scheme-plugins.browser.js";
 import { FileUriSchemePlugin } from "./hyperjump/uri-schemes/file-scheme-plugin.browser.js";
 import { pathToUri as browserPathToUri } from "./jref/path-to-uri.browser.js";
@@ -71,6 +72,10 @@ describe("Browser compatibility", () => {
     test("the file: scheme isn't a default URI scheme", () => {
       const schemes = defaultUriSchemePlugins().flatMap((plugin) => plugin.schemes);
       expect(schemes).to.eql(["http", "https"]);
+    });
+
+    test("there's no default HTTP cache", () => {
+      expect(defaultHttpCache()).to.equal(undefined);
     });
 
     test("FileUriSchemePlugin can't be constructed", () => {

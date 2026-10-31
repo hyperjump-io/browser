@@ -30,7 +30,7 @@ describe("JSON Browser", () => {
       await mockAgent.close();
     });
 
-    /** @type (cache?: HttpCacheStore) => Hyperjump */
+    /** @type (cache?: HttpCacheStore | false) => Hyperjump */
     const withCache = (cache) => {
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin({ cache }));
@@ -127,7 +127,19 @@ describe("JSON Browser", () => {
       expect(toJson(second)).to.equal(`42`);
     });
 
-    test("without a cache, nothing is cached", async () => {
+    test("a plugin without a cache has the default", async () => {
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo" })
+        .reply(200, `{ "foo": 42 }`, { headers: { ...contentType, "cache-control": "max-age=60" } });
+
+      const hyperjump = withCache(undefined);
+      await hyperjump.session().get(uri);
+      const subject = await hyperjump.session().get(uri);
+
+      expect(toJson(subject)).to.equal(`42`);
+    });
+
+    test("with `cache: false`, nothing is cached", async () => {
       mockAgent.get(testDomain)
         .intercept({ method: "GET", path: "/foo" })
         .reply(200, `{ "foo": 42 }`, { headers: { ...contentType, "cache-control": "max-age=60" } });
@@ -135,7 +147,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: "/foo" })
         .reply(200, `{ "foo": 24 }`, { headers: contentType });
 
-      const hyperjump = withCache(undefined);
+      const hyperjump = withCache(false);
       await hyperjump.session().get(uri);
       const subject = await hyperjump.session().get(uri);
 
@@ -165,7 +177,7 @@ describe("JSON Browser", () => {
         .reply(304, "", { headers: { etag: `"1"` } });
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
-      const headers = () => ({ Authorization: "Bearer token" });
+      const headers = { "https://example.com/": { Authorization: "Bearer token" } };
       hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin({ cache: new MemoryHttpCacheStore(), headers }));
       await hyperjump.session().get(uri);
       const subject = await hyperjump.session().get(uri);
@@ -183,7 +195,7 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       let token = 1;
-      const headers = () => ({ Authorization: `Bearer ${token}` });
+      const headers = { "https://example.com/": () => ({ Authorization: `Bearer ${token}` }) };
       hyperjump.addUriSchemePlugin(new HttpUriSchemePlugin({ cache: new MemoryHttpCacheStore(), headers }));
       await hyperjump.session().get(uri);
       token = 2;

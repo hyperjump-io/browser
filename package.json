@@ -37,6 +37,10 @@
       "node": "./src/hyperjump/context-uri.js",
       "default": "./src/hyperjump/context-uri.browser.js"
     },
+    "#default-http-cache": {
+      "node": "./src/hyperjump/uri-schemes/default-http-cache.js",
+      "default": "./src/hyperjump/uri-schemes/default-http-cache.browser.js"
+    },
     "#default-uri-scheme-plugins": {
       "node": "./src/hyperjump/uri-schemes/default-uri-scheme-plugins.js",
       "default": "./src/hyperjump/uri-schemes/default-uri-scheme-plugins.browser.js"
