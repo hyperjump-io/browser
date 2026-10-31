@@ -23,6 +23,15 @@ State is separated by how long it lives.
   in it are relative to where it came from.
 - Following a reference that leads back to a URI already in the chain is a
   `ReferenceCycleError`, rather than waiting forever.
+- A session reads the context URI (`#context-uri`: the working directory
+  in Node.js, the page in a browser) once, when it's created, and resolves
+  relative URIs and its `allowRetrieval` against that. Everything a session
+  does sees the same one, and a new session sees a change, like a new
+  working directory or a page a single-page application navigated to.
+  Before 2026-10-30, it was read deep inside `get`, `getDocument`, and
+  `allowed-urls.js` each time. Reading it once for the `Hyperjump` was
+  rejected, because a single-page application keeps one `Hyperjump` while
+  its page changes.
 
 ## Extending
 

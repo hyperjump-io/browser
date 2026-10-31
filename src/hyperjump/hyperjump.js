@@ -47,7 +47,7 @@ export class Hyperjump {
     this.#config = config;
 
     if (config.allowRetrieval !== undefined) {
-      configuredAllowRetrieval.set(this, resolveAllowRetrieval(config.allowRetrieval));
+      configuredAllowRetrieval.set(this, resolveAllowRetrieval(config.allowRetrieval, contextUri()));
     }
 
     this.#uriSchemePlugins = {};
@@ -241,15 +241,25 @@ export class Session {
   #allowedUrls;
 
   /**
+   * What relative URIs are resolved against, as it was when the session was
+   * created, so it's the same for everything the session does. A new
+   * session sees a change, like any other.
+   *
+   * @type string
+   */
+  #contextUri;
+
+  /**
    * @param {Hyperjump} hyperjump
    * @param {API.SessionOptions} [options]
    */
   constructor(hyperjump, options = {}) {
     this.#hyperjump = hyperjump;
     this.#cache = {};
+    this.#contextUri = contextUri();
     this.#allowedUrls = new AllowedUrls(options.allowRetrieval === undefined
       ? configuredAllowRetrieval.get(hyperjump)
-      : resolveAllowRetrieval(options.allowRetrieval));
+      : resolveAllowRetrieval(options.allowRetrieval, this.#contextUri), this.#contextUri);
   }
 
   get hyperjump() {
@@ -268,7 +278,7 @@ export class Session {
    * @returns {Promise<JrefNode>}
    */
   async #get(uri, options, referenceChain) {
-    uri = resolveIri(uri, contextUri());
+    uri = resolveIri(uri, this.#contextUri);
     if (referenceChain.includes(uri)) {
       throw new ReferenceCycleError([...referenceChain, uri]);
     }
@@ -285,7 +295,7 @@ export class Session {
 
   /** @type API.Session<JrefNode>["getDocument"] */
   async getDocument(uri, options = {}) {
-    uri = resolveIri(uri, contextUri());
+    uri = resolveIri(uri, this.#contextUri);
     const id = toAbsoluteIri(uri);
 
     this.#cache[id] ??= this.#retrieveDocument(uri, options).catch((/** @type unknown */ error) => {

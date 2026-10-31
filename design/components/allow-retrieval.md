@@ -12,7 +12,11 @@ local to it.
   around it. An entry's fragment is ignored.
 - A relative entry is resolved against the context URI, like a relative
   path is. That's the working directory in Node.js and the page in a
-  browser (`#context-uri`). Without a page, it's `""`, which counts as
+  browser (`#context-uri`). The config's entries are resolved when the
+  `Hyperjump` is created, a session's when it is, and the default against
+  the session's context URI (see [Sessions](sessions.md)). `allowed-urls.js`
+  is given the context URI rather than reading it, so its tests give it a
+  page or nothing instead of mocking modules. Without a page, it's `""`, which counts as
   none. Entries are resolved when the config or the session's options are
   given, and one that isn't a URL throws there. A relative entry where
   there's no context URI, such as in a worker, throws and says to use an

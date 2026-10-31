@@ -1,14 +1,13 @@
-import { contextUri } from "#context-uri";
 import { realUrl } from "#real-url";
 
 /**
  * Resolve `allowRetrieval` entries against the context URI. One that isn't a
- * URL, or is relative where there's no context URI, such as in a worker,
- * throws.
+ * URL, or is relative where there's no context URI (`""`), such as in a
+ * worker, throws.
  *
- * @type (allowRetrieval: unknown) => string[]
+ * @type (allowRetrieval: unknown, contextUri: string) => string[]
  */
-export const resolveAllowRetrieval = (allowRetrieval) => {
+export const resolveAllowRetrieval = (allowRetrieval, contextUri) => {
   if (!Array.isArray(allowRetrieval) || allowRetrieval.some((entry) => typeof entry !== "string")) {
     throw TypeError("The 'allowRetrieval' config must be a list of URLs");
   }
@@ -18,13 +17,12 @@ export const resolveAllowRetrieval = (allowRetrieval) => {
     try {
       url = new URL(entry);
     } catch {
-      const base = contextUri();
-      if (base === "") {
+      if (contextUri === "") {
         throw Error(`'${entry}' in the 'allowRetrieval' config is relative, and there's nothing to resolve it against here. Use an absolute URL.`);
       }
 
       try {
-        url = new URL(entry, base);
+        url = new URL(entry, contextUri);
       } catch {
         throw Error(`'${entry}' in the 'allowRetrieval' config isn't a URL`);
       }
@@ -51,19 +49,24 @@ export class AllowedUrls {
   /** @type string[] | undefined */
   #entries;
 
+  /** @type string */
+  #contextUri;
+
   /** @type Promise<string[]> | undefined */
   #realEntries;
 
   /**
-   * @param {string[]} [entries] - Resolved entries. Without them, it's the default.
+   * @param {string[] | undefined} entries - Resolved entries. Without them, it's the default.
+   * @param {string} contextUri - What the default is resolved against
    */
-  constructor(entries) {
+  constructor(entries, contextUri) {
     this.#entries = entries;
+    this.#contextUri = contextUri;
   }
 
   /** @type (uri: string) => Promise<boolean> */
   async allows(uri) {
-    this.#realEntries ??= Promise.all((this.#entries ?? resolveAllowRetrieval(defaultAllowRetrieval)).map(realEntry));
+    this.#realEntries ??= Promise.all((this.#entries ?? resolveAllowRetrieval(defaultAllowRetrieval, this.#contextUri)).map(realEntry));
     const entries = await this.#realEntries;
     const { href } = await realUrl(new URL(uri));
     return entries.some((entry) => entry.endsWith("/") ? href.startsWith(entry) : href === entry);

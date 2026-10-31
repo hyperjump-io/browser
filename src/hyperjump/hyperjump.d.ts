@@ -158,7 +158,8 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
   /**
    * Retrieve a document located at the given URI. URIs can be relative if a
    * base URI can be determined. On the server-side, the base URI is the CWD. In
-   * browser, the base URI is the URI of the page.
+   * browser, the base URI is the URI of the page. It's the one there was when
+   * the session was created.
    *
    * @see Use {@link Hyperjump.addUriSchemePlugin} to add support for additional
    * URI schemes.
