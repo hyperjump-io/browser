@@ -6,7 +6,7 @@ unified, and editors can find the node at the cursor.
 ## Parsing
 
 The parser is a hand-written scanner and recursive descent parser, ported
-from json-language-server. It replaced a moo-based one. Parsing never
+from `json-language-server`. It replaced a moo-based one. Parsing never
 throws. `fromJson` and `fromJref` always build an AST and return a parse
 status with it:
 
@@ -27,7 +27,7 @@ status with it:
   status that doesn't fail the file.
 - While typing at the end of a truncated document, the cursor is usually in
   whitespace after the last token, so an unclosed container extends to
-  where parsing stopped, as it does in json-language-server. A property
+  where parsing stopped, as it does in `json-language-server`. A property
   with no value extends the same way, so the cursor is inside it while
   typing the value. The missing value node stays zero width after the
   colon.

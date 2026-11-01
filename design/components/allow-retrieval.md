@@ -130,7 +130,7 @@ local to it.
 - A URL is checked, not the address it connects to, so a host whose DNS
   points at an internal address is allowed if its URL is. A `fetch`
   dispatcher could check the address, which would also stop DNS rebinding,
-  but it needs undici.
+  but it needs `undici`.
 - Someone who can change the filesystem could swap a part of a path for a
   symlink between `realpath` and the read. The response's URL is checked,
   but it's the path the plugin resolved, not necessarily what it opened.
