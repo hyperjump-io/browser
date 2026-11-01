@@ -9,8 +9,8 @@ fragments identify. JSON and JRef are built in.
 - `content-type` v3 doesn't throw for a malformed header, so the type is
   validated, to keep rejecting an invalid `Content-Type`.
 - The `Accept` header lists every plugin with its quality, `q=0` included,
-  and `*/*` last. The `Hyperjump` gives it to the URI scheme plugin
-  (`options.accept`). A plugin's quality is the plugin's (`quality`), and
+  and `*/*` last. It's the `Hyperjump`'s `accept`, and a session gives it
+  to the URI scheme plugin (`options.accept`). A plugin's quality is the plugin's (`quality`), and
   the JRef and JSON plugins take it as a constructor option. Changing a
   default's quality is configuring a replacement. A `setMediaTypeQuality`
   for a registered plugin was rejected with the other ways to change
@@ -77,7 +77,8 @@ fragments identify. JSON and JRef are built in.
 - A response that no plugin can parse, for a missing, invalid or
   unsupported `Content-Type`, has its body cancelled, so its file or
   connection is released. The `file:` plugin opens a file before its media
-  type is known, because the media type is the `Hyperjump`'s to decide.
+  type is known, because the media type plugins decide it, not the URI
+  scheme plugin.
 - A response without a URL gets the URI that was retrieved, so a
   redirect's relative `Location` has something to be resolved against.
 - URI scheme plugins don't get the `Hyperjump`. Constructing them with it

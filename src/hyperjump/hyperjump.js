@@ -1,11 +1,10 @@
 import { parseIri, resolveIri, toAbsoluteIri } from "@hyperjump/uri";
-import { isTypeValid, parse as parseContentType } from "content-type";
 import { contextUri } from "#context-uri";
 import { defaultUriSchemePlugins } from "#default-uri-scheme-plugins";
 import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
 import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
 import { jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonObjectValues, jsonValue, pointerGet, pointerStep } from "../json/jsonast-util.js";
-import { mimeMatchSpecificity } from "./utilities.js";
+import { acceptHeader, fragmentPointer, mediaTypeByExtension, mediaTypePluginFor } from "./media-type-plugins.js";
 import { AllowedUrls, configSource, resolveAllowRetrieval, sessionSource } from "./allowed-urls.js";
 import { relativeFileUri } from "./file-uris.js";
 
@@ -16,16 +15,6 @@ import { relativeFileUri } from "./file-uris.js";
  * @import * as API from "./hyperjump.d.ts"
  */
 
-// A `Hyperjump`'s private retrieve and parse, for `Session`. They're set in
-// `Hyperjump`'s static block, which can read its private methods, and
-// aren't exported, so they aren't part of the API.
-
-/** @type (hyperjump: Hyperjump, uri: string, options: API.GetOptions) => Promise<Response> */
-let retrieve;
-
-/** @type (hyperjump: Hyperjump, response: Response, session: Session) => Promise<DocumentNode> */
-let parseResponse;
-
 /**
  * Redirects are followed this many times, like `fetch` does, so a redirect
  * cycle fails instead of going on forever
@@ -35,43 +24,10 @@ const maxRedirects = 20;
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
 
 /**
- * Every media type plugin with its quality, and any media type last. A
- * quality is a number from 0 to 1 with at most three decimal places (RFC
- * 9110, section 12.4.2), or the `Hyperjump` throws when it's created.
- *
- * @type (mediaTypePlugins: Map<string, MediaTypePlugin<DocumentNode>>) => string
- */
-const acceptHeader = (mediaTypePlugins) => {
-  const mediaTypes = [];
-  for (const [mediaType, { quality }] of mediaTypePlugins) {
-    if (quality === undefined) {
-      mediaTypes.push(mediaType);
-    } else if (isQuality(quality)) {
-      mediaTypes.push(`${mediaType}; q=${quality}`);
-    } else {
-      throw RangeError(`The quality of the '${mediaType}' media type plugin is ${String(quality)}. It must be a number from 0 to 1 with at most three decimal places.`);
-    }
-  }
-  mediaTypes.push("*/*; q=0.001");
-
-  return mediaTypes.join(", ");
-};
-
-/** @type (quality: unknown) => boolean */
-const isQuality = (quality) => typeof quality === "number"
-  && quality >= 0 && quality <= 1
-  && Math.round(quality * 1000) / 1000 === quality;
-
-/**
  * @class
  * @implements API.Hyperjump<JrefNode>
  */
 export class Hyperjump {
-  static {
-    retrieve = (hyperjump, uri, options) => hyperjump.#retrieve(uri, options);
-    parseResponse = (hyperjump, response, session) => hyperjump.#parseResponse(response, session);
-  }
-
   /** @type API.HyperjumpConfig */
   #config;
 
@@ -135,133 +91,26 @@ export class Hyperjump {
     return this.#config;
   }
 
+  get uriSchemePlugins() {
+    return /** @type ReadonlyMap<string, UriSchemePlugin> */ (this.#uriSchemePlugins);
+  }
+
+  get mediaTypePlugins() {
+    return /** @type ReadonlyMap<string, MediaTypePlugin<DocumentNode>> */ (this.#mediaTypePlugins);
+  }
+
+  get accept() {
+    return this.#accept;
+  }
+
   /** @type API.Hyperjump<JrefNode>["session"] */
   session(options) {
     return new Session(this, options);
   }
 
-  /**
-   * Retrieve with the plugin for the URI's scheme. It gives the plugin the
-   * Accept header for the media types that are supported, and the media type
-   * of a URL's extension, for a scheme without a Content-Type. A response
-   * without a URL gets the one that was retrieved, so a redirect's
-   * `Location` can be relative to it.
-   *
-   * @type (uri: string, options: API.GetOptions) => Promise<Response>
-   */
-  async #retrieve(uri, options) {
-    const { scheme } = parseIri(uri);
-
-    const plugin = this.#uriSchemePlugins.get(scheme);
-    if (!plugin) {
-      throw new UnsupportedUriSchemeError(scheme, `The '${scheme}:' URI scheme is not supported. Use the 'uriSchemePlugins' config to add support for '${scheme}:' URIs.`);
-    }
-
-    const response = await plugin.retrieve(uri, {
-      ...options,
-      accept: this.#accept,
-      mediaTypeByExtension: (uri) => this.#mediaTypeByExtension(uri)
-    });
-    if (!response.url) {
-      Object.defineProperty(response, "url", { value: toAbsoluteIri(uri) });
-    }
-
-    return response;
-  }
-
-  /**
-   * The media type of a URL's extension, if a media type plugin has it
-   *
-   * @type (uri: string) => string | undefined
-   */
-  #mediaTypeByExtension(uri) {
-    // Use the plugin with the longest matching extension so `.schema.json`
-    // takes precedence over `.json`. If there's a tie, the plugin that was
-    // registered first wins.
-    let bestContentType;
-    let bestLength = 0;
-    for (const [contentType, plugin] of this.#mediaTypePlugins) {
-      for (const extension of plugin.extensions) {
-        if (extension.length > bestLength && uri.endsWith(extension)) {
-          if (extension.startsWith("/") || (extension.startsWith(".") && uri[uri.length - extension.length - 1] !== "/")) {
-            bestContentType = contentType;
-            bestLength = extension.length;
-          }
-        }
-      }
-    }
-
-    return bestContentType;
-  }
-
-  /**
-   * Parse a response with the media type plugin for its Content-Type. The
-   * document's `mediaType` is the plugin's, unless the plugin set another. A
-   * response that no plugin can parse has its body cancelled, so its file or
-   * connection is released.
-   *
-   * @type (response: Response, session: Session) => Promise<DocumentNode>
-   */
-  async #parseResponse(response, session) {
-    let pattern, plugin;
-    try {
-      [pattern, plugin] = this.#mediaTypePluginFor(response);
-    } catch (error) {
-      await response.body?.cancel();
-      throw error;
-    }
-
-    // A plugin can say the document is a more specific media type, like a
-    // JSON document that turns out to be in a media type of its own
-    const document = await plugin.parse(response, session);
-    document.mediaType ??= pattern;
-    return document;
-  }
-
-  /**
-   * The media type plugin with the most specific match for a response's
-   * Content-Type. If there's a tie, the plugin that was registered first wins.
-   *
-   * @type (response: Response) => [string, MediaTypePlugin<DocumentNode>]
-   */
-  #mediaTypePluginFor(response) {
-    const contentTypeText = response.headers.get("content-type");
-    if (contentTypeText === null) {
-      throw new UnsupportedMediaTypeError(undefined, `The media type of '${relativeFileUri(response.url)}' could not be determined. A response needs a 'Content-Type' header, and a file needs an extension that a media type plugin has. Use the 'mediaTypePlugins' config to add support for a media type.`);
-    }
-
-    // The parser is lenient, so the type needs to be validated
-    const contentType = parseContentType(contentTypeText);
-    if (!isTypeValid(contentType.type)) {
-      throw new UnsupportedMediaTypeError(undefined, `The media type of the response could not be determined. The 'Content-Type' header isn't valid: '${contentTypeText}'`);
-    }
-
-    /** @type [string, MediaTypePlugin<DocumentNode>] | undefined */
-    let best;
-    let bestSpecificity = 0;
-    for (const [pattern, plugin] of this.#mediaTypePlugins) {
-      const specificity = mimeMatchSpecificity(pattern, contentType.type);
-      if (specificity > bestSpecificity) {
-        best = [pattern, plugin];
-        bestSpecificity = specificity;
-      }
-    }
-
-    if (!best) {
-      throw new UnsupportedMediaTypeError(contentType.type, `'${contentType.type}' is not supported. Use the 'mediaTypePlugins' config to add support for this media type.`);
-    }
-
-    return best;
-  }
-
   /** @type API.Hyperjump<JrefNode>["fragmentPointer"] */
   fragmentPointer(document, fragment) {
-    // A media type that doesn't define fragments identifies the whole document
-    if (document.mediaType === undefined) {
-      return "";
-    }
-
-    return this.#mediaTypePlugins.get(document.mediaType)?.fragmentPointer?.(document, fragment) ?? "";
+    return fragmentPointer(this.#mediaTypePlugins, document, fragment);
   }
 }
 
@@ -391,7 +240,7 @@ export class Session {
       }
 
       try {
-        response = await retrieve(this.#hyperjump, url, options);
+        response = await this.#retrieve(url, options);
       } catch (error) {
         throw new RetrievalError(uri, { cause: error });
       }
@@ -421,7 +270,7 @@ export class Session {
     }
 
     try {
-      const document = await parseResponse(this.#hyperjump, response, this);
+      const document = await this.#parseResponse(response);
 
       // References within the document are relative to the URI it was
       // retrieved from, which can differ from the requested URI (redirects,
@@ -432,6 +281,60 @@ export class Session {
     } catch (error) {
       throw new RetrievalError(uri, { cause: error });
     }
+  }
+
+  /**
+   * Retrieve with the plugin for the URI's scheme. It gives the plugin the
+   * Accept header for the media types that are supported, and the media type
+   * of a URL's extension, for a scheme without a Content-Type. A response
+   * without a URL gets the one that was retrieved, so a redirect's
+   * `Location` can be relative to it.
+   *
+   * @type (uri: string, options: API.GetOptions) => Promise<Response>
+   */
+  async #retrieve(uri, options) {
+    const { scheme } = parseIri(uri);
+
+    const plugin = this.#hyperjump.uriSchemePlugins.get(scheme);
+    if (!plugin) {
+      throw new UnsupportedUriSchemeError(scheme, `The '${scheme}:' URI scheme is not supported. Use the 'uriSchemePlugins' config to add support for '${scheme}:' URIs.`);
+    }
+
+    const { mediaTypePlugins } = this.#hyperjump;
+    const response = await plugin.retrieve(uri, {
+      ...options,
+      accept: this.#hyperjump.accept,
+      mediaTypeByExtension: (uri) => mediaTypeByExtension(mediaTypePlugins, uri)
+    });
+    if (!response.url) {
+      Object.defineProperty(response, "url", { value: toAbsoluteIri(uri) });
+    }
+
+    return response;
+  }
+
+  /**
+   * Parse a response with the media type plugin for its Content-Type. The
+   * document's `mediaType` is the plugin's, unless the plugin set another. A
+   * response that no plugin can parse has its body cancelled, so its file or
+   * connection is released.
+   *
+   * @type (response: Response) => Promise<DocumentNode>
+   */
+  async #parseResponse(response) {
+    let pattern, plugin;
+    try {
+      [pattern, plugin] = mediaTypePluginFor(this.#hyperjump.mediaTypePlugins, response.headers.get("content-type"), response.url);
+    } catch (error) {
+      await response.body?.cancel();
+      throw error;
+    }
+
+    // A plugin can say the document is a more specific media type, like a
+    // JSON document that turns out to be in a media type of its own
+    const document = await plugin.parse(response, this);
+    document.mediaType ??= pattern;
+    return document;
   }
 
   /**

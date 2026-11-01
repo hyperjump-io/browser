@@ -91,30 +91,39 @@ State is separated by how long it lives.
     implicitly has type 'any'"). Annotating the plugin's `retrieve` as
     returning `Promise<Response>` fixes it, but the error doesn't say so.
     An `options.retrieve` was rejected too (see [Redirects](redirects.md)).
-- What only the library uses is private: `#retrieve`, `#parseResponse`,
-  and `#mediaTypeByExtension`. Making them public because something inside
-  the library needs them was rejected, because they'd look like something
-  an application calls. `Session` gets `#retrieve` and
-  `#parseResponse` through module functions that `Hyperjump`'s static
-  block sets. A static block can read the class's private methods, and the
-  functions aren't exported. A `WeakMap` would do the same with something
-  to keep in sync.
-  - Giving `Session` the functions instead, from `Hyperjump.session`, was
-    rejected. A subclass constructs its session with `new Session(hyperjump,
-    options)`, like `@hyperjump/json-schema`'s `JsonSchemaSession`, and
-    only `Hyperjump`'s class body can read its private methods, so a
-    subclass would need them public again or a second way to construct a
-    session that brings the module functions back. A `Session` that built
-    its own plugins from `hyperjump.config` would create the default
-    plugins for each session, which wouldn't share the HTTP cache.
-  - `fragmentPointer` is public. `getDocument` ignores the fragment, and
+- A `Hyperjump` is what it resolved from its config: its plugins by scheme
+  and by media type (`uriSchemePlugins`, `mediaTypePlugins`) and the
+  `Accept` header (`accept`), as read-only properties. A session retrieves
+  and parses with them. What's worked out from the media type plugins, like
+  the plugin for a `Content-Type` or the media type of an extension, is
+  pure functions of them (`media-type-plugins.js`), so they're tested
+  without retrieving anything.
+  - The functions aren't exported from the package, because their
+    signatures are how a `Hyperjump` keeps its plugins. URI scheme plugins
+    get what they need from them as values (`options.accept` and
+    `options.mediaTypeByExtension`).
+  - The resolved plugins are public because `Session` is another class and
+    can't read a `Hyperjump`'s private fields. They're the instances the
+    config already has, so nothing more is exposed. They're `ReadonlyMap`s
+    in the types, but a `Map` can still be changed, like a plugin in the
+    config.
+  - Keeping retrieval and parsing as private methods of `Hyperjump` was
+    rejected. `Session` would need a way to call them that isn't the
+    API, like module functions set in a static block, and the functions of
+    the plugins could only be tested through a session.
+  - A `Hyperjump` that's only a plain object from a factory was rejected.
+    `@hyperjump/json-schema`'s `JsonSchema` subclasses it for its own config
+    and its own session, which a class does well. A `Session` that built
+    its own plugins from `hyperjump.config` was rejected because it would
+    create the default plugins for each session, which wouldn't share the
+    HTTP cache.
+  - `fragmentPointer` is a method. `getDocument` ignores the fragment, and
     `fragmentPointer` is what finds the node it identifies, according to
     the media type plugin that parsed the document. `@hyperjump/json-schema`
     uses it for documents from `getDocument` and for embedded ones that
     never came through it.
   - A subclass that got a `Response` from somewhere other than a URI
-    scheme plugin can't use `parseResponse`. One that needs to calls its
-    media type plugin's `parse`.
+    scheme plugin calls its media type plugin's `parse`.
 
 ## Extending
 

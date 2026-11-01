@@ -93,6 +93,26 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
   readonly config: HyperjumpConfig<T>;
 
   /**
+   * The URI scheme plugins by scheme: the defaults, with the config's
+   * replacing them for the schemes they list.
+   */
+  readonly uriSchemePlugins: ReadonlyMap<string, UriSchemePlugin>;
+
+  /**
+   * The media type plugins by media type, in the order of the `Accept`
+   * header: the defaults, with the config's replacing them for their media
+   * types or coming after them.
+   */
+  readonly mediaTypePlugins: ReadonlyMap<string, MediaTypePlugin<DocumentNode<T>>>;
+
+  /**
+   * The `Accept` header that's given to URI scheme plugins. It's built when
+   * the `Hyperjump` is created, so changing a plugin's `quality` later
+   * doesn't change it.
+   */
+  readonly accept: string;
+
+  /**
    * Start a session. Each session has its own documents, so nothing one
    * session retrieves is seen by another, except through the URI scheme
    * plugins (such as an HTTP cache).
