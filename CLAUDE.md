@@ -30,7 +30,7 @@ built for the unified ecosystem. `@hyperjump/json-schema` v2 builds on it.
 - `npm test`, `npm run lint`, `npm run type-check`
 - The API is declared in hand-written `.d.ts` files next to the JS, which is
   typed with JSDoc. Type-checking includes the declaration files.
-- Changes go on the `v2` branch.
+- Changes go on `main`. 1.x is on the `v1` branch.
 
 ## Working agreements
 
