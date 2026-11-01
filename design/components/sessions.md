@@ -12,6 +12,20 @@ State is separated by how long it lives.
 - `hyperjump.session()` creates a session. There's no default session.
   Browsing is only on sessions, because a node needs its session to follow
   references.
+- The browsing methods that return nodes (`step`, `iter`, `values`,
+  `entries`) are async and follow references, because following one can
+  retrieve a document. They're for browsing, where what's needed next
+  isn't known until a node is read. Code that computes over documents, like
+  `@hyperjump/json-schema`'s compiler, uses `get` and `getDocument` to
+  gather them and the JSON utilities to read them, which are synchronous.
+  Only that code knows what it will need, so it can retrieve it all at
+  once.
+  - Synchronous browsing methods that return references as they are, with
+    an async `follow` for a reference, were rejected. Browsing would take
+    as many `await`s with a `follow` after every step, and one that's
+    left out returns a reference instead of its value. Code that computes
+    over documents doesn't use the browsing methods, so it wouldn't gain
+    anything, and `follow` would be `get` again.
 - A session keeps each document it retrieves for as long as it's used. That
   gives each unit of work its own consistent set of documents, and a new
   session sees changes.
