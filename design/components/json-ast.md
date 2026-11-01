@@ -50,6 +50,10 @@ status with it:
   are left out of objects and are `null` in arrays, as `toJson` does.
   `Session.value` still throws for arrays and objects, because it would
   need to follow the references in them.
+- `jsonValue` makes an object's properties the way `JSON.parse` does, as
+  own properties. Assigning them would make a `"__proto__"` key the
+  object's prototype, so a document could choose what any property it
+  doesn't have reads as.
 
 ## Locations
 

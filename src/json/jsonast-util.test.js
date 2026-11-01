@@ -100,6 +100,14 @@ describe("jsonast-util", async () => {
       expect(subject).to.eql({ foo: { bar: 42 } });
     });
 
+    test("a '__proto__' property is an own property, not the prototype", () => {
+      const node = parse(`{ "__proto__": { "isAdmin": true } }`);
+      const subject = /** @type Record<string, unknown> */ (jsonValue(node));
+      expect(Object.getPrototypeOf(subject)).to.equal(Object.prototype);
+      expect(Object.hasOwn(subject, "__proto__")).to.equal(true);
+      expect(subject).to.eql(JSON.parse(`{ "__proto__": { "isAdmin": true } }`));
+    });
+
     test("values that couldn't be parsed", () => {
       const node = /** @type JsonNode */ (fromJson(`{ "foo": , "bar": [1, , NaN, 2], "baz": True }`).node);
       const subject = jsonValue(node);

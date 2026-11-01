@@ -189,15 +189,17 @@ export const jsonValue = /** @type API.jsonValue */ ((/** @type JsonNode<unknown
     case "array":
       return node.children.map((itemNode) => isErrorNode(itemNode) ? null : jsonValue(itemNode));
     case "object": {
-      /** @type Record<string, Json> */
-      const object = {};
+      // Entries make own properties, like JSON.parse does, so a "__proto__"
+      // key is a property, not the object's prototype
+      /** @type [string, Json][] */
+      const entries = [];
       for (const propertyNode of node.children) {
         const [keyNode, valueNode] = propertyNode.children;
         if (!isErrorNode(valueNode)) {
-          object[keyNode.value] = jsonValue(valueNode);
+          entries.push([keyNode.value, jsonValue(valueNode)]);
         }
       }
-      return object;
+      return Object.fromEntries(entries);
     }
     default:
       return node.value;
