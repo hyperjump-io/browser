@@ -15,7 +15,8 @@
   for everything under it, and any other is only for itself. They're
   compared after they're parsed, and a key's fragment is ignored. It's the
   same rule in both places, and prefixes rather than globs for the same
-  reasons.
+  reasons. The `mediaTypeByExtension` option's URLs are checked and matched
+  the same way (see [Media types](media-types.md)).
 - Keys have to be absolute `http:` or `https:` URLs, or the plugin throws
   when it's created. It doesn't have a context URI to resolve a relative
   one against, and a key with another scheme would never match.

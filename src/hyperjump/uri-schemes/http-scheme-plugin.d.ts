@@ -5,7 +5,8 @@ import type { HttpCacheStore } from "./http-cache-store.d.ts";
  * Support the `http:` and `https:` URI schemes. Sends the Accept header it's
  * given (`options.accept`), for the media types that are supported. A
  * response has to have a `Content-Type`, because a URL's extension doesn't
- * say what's at it.
+ * say what's at it, unless its URL is one of the `mediaTypeByExtension`
+ * option's.
  *
  * With a cache, responses are cached according to their caching headers
  * (RFC 9111, as a private cache), and stale responses are revalidated when
@@ -59,6 +60,19 @@ export type HttpUriSchemePluginOptions = {
    * don't share a cache.
    */
   headers?: Record<string, HeadersInit | HeadersFunction>;
+
+  /**
+   * URLs whose responses get the media type of their URL's extension, for
+   * servers that send a missing or wrong `Content-Type`, like GitHub raw
+   * URLs, which are `text/plain`. A URL that ends with `/` is for everything
+   * under it, and any other is only for itself, like a `headers` URL. It's
+   * matched by the URL a response came from, after any redirects, and the
+   * extension is its path's, without the query. A response whose extension
+   * no media type plugin has keeps the `Content-Type` the server sent. A URL
+   * has to be an absolute `http:` or `https:` URL, or the plugin throws when
+   * it's created.
+   */
+  mediaTypeByExtension?: string[];
 };
 
 /**

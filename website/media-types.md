@@ -8,7 +8,7 @@ document comes from:
 
 | Where a document comes from | How its media type is found |
 | --- | --- |
-| HTTP | Its `Content-Type` header |
+| HTTP | Its `Content-Type` header, or its extension for [URLs you list](#servers-that-send-the-wrong-media-type) |
 | A file | Its extension |
 
 ## Adding a media type
@@ -108,3 +108,40 @@ With that, requests send:
 ```text
 Accept: application/reference+json; q=0.9, application/json, application/reference+yaml, */*; q=0.001
 ```
+
+## Servers that send the wrong media type
+
+A document from HTTP gets its media type from the `Content-Type` header that the
+server sends. Some servers send the wrong one or none at all. GitHub sends
+`text/plain` for every file at `raw.githubusercontent.com`, which means it won't
+be recognized as JSON. The file's `.json` extension is not an authority on what
+the server sends and it can be spoofed.
+
+The HTTP plugin uses extensions only for the URLs listed in its
+`mediaTypeByExtension` config. To trust a server's extensions, you replace the
+default HTTP plugin with a plugin configured with that option. In this example,
+documents from GitHub get their media type from their extension:
+
+```typescript
+import { Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";
+
+const h = new Hyperjump({
+  allowRetrieval: ["https://raw.githubusercontent.com/my-org/my-repo/"],
+  uriSchemePlugins: [new HttpUriSchemePlugin({
+    mediaTypeByExtension: ["https://raw.githubusercontent.com/"]
+  })]
+});
+```
+
+With that, a document whose URL is under `https://raw.githubusercontent.com/`
+and ends with `.json` is parsed as JSON whatever its `Content-Type` says. When
+no media type plugin defines the URL's extension, the document keeps the media
+type the server sent. The extension is the end of the URL's path, so a query
+such as the `?token=` on a private repository's raw URL doesn't hide the
+extension.
+
+URLs in `mediaTypeByExtension` match the way they do in
+[`allowRetrieval`](allow-retrieval.md). A URL that ends with `/` matches every
+URL under it. Any other URL matches only itself. Every URL has to be an absolute
+`http:` or `https:` URL. A document that was redirected is matched by the URL it
+was redirected to because the server at that URL is the one that sent it.

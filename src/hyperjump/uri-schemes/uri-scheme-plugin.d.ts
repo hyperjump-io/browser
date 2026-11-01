@@ -18,7 +18,7 @@ export type RetrieveOptions = GetOptions & {
   /**
    * The media type of a URL's extension, the longest one a media type plugin
    * has, for a scheme whose responses don't have a `Content-Type`, like
-   * `file:`
+   * `file:`, or a server known to send the wrong one
    */
   mediaTypeByExtension: (uri: string) => string | undefined;
 

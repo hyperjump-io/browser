@@ -511,6 +511,130 @@ describe("JSON Browser", () => {
           expect(toJson(subject)).to.equal(`42`);
         });
       });
+
+      describe("mediaTypeByExtension", () => {
+        /** @type (options: import("./http-scheme-plugin.d.ts").HttpUriSchemePluginOptions) => Hyperjump */
+        const withOptions = (options) => {
+          return new Hyperjump({
+            allowRetrieval: ["https://example.com/", "https://other.example.com/"],
+            uriSchemePlugins: [new HttpUriSchemePlugin(options)]
+          });
+        };
+
+        /** @type (hyperjump: Hyperjump, uri: string) => Promise<string | undefined> */
+        const unsupportedMediaType = async (hyperjump, uri) => {
+          const error = await hyperjump.session().get(uri)
+            .then(() => undefined, (/** @type unknown */ error) => error);
+          expect(error).to.be.instanceof(RetrievalError);
+          const cause = /** @type Error & { mediaType?: string } */ (/** @type RetrievalError */ (error).cause);
+          expect(cause.name).to.equal("UnsupportedMediaTypeError");
+          return cause.mediaType;
+        };
+
+        describe.each([
+          ["with a cache", () => new MemoryHttpCacheStore()],
+          ["without a cache", () => /** @type const */ (false)]
+        ])("%s", (_name, cache) => {
+          test("replaces a wrong Content-Type", async () => {
+            mockAgent.get(testDomain)
+              .intercept({ method: "GET", path: "/foo.json" })
+              .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "text/plain" } });
+
+            const hyperjump = withOptions({ cache: cache(), mediaTypeByExtension: ["https://example.com/"] });
+            const subject = await hyperjump.session().get(`${testDomain}/foo.json`);
+
+            expect(toJson(subject)).to.eql(`{"foo":42}`);
+          });
+
+          test("gives a response without a Content-Type one", async () => {
+            mockAgent.get(testDomain)
+              .intercept({ method: "GET", path: "/foo.json" })
+              .reply(200, `{ "foo": 42 }`);
+
+            const hyperjump = withOptions({ cache: cache(), mediaTypeByExtension: ["https://example.com/"] });
+            const subject = await hyperjump.session().get(`${testDomain}/foo.json`);
+
+            expect(toJson(subject)).to.eql(`{"foo":42}`);
+          });
+
+          test("isn't used for a URL that isn't listed", async () => {
+            mockAgent.get(testDomain)
+              .intercept({ method: "GET", path: "/foo.json" })
+              .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "text/plain" } });
+
+            const hyperjump = withOptions({ cache: cache(), mediaTypeByExtension: ["https://other.example.com/"] });
+
+            expect(await unsupportedMediaType(hyperjump, `${testDomain}/foo.json`)).to.equal("text/plain");
+          });
+
+          test("keeps the server's Content-Type for an extension no plugin has", async () => {
+            mockAgent.get(testDomain)
+              .intercept({ method: "GET", path: "/foo.txt" })
+              .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "application/json" } });
+
+            const hyperjump = withOptions({ cache: cache(), mediaTypeByExtension: ["https://example.com/"] });
+            const subject = await hyperjump.session().get(`${testDomain}/foo.txt`);
+
+            expect(toJson(subject)).to.eql(`{"foo":42}`);
+          });
+
+          test("without a Content-Type or an extension a plugin has, can't be parsed", async () => {
+            mockAgent.get(testDomain)
+              .intercept({ method: "GET", path: "/foo.txt" })
+              .reply(200, `{ "foo": 42 }`);
+
+            const hyperjump = withOptions({ cache: cache(), mediaTypeByExtension: ["https://example.com/"] });
+
+            expect(await unsupportedMediaType(hyperjump, `${testDomain}/foo.txt`)).to.equal(undefined);
+          });
+
+          test("is matched by the URL a response was redirected to", async () => {
+            mockAgent.get(testDomain)
+              .intercept({ method: "GET", path: "/foo" })
+              .reply(302, "", { headers: { location: "https://other.example.com/foo.json" } });
+            mockAgent.get("https://other.example.com")
+              .intercept({ method: "GET", path: "/foo.json" })
+              .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "text/plain" } });
+
+            const hyperjump = withOptions({ cache: cache(), mediaTypeByExtension: ["https://other.example.com/"] });
+            const subject = await hyperjump.session().get(`${testDomain}/foo`);
+
+            expect(toJson(subject)).to.eql(`{"foo":42}`);
+          });
+
+          test("uses the extension of the path, without the query", async () => {
+            mockAgent.get(testDomain)
+              .intercept({ method: "GET", path: "/foo.json?token=abc" })
+              .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "text/plain" } });
+
+            const hyperjump = withOptions({ cache: cache(), mediaTypeByExtension: ["https://example.com/"] });
+            const subject = await hyperjump.session().get(`${testDomain}/foo.json?token=abc`);
+
+            expect(toJson(subject)).to.eql(`{"foo":42}`);
+          });
+        });
+
+        test("doesn't change what's cached", async () => {
+          mockAgent.get(testDomain)
+            .intercept({ method: "GET", path: "/foo.json" })
+            .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "text/plain", "cache-control": "max-age=60" } });
+
+          const cache = new MemoryHttpCacheStore();
+          const hyperjump = withOptions({ cache, mediaTypeByExtension: ["https://example.com/"] });
+          const subject = await hyperjump.session().get(`${testDomain}/foo.json`);
+          expect(toJson(subject)).to.eql(`{"foo":42}`);
+
+          expect(await unsupportedMediaType(withOptions({ cache }), `${testDomain}/foo.json`)).to.equal("text/plain");
+        });
+
+        test("a relative URL throws", () => {
+          expect(() => new HttpUriSchemePlugin({ mediaTypeByExtension: ["/foo/"] })).to.throw("'/foo/' in the 'mediaTypeByExtension' option isn't an absolute URL");
+        });
+
+        test("a URL that isn't http(s): throws", () => {
+          expect(() => new HttpUriSchemePlugin({ mediaTypeByExtension: ["file:///foo/"] })).to.throw("isn't an 'http:' or 'https:' URL");
+        });
+      });
     });
   });
 });

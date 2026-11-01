@@ -73,10 +73,11 @@ doesn't have one, its URL is the URI that was retrieved.
 A plugin for a scheme that's already supported replaces the existing plugin for
 that scheme. The existing plugin still handles any other schemes it lists. When
 more than one plugin in the list has the same scheme, the later one is used.
-Replacing the HTTP plugin this way is how you give it a different cache or
-headers. `HttpUriSchemePlugin` takes these options:
+Replacing the HTTP plugin this way is how you change its options.
+`HttpUriSchemePlugin` takes these options:
 
 | Option | What it is |
 | --- | --- |
 | `cache` | Where to cache responses. Without one, the plugin gets its environment's default. `false` doesn't cache. See [HTTP caching](http-caching.md). |
 | `headers` | Headers to send with requests, by URL. See [HTTP headers](http-headers.md). |
+| `mediaTypeByExtension` | URLs whose documents get their media type from their extension instead of the `Content-Type` header. See [Servers that send the wrong media type](media-types.md#servers-that-send-the-wrong-media-type). |
