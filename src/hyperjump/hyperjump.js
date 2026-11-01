@@ -485,9 +485,9 @@ export class FileNotFoundError extends Error {
 export class RetrievalNotAllowedError extends Error {
   /**
    * @param {string} uri
-   * @param {string} [message]
+   * @param {string} message
    */
-  constructor(uri, message = `Retrieving '${relativeFileUri(uri)}' isn't allowed. Use the 'allowRetrieval' config to allow it.`) {
+  constructor(uri, message) {
     super(message);
     this.name = this.constructor.name;
     this.uri = uri;

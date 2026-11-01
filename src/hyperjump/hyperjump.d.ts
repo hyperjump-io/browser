@@ -225,8 +225,11 @@ export class RetrievalNotAllowedError extends Error {
   /** The URL that was refused. For a redirect, it's where it led. */
   uri: string;
 
-  /** The message says the URL with {@link relativeFileUri}, unless it's given. */
-  constructor(uri: string, message?: string);
+  /**
+   * The message says which list to change, the config's or a session's
+   * own, so it's given rather than made from the URL.
+   */
+  constructor(uri: string, message: string);
 }
 
 /**
@@ -240,6 +243,9 @@ export class ReferenceCycleError extends Error {
 }
 
 export class UnsupportedUriSchemeError extends Error {
+  /** The URI scheme that isn't supported, without the `:` */
+  scheme: string;
+
   constructor(scheme: string, message?: string);
 }
 
