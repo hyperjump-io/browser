@@ -42,6 +42,17 @@ status with it:
 - Property nodes have positions, and a type parameter for annotations, so
   an application can annotate them. The utilities are generic over the
   node type, so they work with annotated trees.
+- A node's annotations (`JsonNode<A, X, P>`) say what it is in its media
+  type, like a JRef `reference` and its `href`, which a session follows,
+  or a JSON Schema keyword's `keywordUri`. What an application learns
+  about a node that isn't what it is, like validation results, goes in
+  unist's `data`.
+  - Annotations kept apart from the tree, in a map by `location`, were
+    rejected. A session couldn't tell a reference without the map, so
+    every traversal would need it. A type check like `type ===
+    "json-schema"` wouldn't narrow to the annotations it has, so every
+    use would handle a missing one. Property nodes don't have a location
+    to be found by.
 - Functions that only read a JavaScript value take `ReadonlyJson`
   (`fromJs`), so a value declared `as const` can be passed. What they
   return is `Json`, because it's a new value the caller owns.
