@@ -36,10 +36,10 @@ export type JsonStringNode = {
   position?: Position;
 };
 
-export type JsonArrayNode<T, X = never, P = unknown> = {
+export type JsonArrayNode<A, X = never, P = unknown> = {
   type: string;
   jsonType: "array";
-  children: (JsonNode<T, X, P> | X)[];
+  children: (JsonNode<A, X, P> | X)[];
   location: string;
   data?: Data;
   position?: Position;
@@ -53,17 +53,17 @@ export type JsonPropertyNameNode = {
   position?: Position;
 };
 
-export type JsonPropertyNode<T, X = never, P = unknown> = P & {
+export type JsonPropertyNode<A, X = never, P = unknown> = P & {
   type: "json-property";
-  children: [JsonPropertyNameNode, JsonNode<T, X, P> | X];
+  children: [JsonPropertyNameNode, JsonNode<A, X, P> | X];
   data?: Data;
   position?: Position;
 };
 
-export type JsonObjectNode<T, X = never, P = unknown> = {
+export type JsonObjectNode<A, X = never, P = unknown> = {
   type: string;
   jsonType: "object";
-  children: JsonPropertyNode<T, X, P>[];
+  children: JsonPropertyNode<A, X, P>[];
   location: string;
   data?: Data;
   position?: Position;

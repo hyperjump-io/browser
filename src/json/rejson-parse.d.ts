@@ -1,10 +1,10 @@
 import type { Plugin } from "unified";
-import type { JsonDocumentNode, JsonErrorNode, JsonNode, JsonParseStatus } from "./jsonast.d.ts";
+import type { JsonDocumentNode, JsonErrorNode, JsonParseStatus, JsonTolerantNode } from "./jsonast.d.ts";
 import type { JsonOptions, Reviver } from "./jsonast-util.d.ts";
 
 export type JsonParseOptions = JsonOptions & {
   location?: string;
-  reviver?: Reviver<JsonNode, JsonNode<JsonNode, JsonErrorNode> | undefined, JsonErrorNode>;
+  reviver?: Reviver<{ type: "json" }, JsonTolerantNode | undefined, JsonErrorNode>;
   /**
    * The worst parse status that doesn't fail the file. Every syntax error is
    * added to the file as a message either way. The document's `status` says

@@ -28,5 +28,4 @@ export type RetrieveOptions = GetOptions & {
    * `file:`, or a server known to send the wrong one
    */
   mediaTypeByExtension: (uri: string) => string | undefined;
-
 };

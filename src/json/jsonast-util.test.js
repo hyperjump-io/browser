@@ -267,6 +267,23 @@ describe("jsonast-util", async () => {
     expect(toJson(subject.node)).to.equal(`[[1,2],3]`);
   });
 
+  test("rejsonParse takes a reviver of JSON nodes", () => {
+    /** @type (node: JsonTolerantNode, key?: string) => JsonTolerantNode */
+    const reviver = (node, key) => {
+      if (key?.startsWith("i") && node.jsonType === "string") {
+        return { ...node, jsonType: "number", value: parseInt(node.value, 10) };
+      }
+      return node;
+    };
+
+    const processed = unified()
+      .use(rejsonParse, { reviver })
+      .use(rejsonStringify)
+      .processSync(`{ "foo": 42, "iBar": "42" }`);
+
+    expect(processed.toString()).to.equal(`{"foo":42,"iBar":42}\n`);
+  });
+
   test("rejson syntax errors keep their position, source, and ruleId", () => {
     try {
       rejson.processSync(`{ "foo" 1 }`);

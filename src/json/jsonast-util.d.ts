@@ -49,13 +49,6 @@ export type JsonOptions = {
   allowComments?: boolean;
 };
 
-type JsonParseResultBase = {
-  /**
-   * Every comment, in document order. It's empty unless comments are allowed.
-   */
-  comments: JsonCommentNode[];
-};
-
 /**
  * The result of a parse. Discriminate on `status` to get the type of the AST.
  * Only a `failure` can contain {@link JsonErrorNode}s. `S` is the AST type for
@@ -63,7 +56,12 @@ type JsonParseResultBase = {
  *
  * Every syntax error found is in `errors`, in document order.
  */
-export type JsonParseResult<S, F> = JsonParseResultBase & (
+export type JsonParseResult<S, F> = {
+  /**
+   * Every comment, in document order. It's empty unless comments are allowed.
+   */
+  comments: JsonCommentNode[];
+} & (
   { status: "success"; node: S; errors: [] }
   | { status: "recovered"; node: S; errors: JsonSyntaxError[] }
   | { status: "failure"; node: F; errors: JsonSyntaxError[] }
@@ -186,15 +184,15 @@ export const jsonPointerGet: <N extends AnyJsonNode>(pointer: string, tree: N) =
  * `null` when it's an array item, so the items after it keep their positions.
  * That's how {@link toJson} treats a missing value.
  */
-export const jsonValue: (
-  ((node: JsonNullNode) => null)
-  & ((node: JsonBooleanNode) => boolean)
-  & ((node: JsonNumberNode) => number)
-  & ((node: JsonStringNode) => string)
-  & ((node: AnyJsonNode & { jsonType: "array" }) => Json[])
-  & ((node: AnyJsonNode & { jsonType: "object" }) => Record<string, Json>)
-  & ((node: AnyJsonNode) => Json)
-);
+export const jsonValue: {
+  (node: JsonNullNode): null;
+  (node: JsonBooleanNode): boolean;
+  (node: JsonNumberNode): number;
+  (node: JsonStringNode): string;
+  (node: AnyJsonNode & { jsonType: "array" }): Json[];
+  (node: AnyJsonNode & { jsonType: "object" }): Record<string, Json>;
+  (node: AnyJsonNode): Json;
+};
 
 export const jsonObjectHas: (key: string, node: AnyJsonNode) => boolean;
 
