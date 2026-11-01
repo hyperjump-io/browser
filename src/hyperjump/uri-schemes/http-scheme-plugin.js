@@ -1,6 +1,7 @@
 import CachePolicy from "http-cache-semantics";
 import { toAbsoluteIri } from "@hyperjump/uri";
 import { defaultHttpCache } from "#default-http-cache";
+import { redirectMode } from "#redirect-mode";
 
 /**
  * @import { HttpCacheStore } from "./http-cache-store.d.ts"
@@ -20,6 +21,7 @@ import { defaultHttpCache } from "#default-http-cache";
  */
 
 const successStatuses = new Set([200, 203]);
+const redirectStatuses = new Set([301, 302, 303, 307, 308]);
 
 /** @implements API.HttpUriSchemePlugin */
 export class HttpUriSchemePlugin {
@@ -68,8 +70,11 @@ export class HttpUriSchemePlugin {
   /** @type API.HttpUriSchemePlugin["retrieve"] */
   async retrieve(uri, { accept, mediaTypeByExtension }) {
     if (!this.#cache) {
-      const response = await fetch(uri, { headers: await this.#requestHeaders(uri, accept) });
-      await assertSuccess(uri, response);
+      const response = await fetch(uri, { headers: await this.#requestHeaders(uri, accept), redirect: redirectMode });
+      await assertUsable(uri, response);
+      if (redirectStatuses.has(response.status)) {
+        return response;
+      }
 
       const mediaType = this.#extensionMediaType(response.url || uri, mediaTypeByExtension);
       if (mediaType === undefined) {
@@ -120,7 +125,8 @@ export class HttpUriSchemePlugin {
     }
 
     let response = await fetch(url, {
-      headers: cachedPolicy ? cachedPolicy.revalidationHeaders(request) : request.headers
+      headers: cachedPolicy ? cachedPolicy.revalidationHeaders(request) : request.headers,
+      redirect: redirectMode
     });
     let responseHeaders = Object.fromEntries(response.headers);
 
@@ -129,7 +135,7 @@ export class HttpUriSchemePlugin {
       if (response.status === 304 && !matches) {
         // A 304 that doesn't match the cached response has no body to use, so
         // the response is retrieved again without revalidating
-        response = await fetch(url, { headers: request.headers });
+        response = await fetch(url, { headers: request.headers, redirect: redirectMode });
         responseHeaders = Object.fromEntries(response.headers);
       } else if (!modified) {
         // A revalidated response that wasn't modified only updates the cached
@@ -139,7 +145,7 @@ export class HttpUriSchemePlugin {
       }
     }
 
-    await assertSuccess(url, response);
+    await assertUsable(url, response);
     const body = await response.text();
 
     const policy = new CachePolicy(request, { status: response.status, headers: responseHeaders }, { shared: false });
@@ -254,18 +260,37 @@ const resolveEntry = (entry, option) => {
 const matches = (entry, href) => entry.endsWith("/") ? href.startsWith(entry) : href === entry;
 
 /**
- * A response that isn't used has its body cancelled, so its connection is
- * released
+ * A success, or a redirect for the session to follow. A redirect has to
+ * have a `Location`, and it can only lead to another `http(s):` URL, like
+ * a redirect `fetch` follows, so a server can't send the session to a
+ * file. A response that isn't used has its body cancelled, so its
+ * connection is released.
  *
  * @type (uri: string, response: Response) => Promise<void>
  */
-const assertSuccess = async (uri, response) => {
+const assertUsable = async (uri, response) => {
   if (successStatuses.has(response.status)) {
     return;
   }
 
+  if (redirectStatuses.has(response.status)) {
+    const location = response.headers.get("location");
+    if (location !== null && isHttpUrl(location, response.url || uri)) {
+      return;
+    }
+
+    await response.body?.cancel();
+    throw new HttpError(response, location === null ? "A redirect without a 'Location'" : `A redirect to '${location}', which isn't an 'http:' or 'https:' URL`);
+  }
+
   await response.body?.cancel();
   throw new HttpError(response, response.status >= 400 ? `Failed to retrieve '${uri}'` : "Unsupported HTTP response status code");
+};
+
+/** @type (location: string, base: string) => boolean */
+const isHttpUrl = (location, base) => {
+  const url = URL.parse(location, base);
+  return url?.protocol === "http:" || url?.protocol === "https:";
 };
 
 /**

@@ -27,9 +27,10 @@ export type HyperjumpConfig<T extends JsonNode<{ type: string }> = JrefNode> = {
    *
    * In Node.js, `file:` URLs are compared by their real paths, so a symlink
    * can't lead outside an allowed directory. A file that doesn't exist is
-   * compared by its path as it is. A response is checked again by the URL
-   * it came from, so a redirect can't lead to a refused URL. The redirected
-   * request is still sent, but its response isn't used.
+   * compared by its path as it is. A redirect is checked before it's
+   * followed, so a refused URL isn't requested. In a browser, `fetch`
+   * follows redirects itself, so the redirected request is still sent, but
+   * a response from a refused URL isn't used.
    *
    * The default is `["./"]`: files in the working directory in Node.js, and
    * what's in the page's directory in a browser. To allow more, include it,

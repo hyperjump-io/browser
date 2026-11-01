@@ -132,13 +132,47 @@ describe("JSON Browser", () => {
             allowRetrieval: [`${testDomain}/`, "urn:example:foo", "./"],
             uriSchemePlugins: [{
               schemes: ["urn"],
-              retrieve: async (_urn, options) => options.retrieve(fooUri)
+              retrieve: async () => Response.redirect(fooUri)
             }]
           });
           const result = hyperjump.session().get(`${testDomain}/main`);
 
           await expect(result).rejects.toBeInstanceOf(RetrievalError);
           await expect(result).rejects.toHaveProperty("cause.message", expect.stringContaining("non-filesystem context"));
+        });
+
+        test("a URN that maps to a file is retrieved", async () => {
+          const fooUri = `${testUri}/${fixtureDirectory}/foo.jref`;
+          await writeFile(fileURLToPath(fooUri), `42`);
+
+          const hyperjump = new Hyperjump({
+            allowRetrieval: ["urn:example:foo", "./"],
+            uriSchemePlugins: [{
+              schemes: ["urn"],
+              retrieve: async () => Response.redirect(fooUri)
+            }]
+          });
+          const subject = await hyperjump.session().get("urn:example:foo");
+
+          expect(toJson(subject)).to.equal(`42`);
+        });
+
+        test("a reference from a file to a URN that maps to a file is followed", async () => {
+          const mainUri = `${testUri}/${fixtureDirectory}/main.jref`;
+          const fooUri = `${testUri}/${fixtureDirectory}/foo.jref`;
+          await writeFile(fileURLToPath(mainUri), `{ "$ref": "urn:example:foo" }`);
+          await writeFile(fileURLToPath(fooUri), `42`);
+
+          const hyperjump = new Hyperjump({
+            allowRetrieval: ["urn:example:foo", "./"],
+            uriSchemePlugins: [{
+              schemes: ["urn"],
+              retrieve: async () => Response.redirect(fooUri)
+            }]
+          });
+          const subject = await hyperjump.session().get(mainUri);
+
+          expect(toJson(subject)).to.equal(`42`);
         });
 
         test("file references are allowed from file context", async () => {

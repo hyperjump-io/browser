@@ -54,9 +54,17 @@ Return `undefined` to send no headers for that request.
 
 ## Redirects
 
-A redirected request is sent with the same headers unless it goes to another
-origin. Then `fetch` drops `Authorization` and `Cookie` but keeps any other
-headers.
+In Node.js, the session follows each redirect with a new request, so every
+request gets the headers for its own URL. Suppose your token is for
+`https://api.example.com/` and the API redirects a request to
+`https://cdn.example.net/`. The request to `https://cdn.example.net/` doesn't
+get the token.
+
+In a browser, `fetch` follows redirects itself and sends the same headers to
+wherever the redirect leads. When the redirect goes to another origin, `fetch`
+removes `Authorization` and `Cookie` but sends every other header. If you send
+credentials from a browser, put them in `Authorization` so that a redirect to
+another origin doesn't send them.
 
 ## Caching
 

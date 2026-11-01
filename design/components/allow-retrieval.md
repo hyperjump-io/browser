@@ -85,13 +85,9 @@ local to it.
   `getDocument` to find documents elsewhere first isn't checked for those.
   It's before the URI scheme plugins, so it's before the HTTP cache too,
   and a cached response isn't a way around it.
-- The `retrieve` a URI scheme plugin is given (`options.retrieve`) isn't
-  checked. It's for plugins that map to another URI, like `urn:`, and the
-  response they give is checked by its URL.
-  - Without options, it's given the plugin's own, so the `file:` plugin
-    still knows the document the reference came from and refuses a file
-    for a document that isn't one. A plugin can still pass other options, because a plugin is the
-    application's own code and could read the file itself anyway.
+- A redirect is checked before it's followed, because the session follows
+  it (see [Redirects](redirects.md)). That includes a plugin for a scheme
+  that maps to another URI, like `urn:`, which redirects to it.
 - An error about a list, or a refused URL's, says which list to change:
   the config's, or the session's own option, which replaces the config's
   so adding to the config wouldn't help. The default is the config's,
@@ -102,12 +98,11 @@ local to it.
   wrapped in a `RetrievalError`. It's distinct from a `RetrievalError` for
   a URL that was allowed and couldn't be retrieved, so tools can tell a
   refused URL (unknown) from a failed one (missing).
-- Redirects are checked after the fact. The URL a response came from is
-  also checked, after any redirects, and a response from a refused URL is a
-  `RetrievalNotAllowedError` whose `uri` is that URL. Its body is
-  cancelled. The redirected request is still sent, because redirects aren't
-  followed manually. Only its response can't be used, which is what CORS
-  does in browsers (see [Known limitations](#known-limitations)).
+- The URL a response came from is also checked, for a symlink or a
+  redirect that `fetch` followed in a browser. A response from a refused
+  URL is a `RetrievalNotAllowedError` whose `uri` is that URL. Its body is
+  cancelled. A redirect the session refuses before it's followed is the
+  same error, and its `uri` is where the redirect led.
 
 ## Symlinks
 
@@ -129,16 +124,13 @@ local to it.
 
 ## Known limitations
 
-- `allowRetrieval` can't stop a request that a redirect leads to. It's
-  checked on the URL that was asked for and the URL the response came from,
-  so a response from a refused URL is never used, but the redirected
-  request has already been sent. That's the same protection CORS gives in
-  browsers. In Node.js, a request whose sending is the harm, such as a GET
-  to an internal endpoint with side effects, isn't prevented. Two stronger
-  options: the `http(s):` plugin could refuse redirects
-  (`redirect: "error"`), which breaks servers that redirect, or a `fetch`
-  dispatcher could check the address it connects to, which also stops DNS
-  rebinding but needs undici.
+- In a browser, `allowRetrieval` can't stop a request that a redirect
+  leads to, because `fetch` follows it (see [Redirects](redirects.md)).
+  Only its response isn't used, which is the protection CORS gives anyway.
+- A URL is checked, not the address it connects to, so a host whose DNS
+  points at an internal address is allowed if its URL is. A `fetch`
+  dispatcher could check the address, which would also stop DNS rebinding,
+  but it needs undici.
 - Someone who can change the filesystem could swap a part of a path for a
   symlink between `realpath` and the read. The response's URL is checked,
   but it's the path the plugin resolved, not necessarily what it opened.

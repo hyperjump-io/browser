@@ -37,8 +37,8 @@ fragments identify. JSON and JRef are built in.
     from `fetch`, whose headers can't be changed, with a new `Response`,
     which throws for some statuses and loses `redirected`.
   - A flag on the plugin to turn guessing off was considered. Guessing on
-    by default would let a plugin that maps to an `http(s):` URL with
-    `options.retrieve`, like `urn:`, guess from that URL. Making the plugin
+    by default would let a plugin that maps to an `http(s):` URL, like
+    `urn:`, guess from that URL. Making the plugin
     decide removes the guessing from the `Hyperjump` instead.
   - Only a plugin knows whether its scheme has media types, so a plugin
     can also use the extension for a server that's known to send the wrong
@@ -76,15 +76,15 @@ fragments identify. JSON and JRef are built in.
   unsupported `Content-Type`, has its body cancelled, so its file or
   connection is released. The `file:` plugin opens a file before its media
   type is known, because the media type is the `Hyperjump`'s to decide.
-- A response without a URL gets the URI that was retrieved, so a response
-  from `options.retrieve` is checked against the URL it came from.
+- A response without a URL gets the URI that was retrieved, so a
+  redirect's relative `Location` has something to be resolved against.
 - URI scheme plugins don't get the `Hyperjump`. Before 2026-10-30, they
   were constructed with it, and the `http(s):` plugin only used it for the
   `Accept` header and the `file:` plugin for a file's media type, which
   made the client and its plugins depend on each other. What they needed
   are values `retrieve` gives them: `options.accept` and
-  `options.mediaTypeByExtension`. A plugin for a scheme that maps to another URI, like `urn:`, is
-  given `options.retrieve` (see [Sessions](sessions.md#configuring-plugins)).
+  `options.mediaTypeByExtension`. A plugin for a scheme that maps to another
+  URI, like `urn:`, returns a redirect (see [Redirects](redirects.md)).
 - A file's media type is the plugin with the longest matching extension, so
   a plugin for `.schema.json` takes precedence over the JSON plugin, whatever
   order they were added in. Before, the first plugin with a matching

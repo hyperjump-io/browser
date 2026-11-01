@@ -49,9 +49,11 @@ export type HttpUriSchemePluginOptions = {
    * a longer URL's headers win. The `Accept` header is always the one
    * `retrieve` is given.
    *
-   * A redirected request is sent with the same headers. `fetch` drops
-   * `Authorization` and `Cookie` on a redirect to another origin, but not
-   * other headers.
+   * A redirect is followed by the session, so the request it leads to gets
+   * the headers for its own URL. In a browser, `fetch` follows redirects
+   * itself and sends the same headers, except `Authorization` and `Cookie`
+   * on a redirect to another origin. A redirect can only lead to an `http:`
+   * or `https:` URL.
    *
    * The cache is private, so a response retrieved with credentials is used
    * for any later request for the same URL that it satisfies, including ones

@@ -78,6 +78,67 @@ describe("JSON Browser", () => {
         expect(/** @type RetrievalNotAllowedError */ (error).uri).to.equal("https://internal.example.com/foo");
       });
 
+      test.each([
+        ["with a cache", new MemoryHttpCacheStore()],
+        ["without a cache", /** @type const */ (false)]
+      ])("a redirect to a refused URL isn't requested, %s", async (_name, cache) => {
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: "/foo" })
+          .reply(302, "", { headers: { location: "https://internal.example.com/foo" } });
+        mockAgent.get("https://internal.example.com")
+          .intercept({ method: "GET", path: "/foo" })
+          .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "application/json" } });
+
+        const hyperjump = new Hyperjump({
+          allowRetrieval: ["https://example.com/"],
+          uriSchemePlugins: [new HttpUriSchemePlugin({ cache })]
+        });
+        await expect(hyperjump.session().get(`${testDomain}/foo`)).rejects.toBeInstanceOf(RetrievalNotAllowedError);
+        expect(mockAgent.pendingInterceptors()).to.have.length(1);
+      });
+
+      test("a redirect to a URL that isn't http(s): is refused", async () => {
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: "/foo" })
+          .reply(302, "", { headers: { location: "file:///etc/foo.json" } });
+
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/", "file:///etc/"] });
+        const error = await hyperjump.session().get(`${testDomain}/foo`)
+          .catch((/** @type unknown */ error) => error);
+        expect(error).to.be.instanceof(RetrievalError);
+        const cause = /** @type HttpError */ (/** @type RetrievalError */ (error).cause);
+        expect(cause).to.be.instanceof(HttpError);
+        expect(cause.message).to.contain("isn't an 'http:' or 'https:' URL");
+      });
+
+      test("a relative Location is resolved against the URL that was redirected", async () => {
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: "/foo/bar" })
+          .reply(302, "", { headers: { location: "baz" } });
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: "/foo/baz" })
+          .reply(200, `42`, { headers: { "content-type": "application/json" } });
+
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
+        const subject = await hyperjump.session().get(`${testDomain}/foo/bar`);
+        expect(toJson(subject)).to.equal(`42`);
+      });
+
+      test("a permanent redirect is cached", async () => {
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: "/foo" })
+          .reply(301, "", { headers: { "location": "/bar", "cache-control": "max-age=3600" } });
+        mockAgent.get(testDomain)
+          .intercept({ method: "GET", path: "/bar" })
+          .reply(200, `42`, { headers: { "content-type": "application/json", "cache-control": "max-age=3600" } });
+
+        const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
+        await hyperjump.session().get(`${testDomain}/foo`);
+        // Each interceptor replies once, so another request would fail
+        const subject = await hyperjump.session().get(`${testDomain}/foo`);
+        expect(toJson(subject)).to.equal(`42`);
+      });
+
       describe.each([
         ["with a cache", new MemoryHttpCacheStore()],
         ["without a cache", /** @type const */ (false)]
@@ -424,6 +485,45 @@ describe("JSON Browser", () => {
             }
           });
           const subject = await hyperjump.session().get(`${testDomain}/v2/foo`);
+
+          expect(toJson(subject)).to.equal(`42`);
+        });
+
+        test.each([
+          ["with", new MemoryHttpCacheStore()],
+          ["without", /** @type const */ (false)]
+        ])("aren't sent to where a redirect leads %s a cache", async (_name, cache) => {
+          mockAgent.get(testDomain)
+            .intercept({ method: "GET", path: "/foo", headers: { authorization: "Bearer token" } })
+            .reply(302, "", { headers: { location: "https://other.example.com/bar" } });
+          mockAgent.get("https://other.example.com")
+            .intercept({ method: "GET", path: "/bar", headers: (headers) => !("authorization" in headers) && !("x-token" in headers) })
+            .reply(200, `42`, { headers: contentType });
+
+          const hyperjump = withOptions({
+            cache,
+            headers: { "https://example.com/": { "Authorization": "Bearer token", "X-Token": "token" } }
+          });
+          const subject = await hyperjump.session().get(`${testDomain}/foo`);
+
+          expect(toJson(subject)).to.equal(`42`);
+        });
+
+        test("where a redirect leads gets its own", async () => {
+          mockAgent.get(testDomain)
+            .intercept({ method: "GET", path: "/foo", headers: { "x-token": "a" } })
+            .reply(302, "", { headers: { location: "https://other.example.com/bar" } });
+          mockAgent.get("https://other.example.com")
+            .intercept({ method: "GET", path: "/bar", headers: { "x-token": "b" } })
+            .reply(200, `42`, { headers: contentType });
+
+          const hyperjump = withOptions({
+            headers: {
+              "https://example.com/": { "X-Token": "a" },
+              "https://other.example.com/": { "X-Token": "b" }
+            }
+          });
+          const subject = await hyperjump.session().get(`${testDomain}/foo`);
 
           expect(toJson(subject)).to.equal(`42`);
         });

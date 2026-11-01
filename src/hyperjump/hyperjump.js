@@ -27,6 +27,14 @@ let retrieve;
 let parseResponse;
 
 /**
+ * Redirects are followed this many times, like `fetch` does, so a redirect
+ * cycle fails instead of going on forever
+ */
+const maxRedirects = 20;
+
+const redirectStatuses = new Set([301, 302, 303, 307, 308]);
+
+/**
  * Every media type plugin with its quality, and any media type last. A
  * quality is a number from 0 to 1 with at most three decimal places (RFC
  * 9110, section 12.4.2), or the `Hyperjump` throws when it's created.
@@ -136,10 +144,8 @@ export class Hyperjump {
    * Retrieve with the plugin for the URI's scheme. It gives the plugin the
    * Accept header for the media types that are supported, and the media type
    * of a URL's extension, for a scheme without a Content-Type. A response
-   * without a URL gets the one that was retrieved, so a response from
-   * `options.retrieve` is checked against where it came from. Without
-   * options, `options.retrieve` gets this retrieval's, so a plugin that
-   * leaves them out doesn't lose `referencedFrom`.
+   * without a URL gets the one that was retrieved, so a redirect's
+   * `Location` can be relative to it.
    *
    * @type (uri: string, options: API.GetOptions) => Promise<Response>
    */
@@ -154,8 +160,7 @@ export class Hyperjump {
     const response = await plugin.retrieve(uri, {
       ...options,
       accept: this.#accept,
-      mediaTypeByExtension: (uri) => this.#mediaTypeByExtension(uri),
-      retrieve: (uri, retrieveOptions = options) => this.#retrieve(uri, retrieveOptions)
+      mediaTypeByExtension: (uri) => this.#mediaTypeByExtension(uri)
     });
     if (!response.url) {
       Object.defineProperty(response, "url", { value: toAbsoluteIri(uri) });
@@ -365,29 +370,54 @@ export class Session {
 
   /**
    * Every retrieval is checked against `allowRetrieval` before the URI
-   * scheme plugins, so before the HTTP cache too. The response is checked
-   * again, because a redirect or a symlink can lead somewhere else. A refused
-   * URL isn't one that couldn't be retrieved, so it isn't a RetrievalError.
+   * scheme plugins, so before the HTTP cache too. A plugin's redirect is
+   * followed here, so where it leads is checked before it's retrieved, and
+   * its retrieval is given the same options. The response is checked again,
+   * because a symlink, or a redirect `fetch` followed in a browser, can lead
+   * somewhere else. A refused URL isn't one that couldn't be retrieved, so
+   * it isn't a RetrievalError.
    *
    * @type (uri: string, options: API.GetOptions) => Promise<DocumentNode>
    */
   async #retrieveDocument(uri, options) {
     const id = toAbsoluteIri(uri);
-    if (!await this.#allowedUrls.allows(id)) {
-      throw new RetrievalNotAllowedError(id, `Retrieving '${relativeFileUri(id)}' isn't allowed. Use the ${this.#allowRetrievalSource} to allow it.`);
-    }
 
     let response;
-    try {
-      response = await retrieve(this.#hyperjump, uri, options);
-    } catch (error) {
-      throw new RetrievalError(uri, { cause: error });
+    let url = uri;
+    for (let redirects = 0; ; redirects++) {
+      const hop = toAbsoluteIri(url);
+      if (!await this.#allowedUrls.allows(hop)) {
+        throw this.#notAllowedError(id, hop);
+      }
+
+      try {
+        response = await retrieve(this.#hyperjump, url, options);
+      } catch (error) {
+        throw new RetrievalError(uri, { cause: error });
+      }
+
+      const location = redirectStatuses.has(response.status) ? response.headers.get("location") : null;
+      if (location === null) {
+        break;
+      }
+
+      await response.body?.cancel();
+      if (redirects === maxRedirects) {
+        throw new RetrievalError(uri, { cause: Error(`It was redirected more than ${maxRedirects} times`) });
+      }
+
+      // `retrieve` gives every response a URL. The fragment isn't part of
+      // what's retrieved.
+      try {
+        url = toAbsoluteIri(resolveIri(location, response.url));
+      } catch (error) {
+        throw new RetrievalError(uri, { cause: error });
+      }
     }
 
-    // `retrieve` gives every response a URL
-    if (response.url !== id && !await this.#allowedUrls.allows(response.url)) {
+    if (response.url !== toAbsoluteIri(url) && !await this.#allowedUrls.allows(response.url)) {
       await response.body?.cancel();
-      throw new RetrievalNotAllowedError(response.url, `Retrieving '${relativeFileUri(id)}' led to '${relativeFileUri(response.url)}', which isn't allowed. Use the ${this.#allowRetrievalSource} to allow it.`);
+      throw this.#notAllowedError(id, response.url);
     }
 
     try {
@@ -402,6 +432,19 @@ export class Session {
     } catch (error) {
       throw new RetrievalError(uri, { cause: error });
     }
+  }
+
+  /**
+   * The error for a URL that was asked for (`id`), or one it led to, that
+   * isn't allowed
+   *
+   * @type (id: string, url: string) => RetrievalNotAllowedError
+   */
+  #notAllowedError(id, url) {
+    const message = url === id
+      ? `Retrieving '${relativeFileUri(id)}' isn't allowed.`
+      : `Retrieving '${relativeFileUri(id)}' led to '${relativeFileUri(url)}', which isn't allowed.`;
+    return new RetrievalNotAllowedError(url, `${message} Use the ${this.#allowRetrievalSource} to allow it.`);
   }
 
   /** @type (node: JrefNode, referenceChain?: string[]) => Promise<JrefNode> */

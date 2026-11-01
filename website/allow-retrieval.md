@@ -58,13 +58,16 @@ too:
 
 - **Symlinks.** In Node.js, `file:` URLs are compared by their real paths so a
   symlink in an allowed directory can't lead outside it.
-- **Redirects.** A response is checked again against the URL it came from so a
-  redirect can't lead somewhere you didn't allow. The redirected request is
-  still sent, but its response isn't used.
+- **Redirects.** In Node.js, the session checks where a redirect leads before
+  it follows the redirect, so a server can't make the session send a request
+  to a URL you didn't allow. In a browser, `fetch` follows redirects itself and
+  sends the request before the session can check it. The session then checks
+  the URL that the response came from and doesn't use a response from a URL
+  you didn't allow.
 - **The cache.** The check happens before the URI scheme plugins run so a
   cached response can't get around the check.
 
-The check applies to every URI scheme. That includes the ones you add. Some
-plugins retrieve another URL along the way, such as a `urn:` plugin that maps
-URNs to URLs. Both the URN and the URL need to be allowed for that to work. See
+The check applies to every URI scheme. That includes the ones you add. A plugin
+can redirect to another URL the way a `urn:` plugin redirects a Uniform Resource
+Name (URN) to the URL it maps to. The list has to allow both the URN and the URL. See
 [URI schemes](uri-schemes.md).

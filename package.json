@@ -57,6 +57,10 @@
     "#real-url": {
       "node": "./src/hyperjump/real-url.js",
       "default": "./src/hyperjump/real-url.browser.js"
+    },
+    "#redirect-mode": {
+      "node": "./src/hyperjump/uri-schemes/redirect-mode.js",
+      "default": "./src/hyperjump/uri-schemes/redirect-mode.browser.js"
     }
   },
   "scripts": {

@@ -14,6 +14,13 @@
   that doesn't match the cached response is retried without revalidating.
 - A response that's stale as soon as it's stored and can't be revalidated
   isn't stored, because it would never be used again.
+- A redirect is a response like any other, cached by its own URL. The
+  plugin returns it and the session follows it (see
+  [Redirects](redirects.md)), so a cacheable one, such as a 301 or a 308,
+  isn't requested again while it's fresh. Before 2026-10-31, `fetch`
+  followed redirects, and the response it ended at was cached under the
+  URL that was asked for. In browsers it still is, for a plugin that's
+  given a store.
 - The store is pluggable (`HttpCacheStore`): `MemoryHttpCacheStore`, the
   default in Node.js, or `FileHttpCacheStore`, which outlives the process.
 - A plugin without a `cache` gets the environment's default

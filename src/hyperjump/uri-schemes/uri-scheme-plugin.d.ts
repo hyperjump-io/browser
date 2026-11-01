@@ -6,6 +6,13 @@ export interface UriSchemePlugin {
   /**
    * A response without a `Content-Type` can't be parsed. A response without a
    * URL gets the URI that was retrieved.
+   *
+   * A redirect (301, 302, 303, 307, or 308 with a `Location`, such as from
+   * `Response.redirect`) is followed by the session. Where it leads is
+   * checked against `allowRetrieval` before it's retrieved, with the plugin
+   * for its scheme and the same options. A relative `Location` is resolved
+   * against the response's URL. A plugin for a scheme that maps to another
+   * URI, like `urn:`, redirects to it.
    */
   retrieve(uri: string, options: RetrieveOptions): Promise<Response>;
 }
@@ -22,12 +29,4 @@ export type RetrieveOptions = GetOptions & {
    */
   mediaTypeByExtension: (uri: string) => string | undefined;
 
-  /**
-   * Retrieve another URI with the plugin for its scheme, the way the
-   * `Hyperjump` retrieved this one, for a scheme that maps to another URI,
-   * like `urn:`. It isn't checked against `allowRetrieval`, but the response
-   * is checked by the URL it came from, so that URL has to be allowed.
-   * Without options, it's given this retrieval's.
-   */
-  retrieve: (uri: string, options?: GetOptions) => Promise<Response>;
 };

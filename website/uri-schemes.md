@@ -9,12 +9,12 @@ schemes. `http:`, `https:`, and `file:` are supported by default, although
 A URI scheme plugin defines the `schemes` it handles and a `retrieve` function
 that returns a `Response`. You configure plugins with the `uriSchemePlugins`
 config when you create the `Hyperjump`. This example is a plugin for `urn:`.
-It's created with the URLs that URNs map to. It retrieves a URN by retrieving
-that URN's URL with the `retrieve` function in its options:
+It's created with the URL that each Uniform Resource Name (URN) maps to. It
+retrieves a URN by redirecting to the URL that the URN maps to:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
-import type { RetrieveOptions, UriSchemePlugin } from "@hyperjump/browser";
+import type { UriSchemePlugin } from "@hyperjump/browser";
 
 class UrnUriSchemePlugin implements UriSchemePlugin {
   schemes = ["urn"];
@@ -24,13 +24,13 @@ class UrnUriSchemePlugin implements UriSchemePlugin {
     this.#mappings = mappings;
   }
 
-  async retrieve(urn: string, options: RetrieveOptions): Promise<Response> {
+  async retrieve(urn: string): Promise<Response> {
     const url = this.#mappings[urn.toLowerCase()];
     if (!url) {
       throw Error(`Not found: ${urn}`);
     }
 
-    return await options.retrieve(url, options);
+    return Response.redirect(url);
   }
 }
 
@@ -44,9 +44,10 @@ const h = new Hyperjump({
 const luke = await h.session().get("urn:example:luke");
 ```
 
-[`allowRetrieval`](allow-retrieval.md) applies to every scheme, so it has to
-allow the URN. The response is then checked again against the URL it came from,
-so the URL that the URN maps to must be allowed too.
+The session follows the plugin's redirect the same way it follows a redirect
+from a server. [`allowRetrieval`](allow-retrieval.md) applies to every URL the
+session retrieves, so the list has to allow both the URN and the URL that the
+URN maps to.
 
 A plugin implements `UriSchemePlugin`. Its `retrieve` is given
 `RetrieveOptions`. The options have what the request needs:
@@ -56,17 +57,37 @@ A plugin implements `UriSchemePlugin`. Its `retrieve` is given
 | `referencedFrom` | The URL of the document the reference came from, if there is one |
 | `accept` | An `Accept` header for the media types that are supported |
 | `mediaTypeByExtension(uri)` | The media type of the URI's extension, or `undefined` if no media type plugin has it |
-| `retrieve(uri, options)` | Retrieves another URI with the plugin for that URI's scheme |
-
-When you call `options.retrieve` without options, the other plugin gets the
-same `referencedFrom` this plugin was given. A reference from a document on the
-web to a URN that maps to a file is refused the same way a reference straight
-to the file would be.
 
 A response needs a `Content-Type` so that it can be parsed. If your scheme
 doesn't have media types, like files don't, use `options.mediaTypeByExtension`
 to get the one for the URI's extension. A response doesn't need a URL. When it
 doesn't have one, its URL is the URI that was retrieved.
+
+### Redirects
+
+A URI scheme plugin redirects by returning a response with a status of 301,
+302, 303, 307, or 308 and a `Location` header. `Response.redirect` creates that
+response for you. The session resolves a relative `Location` against the URL of
+the response. Then it checks the result against `allowRetrieval` and retrieves
+it with the plugin for its scheme.
+
+The session gives that plugin the same options, including `referencedFrom`, so
+a redirect can't get around a check that the other plugin makes. For example,
+the `file:` plugin refuses a file that a document on the web refers to. It
+refuses that file just the same when the document refers to a URN that maps to
+it.
+
+A URN can map to a file instead of a URL on the web. `Response.redirect` takes
+only an absolute URL, so give the `urn:` plugin from the earlier example a
+`file:` URL instead of a path:
+
+```typescript
+import { pathToFileURL } from "node:url";
+
+const plugin = new UrnUriSchemePlugin({
+  "urn:example:person": pathToFileURL("./schemas/person.json").href
+});
+```
 
 ## Replacing a URI scheme
 

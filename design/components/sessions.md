@@ -81,15 +81,15 @@ State is separated by how long it lives.
   - A `config.http` for the default HTTP plugin's options was rejected
     (see [HTTP cache](http-cache.md)).
 - A URI scheme plugin for a scheme that maps to another URI, like `urn:`,
-  retrieves that URI with `options.retrieve`. It's the `Hyperjump`'s
-  retrieve, with the plugin for the URI's scheme and the `Accept` header.
+  returns a redirect to it, which the session follows (see
+  [Redirects](redirects.md)).
   - It used to call `Hyperjump.retrieve`, which was public for that. A
     plugin in the config that calls `h.retrieve` refers to `h` in its own
     initializer, and TypeScript's `--strict` fails with TS7022 ("'h'
     implicitly has type 'any'"). Annotating the plugin's `retrieve` as
     returning `Promise<Response>` fixes it, but the error doesn't say so.
-  - It's a function, like `accept`, not the `Hyperjump`, so a plugin
-    still doesn't depend on it (see [Media types](media-types.md)).
+    Then it was `options.retrieve`, a function the plugin was given, until
+    redirects replaced it on 2026-10-31.
 - What only the library uses is private: `#retrieve`, `#parseResponse`,
   and `#mediaTypeByExtension`. They used to be public
   because something inside the library needed them, which made them look

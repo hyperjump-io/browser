@@ -27,6 +27,8 @@ documents record the decisions made so far, and why. The `.d.ts` files in
 - [HTTP cache](components/http-cache.md)
 - [Request headers](components/request-headers.md)
 - [What can be retrieved](components/allow-retrieval.md)
+- [Redirects](components/redirects.md): followed by the session, so each
+  URL is checked and gets its own headers
 - [The JSON AST](components/json-ast.md): the error-tolerant parser, nodes,
   and locations
 - [Packaging](components/packaging.md): Node.js and browsers

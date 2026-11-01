@@ -41,5 +41,7 @@
   Responses are cached by URL, so different credentials for different URLs
   can share a plugin. Different credentials for the same URL need different
   plugins, which don't share a cache.
-- A redirect is sent with the same headers. `fetch` drops `Authorization`
-  and `Cookie` when it redirects to another origin, but not other headers.
+- A redirect gets the headers for the URL it leads to, because the session
+  follows it with a new request (see [Redirects](redirects.md)). In
+  browsers, `fetch` follows redirects and sends the same headers, except
+  `Authorization` and `Cookie` on a redirect to another origin.
