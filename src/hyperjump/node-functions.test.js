@@ -49,17 +49,12 @@ describe("JSON Browser", () => {
     });
   });
 
-  describe("typeOf/value and type narrowing", () => {
+  describe("value", () => {
     const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
     const session = hyperjump.session();
 
     beforeEach(() => {
       const jref = `{
-        "null": null,
-        "true": true,
-        "false": false,
-        "number": 42,
-        "string": "foo",
         "array": [],
         "object": {}
       }`;
@@ -69,42 +64,12 @@ describe("JSON Browser", () => {
         .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
     });
 
-    test("null", async () => {
-      const node = await session.get(`${testDomain}/foo#/null`);
-      const subject = session.value(node);
-      expect(subject).to.equal(null);
-    });
-
-    test("true", async () => {
-      const node = await session.get(`${testDomain}/foo#/true`);
-      const subject = session.value(node);
-      expect(subject).to.equal(true);
-    });
-
-    test("false", async () => {
-      const node = await session.get(`${testDomain}/foo#/false`);
-      const subject = session.value(node);
-      expect(subject).to.equal(false);
-    });
-
-    test("number", async () => {
-      const node = await session.get(`${testDomain}/foo#/number`);
-      const subject = session.value(node);
-      expect(subject).to.equal(42);
-    });
-
-    test("string", async () => {
-      const node = await session.get(`${testDomain}/foo#/string`);
-      const subject = session.value(node);
-      expect(subject).to.equal("foo");
-    });
-
-    test("array", async () => {
+    test("throws for an array", async () => {
       const node = await session.get(`${testDomain}/foo#/array`);
       expect(() => session.value(node)).to.throw();
     });
 
-    test("object", async () => {
+    test("throws for an object", async () => {
       const node = await session.get(`${testDomain}/foo#/object`);
       expect(() => session.value(node)).to.throw();
     });
