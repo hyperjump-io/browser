@@ -1,11 +1,9 @@
 import type { Plugin } from "unified";
-import type { JsonErrorNode, JsonParseStatus } from "../json/jsonast.d.ts";
-import type { JrefDocumentNode, JrefTolerantNode } from "./jref-ast.d.ts";
+import type { JsonParseStatus } from "../json/jsonast.d.ts";
+import type { JrefDocumentNode } from "./jref-ast.d.ts";
 import type { JsonOptions } from "../json/jsonast-util.d.ts";
-import type { JrefReviver } from "./jref-util.js";
 
 export type JrefParseOptions = JsonOptions & {
-  reviver?: JrefReviver<JrefTolerantNode | undefined, JsonErrorNode>;
   /**
    * The worst parse status that doesn't fail the file. Every syntax error is
    * added to the file as a message either way. The document's `status` says
@@ -15,10 +13,5 @@ export type JrefParseOptions = JsonOptions & {
   accept?: JsonParseStatus;
 };
 
-/**
- * Parses JRef to a JRef AST. Includes {@link JrefReviver} option similar to the
- * standard
- * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse | JSON.parse}
- * function.
- */
+/** Parses JRef to a JRef AST. */
 export const jrefParse: Plugin<[JrefParseOptions?], string, JrefDocumentNode>;

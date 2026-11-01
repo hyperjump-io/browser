@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { fromJref } from "./jref-util.js";
 import { resolveIri } from "@hyperjump/uri";
-import { toJson } from "../json/jsonast-util.js";
+import { jsonStep, toJson } from "../json/jsonast-util.js";
 
 /**
  * @import { JrefNode } from "./jref-ast.d.ts"
@@ -389,22 +389,16 @@ describe("JRef", () => {
           }
         });
       });
-    });
 
-    describe("reviver", () => {
-      test("convert properties that start with 'i' to integers", () => {
-        const subject = fromJref(`{ "foo": 42, "iBar": "42", "baz": { "$ref": "./foo" } }`, testContext, (node, key) => {
-          if (key?.startsWith("i") && node.jsonType === "string") {
-            return {
-              ...node,
-              jsonType: "number",
-              value: parseInt(node.value, 10)
-            };
-          } else {
-            return node;
-          }
-        });
-        expect(toJson(subject.node)).to.equal(`{"foo":42,"iBar":42,"baz":{"$ref":"./foo"}}`);
+      test("reference in the properties of a reference", () => {
+        const subject = /** @type JrefNode */ (fromJref(`{ "$ref": "./foo", "bar": { "$ref": "./bar" } }`, testContext).node);
+        expect(subject).to.include({ type: "reference", href: resolveIri("./foo", testContext) });
+        expect(jsonStep("bar", subject)).to.include({ type: "reference", href: resolveIri("./bar", testContext) });
+      });
+
+      test("$ref that isn't a string", () => {
+        const subject = fromJref(`{ "$ref": 42 }`, testContext).node;
+        expect(subject).to.include({ type: "json" });
       });
     });
   });
@@ -672,97 +666,6 @@ describe("JRef", () => {
       });
     });
 
-    describe("replacer", () => {
-      test("convert properties that start with 'i' to strings", () => {
-        /** @type JrefNode */
-        const node = {
-          type: "json",
-          jsonType: "object",
-          children: [
-            {
-              type: "json-property",
-              children: [
-                {
-                  type: "json-property-name",
-                  jsonType: "string",
-                  value: "foo"
-                },
-                {
-                  type: "json",
-                  jsonType: "number",
-                  value: 42,
-                  location: "#/foo"
-                }
-              ]
-            },
-            {
-              type: "json-property",
-              children: [
-                {
-                  type: "json-property-name",
-                  jsonType: "string",
-                  value: "iBar"
-                },
-                {
-                  type: "json",
-                  jsonType: "number",
-                  value: 42,
-                  location: "#/iBar"
-                }
-              ]
-            },
-            {
-              type: "json-property",
-              children: [
-                {
-                  type: "json-property-name",
-                  jsonType: "string",
-                  value: "baz"
-                },
-                {
-                  type: "reference",
-                  jsonType: "object",
-                  children: [
-                    {
-                      type: "json-property",
-                      children: [
-                        {
-                          type: "json-property-name",
-                          jsonType: "string",
-                          value: "$ref"
-                        },
-                        {
-                          type: "json",
-                          jsonType: "string",
-                          value: "./foo",
-                          location: "#/$ref"
-                        }
-                      ]
-                    }
-                  ],
-                  location: "#/baz",
-                  href: resolveIri("./foo", testContext)
-                }
-              ]
-            }
-          ],
-          location: "#"
-        };
-        const subject = toJson(node, (node, key) => {
-          if (key?.startsWith("i") && node.jsonType === "number") {
-            return {
-              ...node,
-              jsonType: "string",
-              value: String(node.value)
-            };
-          } else {
-            return node;
-          }
-        });
-        expect(subject).to.equal(`{"foo":42,"iBar":"42","baz":{"$ref":"./foo"}}`);
-      });
-    });
-
     describe("space", () => {
       test("pretty print", () => {
         /** @type JrefNode */
@@ -823,7 +726,7 @@ describe("JRef", () => {
           ],
           location: "#"
         };
-        const subject = toJson(node, undefined, "  ");
+        const subject = toJson(node, { space: "  " });
         expect(subject).to.equal(`{
   "foo": 42,
   "bar": {

@@ -8,6 +8,6 @@ import { toJson } from "./jsonast-util.js";
 /** @type API.rejsonStringify */
 export function rejsonStringify(options) {
   this.compiler = (tree) => {
-    return toJson(/** @type JsonDocumentNode */ (tree).children[0], options?.replacer, options?.space) + "\n";
+    return toJson(/** @type JsonDocumentNode */ (tree).children[0], options) + "\n";
   };
 }

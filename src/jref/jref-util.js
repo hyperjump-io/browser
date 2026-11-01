@@ -2,8 +2,7 @@ import { resolveIri } from "@hyperjump/uri";
 import { fromJson, hasStatus as jsonHasStatus } from "../json/jsonast-util.js";
 
 /**
- * @import { JsonErrorNode } from "../json/jsonast.js"
- * @import { JrefNode } from "./jref-ast.js"
+ * @import { JsonErrorNode, JsonTolerantNode } from "../json/jsonast.js"
  * @import * as API from "./jref-util.d.ts"
  */
 
@@ -11,28 +10,41 @@ import { fromJson, hasStatus as jsonHasStatus } from "../json/jsonast-util.js";
 export const hasStatus = /** @type API.hasStatus */ (jsonHasStatus);
 
 /** @type API.fromJref */
-export const fromJref = (jref, uri, reviver = defaultReviver, options = {}) => {
-  return /** @type any */ (fromJson(jref, uri, jrefReviver(uri, reviver), options));
+export const fromJref = (jref, uri, options = {}) => {
+  const result = fromJson(jref, uri, options);
+  annotateReferences(result.node, uri);
+
+  // The tree is annotated in place, which the JSON types can't follow
+  return /** @type any */ (result);
 };
 
-/** @type API.JrefReviver<any, any> */
-const defaultReviver = (value) => value;
+/**
+ * Make every object with a string `$ref` a reference.
+ *
+ * @type (node: JsonTolerantNode | JsonErrorNode, uri: string | undefined) => void
+ */
+const annotateReferences = (node, uri) => {
+  if (!("jsonType" in node)) {
+    return;
+  }
 
-/** @type (uri: string | undefined, reviver: (node: any, key?: string) => any) => (node: any, key?: string) => any */
-const jrefReviver = (uri, reviver) => (/** @type JrefNode<JsonErrorNode> */ node, key) => {
-  if (node.jsonType === "object") {
+  if (node.jsonType === "array") {
+    for (const item of node.children) {
+      annotateReferences(item, uri);
+    }
+  } else if (node.jsonType === "object") {
+    let isReference = false;
     for (const propertyNode of node.children) {
       const [keyNode, valueNode] = propertyNode.children;
-      if (keyNode.value === "$ref" && "jsonType" in valueNode && valueNode.jsonType === "string") {
+      if (!isReference && keyNode.value === "$ref" && "jsonType" in valueNode && valueNode.jsonType === "string") {
         Object.assign(node, {
           type: "reference",
           // Without a base URI, relative references can't be resolved
           href: uri === undefined ? valueNode.value : resolveIri(valueNode.value, uri)
         });
-        break;
+        isReference = true;
       }
+      annotateReferences(valueNode, uri);
     }
   }
-
-  return reviver(node, key);
 };

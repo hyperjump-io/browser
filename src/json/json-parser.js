@@ -14,7 +14,7 @@ import { appendToLocation } from "./location.js";
  *   JsonPropertyNameNode,
  *   JsonPropertyNode
  * } from "./jsonast.d.ts"
- * @import { JsonOptions, JsonParseResult, JsonSyntaxError, JsonSyntaxErrorCode, Reviver } from "./jsonast-util.d.ts"
+ * @import { JsonOptions, JsonParseResult, JsonSyntaxError, JsonSyntaxErrorCode } from "./jsonast-util.d.ts"
  * @import * as API from "./jsonast-util.d.ts"
  */
 
@@ -79,9 +79,9 @@ export const jsonSyntaxErrorMessage = (error) => MESSAGES[error.ruleId](error.ac
  * Parse JSON text into a JSON AST, recovering from syntax errors wherever
  * possible. Every error found is returned along with the best-effort AST.
  *
- * @type (text: string, location: string, reviver: Reviver<any, any>, options?: JsonOptions) => JsonParseResult<any, any>
+ * @type (text: string, location: string, options?: JsonOptions) => JsonParseResult<any, any>
  */
-export const parseJson = (text, location, reviver, options = {}) => {
+export const parseJson = (text, location, options = {}) => {
   const lineStarts = findLineStarts(text);
 
   /** @type SyntaxError[] */
@@ -308,11 +308,6 @@ export const parseJson = (text, location, reviver, options = {}) => {
     }
   };
 
-  /** @type (node: JsonValueNode, key: string | undefined) => JsonValueNode | undefined */
-  const revive = (node, key) => {
-    return node.type === "json-invalid" || node.type === "json-missing" ? node : reviver(node, key);
-  };
-
   /** @type (nodeLocation: string, offset: number) => JsonMissingNode */
   const missing = (nodeLocation, offset) => {
     failed = true;
@@ -352,10 +347,10 @@ export const parseJson = (text, location, reviver, options = {}) => {
   };
 
   /**
-   * Parse a property. The value is returned separately in its unrevived form
-   * so the caller can tell whether it was left unclosed.
+   * Parse a property. The value is returned separately, and is `undefined`
+   * when it's missing, so the caller can tell where the property's text ends.
    *
-   * @type (objectLocation: string) => { property: JsonPropertyNode<object, JsonErrorNode> | undefined, value: JsonValueNode | undefined }
+   * @type (objectLocation: string) => { property: JsonPropertyNode<object, JsonErrorNode>, value: JsonValueNode | undefined }
    */
   const parseProperty = (objectLocation) => {
     const start = token.offset;
@@ -422,15 +417,10 @@ export const parseJson = (text, location, reviver, options = {}) => {
       return { property, value };
     }
 
-    const revivedValue = revive(value, keyNode.value);
-    if (revivedValue === undefined) {
-      return { property: undefined, value };
-    }
-
     /** @type JsonPropertyNode<object, JsonErrorNode> */
     const property = {
       type: "json-property",
-      children: [keyNode, revivedValue],
+      children: [keyNode, value],
       position: position(start, endOf(value))
     };
     return { property, value };
@@ -574,18 +564,12 @@ export const parseJson = (text, location, reviver, options = {}) => {
       if (jsonType === "object") {
         index++;
         const { property, value } = parseProperty(containerLocation);
-        if (property) {
-          container.children.push(property);
-        }
-        lastItem = property ?? value;
+        container.children.push(property);
+        lastItem = property;
         separator = separatorAfter(value);
       } else {
-        const key = `${index++}`;
-        const item = /** @type JsonValueNode */ (parseValue(`${containerLocation}/${key}`, true));
-        const revivedItem = revive(item, key);
-        if (revivedItem !== undefined) {
-          container.children.push(revivedItem);
-        }
+        const item = /** @type JsonValueNode */ (parseValue(`${containerLocation}/${index++}`, true));
+        container.children.push(item);
         lastItem = item;
         separator = separatorAfter(item);
       }
@@ -663,7 +647,7 @@ export const parseJson = (text, location, reviver, options = {}) => {
     node = missing(rootLocation, 0);
   } else {
     const root = parseValue(rootLocation);
-    node = root ? revive(root, undefined) : missing(rootLocation, 0);
+    node = root ?? missing(rootLocation, 0);
 
     if (kind() !== "eof") {
       report("end-of-file-expected", token.offset, Math.max(text.trimEnd().length - token.offset, 1));

@@ -20,8 +20,8 @@ import { appendToLocation } from "./location.js";
  */
 
 /** @type API.fromJson */
-export const fromJson = (json, location = "", reviver = defaultReviver, options = {}) => {
-  return parseJson(json, location, reviver, options);
+export const fromJson = (json, location = "", options = {}) => {
+  return parseJson(json, location, options);
 };
 
 /** @type API.hasStatus */
@@ -112,9 +112,9 @@ export const fromJs = (js, location = "#") => {
 };
 
 /** @type API.toJson */
-export const toJson = (node, replacer = defaultReplacer, space = "") => {
-  const replacedNode = replace(node, replacer);
-  return replacedNode ? stringifyValue(replacedNode, replacer, space, 1) : "";
+export const toJson = (node, options = {}) => {
+  const valueNode = presentValue(node);
+  return valueNode ? stringifyValue(valueNode, options.space ?? "", 1) : "";
 };
 
 // RFC 6901: array-index = %x30 / ( %x31-39 *(%x30-39) )
@@ -266,20 +266,14 @@ export class JsonPointerError extends Error {
   }
 }
 
-/** @type API.Reviver<object, any, any> */
-const defaultReviver = (value) => value;
-
-/** @type API.Replacer */
-const defaultReplacer = (node) => node;
-
 /**
- * Apply the replacer to a value. A missing value is treated like a value the
- * replacer removed. An invalid value can't be represented in JSON, so it's an
- * error.
+ * The value to write for a node, or `undefined` for a missing value, which
+ * is written the way `JSON.stringify` writes `undefined`. An invalid value
+ * can't be represented in JSON, so it's an error.
  *
- * @type (node: JsonNode<unknown, JsonErrorNode> | JsonErrorNode, replacer: API.Replacer, key?: string) => JsonNode<unknown> | undefined
+ * @type (node: JsonNode<unknown, JsonErrorNode> | JsonErrorNode) => JsonNode<unknown> | undefined
  */
-const replace = (node, replacer, key) => {
+const presentValue = (node) => {
   switch (node.type) {
     case "json-missing":
       return undefined;
@@ -288,24 +282,24 @@ const replace = (node, replacer, key) => {
       throw TypeError(`Can't convert an invalid value to JSON: '${invalidNode.raw}' at ${relativeFileUri(invalidNode.location)}`);
     }
     default:
-      return replacer(/** @type JsonNode<unknown> */ (node), key);
+      return /** @type JsonNode<unknown> */ (node);
   }
 };
 
-/** @type (node: JsonNode<unknown>, replacer: API.Replacer, space: string, depth: number) => string */
-const stringifyValue = (node, replacer, space, depth) => {
+/** @type (node: JsonNode<unknown>, space: string, depth: number) => string */
+const stringifyValue = (node, space, depth) => {
   switch (node.jsonType) {
     case "array":
-      return stringifyArray(node, replacer, space, depth);
+      return stringifyArray(node, space, depth);
     case "object":
-      return stringifyObject(node, replacer, space, depth);
+      return stringifyObject(node, space, depth);
     default:
       return JSON.stringify(node.value);
   }
 };
 
-/** @type (node: JsonArrayNode<unknown>, replacer: API.Replacer, space: string, depth: number) => string */
-const stringifyArray = (node, replacer, space, depth) => {
+/** @type (node: JsonArrayNode<unknown>, space: string, depth: number) => string */
+const stringifyArray = (node, space, depth) => {
   if (node.children.length === 0) {
     return "[]";
   }
@@ -314,15 +308,15 @@ const stringifyArray = (node, replacer, space, depth) => {
 
   /** @type string[] */
   const items = [];
-  for (let index = 0; index < node.children.length; index++) {
-    const itemNode = replace(node.children[index], replacer, `${index}`);
-    items.push(itemNode === undefined ? "null" : stringifyValue(itemNode, replacer, space, depth + 1));
+  for (const item of node.children) {
+    const itemNode = presentValue(item);
+    items.push(itemNode === undefined ? "null" : stringifyValue(itemNode, space, depth + 1));
   }
   return "[" + padding + space + items.join(`,${padding}${space}`) + padding + "]";
 };
 
-/** @type (node: JsonObjectNode<unknown>, replacer: API.Replacer, space: string, depth: number) => string */
-const stringifyObject = (node, replacer, space, depth) => {
+/** @type (node: JsonObjectNode<unknown>, space: string, depth: number) => string */
+const stringifyObject = (node, space, depth) => {
   const padding = space ? `\n${space.repeat(depth - 1)}` : "";
   const colonSpacing = space ? " " : "";
 
@@ -330,9 +324,9 @@ const stringifyObject = (node, replacer, space, depth) => {
   const properties = [];
   for (const propertyNode of node.children) {
     const [keyNode, valueNode] = propertyNode.children;
-    const replacedValueNode = replace(valueNode, replacer, keyNode.value);
-    if (replacedValueNode !== undefined) {
-      const stringifiedValue = stringifyValue(replacedValueNode, replacer, space, depth + 1);
+    const presentValueNode = presentValue(valueNode);
+    if (presentValueNode !== undefined) {
+      const stringifiedValue = stringifyValue(presentValueNode, space, depth + 1);
       properties.push(JSON.stringify(keyNode.value) + ":" + colonSpacing + stringifiedValue);
     }
   }

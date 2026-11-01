@@ -47,7 +47,7 @@ describe("JSON Browser", () => {
       const session = browser.session();
       const subject = await session.get(uri);
 
-      expect(toJson(subject, undefined, "  ")).to.eql(jref);
+      expect(toJson(subject, { space: "  " })).to.eql(jref);
     });
 
     test("getDocument", async () => {

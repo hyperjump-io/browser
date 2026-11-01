@@ -995,25 +995,6 @@ describe("tolerant AST", () => {
     ]);
   });
 
-  test("the reviver is applied to a tolerant AST", () => {
-    const { node } = fromJson(`{ "a": 1, "b": , "c": [2 }`, "", (node) => {
-      return node.jsonType === "number" ? { ...node, value: node.value * 10 } : node;
-    });
-
-    expect(toJson(node)).toBe(`{"a":10,"c":[20]}`);
-  });
-
-  test("the reviver isn't called for invalid or missing values", () => {
-    /** @type string[] */
-    const types = [];
-    fromJson(`[NaN, , 1]`, "", (node) => {
-      types.push(node.type);
-      return node;
-    });
-
-    expect(types).toEqual(["json", "json"]);
-  });
-
   test("errors have a line and column", () => {
     const { errors } = fromJson(`{\n  "a": 1,\n}`);
 
@@ -1215,7 +1196,7 @@ describe("JSONC", () => {
   });
 
   test("a document with comments is a success with the flag", () => {
-    const { status, node } = fromJson(`{ "a": 1 } // done`, "", undefined, { allowComments: true });
+    const { status, node } = fromJson(`{ "a": 1 } // done`, "", { allowComments: true });
 
     expect(status).toBe("success");
     expect(toJson(node)).toBe(`{"a":1}`);
@@ -1240,13 +1221,13 @@ describe("JSONC", () => {
   });
 
   test("fromJref takes the flag", () => {
-    const { node } = fromJref(`{ "$ref": "foo" /* a reference */ }`, "https://example.com/main.jref", undefined, { allowComments: true });
+    const { node } = fromJref(`{ "$ref": "foo" /* a reference */ }`, "https://example.com/main.jref", { allowComments: true });
 
     expect(node).toMatchObject({ type: "reference", href: "https://example.com/foo" });
   });
 
   test("fromJref reports no errors for comments with the flag", () => {
-    const { errors } = fromJref(`[1] // done`, undefined, undefined, { allowComments: true });
+    const { errors } = fromJref(`[1] // done`, undefined, { allowComments: true });
 
     expect(errors).toEqual([]);
   });
@@ -1268,7 +1249,7 @@ describe("JSONC", () => {
 
 describe("comments in the AST", () => {
   test("are listed in document order with their kind, text, and position", () => {
-    const { comments } = fromJson(`// first\n{ "a" /* second */: 1 }`, "", undefined, { allowComments: true });
+    const { comments } = fromJson(`// first\n{ "a" /* second */: 1 }`, "", { allowComments: true });
 
     expect(comments).toEqual([
       {
@@ -1293,7 +1274,7 @@ describe("comments in the AST", () => {
   });
 
   test("an unclosed block comment runs to the end of the document", () => {
-    const { comments } = fromJson(`1 /* open`, "", undefined, { allowComments: true });
+    const { comments } = fromJson(`1 /* open`, "", { allowComments: true });
 
     expect(comments).toMatchObject([{ kind: "block", value: " open" }]);
   });
@@ -1305,7 +1286,7 @@ describe("comments in the AST", () => {
   });
 
   test("aren't children of any node", () => {
-    const { node } = fromJson(`[1, /* two */ 2]`, "", undefined, { allowComments: true });
+    const { node } = fromJson(`[1, /* two */ 2]`, "", { allowComments: true });
 
     expect(itemValues(node)).toEqual([1, 2]);
   });
@@ -1325,28 +1306,21 @@ describe("comments in the AST", () => {
   });
 
   test("are returned with the AST", () => {
-    const { node, comments } = fromJson(`// one\n[1]`, "", undefined, { allowComments: true });
+    const { node, comments } = fromJson(`// one\n[1]`, "", { allowComments: true });
 
     expect(toJson(node)).toBe(`[1]`);
     expect(comments).toMatchObject([{ kind: "line", value: " one" }]);
   });
 
-  test("are returned with the AST when there's a reviver", () => {
-    const { node, comments } = fromJson(`[1] /* one */`, "", (node) => node, { allowComments: true });
-
-    expect(toJson(node)).toBe(`[1]`);
-    expect(comments).toMatchObject([{ kind: "block", value: " one " }]);
-  });
-
   test("are returned with the AST from a JRef parse", () => {
-    const { node, comments } = fromJref(`{ "$ref": "foo" } // done`, "https://example.com/main.jref", undefined, { allowComments: true });
+    const { node, comments } = fromJref(`{ "$ref": "foo" } // done`, "https://example.com/main.jref", { allowComments: true });
 
     expect(node).toMatchObject({ type: "reference" });
     expect(comments).toMatchObject([{ kind: "line", value: " done" }]);
   });
 
   test("are returned even when there are syntax errors", () => {
-    const { status, comments } = fromJson(`[1,] // done`, "", undefined, { allowComments: true });
+    const { status, comments } = fromJson(`[1,] // done`, "", { allowComments: true });
 
     expect(status).toBe("recovered");
     expect(comments).toMatchObject([{ value: " done" }]);
@@ -1619,6 +1593,6 @@ const span = (node) => {
 
 /** @type (json: string, options?: JsonOptions) => { root: TolerantValue, errors: TestError[] } */
 const parse = (json, options) => {
-  const { node, errors } = fromJson(json, "", undefined, options);
+  const { node, errors } = fromJson(json, "", options);
   return { root: node, errors: errors.map(toError) };
 };

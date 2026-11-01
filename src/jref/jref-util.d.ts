@@ -3,14 +3,7 @@ import type { JsonOptions, JsonParseResult } from "../json/jsonast-util.d.ts";
 import type { JrefDocumentNode, JrefNode, JrefTolerantNode } from "./jref-ast.d.ts";
 
 /**
- * A reviver for a JRef AST. `R` and `X` work the same way as they do for the
- * JSON `Reviver`.
- */
-export type JrefReviver<R extends JrefNode<X> | undefined, X = never> = (node: JrefNode<X>, key?: string) => R;
-
-/**
- * Parse a JRef string into a JRef AST. Includes a reviver option similar to
- * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse | JSON.parse}.
+ * Parse a JRef string into a JRef AST.
  *
  * References are resolved against `uri`. If `uri` is not given, references are
  * left as written.
@@ -18,7 +11,7 @@ export type JrefReviver<R extends JrefNode<X> | undefined, X = never> = (node: J
  * Parsing never throws. The result works the same way as the result of
  * `fromJson`.
  */
-export const fromJref: <R extends JrefTolerantNode | undefined = JrefTolerantNode>(json: string, uri?: string, reviver?: JrefReviver<R, JsonErrorNode>, options?: JsonOptions) => JsonParseResult<JrefNode | Extract<R, undefined>, R | JsonErrorNode>;
+export const fromJref: (json: string, uri?: string, options?: JsonOptions) => JsonParseResult<JrefNode, JrefTolerantNode | JsonErrorNode>;
 
 /**
  * Check a document's parse status and narrow its type. This is the same

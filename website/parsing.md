@@ -42,7 +42,7 @@ lists them in `comments` in the order they appear:
 ```typescript
 const json = `{ "a": 1 // one
 }`;
-const result = fromJson(json, "https://example.com/doc", undefined, {
+const result = fromJson(json, "https://example.com/doc", {
   allowComments: true
 });
 
@@ -63,30 +63,6 @@ const { node } = fromJref(jref, "https://example.com/doc");
 
 Without a URI, `href` is the reference as written. `fromJref` takes the
 `allowComments` option too.
-
-## Revive nodes
-
-The third argument of `fromJson` and `fromJref` is a reviver, which works like
-the reviver of `JSON.parse` but on AST nodes. The parser calls it with each node
-and the node's property name or array index from the leaves up to the root. The
-node it returns takes the original node's place. If it returns `undefined`, the
-parser leaves the value out:
-
-```typescript
-import { fromJson, jsonValue } from "@hyperjump/browser";
-
-const json = `{ "a": 1, "secret": 2 }`;
-const result = fromJson(json, "", (node, key) => {
-  return key === "secret" ? undefined : node;
-});
-
-if (result.status === "success" && result.node) {
-  jsonValue(result.node); // { a: 1 }
-}
-```
-
-The parser doesn't call the reviver for values that it couldn't parse. In
-`fromJref`, a reference node already has its `href` when the reviver gets it.
 
 ## Read the AST
 
@@ -127,7 +103,7 @@ These are the functions for reading the AST:
 | `jsonStep(key, node)` | A property or item of a node |
 | `jsonValue(node)` | The node's value as JavaScript |
 | `jsonObjectHas`, `jsonObjectKeys`, `jsonObjectValues`, `jsonObjectEntries`, `jsonArrayIter` | Read objects and arrays |
-| `toJson(node, replacer, space)` | The node as JSON text, like `JSON.stringify` |
+| `toJson(node, options)` | The node as JSON text. The `space` option indents it like the `space` of `JSON.stringify`. |
 | `fromJs(value)` | An AST from a JavaScript value |
 
 None of these follow references. To follow references, use the `jref`
@@ -185,10 +161,11 @@ do the same for JRef. With `accept: "recovered"`, the pipeline still processes a
 file when the parser recovers from its syntax errors and reports those errors as
 warnings.
 
-The parse plugins take the `allowComments` and `reviver` options, which work as
-they do for `fromJson`. `rejsonParse` also takes a `location`, which is the
-document's base URI. The stringify plugins take the `replacer` and `space`
-options of `toJson`.
+The parse plugins take the `allowComments` option, which works as it does for
+`fromJson`. `rejsonParse` also takes a `location`, which is the document's base
+URI. The stringify plugins take the `space` option of `toJson`. To change the
+AST in a pipeline, use a transformer plugin between the parse and stringify
+plugins.
 
 The parse plugins produce a document node whose `status` says how parsing went.
 Use `hasStatus` to check it. Unlike checking `status` directly, `hasStatus`

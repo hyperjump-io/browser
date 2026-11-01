@@ -134,38 +134,6 @@ describe("jsonast-util", async () => {
     });
   });
 
-  describe("toJson replacer that removes values", () => {
-    const json = `{ "a": [1, 2, 3], "b": { "c": 1, "d": 2 }, "d": 4 }`;
-
-    /** @type JsonNode */
-    const subject = parse(json);
-
-    /** @type (key: string) => boolean */
-    const isRemoved = (key) => key === "2" || key === "d";
-
-    /** @type (node: JsonNode<unknown>, key?: string) => JsonNode<unknown> | undefined */
-    const replacer = (node, key) => key !== undefined && isRemoved(key) ? undefined : node;
-
-    /** @type (key: string, value: unknown) => unknown */
-    const jsReplacer = (key, value) => isRemoved(key) ? undefined : value;
-
-    test("without spaces", () => {
-      const expected = JSON.stringify(JSON.parse(json), jsReplacer);
-      expect(toJson(subject, replacer)).to.equal(expected);
-    });
-
-    test("with spaces", () => {
-      const expected = JSON.stringify(JSON.parse(json), jsReplacer, "  ");
-      expect(toJson(subject, replacer, "  ")).to.equal(expected);
-    });
-
-    test("all properties removed", () => {
-      /** @type JsonNode */
-      const node = parse(`{ "d": 1 }`);
-      expect(toJson(node, replacer, "  ")).to.equal(`{}`);
-    });
-  });
-
   describe("jsonStep duplicate property names", () => {
     /** @type JsonNode */
     let subject;
@@ -254,34 +222,6 @@ describe("jsonast-util", async () => {
       const subject = parse(`[]`);
       expect(() => jsonStep("0", subject)).to.throw(JsonPointerError, "Index '0' doesn't exist at #/0");
     });
-  });
-
-  test("a reviver can parse JSON while another parse is in progress", () => {
-    const subject = fromJson(`["[1, 2]", 3]`, "", (node) => {
-      if (node.jsonType === "string") {
-        return /** @type JsonTolerantNode */ (fromJson(node.value).node);
-      }
-      return node;
-    });
-
-    expect(toJson(subject.node)).to.equal(`[[1,2],3]`);
-  });
-
-  test("rejsonParse takes a reviver of JSON nodes", () => {
-    /** @type (node: JsonTolerantNode, key?: string) => JsonTolerantNode */
-    const reviver = (node, key) => {
-      if (key?.startsWith("i") && node.jsonType === "string") {
-        return { ...node, jsonType: "number", value: parseInt(node.value, 10) };
-      }
-      return node;
-    };
-
-    const processed = unified()
-      .use(rejsonParse, { reviver })
-      .use(rejsonStringify)
-      .processSync(`{ "foo": 42, "iBar": "42" }`);
-
-    expect(processed.toString()).to.equal(`{"foo":42,"iBar":42}\n`);
   });
 
   test("rejson syntax errors keep their position, source, and ruleId", () => {

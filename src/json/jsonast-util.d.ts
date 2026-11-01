@@ -12,20 +12,17 @@ import type {
   JsonPropertyNameNode,
   JsonParseStatus,
   JsonStringNode,
+  JsonTolerantNode,
   ReadonlyJson
 } from "./jsonast.d.ts";
 
-export type Reviver<A extends object, R extends JsonNode<A, X> | undefined, X = never> = (node: JsonNode<A, X>, key?: string) => R;
-
 /**
- * Parse a JSON string into a JSON AST. Includes a reviver option similar to
- * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse | JSON.parse}.
+ * Parse a JSON string into a JSON AST.
  *
  * Parsing never throws. Malformed input produces an AST whenever possible and
  * the result's `status` says how much to trust it. See {@link JsonParseResult}.
- * The reviver isn't called for {@link JsonErrorNode}s.
  */
-export const fromJson: <A extends object = { type: "json" }, R extends JsonNode<A, JsonErrorNode> | undefined = JsonNode<A, JsonErrorNode>>(json: string, location?: string, reviver?: Reviver<A, R, JsonErrorNode>, options?: JsonOptions) => JsonParseResult<JsonNode<A> | Extract<R, undefined>, R | JsonErrorNode>;
+export const fromJson: (json: string, location?: string, options?: JsonOptions) => JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode>;
 
 /**
  * Check a document's parse status. Unlike checking `document.status`
@@ -119,22 +116,27 @@ export type JsonSyntaxErrorCode
  */
 export const fromJs: (js: ReadonlyJson, location?: string) => JsonNode;
 
-export type Replacer = (node: JsonNode<unknown>, key?: string) => JsonNode<unknown> | undefined;
+export type ToJsonOptions = {
+  /**
+   * The indentation for each level, like the `space` of
+   * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify | JSON.stringify}.
+   * Without it, the JSON is on one line.
+   */
+  space?: string;
+};
 
 /**
- * Stringify a JsonNode to a JSON string. Includes options for a
- * {@link Replacer} and `space` like
- * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify | JSON.stringify}.
+ * Stringify a JsonNode to a JSON string.
  *
  * A tree from a failed parse can contain values that JSON can't represent.
  * Like `JSON.stringify` does with `undefined`, a {@link JsonMissingNode} is
  * left out when it's a property value and written as `null` when it's an array
  * item, so the items after it keep their positions. A missing root produces an
- * empty string. The replacer isn't called for missing values.
+ * empty string.
  *
  * @throws TypeError if the tree contains a {@link JsonInvalidNode}.
  */
-export const toJson: (node: JsonNode<unknown, JsonErrorNode> | JsonErrorNode, replacer?: Replacer, space?: string) => string;
+export const toJson: (node: JsonNode<unknown, JsonErrorNode> | JsonErrorNode, options?: ToJsonOptions) => string;
 
 /**
  * Any JSON AST node. The utilities take the type of the node you give them

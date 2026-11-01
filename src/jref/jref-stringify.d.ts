@@ -1,16 +1,9 @@
 import type { Plugin } from "unified";
 import type { JrefDocumentNode } from "./jref-ast.d.ts";
-import type { Replacer } from "../json/jsonast-util.js";
+import type { ToJsonOptions } from "../json/jsonast-util.js";
 
-export type JrefStringifyOptions = {
-  replacer?: Replacer;
-  space?: string;
-};
+/** The options of {@link toJson} */
+export type JrefStringifyOptions = ToJsonOptions;
 
-/**
- * Stringifies a JRef AST to JRef. Includes {@link Replacer} and `space` options
- * similar to the standard
- * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify | JSON.stringify}
- * function.
- */
+/** Stringifies a JRef AST to JRef. */
 export const jrefStringify: Plugin<[JrefStringifyOptions?], JrefDocumentNode, string>;

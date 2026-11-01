@@ -9,6 +9,6 @@ import { toJson } from "../json/jsonast-util.js";
 export function jrefStringify(options) {
   this.compiler = (tree) => {
     const jrefDocument = /** @type JrefDocumentNode */ (tree);
-    return toJson(jrefDocument.children[0], options?.replacer, options?.space) + "\n";
+    return toJson(jrefDocument.children[0], options) + "\n";
   };
 }

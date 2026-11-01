@@ -10,7 +10,7 @@
   keeping them apart: the package has no side effects, so a bundler drops
   what isn't imported either way. With one entry point, two names collide.
   `hasStatus` is the JRef one, which is the same function typed for both
-  kinds of document, and JRef's `Reviver` is `JrefReviver`.
+  kinds of document.
 - The type entry points are declared in the package exports, so TypeScript
   finds the declaration files and the types only they export.
 - It doesn't have CLIs, so it doesn't depend on `unified-args`. A CLI to

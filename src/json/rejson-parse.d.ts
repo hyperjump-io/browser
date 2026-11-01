@@ -1,10 +1,9 @@
 import type { Plugin } from "unified";
-import type { JsonDocumentNode, JsonErrorNode, JsonParseStatus, JsonTolerantNode } from "./jsonast.d.ts";
-import type { JsonOptions, Reviver } from "./jsonast-util.d.ts";
+import type { JsonDocumentNode, JsonParseStatus } from "./jsonast.d.ts";
+import type { JsonOptions } from "./jsonast-util.d.ts";
 
 export type JsonParseOptions = JsonOptions & {
   location?: string;
-  reviver?: Reviver<{ type: "json" }, JsonTolerantNode | undefined, JsonErrorNode>;
   /**
    * The worst parse status that doesn't fail the file. Every syntax error is
    * added to the file as a message either way. The document's `status` says
@@ -14,10 +13,5 @@ export type JsonParseOptions = JsonOptions & {
   accept?: JsonParseStatus;
 };
 
-/**
- * Parses JSON to a JSON AST. Includes {@link Reviver} option similar to the
- * standard
- * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse | JSON.parse}
- * function.
- */
+/** Parses JSON to a JSON AST. */
 export const rejsonParse: Plugin<[JsonParseOptions?], string, JsonDocumentNode>;

@@ -12,7 +12,7 @@ export function jrefParse(options) {
   this.parser = function (document, file) {
     const uri = file.path ? pathToUri(file.cwd, file.path) : undefined;
 
-    const { status, node, errors, comments } = fromJref(document, uri, options?.reviver, options);
+    const { status, node, errors, comments } = fromJref(document, uri, options);
     reportSyntaxErrors(file, errors, status, options?.accept);
 
     return /** @type JrefDocumentNode */ ({

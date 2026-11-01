@@ -37,6 +37,30 @@ status with it:
   Recovery heuristics run in linear time regardless of the input.
 - A duplicated property name fails `jsonStep`.
 
+## Transforming
+
+- The AST is the value an application transforms. It's changed after
+  parsing and before stringifying, by a function of the tree or by a
+  unified transformer plugin. The parser and `toJson` don't call code of
+  the application's.
+- `fromJref` is `fromJson` and then a pass over the tree that makes each
+  object with a string `$ref` a reference. Compared to one pass with a
+  reviver, the second pass costs up to 8% on documents with many
+  references, and `fromJson` is up to 7% faster without a reviver (see
+  [Reviver and second pass](../benchmarks/reviver-second-pass.md)).
+  - A reviver and a replacer like `JSON.parse`'s and `JSON.stringify`'s
+    were rejected. `JSON.parse` returns a plain value, so a hook is the
+    only place to change it as it's built. An AST can be changed after.
+    Typing a reviver means typing a fold from the leaves up, where each
+    node's children are what the reviver returned for them, and nothing
+    needs one except `fromJref`.
+  - Keeping `fromJref` in one pass with a reviver that isn't exported was
+    rejected because the second pass costs little.
+  - Either one could come back as an option of `fromJson`, `fromJref`, or
+    `toJson`, without breaking their signatures. A reviver runs during a
+    parse and can start another, so the parser would have to keep no state
+    between parses.
+
 ## Nodes
 
 - Property nodes have positions, and a type parameter for annotations, so
