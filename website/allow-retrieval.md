@@ -1,26 +1,26 @@
-# What can be retrieved
+# What a session can retrieve
 
 Documents refer to other documents by URL. Following a reference retrieves
 whatever that URL identifies. That's fine when you control the documents. When
 you don't, a document could refer to `http://169.254.169.254/` or
-`file:///etc/passwd`. Following that reference would make your application
-retrieve it. That's why nothing is retrieved unless the `allowRetrieval` config
-allows it.
+`file:///etc/passwd`. Following that reference would make your app retrieve it.
+That's why a session retrieves nothing unless the `allowRetrieval` config allows
+it.
 
 ## `allowRetrieval`
 
 `allowRetrieval` is a list of URLs. A URL that ends with `/` allows everything
-under that URL. Any other URL allows only that exact URL. An origin like
-`https://example.com` allows everything on it, with or without the `/`, because
+under that URL. Any other URL allows only that exact URL. An origin such as
+`https://example.com` allows everything on it with or without the `/` because
 it's the URL of the origin's root, `https://example.com/`. An empty list allows
-nothing. A relative URL is resolved against the working directory in Node.js and
-against the page in a browser. A worker has no page to resolve against, so use
-absolute URLs there.
+nothing. In Node.js, a relative URL is relative to the working directory. In a
+browser, it's relative to the page. A worker has no page, so use absolute URLs
+there.
 
 The default is `["./"]`, which allows the files in the working directory in
-Node.js and what's in the page's directory in a browser. Setting your own list
-replaces the default, so include `"./"` if you still want to allow local files.
-This list allows local files and one API:
+Node.js and what's in the page's directory in a browser. Your own list replaces
+the default, so include `"./"` if you still want to allow local files. This
+list allows local files and one API:
 
 ```typescript
 const h = new Hyperjump({
@@ -29,22 +29,22 @@ const h = new Hyperjump({
 ```
 
 Retrieving a URL the list doesn't allow throws a `RetrievalNotAllowedError`. Its
-`uri` is the URL that was refused. Its message tells you how to allow that URL:
+`uri` is the URL that the session refused. Its message says how to allow that
+URL:
 
 ```text
 Retrieving 'https://example.com/other' isn't allowed. Use the 'allowRetrieval' config to allow it.
 ```
 
-When the URL was refused by a session's own list, the message says to use the
-session's `allowRetrieval` option instead, because that list replaces the
+When a session's own list refused the URL, the message says to use the
+session's `allowRetrieval` option instead because that list replaces the
 config's.
 
 ## Per session
 
-Different parts of an application don't always trust the same things, so a
-session can have its own list. The session's list replaces the config's list
-instead of adding to it, which means a session can allow less than its
-`Hyperjump` does:
+Different parts of an app don't always trust the same things, so a session can
+have its own list. The session's list replaces the config's list instead of
+adding to it. That means a session can allow less than its `Hyperjump` does:
 
 ```typescript
 const session = h.session({ allowRetrieval: ["./documents/"] });
@@ -52,22 +52,22 @@ const session = h.session({ allowRetrieval: ["./documents/"] });
 
 ## What it protects against
 
-Checking a URL before it's retrieved isn't enough on its own because there are
-other ways to end up somewhere you didn't allow. `allowRetrieval` covers these
-too:
+Checking a URL before the session retrieves it isn't enough on its own because
+there are other ways to end up somewhere you didn't allow. `allowRetrieval`
+covers these too:
 
-- **Symlinks.** In Node.js, `file:` URLs are compared by their real paths so a
-  symlink in an allowed directory can't lead outside it.
+- **Symlinks.** In Node.js, the session compares `file:` URLs by their real
+  paths so a symlink in an allowed directory can't lead outside it.
 - **Redirects.** In Node.js, the session checks where a redirect leads before
-  it follows the redirect, so a server can't make the session send a request
-  to a URL you didn't allow. In a browser, `fetch` follows redirects itself and
+  it follows the redirect. A server can't make the session send a request to a
+  URL you didn't allow. In a browser, `fetch` follows redirects itself and
   sends the request before the session can check it. The session then checks
   the URL that the response came from and doesn't use a response from a URL
   you didn't allow.
 - **The cache.** The check happens before the URI scheme plugins run so a
   cached response can't get around the check.
 
-The check applies to every URI scheme. That includes the ones you add. A plugin
+The check applies to every URI scheme, including the ones you add. A plugin
 can redirect to another URL the way a `urn:` plugin redirects a Uniform Resource
-Name (URN) to the URL it maps to. The list has to allow both the URN and the URL. See
-[URI schemes](uri-schemes.md).
+Name (URN) to the URL it maps to. The list has to allow both the URN and the
+URL. For more information, see [URI schemes](uri-schemes.md).

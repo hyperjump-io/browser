@@ -12,7 +12,7 @@ stringify documents.
 ## Documentation
 
 The documentation is in [`website/`](website/README.md). Start with
-[Install](website/install.md) and [Getting started](website/getting-started.md).
+[Install](website/install.md) and [Get started](website/getting-started.md).
 The JRef media type is specified in the
 [JRef spec](https://github.com/hyperjump-io/json-reference/blob/main/spec.md).
 

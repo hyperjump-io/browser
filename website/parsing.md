@@ -1,10 +1,11 @@
-# Parsing JSON and JRef
+# Parse JSON and JRef
 
 You can use the JSON and JRef parsers on their own without a `Hyperjump`. They
-parse into a JSON AST, which is a [unist](https://github.com/syntax-tree/unist)
-tree with a position for every value.
+parse into a JSON abstract syntax tree (AST), which is a
+[unist](https://github.com/syntax-tree/unist) tree with a position for every
+value.
 
-## Parsing
+## Parse
 
 `fromJson` parses JSON text. It never throws. Instead, it recovers from syntax
 errors where it can and returns every error it found:
@@ -26,17 +27,17 @@ The `status` says how parsing went:
 | Status | Meaning |
 | --- | --- |
 | `"success"` | No syntax errors |
-| `"recovered"` | There were syntax errors, but the parser could tell what was meant. A trailing comma is an example. The AST has every value. |
-| `"failure"` | Some values couldn't be parsed because of syntax errors. The AST has error nodes where those values would be. |
+| `"recovered"` | There were syntax errors, but the parser could tell what the text meant. A trailing comma is an example. The AST has every value. |
+| `"failure"` | The parser couldn't parse some values because of syntax errors. The AST has error nodes where those values would be. |
 
 Each error is plain data with a `ruleId` and a `place`. The `ruleId` is a name
-like `"trailing-comma"`. To turn an error into a message for people to read,
+such as `"trailing-comma"`. To turn an error into a message for people to read,
 use `jsonSyntaxErrorMessage`.
 
 The second argument of `fromJson` is the document's base URI. With the
-`allowComments` option, `fromJson` accepts `//` and `/* */` comments as JSONC
-does. Comments aren't part of the AST. The result lists them in `comments` in
-the order they appear:
+`allowComments` option, `fromJson` accepts `//` and `/* */` comments the way
+JSON with Comments (JSONC) does. Comments aren't part of the AST. The result
+lists them in `comments` in the order they appear:
 
 ```typescript
 const json = `{ "a": 1 // one
@@ -63,46 +64,64 @@ const { node } = fromJref(jref, "https://example.com/doc");
 Without a URI, `href` is the reference as written. `fromJref` takes the
 `allowComments` option too.
 
-## Reviving nodes
+## Revive nodes
 
 The third argument of `fromJson` and `fromJref` is a reviver, which works like
 the reviver of `JSON.parse` but on AST nodes. The parser calls it with each node
 and the node's property name or array index from the leaves up to the root. The
 node it returns takes the original node's place. If it returns `undefined`, the
-value is left out:
+parser leaves the value out:
 
 ```typescript
-const reviver = (node, key) => key === "secret" ? undefined : node;
-const { node } = fromJson(`{ "a": 1, "secret": 2 }`, "", reviver);
+import { fromJson, jsonValue } from "@hyperjump/browser";
 
-jsonValue(node); // { a: 1 }
+const json = `{ "a": 1, "secret": 2 }`;
+const result = fromJson(json, "", (node, key) => {
+  return key === "secret" ? undefined : node;
+});
+
+if (result.status === "success" && result.node) {
+  jsonValue(result.node); // { a: 1 }
+}
 ```
 
-The reviver isn't called for values that couldn't be parsed. In `fromJref`, a
-reference node already has its `href` when the reviver gets it.
+The parser doesn't call the reviver for values that it couldn't parse. In
+`fromJref`, a reference node already has its `href` when the reviver gets it.
 
-## Reading the AST
+## Read the AST
 
 Each node has a `jsonType`, a `location`, and a `position`. The `location` is a
 URL with a JSON Pointer to the node. The `position` says where the node is in
 the text.
 
-To read values out of the AST, use the JSON AST functions. This example gets a node with a JSON Pointer then reads the node's
-value and its position:
+To read values out of the AST, use the JSON AST functions. This example gets a
+node with a JSON Pointer and then reads the node's value and its position:
 
 ```typescript
-import { fromJson, jsonValue, pointerGet } from "@hyperjump/browser";
+import {
+  fromJson,
+  jsonSyntaxErrorMessage,
+  jsonValue,
+  pointerGet
+} from "@hyperjump/browser";
 
-const { node } = fromJson(`{ "a": { "b": [10, 20] } }`);
-const twenty = pointerGet("/a/b/1", node);
+const result = fromJson(`{ "a": { "b": [10, 20] } }`);
+if (result.status === "failure") {
+  throw Error(jsonSyntaxErrorMessage(result.errors[0]));
+}
 
+const twenty = pointerGet("/a/b/1", result.node);
 jsonValue(twenty); // 20
-twenty.position.start; // { line: 1, column: 20, offset: 19 }
+twenty.position?.start; // { line: 1, column: 20, offset: 19 }
 ```
+
+The example checks the `status` first because only a parse whose status is
+`"failure"` can have error nodes. After that check, TypeScript knows that the
+AST has none.
 
 These are the functions for reading the AST:
 
-| Function | What it does |
+| Function | Description |
 | --- | --- |
 | `pointerGet(pointer, node)` | The node a JSON Pointer points to |
 | `pointerStep(key, node)` | A property or item of a node |
@@ -115,30 +134,36 @@ None of these follow references. To follow references, use a
 [session](browsing.md).
 
 `pointerGet` and `pointerStep` throw a `JsonPointerError` when a property or
-item doesn't exist. Its message says the location that couldn't be reached.
-That location is built from the node's `location`, so it starts with the base
-URI given to `fromJson` or `fromJs`.
-In an AST from a parse whose status is `"failure"`, a value that couldn't be
-parsed is `undefined`:
+item doesn't exist. Its message says the location that the pointer couldn't
+reach. That location comes from the node's `location`, so it starts with the
+base URI you gave `fromJson` or `fromJs`.
+
+In an AST from a parse whose status is `"failure"`, a value that the parser
+couldn't parse is `undefined`. The root itself can be an error node, so check
+that its `type` is `"json"` first:
 
 ```typescript
-import { JsonPointerError } from "@hyperjump/browser";
+import { fromJson, JsonPointerError, pointerGet } from "@hyperjump/browser";
 
 const { node } = fromJson(`{ "a": }`, "https://example.com/doc");
-pointerGet("/a", node); // undefined
+if (node.type === "json") {
+  pointerGet("/a", node); // undefined
 
-try {
-  pointerGet("/b", node);
-} catch (error) {
-  error instanceof JsonPointerError; // true
-  error.message; // "Property 'b' doesn't exist at https://example.com/doc#/b"
+  try {
+    pointerGet("/b", node);
+  } catch (error) {
+    if (error instanceof JsonPointerError) {
+      error.message;
+      // "Property 'b' doesn't exist at https://example.com/doc#/b"
+    }
+  }
 }
 ```
 
 `jsonValue` and `toJson` leave such a value out of an object. In an array, they
-make it `null`, so the items after it keep their positions.
+make it `null` so the items after it keep their positions.
 
-## Building nodes
+## Build nodes
 
 If you build nodes of your own, use `appendToLocation` to give them a
 `location`. It adds a property name or array index to the JSON Pointer of the
@@ -154,10 +179,10 @@ appendToLocation("a b", "https://example.com/doc#/x");
 
 ## In a unified pipeline
 
-`rejsonParse` and `rejsonStringify` are [unified](https://unifiedjs.com/)
-plugins for pipelines that process JSON files. `jrefParse` and `jrefStringify`
-do the same for JRef. With `accept: "recovered"`, a file is still processed when
-the parser recovers from its syntax errors. Those errors are reported as
+`rejsonParse` and `rejsonStringify` are plugins for
+[unified](https://unifiedjs.com/) pipelines that process JSON files. `jrefParse` and `jrefStringify`
+do the same for JRef. With `accept: "recovered"`, the pipeline still processes a
+file when the parser recovers from its syntax errors and reports those errors as
 warnings.
 
 The parse plugins take the `allowComments` and `reviver` options, which work as
@@ -167,8 +192,8 @@ options of `toJson`.
 
 The parse plugins produce a document node whose `status` says how parsing went.
 Use `hasStatus` to check it. Unlike checking `status` directly, `hasStatus`
-narrows the document's type in TypeScript, so a document with the status
-`"success"` or `"recovered"` is known to have no error nodes:
+narrows the document's type in TypeScript. TypeScript then knows that a
+document with the status `"success"` or `"recovered"` has no error nodes:
 
 ```typescript
 import { hasStatus } from "@hyperjump/browser";

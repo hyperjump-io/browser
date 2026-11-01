@@ -1,15 +1,15 @@
 # URI schemes
 
 A URI scheme plugin retrieves documents for URIs that start with one of its
-schemes. `http:`, `https:`, and `file:` are supported by default, although
-`file:` isn't available in browsers.
+schemes. A `Hyperjump` handles `http:`, `https:`, and `file:` by default,
+although `file:` isn't available in browsers.
 
-## Adding a URI scheme
+## Add a URI scheme
 
 A URI scheme plugin defines the `schemes` it handles and a `retrieve` function
 that returns a `Response`. You configure plugins with the `uriSchemePlugins`
-config when you create the `Hyperjump`. This example is a plugin for `urn:`.
-It's created with the URL that each Uniform Resource Name (URN) maps to. It
+config when you create the `Hyperjump`. This example is a plugin for `urn:`. You
+create it with the URL that each Uniform Resource Name (URN) maps to. It
 retrieves a URN by redirecting to the URL that the URN maps to:
 
 ```typescript
@@ -49,19 +49,20 @@ from a server. [`allowRetrieval`](allow-retrieval.md) applies to every URL the
 session retrieves, so the list has to allow both the URN and the URL that the
 URN maps to.
 
-A plugin implements `UriSchemePlugin`. Its `retrieve` is given
-`RetrieveOptions`. The options have what the request needs:
+A plugin implements `UriSchemePlugin`. The session calls its `retrieve` with
+`RetrieveOptions`, which have what the request needs:
 
-| Option | What it is |
+| Option | Description |
 | --- | --- |
 | `referencedFrom` | The URL of the document the reference came from, if there is one |
-| `accept` | An `Accept` header for the media types that are supported |
+| `accept` | An `Accept` header for the media types that the `Hyperjump` supports |
 | `mediaTypeByExtension(uri)` | The media type of the URI's extension, or `undefined` if no media type plugin has it |
 
-A response needs a `Content-Type` so that it can be parsed. If your scheme
-doesn't have media types, like files don't, use `options.mediaTypeByExtension`
-to get the one for the URI's extension. A response doesn't need a URL. When it
-doesn't have one, its URL is the URI that was retrieved.
+A response needs a `Content-Type` so that the session can parse it. If your
+scheme doesn't have media types the way files don't, use
+`options.mediaTypeByExtension` to get the one for the URI's extension. A
+response doesn't need a URL. When it doesn't have one, its URL is the URI that
+the session retrieved.
 
 ### Redirects
 
@@ -89,16 +90,16 @@ const plugin = new UrnUriSchemePlugin({
 });
 ```
 
-## Replacing a URI scheme
+## Replace a URI scheme
 
-A plugin for a scheme that's already supported replaces the existing plugin for
-that scheme. The existing plugin still handles any other schemes it lists. When
-more than one plugin in the list has the same scheme, the later one is used.
-Replacing the HTTP plugin this way is how you change its options.
-`HttpUriSchemePlugin` takes these options:
+A plugin for a scheme that the `Hyperjump` already handles replaces the
+existing plugin for that scheme. The existing plugin still handles any other
+schemes it lists. When more than one plugin in the list has the same scheme,
+the `Hyperjump` uses the later one. Replacing the HTTP plugin this way is how
+you change its options. `HttpUriSchemePlugin` takes these options:
 
-| Option | What it is |
+| Option | Description |
 | --- | --- |
-| `cache` | Where to cache responses. Without one, the plugin gets its environment's default. `false` doesn't cache. See [HTTP caching](http-caching.md). |
-| `headers` | Headers to send with requests, by URL. See [HTTP headers](http-headers.md). |
-| `mediaTypeByExtension` | URLs whose documents get their media type from their extension instead of the `Content-Type` header. See [Servers that send the wrong media type](media-types.md#servers-that-send-the-wrong-media-type). |
+| `cache` | Where to cache responses. Without one, the plugin gets its environment's default. `false` doesn't cache. For more information, see [HTTP caching](http-caching.md). |
+| `headers` | Headers to send with requests, by URL. For more information, see [HTTP headers](http-headers.md). |
+| `mediaTypeByExtension` | URLs whose documents get their media type from their extension instead of the `Content-Type` header. For more information, see [Servers that send the wrong media type](media-types.md#servers-that-send-the-wrong-media-type). |

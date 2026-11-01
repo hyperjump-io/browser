@@ -1,10 +1,10 @@
 # HTTP headers
 
-Requests are sent by the HTTP plugin, so to send headers such as credentials
-with `http:` and `https:` requests, you replace the default HTTP plugin with a
-plugin configured with `headers`. Documents can reference any URL, so headers
-sent with every request could end up at any server. Instead, headers are given
-by URL. Only the URLs you list get them:
+The HTTP plugin sends `http:` and `https:` requests. To send headers such as
+credentials with those requests, replace the default HTTP plugin with one that
+has a `headers` option. Documents can refer to any URL, so headers sent with
+every request could end up at any server. Instead, you give headers by URL, and
+only the URLs you list get them:
 
 ```typescript
 import { Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";
@@ -21,24 +21,25 @@ const h = new Hyperjump({
 });
 ```
 
-URLs match the way they do in [`allowRetrieval`](allow-retrieval.md). Headers
-for a URL that ends with `/` are sent with every request under that URL. Headers
-for any other URL are sent only with requests to that exact URL. Headers for an
-origin like `https://api.example.com` are sent with every request to it, with or
-without the `/`, because it's the URL of the origin's root. Every URL in
-`headers` has to be an absolute `http:` or `https:` URL. This plugin wasn't
-given a `cache`, so the default [cache](http-caching.md) still applies.
+URLs match the way they do in [`allowRetrieval`](allow-retrieval.md). The plugin
+sends the headers for a URL that ends with `/` with every request under that
+URL. It sends the headers for any other URL only with requests to that exact
+URL. The headers for an origin such as `https://api.example.com` go with every
+request to it with or without the `/` because it's the URL of the origin's
+root. Every URL in `headers` has to be an absolute `http:` or `https:` URL. This
+plugin has no `cache` option, so it still uses the default
+[cache](http-caching.md).
 
-When more than one URL matches a request, their headers are merged and the
-longer URL's headers win. So, an API can have one token and a path under it can
-have another. You don't need to set `Accept`. It's always set to the media
-types that are supported.
+When more than one URL matches a request, the plugin merges their headers and
+the longer URL's headers win. That way an API can have one token and a path
+under it can have another. You don't need to set `Accept`. The plugin always
+sets it to the media types that the `Hyperjump` supports.
 
 ## Headers that change
 
-Instead of headers, a URL can be given a function that returns them. It's called
-with the URL of each request it matches. It can be async, which lets you refresh
-a token before it's sent:
+Instead of headers, you can give a URL a function that returns them. The plugin
+calls it with the URL of each request it matches. It can be async, which lets
+you refresh a token before the plugin sends it:
 
 ```typescript
 new HttpUriSchemePlugin({
@@ -68,20 +69,20 @@ another origin doesn't send them.
 
 ## Caching
 
-Each URL's responses are cached separately, so one plugin can send different
-credentials to different URLs.
+The cache keeps each URL's responses separately, so one plugin can send
+different credentials to different URLs.
 
-Different credentials for the same URL are another matter. The cache is private,
-which means it's meant for one user. A response retrieved with credentials is
-used for later requests to the same URL even when those requests send different
-credentials. The only exception is a response with a `Vary` header that names
-the headers that differ. The cache sees every header that's sent so it can
-respect that `Vary`.
+Different credentials for the same URL are another matter. The cache is
+private, which means it's for one user. When a response for a URL came from a
+request with credentials, the cache uses it for later requests to the same URL
+even when those requests send different credentials. The only exception is a
+response with a `Vary` header that names the headers that differ. The cache
+gets every header that the plugin sends so it can respect that `Vary`.
 
-Say Alice and Bob each have their own token for `https://api.example.com/me`. If
-their requests share a cache, Bob's request can get the response that was
-retrieved with Alice's token. To keep them apart, give each user a `Hyperjump`
-with its own plugin:
+Suppose Alice and Bob each have their own token for
+`https://api.example.com/me`. If their requests share a cache, Bob's request can
+get the response to Alice's request with her token. To keep them apart, give
+each user a `Hyperjump` with its own plugin:
 
 ```typescript
 import { Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";
@@ -99,6 +100,6 @@ const alice = hyperjumpFor(await getToken("alice"));
 const bob = hyperjumpFor(await getToken("bob"));
 ```
 
-Each call creates a new plugin with its own default cache. Bob never gets a
-response that was retrieved with Alice's token. If you give the plugins a cache
+Each call creates a new plugin with its own default cache, so Bob never gets a
+response to a request with Alice's token. If you give the plugins a cache
 yourself, don't give them the same one.
