@@ -16,7 +16,7 @@ they are.
   `EACCES`, for the same reason.
 - A `JsonPointerError` says the location of the node it failed at, made
   relative the same way. The location is already on the node, so
-  `pointerGet` and `pointerStep` aren't given the document's URI.
+  `jsonPointerGet` and `jsonStep` aren't given the document's URI.
 - `relativeFileUri` is exported, so applications say URLs the same way in
   their own messages.
 - A URL is normalized before it's made relative, so one written as

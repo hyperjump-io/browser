@@ -102,7 +102,7 @@ import {
   fromJson,
   jsonSyntaxErrorMessage,
   jsonValue,
-  pointerGet
+  jsonPointerGet
 } from "@hyperjump/browser";
 
 const result = fromJson(`{ "a": { "b": [10, 20] } }`);
@@ -110,7 +110,7 @@ if (result.status === "failure") {
   throw Error(jsonSyntaxErrorMessage(result.errors[0]));
 }
 
-const twenty = pointerGet("/a/b/1", result.node);
+const twenty = jsonPointerGet("/a/b/1", result.node);
 jsonValue(twenty); // 20
 twenty.position?.start; // { line: 1, column: 20, offset: 19 }
 ```
@@ -123,8 +123,8 @@ These are the functions for reading the AST:
 
 | Function | Description |
 | --- | --- |
-| `pointerGet(pointer, node)` | The node a JSON Pointer points to |
-| `pointerStep(key, node)` | A property or item of a node |
+| `jsonPointerGet(pointer, node)` | The node a JSON Pointer points to |
+| `jsonStep(key, node)` | A property or item of a node |
 | `jsonValue(node)` | The node's value as JavaScript |
 | `jsonObjectHas`, `jsonObjectKeys`, `jsonObjectValues`, `jsonObjectEntries`, `jsonArrayIter` | Read objects and arrays |
 | `toJson(node, replacer, space)` | The node as JSON text, like `JSON.stringify` |
@@ -133,7 +133,7 @@ These are the functions for reading the AST:
 None of these follow references. To follow references, use a
 [session](browsing.md).
 
-`pointerGet` and `pointerStep` throw a `JsonPointerError` when a property or
+`jsonPointerGet` and `jsonStep` throw a `JsonPointerError` when a property or
 item doesn't exist. Its message says the location that the pointer couldn't
 reach. That location comes from the node's `location`, so it starts with the
 base URI you gave `fromJson` or `fromJs`.
@@ -143,14 +143,14 @@ couldn't parse is `undefined`. The root itself can be an error node, so check
 that its `type` is `"json"` first:
 
 ```typescript
-import { fromJson, JsonPointerError, pointerGet } from "@hyperjump/browser";
+import { fromJson, JsonPointerError, jsonPointerGet } from "@hyperjump/browser";
 
 const { node } = fromJson(`{ "a": }`, "https://example.com/doc");
 if (node.type === "json") {
-  pointerGet("/a", node); // undefined
+  jsonPointerGet("/a", node); // undefined
 
   try {
-    pointerGet("/b", node);
+    jsonPointerGet("/b", node);
   } catch (error) {
     if (error instanceof JsonPointerError) {
       error.message;

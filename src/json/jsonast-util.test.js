@@ -17,8 +17,8 @@ import {
   jsonObjectValues,
   jsonObjectEntries,
   jsonValue,
-  pointerGet,
-  pointerStep,
+  jsonPointerGet,
+  jsonStep,
   JsonPointerError
 } from "../hyperjump/index.js";
 
@@ -166,7 +166,7 @@ describe("jsonast-util", async () => {
     });
   });
 
-  describe("pointerStep duplicate property names", () => {
+  describe("jsonStep duplicate property names", () => {
     /** @type JsonNode */
     let subject;
 
@@ -175,15 +175,15 @@ describe("jsonast-util", async () => {
     });
 
     test("stepping into a duplicated property fails", () => {
-      expect(() => pointerStep("foo", subject)).to.throw(JsonPointerError);
+      expect(() => jsonStep("foo", subject)).to.throw(JsonPointerError);
     });
 
     test("stepping into a unique property in the same object works", () => {
-      expect(toJson(pointerStep("bar", subject))).to.equal(`2`);
+      expect(toJson(jsonStep("bar", subject))).to.equal(`2`);
     });
   });
 
-  describe("pointerStep array index", () => {
+  describe("jsonStep array index", () => {
     /** @type JsonNode */
     let subject;
 
@@ -192,67 +192,67 @@ describe("jsonast-util", async () => {
     });
 
     test("valid index", () => {
-      expect(toJson(pointerStep("1", subject))).to.equal(`1`);
+      expect(toJson(jsonStep("1", subject))).to.equal(`1`);
     });
 
     test("zero", () => {
-      expect(toJson(pointerStep("0", subject))).to.equal(`0`);
+      expect(toJson(jsonStep("0", subject))).to.equal(`0`);
     });
 
     test("leading zero is not a valid index", () => {
-      expect(() => pointerStep("01", subject)).to.throw(JsonPointerError);
+      expect(() => jsonStep("01", subject)).to.throw(JsonPointerError);
     });
 
     test("trailing characters are not a valid index", () => {
-      expect(() => pointerStep("1abc", subject)).to.throw(JsonPointerError);
+      expect(() => jsonStep("1abc", subject)).to.throw(JsonPointerError);
     });
 
     test("negative numbers are not a valid index", () => {
-      expect(() => pointerStep("-1", subject)).to.throw(JsonPointerError);
+      expect(() => jsonStep("-1", subject)).to.throw(JsonPointerError);
     });
 
     test("decimals are not a valid index", () => {
-      expect(() => pointerStep("1.0", subject)).to.throw(JsonPointerError);
+      expect(() => jsonStep("1.0", subject)).to.throw(JsonPointerError);
     });
 
     test("out of range", () => {
-      expect(() => pointerStep("3", subject)).to.throw(JsonPointerError);
+      expect(() => jsonStep("3", subject)).to.throw(JsonPointerError);
     });
 
     test("'-' refers to a nonexistent element", () => {
-      expect(() => pointerStep("-", subject)).to.throw(JsonPointerError);
+      expect(() => jsonStep("-", subject)).to.throw(JsonPointerError);
     });
   });
 
   describe("JSON Pointer error messages", () => {
     test("say the location from the node", () => {
       const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": { "b": 1 } }`, "https://example.com/doc").node);
-      expect(() => pointerGet("/a/c", subject)).to.throw(JsonPointerError, "Property 'c' doesn't exist at https://example.com/doc#/a/c");
+      expect(() => jsonPointerGet("/a/c", subject)).to.throw(JsonPointerError, "Property 'c' doesn't exist at https://example.com/doc#/a/c");
     });
 
     test("say the location of a missing value", () => {
       const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": }`, "https://example.com/doc").node);
-      expect(() => pointerGet("/a/b", subject)).to.throw(JsonPointerError, "Can't index into a missing value at https://example.com/doc#/a");
+      expect(() => jsonPointerGet("/a/b", subject)).to.throw(JsonPointerError, "Can't index into a missing value at https://example.com/doc#/a");
     });
 
     test("say the location of a missing root", () => {
       const subject = /** @type JsonTolerantNode */ (fromJson(``, "https://example.com/doc").node);
-      expect(() => pointerGet("/a", subject)).to.throw(JsonPointerError, "Can't index into a missing value at https://example.com/doc#");
+      expect(() => jsonPointerGet("/a", subject)).to.throw(JsonPointerError, "Can't index into a missing value at https://example.com/doc#");
     });
 
     test("say the location of an invalid value", () => {
       const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": NaN }`, "https://example.com/doc").node);
-      expect(() => pointerGet("/a/b", subject)).to.throw(JsonPointerError, "Can't index into an invalid value at https://example.com/doc#/a");
+      expect(() => jsonPointerGet("/a/b", subject)).to.throw(JsonPointerError, "Can't index into an invalid value at https://example.com/doc#/a");
     });
 
     test("say a file URL relative to the working directory", () => {
       const subject = /** @type JsonTolerantNode */ (fromJson(`{}`, `${pathToFileURL(cwd()).href}/data/a.json`).node);
-      expect(() => pointerGet("/a", subject)).to.throw(JsonPointerError, "Property 'a' doesn't exist at data/a.json#/a");
+      expect(() => jsonPointerGet("/a", subject)).to.throw(JsonPointerError, "Property 'a' doesn't exist at data/a.json#/a");
     });
 
     test("say only the fragment without a document URI", () => {
       const subject = parse(`[]`);
-      expect(() => pointerStep("0", subject)).to.throw(JsonPointerError, "Index '0' doesn't exist at #/0");
+      expect(() => jsonStep("0", subject)).to.throw(JsonPointerError, "Index '0' doesn't exist at #/0");
     });
   });
 

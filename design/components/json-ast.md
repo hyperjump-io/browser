@@ -35,7 +35,7 @@ status with it:
   and in parse results.
 - Nesting is limited to 1000 levels instead of overflowing the stack.
   Recovery heuristics run in linear time regardless of the input.
-- A duplicated property name fails `pointerStep`.
+- A duplicated property name fails `jsonStep`.
 
 ## Nodes
 

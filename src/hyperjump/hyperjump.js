@@ -3,7 +3,7 @@ import { contextUri } from "#context-uri";
 import { defaultUriSchemePlugins } from "#default-uri-scheme-plugins";
 import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
 import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
-import { jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonObjectValues, jsonValue, pointerGet, pointerStep } from "../json/jsonast-util.js";
+import { jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonObjectValues, jsonValue, jsonPointerGet, jsonStep } from "../json/jsonast-util.js";
 import { acceptHeader, fragmentPointer, mediaTypeByExtension, mediaTypePluginFor } from "./media-type-plugins.js";
 import { AllowedUrls, configSource, resolveAllowRetrieval, sessionSource } from "./allowed-urls.js";
 import { relativeFileUri } from "./file-uris.js";
@@ -199,7 +199,7 @@ export class Session {
     const document = await this.getDocument(uri, options);
 
     const cursor = fragment === undefined ? "" : this.#hyperjump.fragmentPointer(document, fragment);
-    const node = pointerGet(cursor, document.children[0]);
+    const node = jsonPointerGet(cursor, document.children[0]);
     return await this.#followReferences(node, referenceChain);
   }
 
@@ -376,7 +376,7 @@ export class Session {
 
   /** @type API.Session<JrefNode>["step"] */
   async step(key, node) {
-    return await this.#followReferences(pointerStep(key, node));
+    return await this.#followReferences(jsonStep(key, node));
   }
 
   /** @type API.Session<JrefNode>["iter"] */

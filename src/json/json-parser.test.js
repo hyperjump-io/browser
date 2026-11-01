@@ -12,8 +12,8 @@ import {
   jsonObjectEntries,
   jsonObjectHas,
   jsonObjectKeys,
-  pointerGet,
-  pointerStep,
+  jsonPointerGet,
+  jsonStep,
   rejsonParse,
   rejsonStringify,
   toJson,
@@ -1157,25 +1157,25 @@ describe("missing values in utilities", () => {
   });
 
   test("a missing property value is undefined", () => {
-    expect(pointerStep("b", object)).toBe(undefined);
+    expect(jsonStep("b", object)).toBe(undefined);
     expect([...jsonObjectEntries(object)].map(([key, value]) => [key, value && toJson(value)])).toEqual([["a", "1"], ["b", undefined]]);
   });
 
   test("a missing array item is undefined", () => {
-    expect(pointerStep("1", array)).toBe(undefined);
+    expect(jsonStep("1", array)).toBe(undefined);
     expect([...jsonArrayIter(array)].map((item) => item && toJson(item))).toEqual(["1", undefined, "2"]);
   });
 
   test("the items after a gap keep their index", () => {
-    expect(pointerStep("2", array)).toMatchObject({ value: 2 });
+    expect(jsonStep("2", array)).toMatchObject({ value: 2 });
   });
 
   test("a property that doesn't exist is still an error", () => {
-    expect(() => pointerStep("c", object)).toThrow(JsonPointerError);
+    expect(() => jsonStep("c", object)).toThrow(JsonPointerError);
   });
 
   test("a pointer can't go through a missing value", () => {
-    expect(() => pointerGet("/b/c", object)).toThrow(JsonPointerError);
+    expect(() => jsonPointerGet("/b/c", object)).toThrow(JsonPointerError);
   });
 
   test("a missing property value is left out when stringified", () => {
@@ -1195,11 +1195,11 @@ describe("invalid values in utilities", () => {
   const subject = /** @type JsonTolerantNode */ (tree(`{ "a": NaN }`));
 
   test("are returned as is", () => {
-    expect(pointerStep("a", subject)).toMatchObject({ type: "json-invalid", raw: "NaN" });
+    expect(jsonStep("a", subject)).toMatchObject({ type: "json-invalid", raw: "NaN" });
   });
 
   test("a pointer can't go through an invalid value", () => {
-    expect(() => pointerGet("/a/b", subject)).toThrow(JsonPointerError);
+    expect(() => jsonPointerGet("/a/b", subject)).toThrow(JsonPointerError);
   });
 
   test("can't be stringified", () => {
