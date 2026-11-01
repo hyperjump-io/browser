@@ -3,7 +3,7 @@ import { contextUri } from "#context-uri";
 import { defaultUriSchemePlugins } from "#default-uri-scheme-plugins";
 import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
 import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
-import { jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonObjectValues, jsonValue, jsonPointerGet, jsonStep } from "../json/jsonast-util.js";
+import { jsonPointerGet } from "../json/jsonast-util.js";
 import { acceptHeader, fragmentPointer, mediaTypeByExtension, mediaTypePluginFor } from "./media-type-plugins.js";
 import { AllowedUrls, configSource, resolveAllowRetrieval, sessionSource } from "./allowed-urls.js";
 import { relativeFileUri } from "./file-uris.js";
@@ -12,6 +12,7 @@ import { relativeFileUri } from "./file-uris.js";
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
  * @import { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.d.ts"
  * @import { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.d.ts"
+ * @import { FollowedNode } from "./browsing.d.ts"
  * @import * as API from "./hyperjump.d.ts"
  */
 
@@ -185,7 +186,7 @@ export class Session {
    * @param {string} uri
    * @param {API.GetOptions} options
    * @param {string[]} referenceChain - URIs of the references followed to get here
-   * @returns {Promise<JrefNode>}
+   * @returns {Promise<FollowedNode>}
    */
   async #get(uri, options, referenceChain) {
     uri = resolveIri(uri, this.#contextUri);
@@ -200,7 +201,11 @@ export class Session {
 
     const cursor = fragment === undefined ? "" : this.#hyperjump.fragmentPointer(document, fragment);
     const node = jsonPointerGet(cursor, document.children[0]);
-    return await this.#followReferences(node, referenceChain);
+    if (node.type === "reference") {
+      return this.#get(node.href, { referencedFrom: toAbsoluteIri(node.location) }, referenceChain);
+    } else {
+      return node;
+    }
   }
 
   /** @type API.Session<JrefNode>["getDocument"] */
@@ -348,67 +353,6 @@ export class Session {
       ? `Retrieving '${relativeFileUri(id)}' isn't allowed.`
       : `Retrieving '${relativeFileUri(id)}' led to '${relativeFileUri(url)}', which isn't allowed.`;
     return new RetrievalNotAllowedError(url, `${message} Use the ${this.#allowRetrievalSource} to allow it.`);
-  }
-
-  /** @type (node: JrefNode, referenceChain?: string[]) => Promise<JrefNode> */
-  async #followReferences(node, referenceChain = []) {
-    if (node.type === "reference") {
-      return this.#get(node.href, { referencedFrom: toAbsoluteIri(node.location) }, referenceChain);
-    } else {
-      return node;
-    }
-  }
-
-  /** @param {JrefNode} node */
-  value(node) {
-    if (node.jsonType === "object" || node.jsonType === "array") {
-      throw Error("Can't get the value of a structured value.");
-    }
-
-    // The overloads say which primitive it is, which jsonValue's can't
-    return /** @type never */ (jsonValue(node));
-  }
-
-  /** @type API.Session<JrefNode>["has"] */
-  has(key, node) {
-    return jsonObjectHas(key, node);
-  }
-
-  /** @type API.Session<JrefNode>["step"] */
-  async step(key, node) {
-    return await this.#followReferences(jsonStep(key, node));
-  }
-
-  /** @type API.Session<JrefNode>["iter"] */
-  async* iter(node) {
-    if (node.jsonType === "array") {
-      for (const itemNode of node.children) {
-        yield this.#followReferences(itemNode);
-      }
-    }
-  }
-
-  /** @type API.Session<JrefNode>["keys"] */
-  keys(node) {
-    return jsonObjectKeys(node);
-  }
-
-  /** @type API.Session<JrefNode>["values"] */
-  async* values(node) {
-    if (node.jsonType === "object") {
-      for (const valueNode of jsonObjectValues(node)) {
-        yield this.#followReferences(valueNode);
-      }
-    }
-  }
-
-  /** @type API.Session<JrefNode>["entries"] */
-  async* entries(node) {
-    if (node.jsonType === "object") {
-      for (const [key, valueNode] of jsonObjectEntries(node)) {
-        yield [key, await this.#followReferences(valueNode)];
-      }
-    }
   }
 }
 

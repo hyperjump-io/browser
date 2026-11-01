@@ -1,6 +1,6 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump } from "./index.js";
+import { Hyperjump, jrefArrayIter, jrefObjectEntries, jrefObjectKeys, jrefObjectValues } from "./index.js";
 import { toJson } from "../json/jsonast-util.js";
 
 describe("JSON Browser", () => {
@@ -36,7 +36,7 @@ describe("JSON Browser", () => {
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
       const subject = await session.get(uri);
-      const generator = session.iter(subject);
+      const generator = jrefArrayIter(session, subject);
 
       const first = await generator.next();
       expect(first.value && toJson(first.value)).to.equal(`1`);
@@ -61,7 +61,7 @@ describe("JSON Browser", () => {
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
       const subject = await session.get(`${testDomain}/subject`);
-      const generator = session.keys(subject);
+      const generator = jrefObjectKeys(subject);
 
       expect(generator.next().value).to.equal("a");
       expect(generator.next().value).to.equal("b");
@@ -89,7 +89,7 @@ describe("JSON Browser", () => {
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
       const subject = await session.get(uri);
-      const generator = session.values(subject);
+      const generator = jrefObjectValues(session, subject);
 
       const first = await generator.next();
       expect(first.value && toJson(first.value)).to.equal(`1`);
@@ -120,7 +120,7 @@ describe("JSON Browser", () => {
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
       const subject = await session.get(uri);
-      const generator = session.entries(subject);
+      const generator = jrefObjectEntries(session, subject);
 
       const a = await generator.next();
       expect(a.value && a.value[0]).to.equal("a");

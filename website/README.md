@@ -8,7 +8,7 @@ between them for you so you can work with linked documents as if they were one
 value. This example gets the director of a film from an API written in JRef:
 
 ```typescript
-import { Hyperjump } from "@hyperjump/browser";
+import { Hyperjump, jrefStep, jrefValue } from "@hyperjump/browser";
 
 const h = new Hyperjump({
   allowRetrieval: ["https://swapi.hyperjump.io/"]
@@ -16,8 +16,8 @@ const h = new Hyperjump({
 const session = h.session();
 
 const film = await session.get("https://swapi.hyperjump.io/api/films/1");
-const director = await session.step("director", film);
-session.value(director); // "George Lucas"
+const director = await jrefStep(session, "director", film);
+jrefValue(director); // "George Lucas"
 ```
 
 A reference can refer to a value in another document, in a file, or on another

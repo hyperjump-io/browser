@@ -130,8 +130,8 @@ These are the functions for reading the AST:
 | `toJson(node, replacer, space)` | The node as JSON text, like `JSON.stringify` |
 | `fromJs(value)` | An AST from a JavaScript value |
 
-None of these follow references. To follow references, use a
-[session](browsing.md).
+None of these follow references. To follow references, use the `jref`
+functions with a [session](browsing.md).
 
 `jsonPointerGet` and `jsonStep` throw a `JsonPointerError` when a property or
 item doesn't exist. Its message says the location that the pointer couldn't

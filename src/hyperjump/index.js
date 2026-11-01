@@ -1,4 +1,5 @@
 export * from "./hyperjump.js";
+export * from "./browsing.js";
 export * from "./file-uris.js";
 export * from "#file-scheme-plugin";
 export * from "./uri-schemes/http-scheme-plugin.js";

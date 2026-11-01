@@ -39,7 +39,7 @@ anything from the network until you say where it may go. This one can only
 access the Star Wars API:
 
 ```typescript
-import { Hyperjump } from "@hyperjump/browser";
+import { Hyperjump, jrefArrayIter, jrefStep, jrefValue } from "@hyperjump/browser";
 
 const h = new Hyperjump({
   allowRetrieval: ["https://swapi.hyperjump.io/"]
@@ -57,13 +57,13 @@ const aNewHope = await session.get(
 ```
 
 `get` returns a JRef abstract syntax tree (AST) node for the value that URL
-identifies. You reach the film's properties by stepping into it. When you get to
-a value that isn't an object or an array, `value` returns it as plain
-JavaScript:
+identifies. You reach the film's properties by stepping into it with `jrefStep`,
+which takes the session so it can follow references. When you get to a value
+that isn't an object or an array, `jrefValue` returns it as plain JavaScript:
 
 ```typescript
-const title = await session.step("title", aNewHope);
-session.value(title); // "A New Hope"
+const title = await jrefStep(session, "title", aNewHope);
+jrefValue(title); // "A New Hope"
 ```
 
 The film's `characters` property is where the references come in. Iterating over
@@ -71,11 +71,11 @@ the array follows each reference as you reach it, so the session retrieves every
 character you get back from its own URL:
 
 ```typescript
-const characters = await session.step("characters", aNewHope);
+const characters = await jrefStep(session, "characters", aNewHope);
 
-for await (const character of session.iter(characters)) {
-  const name = await session.step("name", character);
-  console.log(session.value(name));
+for await (const character of jrefArrayIter(session, characters)) {
+  const name = await jrefStep(session, "name", character);
+  console.log(jrefValue(name));
 }
 ```
 
@@ -116,9 +116,9 @@ you don't need to configure anything:
 const session = new Hyperjump().session();
 
 const luke = await session.get("./api/people/1.jref");
-const homeworld = await session.step("homeworld", luke);
-const name = await session.step("name", homeworld);
-session.value(name); // "Tatooine"
+const homeworld = await jrefStep(session, "homeworld", luke);
+const name = await jrefStep(session, "name", homeworld);
+jrefValue(name); // "Tatooine"
 ```
 
 Everything after `get` is the same code you used for the API. Keep in mind that

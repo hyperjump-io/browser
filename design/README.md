@@ -23,6 +23,8 @@ when it changed. That's in git. The `.d.ts` files in
 ## Components
 
 - [`Hyperjump` and sessions](components/sessions.md), and extending them
+- [Browsing](components/browsing.md): the `jref*` functions, which follow
+  references
 - [Media types](components/media-types.md)
 - [The `file:` scheme](components/file-scheme.md)
 - [Local paths in errors](components/file-uris.md): `file:` URLs in messages are relative to the working directory

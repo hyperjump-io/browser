@@ -5,27 +5,16 @@ State is separated by how long it lives.
 | Level | Has |
 | --- | --- |
 | `Hyperjump` | Configuration: URI scheme and media type plugins, `allowRetrieval`, and (in the `http(s):` plugin) the HTTP cache |
-| `Session` | A document cache, and browsing: `get`, `getDocument`, `step`, … |
+| `Session` | A document cache, and retrieval: `get` and `getDocument` |
 
 - The long-lived level only has state that doesn't depend on a session.
   Plugins and HTTP responses are the same for every session.
 - `hyperjump.session()` creates a session. There's no default session.
-  Browsing is only on sessions, because a node needs its session to follow
-  references.
-- The browsing methods that return nodes (`step`, `iter`, `values`,
-  `entries`) are async and follow references, because following one can
-  retrieve a document. They're for browsing, where what's needed next
-  isn't known until a node is read. Code that computes over documents, like
-  `@hyperjump/json-schema`'s compiler, uses `get` and `getDocument` to
-  gather them and the JSON utilities to read them, which are synchronous.
-  Only that code knows what it will need, so it can retrieve it all at
-  once.
-  - Synchronous browsing methods that return references as they are, with
-    an async `follow` for a reference, were rejected. Browsing would take
-    as many `await`s with a `follow` after every step, and one that's
-    left out returns a reference instead of its value. Code that computes
-    over documents doesn't use the browsing methods, so it wouldn't gain
-    anything, and `follow` would be `get` again.
+  Browsing from a node takes its session, because following a reference
+  needs one (see [Browsing](browsing.md)).
+- `get` follows the reference its URI ends at, and any it leads to,
+  so the node it returns is never a reference. Its type says so
+  (`FollowedNode<T>`).
 - A session keeps each document it retrieves for as long as it's used. That
   gives each unit of work its own consistent set of documents, and a new
   session sees changes.

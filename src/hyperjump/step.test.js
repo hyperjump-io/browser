@@ -1,6 +1,6 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump } from "./index.js";
+import { Hyperjump, jrefStep } from "./index.js";
 import { toJson } from "../json/jsonast-util.js";
 
 describe("JSON Browser", () => {
@@ -32,7 +32,7 @@ describe("JSON Browser", () => {
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
       const subject = await session.get(uri);
-      const foo = await session.step("foo", subject);
+      const foo = await jrefStep(session, "foo", subject);
 
       expect(toJson(foo)).to.eql(`42`);
     });
@@ -52,7 +52,7 @@ describe("JSON Browser", () => {
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
       const subject = await session.get(uri);
-      const foo = await session.step("bar", subject);
+      const foo = await jrefStep(session, "bar", subject);
 
       expect(toJson(foo)).to.eql(`42`);
     });
@@ -73,7 +73,7 @@ describe("JSON Browser", () => {
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
       const subject = await session.get(uri);
-      const foo = await session.step("baz", subject);
+      const foo = await jrefStep(session, "baz", subject);
 
       expect(toJson(foo)).to.eql(`42`);
     });
@@ -100,7 +100,7 @@ describe("JSON Browser", () => {
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
       const subject = await session.get(uri);
-      const foo = await session.step("baz", subject);
+      const foo = await jrefStep(session, "baz", subject);
 
       expect(toJson(foo)).to.eql(`42`);
     });
@@ -127,7 +127,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: externalPath })
         .reply(200, externalJref, { headers: { "content-type": "application/reference+json" } });
 
-      const foo = await session.step("bar", subject);
+      const foo = await jrefStep(session, "bar", subject);
 
       expect(toJson(foo)).to.eql(`42`);
     });
@@ -157,7 +157,7 @@ describe("JSON Browser", () => {
         .intercept({ method: "GET", path: externalPath })
         .reply(200, externalJref, { headers: { "content-type": "application/reference+json" } });
 
-      const foo = await session.step("baz", subject);
+      const foo = await jrefStep(session, "baz", subject);
 
       expect(toJson(foo)).to.eql(`42`);
     });

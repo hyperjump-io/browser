@@ -1,6 +1,6 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump, ReferenceCycleError, Session } from "./index.js";
+import { Hyperjump, jrefStep, ReferenceCycleError, Session } from "./index.js";
 import { toJson } from "../json/jsonast-util.js";
 import { fromJref } from "../jref/jref-util.js";
 
@@ -254,9 +254,9 @@ describe("JSON Browser", () => {
       const browser = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = browser.session();
       const root = await session.get(`${testDomain}/foo`);
-      const self = await session.step("self", root);
-      const selfSelf = await session.step("self", self);
-      const subject = await session.step("foo", selfSelf);
+      const self = await jrefStep(session, "self", root);
+      const selfSelf = await jrefStep(session, "self", self);
+      const subject = await jrefStep(session, "foo", selfSelf);
 
       expect(toJson(subject)).to.equal(`42`);
     });

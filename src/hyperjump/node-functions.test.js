@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump } from "./index.js";
+import { Hyperjump, jrefObjectHas, jrefObjectKeys, jrefStep, jrefValue, jsonStep } from "./index.js";
 
 /**
- * @import { JrefNode } from "./index.js"
+ * @import { FollowedNode } from "./index.js"
  */
 
 describe("JSON Browser", () => {
@@ -25,7 +25,7 @@ describe("JSON Browser", () => {
     const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
     const session = hyperjump.session();
 
-    /** @type JrefNode */
+    /** @type FollowedNode */
     let node;
 
     beforeEach(async () => {
@@ -41,11 +41,11 @@ describe("JSON Browser", () => {
     });
 
     test("true", () => {
-      expect(session.has("foo", node)).to.eql(true);
+      expect(jrefObjectHas("foo", node)).to.eql(true);
     });
 
     test("false", () => {
-      expect(session.has("bar", node)).to.eql(false);
+      expect(jrefObjectHas("bar", node)).to.eql(false);
     });
   });
 
@@ -66,12 +66,42 @@ describe("JSON Browser", () => {
 
     test("throws for an array", async () => {
       const node = await session.get(`${testDomain}/foo#/array`);
-      expect(() => session.value(node)).to.throw();
+      expect(() => jrefValue(node)).to.throw();
     });
 
     test("throws for an object", async () => {
       const node = await session.get(`${testDomain}/foo#/object`);
-      expect(() => session.value(node)).to.throw();
+      expect(() => jrefValue(node)).to.throw();
+    });
+  });
+
+  describe("a node from the JSON functions", () => {
+    const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
+    const session = hyperjump.session();
+
+    beforeEach(() => {
+      const jref = `{
+        "foo": { "$ref": "#/bar" },
+        "bar": { "baz": 42 }
+      }`;
+
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo" })
+        .reply(200, jref, { headers: { "content-type": "application/reference+json" } });
+    });
+
+    test("can be a reference, so the JRef functions don't take it without narrowing", async () => {
+      const node = await session.get(`${testDomain}/foo`);
+      const foo = jsonStep("foo", node);
+
+      // @ts-expect-error A reference hasn't been followed
+      expect([...jrefObjectKeys(foo)]).to.eql(["$ref"]);
+
+      const bar = jsonStep("bar", node);
+      if (bar.type !== "reference") {
+        expect(jrefObjectHas("baz", bar)).to.equal(true);
+        expect(jrefValue(await jrefStep(session, "baz", bar))).to.equal(42);
+      }
     });
   });
 });

@@ -8,6 +8,7 @@ import type { HttpUriSchemePlugin } from "./uri-schemes/http-scheme-plugin.d.ts"
 import type { FileUriSchemePlugin } from "./uri-schemes/file-scheme-plugin.d.ts";
 import type { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.d.ts";
 import type { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.d.ts";
+import type { FollowedNode, jrefStep } from "./browsing.d.ts";
 
 export type HyperjumpConfig<T extends JsonNode<{ type: string }> = JrefNode> = {
   /**
@@ -131,6 +132,10 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
  * Retrieves documents and follows references. A session caches every
  * document it retrieves for as long as it's used, so start a new session to
  * see changes. Create one with {@link Hyperjump.session}.
+ *
+ * Browse from the node {@link Session.get} returns with the `jref*`
+ * functions, such as {@link jrefStep}, which take the session to follow
+ * references with.
  */
 export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
   constructor(hyperjump: Hyperjump<T>, options?: SessionOptions);
@@ -159,7 +164,7 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    * @throws A {@link JsonPointerError} if a fragment doesn't resolve to a
    * value.
    */
-  get(uri: string, options?: GetOptions): Promise<T>;
+  get(uri: string, options?: GetOptions): Promise<FollowedNode<T>>;
 
   /**
    * Retrieve the document located at the given URI, the same way
@@ -175,48 +180,6 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    * parsed. The cause is the error that prevented it.
    */
   getDocument(uri: string, options?: GetOptions): Promise<DocumentNode<T>>;
-
-  /**
-   * The value of a node that isn't an array or object.
-   *
-   * @throws Error for an array or object. Getting their value would need to
-   * follow the references in them.
-   */
-  value(node: T & { jsonType: "null" }): null;
-  value(node: T & { jsonType: "boolean" }): boolean;
-  value(node: T & { jsonType: "number" }): number;
-  value(node: T & { jsonType: "string" }): string;
-  value(node: T): string | number | boolean | null;
-
-  /** Whether an object node has a property */
-  has(key: string, node: T): boolean;
-
-  /**
-   * This is like indexing into an object or array. It will follow any
-   * references it encounters so it always returns a JSON compatible value.
-   */
-  step(key: string, node: T): Promise<T>;
-
-  /**
-   * Iterate over an array node. It will follow any references it encounters so
-   * it always yields JSON compatible values.
-   */
-  iter(node: T): AsyncGenerator<T, void, unknown>;
-
-  /** Iterate over the property names of an object node */
-  keys(node: T): Generator<string, void, unknown>;
-
-  /**
-   * Iterate over the values of an object. It will follow any references it
-   * encounters so it always yields JSON compatible values.
-   */
-  values(node: T): AsyncGenerator<T, void, unknown>;
-
-  /**
-   * Iterate over key/value pairs of an object. It will follow any references it
-   * encounters so it always yields JSON compatible values.
-   */
-  entries(node: T): AsyncGenerator<[string, T], void, unknown>;
 }
 
 /**
