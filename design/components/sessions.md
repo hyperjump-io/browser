@@ -151,6 +151,18 @@ Applications build on `Hyperjump` and `Session` by subclassing them.
   `getDocument`, so a subclass can find documents somewhere other than the
   cache or a URI scheme plugin. `getDocument` also returns the document
   itself, for what it has beyond its values.
+  - Seeding a session with documents (`SessionOptions.documents`) instead
+    was rejected. `@hyperjump/json-schema`'s lookups aren't documents it
+    already has. An embedded resource is only found by a reference from
+    the document it's in, so it depends on `referencedFrom`. A registry's
+    schemas are identified and resolved the first time they're needed,
+    which can retrieve a meta-schema in the session, so sessions stay
+    cheap to create. Every document it gets, retrieved or not, is also
+    checked against the others for a duplicate identifier.
+  - A lookup function in the session's options
+    (`findDocument(uri, options, next)`) was rejected. It's the override
+    passed as a function, and it takes nothing away: a subclass still
+    adds its own methods.
 - A media type plugin's `parse` gets the session the document is being
   retrieved in, so a media type that needs other resources to parse a
   document retrieves them in the same session.
