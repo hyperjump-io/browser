@@ -3,7 +3,7 @@ import type { JsonNode } from "../json/jsonast.d.ts";
 import type { JrefNode } from "../jref/jref-ast.d.ts";
 import type { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.d.ts";
 import type { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.d.ts";
-import type { JsonPointerError, jsonObjectHas, jsonObjectKeys, jsonValue } from "../json/jsonast-util.d.ts";
+import type { JsonPointerError } from "../json/jsonast-util.d.ts";
 import type { HttpUriSchemePlugin } from "./uri-schemes/http-scheme-plugin.d.ts";
 import type { FileUriSchemePlugin } from "./uri-schemes/file-scheme-plugin.d.ts";
 import type { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.d.ts";
@@ -161,8 +161,14 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    * @throws Error for an array or object. Getting their value would need to
    * follow the references in them.
    */
-  value: typeof jsonValue;
-  has: typeof jsonObjectHas;
+  value(node: T & { jsonType: "null" }): null;
+  value(node: T & { jsonType: "boolean" }): boolean;
+  value(node: T & { jsonType: "number" }): number;
+  value(node: T & { jsonType: "string" }): string;
+  value(node: T): string | number | boolean | null;
+
+  /** Whether an object node has a property */
+  has(key: string, node: T): boolean;
 
   /**
    * This is like indexing into an object or array. It will follow any
@@ -176,7 +182,8 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    */
   iter(node: T): AsyncGenerator<T, void, unknown>;
 
-  keys: typeof jsonObjectKeys;
+  /** Iterate over the property names of an object node */
+  keys(node: T): Generator<string, void, unknown>;
 
   /**
    * Iterate over the values of an object. It will follow any references it

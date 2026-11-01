@@ -413,16 +413,20 @@ export class Session {
     }
   }
 
-  // eslint-disable-next-line @stylistic/no-extra-parens
-  value = /** @type API.Session<JrefNode>["value"] */ ((/** @type JrefNode */ node) => {
+  /** @param {JrefNode} node */
+  value(node) {
     if (node.jsonType === "object" || node.jsonType === "array") {
       throw Error("Can't get the value of a structured value.");
     }
 
-    return jsonValue(node);
-  });
+    // The overloads say which primitive it is, which jsonValue's can't
+    return /** @type never */ (jsonValue(node));
+  }
 
-  has = jsonObjectHas;
+  /** @type API.Session<JrefNode>["has"] */
+  has(key, node) {
+    return jsonObjectHas(key, node);
+  }
 
   /** @type API.Session<JrefNode>["step"] */
   async step(key, node) {
@@ -438,7 +442,10 @@ export class Session {
     }
   }
 
-  keys = jsonObjectKeys;
+  /** @type API.Session<JrefNode>["keys"] */
+  keys(node) {
+    return jsonObjectKeys(node);
+  }
 
   /** @type API.Session<JrefNode>["values"] */
   async* values(node) {
