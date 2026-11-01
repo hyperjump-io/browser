@@ -2,7 +2,9 @@
 
 `@hyperjump/browser` is a generic client for traversing JRef and other
 JRef-compatible media types, built for the unified ecosystem. These
-documents record the decisions made so far, and why. The `.d.ts` files in
+documents record decisions: what the code does, why, and what was rejected
+and why. They don't record history, such as what the code used to do or
+when it changed. That's in git. The `.d.ts` files in
 `src/` are the source of truth for the API. Documentation for users is in
 [`website/`](../website/README.md).
 

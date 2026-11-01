@@ -11,10 +11,10 @@ where it leads, with the plugin for that URL's scheme.
 - Each request gets the headers for its own URL, because each one is a new
   `retrieve` by the plugin (see [Request headers](request-headers.md)). A
   token for one URL isn't sent to wherever its server redirects.
-- Until 2026-10-31, `fetch` followed redirects. Headers were chosen once
-  for the URL that was asked for, and `fetch` sent them on to wherever a
-  redirect led. It drops `Authorization` and `Cookie` on a redirect to
-  another origin but not other headers, such as `X-API-Key`.
+- Letting `fetch` follow redirects was rejected. Headers would be chosen
+  once for the URL that was asked for, and `fetch` sends them on to
+  wherever a redirect leads. It drops `Authorization` and `Cookie` on a
+  redirect to another origin but not other headers, such as `X-API-Key`.
   `allowRetrieval` could only refuse the response, after the request had
   been sent.
   - The plugin following redirects itself was rejected. It would have
@@ -36,13 +36,13 @@ where it leads, with the plugin for that URL's scheme.
   retrieved. It can be any scheme, such as a `file:` URL, because the
   plugin is the application's own code. Only the `http(s):` plugin limits
   where a redirect leads, because its redirects come from a server.
-  - That replaced `options.retrieve`, which a plugin used to retrieve
-    another URI with the plugin for its scheme. It wasn't checked against
+  - An `options.retrieve`, for a plugin to retrieve another URI with the
+    plugin for its scheme, was rejected. It wouldn't be checked against
     `allowRetrieval`, only the URL of the response after the fact. It also
-    needed rules of its own: without options, it was given the
+    needed rules of its own: without options, it had to be given the
     retrieval's, so a plugin that left them out didn't lose
     `referencedFrom`. A redirect does all of that with nothing to add. A
-    plugin can't wrap another scheme's response now, but nothing did.
+    plugin can't wrap another scheme's response, but nothing needs to.
 - A relative `Location` is resolved against the URL of the response that
   redirected. Its fragment is dropped, because a fragment isn't part of
   what's retrieved. `get` uses the fragment that was asked for, not one in a

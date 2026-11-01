@@ -28,8 +28,9 @@ State is separated by how long it lives.
   relative URIs and its `allowRetrieval` against that. Everything a session
   does sees the same one, and a new session sees a change, like a new
   working directory or a page a single-page application navigated to.
-  Before 2026-10-30, it was read deep inside `get`, `getDocument`, and
-  `allowed-urls.js` each time. Reading it once for the `Hyperjump` was
+  Reading it each time it's needed, deep inside `get`, `getDocument`, and
+  `allowed-urls.js`, was rejected because one session could see two.
+  Reading it once for the `Hyperjump` was
   rejected, because a single-page application keeps one `Hyperjump` while
   its page changes.
 
@@ -57,25 +58,26 @@ State is separated by how long it lives.
     Creating only the ones that aren't replaced was rejected. The
     `Hyperjump` would need each default's schemes before creating it, in
     a table to keep in sync with the plugins, and a default whose schemes
-    are only partly replaced is still needed. On 2026-10-31, a
-    `Hyperjump` took about 0.5 µs to create in Node.js, the same whether
-    the HTTP plugin was replaced or not.
-- Before 2026-10-30, plugins were added after a `Hyperjump` was created
-  (`addUriSchemePlugin`, `addMediaTypePlugin`), and adding one for a scheme
-  or media type that was supported replaced it. Changing the HTTP cache or
-  headers meant knowing that, something that registered a plugin could
-  replace one the application had, and the config was only part of the
-  configuration.
-  - Keeping `add*` for what isn't configured was rejected. It's two ways
-    to configure plugins, and the config wouldn't be all of it.
-  - `removeUriSchemePlugin` and `removeMediaTypePlugin` were for disabling
-    a default. `allowRetrieval` makes that unnecessary: nothing is
-    retrieved that isn't allowed, so the defaults are safe.
-  - `setMediaTypeQuality` is a plugin's `quality` (see
-    [Media types](media-types.md)).
-  - Throwing on a duplicate was rejected. It protected against something
-    registering over a plugin after the `Hyperjump` was created, which
-    can't happen now. A subclass would have had to take out the
+    are only partly replaced is still needed. A `Hyperjump` takes about
+    0.5 µs to create in Node.js, the same whether the HTTP plugin is
+    replaced or not (measured 2026-10-31).
+- Adding plugins after a `Hyperjump` is created (`addUriSchemePlugin`,
+  `addMediaTypePlugin`) was rejected. Adding one for a scheme or media type
+  that's supported would replace it, so changing the HTTP cache or headers
+  would mean knowing that. Something that registered a plugin could
+  replace one the application had, and the config would only be part of
+  the configuration.
+  - `add*` beside the config, for what isn't configured, was rejected.
+    It's two ways to configure plugins, and the config wouldn't be all of
+    it.
+  - Removing plugins (`removeUriSchemePlugin`, `removeMediaTypePlugin`) to
+    disable a default isn't needed. Nothing is retrieved that
+    `allowRetrieval` doesn't allow, so the defaults are safe.
+  - Changing a plugin's quality is configuring a plugin with another
+    `quality` (see [Media types](media-types.md)).
+  - Throwing on a duplicate was rejected. It would protect against
+    something registering over a plugin after the `Hyperjump` is created,
+    which can't happen. A subclass would have to take out the
     application's plugins for its own media types before passing them on,
     and an application couldn't replace a subclass's plugin.
   - A `config.http` for the default HTTP plugin's options was rejected
@@ -83,17 +85,16 @@ State is separated by how long it lives.
 - A URI scheme plugin for a scheme that maps to another URI, like `urn:`,
   returns a redirect to it, which the session follows (see
   [Redirects](redirects.md)).
-  - It used to call `Hyperjump.retrieve`, which was public for that. A
+  - A public `Hyperjump.retrieve` for the plugin to call was rejected. A
     plugin in the config that calls `h.retrieve` refers to `h` in its own
     initializer, and TypeScript's `--strict` fails with TS7022 ("'h'
     implicitly has type 'any'"). Annotating the plugin's `retrieve` as
     returning `Promise<Response>` fixes it, but the error doesn't say so.
-    Then it was `options.retrieve`, a function the plugin was given, until
-    redirects replaced it on 2026-10-31.
+    An `options.retrieve` was rejected too (see [Redirects](redirects.md)).
 - What only the library uses is private: `#retrieve`, `#parseResponse`,
-  and `#mediaTypeByExtension`. They used to be public
-  because something inside the library needed them, which made them look
-  like something an application calls. `Session` gets `#retrieve` and
+  and `#mediaTypeByExtension`. Making them public because something inside
+  the library needs them was rejected, because they'd look like something
+  an application calls. `Session` gets `#retrieve` and
   `#parseResponse` through module functions that `Hyperjump`'s static
   block sets. A static block can read the class's private methods, and the
   functions aren't exported. A `WeakMap` would do the same with something

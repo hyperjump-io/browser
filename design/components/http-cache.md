@@ -7,8 +7,8 @@
 - It's part of `HttpUriSchemePlugin` (a `cache` option), because caching
   headers are HTTP's. Changing it is configuring an HTTP plugin in the
   `uriSchemePlugins` config. A `config.http` for the default plugin's
-  options was considered and rejected: no other plugin had config of its
-  own, and it didn't say what the plugin had once the plugin was replaced.
+  options was considered and rejected: no other plugin has config of its
+  own, and it wouldn't say what the plugin has once the plugin is replaced.
   With plugins in the config, it adds nothing. It uses `http-cache-semantics`, as a private cache. A
   stale response with an `ETag` or `Last-Modified` is revalidated. A 304
   that doesn't match the cached response is retried without revalidating.
@@ -17,10 +17,9 @@
 - A redirect is a response like any other, cached by its own URL. The
   plugin returns it and the session follows it (see
   [Redirects](redirects.md)), so a cacheable one, such as a 301 or a 308,
-  isn't requested again while it's fresh. Before 2026-10-31, `fetch`
-  followed redirects, and the response it ended at was cached under the
-  URL that was asked for. In browsers it still is, for a plugin that's
-  given a store.
+  isn't requested again while it's fresh. In browsers, `fetch` follows
+  redirects, so for a plugin that's given a store, the response it ends at
+  is cached under the URL that was asked for.
 - The store is pluggable (`HttpCacheStore`): `MemoryHttpCacheStore`, the
   default in Node.js, or `FileHttpCacheStore`, which outlives the process.
 - A plugin without a `cache` gets the environment's default
@@ -29,10 +28,10 @@
   doesn't cache. So each plugin, and each `Hyperjump`'s default plugin, has
   its own memory store, and plugins don't share a cache unless they're
   given the same store.
-  - Until 2026-10-30, a plugin without a `cache` didn't cache, and only the
-    default plugins had a memory store. Replacing the plugin to send
-    headers turned caching off without saying so, unless a store was given
-    too, and code for both environments couldn't ask for the default.
+  - Not caching without a `cache`, with a memory store only in the default
+    plugins, was rejected. Replacing the plugin to send headers would turn
+    caching off without saying so, unless a store was given too, and code
+    for both environments couldn't ask for the default.
   - `undefined` is the default, so turning caching off needs another value.
     `false` was chosen over `null` because `cache: false` reads as what it
     does.

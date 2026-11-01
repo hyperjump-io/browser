@@ -24,7 +24,9 @@ built for the unified ecosystem. `@hyperjump/json-schema` v2 builds on it.
 - Prefer many small documents that each cover one thing. A change to how
   something works updates its document in the same commit. A decision
   that's made goes in its component's document, with what was rejected
-  and why.
+  and why. Design docs record decisions, not history: no "before",
+  "used to", "replaced", or dates of changes. An old design that was
+  dropped for a reason is a rejected alternative.
 - No application's concepts in the code or the docs. Browser is a generic
   client (`design/principles/generic-client.md`).
 

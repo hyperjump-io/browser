@@ -6,7 +6,7 @@ unified, and editors can find the node at the cursor.
 ## Parsing
 
 The parser is a hand-written scanner and recursive descent parser, ported
-from `json-language-server`. It replaced a moo-based one. Parsing never
+from `json-language-server`. Parsing never
 throws. `fromJson` and `fromJref` always build an AST and return a parse
 status with it:
 

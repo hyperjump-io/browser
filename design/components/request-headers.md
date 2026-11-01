@@ -26,11 +26,11 @@
 - A value can be a function of the requested URL, `HeadersFunction`, and
   can be async, so a token can be refreshed. The URL doesn't have its
   fragment, which isn't part of a request.
-- Until 2026-10-30, `headers` was one function of every URL,
-  `(url: URL) => HeadersInit | undefined`. For one token for one API, most
-  of it was the origin check, which is the part that's easy to get wrong.
-  Keeping it beside the keys was rejected for the reason `allowRetrieval`
-  isn't a predicate: whoever used it would be back to writing the check.
+- One function of every URL, `(url: URL) => HeadersInit | undefined`, was
+  rejected. For one token for one API, most of it would be the origin
+  check, which is the part that's easy to get wrong. A function beside the
+  keys was rejected for the reason `allowRetrieval` isn't a predicate:
+  whoever used it would be back to writing the check.
   What a prefix can't say, such as any subdomain, could be done with
   `URLPattern` keys if it's needed.
 - `Accept` is always the one `retrieve` gives the plugin (`options.accept`),

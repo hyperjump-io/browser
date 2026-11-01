@@ -7,10 +7,10 @@
   relative references resolve from where the file really is, next to the
   files its author wrote it with. It's how Node.js resolves modules.
   Keeping the URL it was asked for was considered, but the author of a
-  symlinked file didn't write it relative to the link. Before, only a
-  symlink at the file itself was resolved, and the file was read through
-  the path it was asked for, so what was read wasn't necessarily what the
-  response's URL said.
+  symlinked file didn't write it relative to the link. Resolving only a
+  symlink at the file itself, and reading through the path that was asked
+  for, was rejected because what's read wouldn't necessarily be what the
+  response's URL says.
 - A file can't be retrieved from a reference in a document that isn't a
   file, so a document from the web can't read files.
 - A file doesn't have a media type, so its response's `Content-Type` is

@@ -12,8 +12,10 @@ fragments identify. JSON and JRef are built in.
   and `*/*` last. The `Hyperjump` gives it to the URI scheme plugin
   (`options.accept`). A plugin's quality is the plugin's (`quality`), and
   the JRef and JSON plugins take it as a constructor option. Changing a
-  default's quality is configuring a replacement. Before 2026-10-30,
-  `setMediaTypeQuality` changed a registered plugin's quality.
+  default's quality is configuring a replacement. A `setMediaTypeQuality`
+  for a registered plugin was rejected with the other ways to change
+  plugins after a `Hyperjump` is created (see
+  [Configuring plugins](sessions.md#configuring-plugins)).
   - The header is built when the `Hyperjump` is created, so a plugin's
     quality can't change it later, and a `Hyperjump`'s configuration stays
     what it was created with. A quality has to be a number from 0 to 1 with
@@ -27,13 +29,13 @@ fragments identify. JSON and JRef are built in.
   of its URL's extension with `options.mediaTypeByExtension`. The
   `http(s):` plugin doesn't by default because a URL's extension doesn't
   say what the server sends.
-  - From 2026-10-30 to 2026-10-31, the `Hyperjump` gave every response
-    without a `Content-Type` its extension's media type after the plugin
-    returned it, and the `http(s):` plugin threw for a response without one
-    to keep it from being guessed. The plugin threw before `Session` checked
-    the response's URL against `allowRetrieval`, so a redirect to a refused
-    URL was reported as a `RetrievalError` instead of a
-    `RetrievalNotAllowedError`. Guessing also meant replacing a response
+  - The `Hyperjump` giving every response without a `Content-Type` its
+    extension's media type, after the plugin returns it, was rejected. The
+    `http(s):` plugin would have to throw for a response without one to
+    keep it from being guessed. It would throw before `Session` checks the
+    response's URL against `allowRetrieval`, so a redirect to a refused URL
+    would be reported as a `RetrievalError` instead of a
+    `RetrievalNotAllowedError`. Guessing also means replacing a response
     from `fetch`, whose headers can't be changed, with a new `Response`,
     which throws for some statuses and loses `redirected`.
   - A flag on the plugin to turn guessing off was considered. Guessing on
@@ -78,17 +80,18 @@ fragments identify. JSON and JRef are built in.
   type is known, because the media type is the `Hyperjump`'s to decide.
 - A response without a URL gets the URI that was retrieved, so a
   redirect's relative `Location` has something to be resolved against.
-- URI scheme plugins don't get the `Hyperjump`. Before 2026-10-30, they
-  were constructed with it, and the `http(s):` plugin only used it for the
-  `Accept` header and the `file:` plugin for a file's media type, which
-  made the client and its plugins depend on each other. What they needed
-  are values `retrieve` gives them: `options.accept` and
+- URI scheme plugins don't get the `Hyperjump`. Constructing them with it
+  was rejected. The `http(s):` plugin would only use it for the `Accept`
+  header and the `file:` plugin for a file's media type, and the client and
+  its plugins would depend on each other. What they need are values
+  `retrieve` gives them: `options.accept` and
   `options.mediaTypeByExtension`. A plugin for a scheme that maps to another
   URI, like `urn:`, returns a redirect (see [Redirects](redirects.md)).
 - A file's media type is the plugin with the longest matching extension, so
   a plugin for `.schema.json` takes precedence over the JSON plugin, whatever
-  order they were added in. Before, the first plugin with a matching
-  extension won.
+  order they were added in. Letting the first plugin with a matching
+  extension win was rejected because a plugin for `.schema.json` would
+  lose to the JSON plugin, which is a default and comes first.
 - A plugin's `fragmentPointer` turns a fragment into a JSON Pointer, so a
   media type defines what its fragments identify, like anchors. Each
   document records the media type of the plugin that parsed it, so `get`
@@ -96,7 +99,8 @@ fragments identify. JSON and JRef are built in.
   it returns, for a document it found to be in a more specific media type,
   like JSON that's a JSON Schema, so that media type's plugin reads its
   fragments. A media type that doesn't define fragments
-  identifies the whole document. This replaced the `anchors` and
-  `fragmentKind` document properties, which only one media type used.
+  identifies the whole document. `anchors` and `fragmentKind` properties
+  on documents were rejected because only one media type would use them
+  (see [A generic client](../principles/generic-client.md)).
 - `parse` gets the session the document is being retrieved in (see
   [Sessions](sessions.md#extending)).

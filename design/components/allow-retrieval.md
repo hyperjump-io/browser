@@ -22,8 +22,10 @@ local to it.
   browser (`#context-uri`). Each session resolves its entries, or the
   config's (`hyperjump.config`), or the default, against its own context
   URI (see [Sessions](sessions.md)). Resolving the config's once, when the
-  `Hyperjump` was created, and giving them to sessions through a `WeakMap`
-  was replaced by this. `allowed-urls.js` is given the context URI rather
+  `Hyperjump` is created, and giving them to sessions through a `WeakMap`
+  was rejected. A session's context URI can differ from the one the
+  `Hyperjump` was created with, and the `WeakMap` is one more thing to keep
+  in sync. `allowed-urls.js` is given the context URI rather
   than reading it, so its tests give it a page or nothing instead of
   mocking modules. Without a page, it's `""`, which counts as none.
   - Entries are resolved when the config or the session's options are
@@ -43,18 +45,17 @@ local to it.
   - It's data, so an application extends it by writing it out, such as
     `["./", "https://api.example.com/"]`, and `[]` allows nothing. It's the
     same in Node.js and in browsers.
-  - It used to be a predicate, `(url: URL) => boolean | Promise<boolean>`,
-    with a default for each runtime: files in the working directory's real
-    path in Node.js, and the page's origin in a browser. Allowing a URL as
-    well as the default meant calling the default, so it would have had to
-    be exported, and a predicate written without it had to know to compare
-    against `realpath(cwd())`, not `cwd()`, or a working directory reached
-    through a symlink refused every file. A list has none of these problems.
-  - In a browser, the default used to be the page's whole origin. It's the
-    page's directory now, which is narrower. An application whose documents
-    are elsewhere on its origin adds `"/"`. A default of `["/"]` in browsers
-    would have kept the origin, but then the default would be different in
-    Node.js, where `/` is the whole filesystem.
+  - A predicate, `(url: URL) => boolean | Promise<boolean>`, with a default
+    for each runtime, was rejected. Allowing a URL as well as the default
+    would mean calling the default, so it would have to be exported. A
+    predicate written without it would have to know to compare against
+    `realpath(cwd())`, not `cwd()`, or a working directory reached through a
+    symlink would refuse every file. A list has none of these problems.
+  - In a browser, the default is the page's directory, not its whole
+    origin. An application whose documents are elsewhere on its origin adds
+    `"/"`. A default of `["/"]` in browsers was rejected because then the
+    default would be different in Node.js, where `/` is the whole
+    filesystem.
 - Only prefixes and exact URLs, no globs. Prefixes cover origins,
   directories, and single URLs. Glob syntax would collide with URLs, where
   `?`, `*`, `[`, and `:` already mean something, so every entry would be a
