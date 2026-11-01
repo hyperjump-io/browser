@@ -27,14 +27,6 @@
     ".": {
       "types": "./src/hyperjump/index.d.ts",
       "default": "./src/hyperjump/index.js"
-    },
-    "./json": {
-      "types": "./src/json/index.d.ts",
-      "default": "./src/json/index.js"
-    },
-    "./jref": {
-      "types": "./src/jref/index.d.ts",
-      "default": "./src/jref/index.js"
     }
   },
   "imports": {

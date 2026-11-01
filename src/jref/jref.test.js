@@ -1,10 +1,10 @@
 import { describe, test, expect } from "vitest";
 import { unified } from "unified";
 import { VFileMessage } from "vfile-message";
-import { jrefParse, jrefStringify } from "./index.js";
+import { jrefParse, jrefStringify } from "../hyperjump/index.js";
 
 /**
- * @import { JrefNode } from "./index.js"
+ * @import { JrefNode } from "../hyperjump/index.js"
  */
 
 // The plugins as a processor would use them

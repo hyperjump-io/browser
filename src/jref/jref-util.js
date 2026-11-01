@@ -15,7 +15,7 @@ export const fromJref = (jref, uri, reviver = defaultReviver, options = {}) => {
   return /** @type any */ (fromJson(jref, uri, jrefReviver(uri, reviver), options));
 };
 
-/** @type API.Reviver<any, any> */
+/** @type API.JrefReviver<any, any> */
 const defaultReviver = (value) => value;
 
 /** @type (uri: string | undefined, reviver: (node: any, key?: string) => any) => (node: any, key?: string) => any */

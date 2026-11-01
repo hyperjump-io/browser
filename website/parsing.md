@@ -1,7 +1,6 @@
 # Parsing JSON and JRef
 
-You can use the JSON and JRef parsers on their own without a `Hyperjump`.
-Import them from `@hyperjump/browser/json` and `@hyperjump/browser/jref`. They
+You can use the JSON and JRef parsers on their own without a `Hyperjump`. They
 parse into a JSON AST, which is a [unist](https://github.com/syntax-tree/unist)
 tree with a position for every value.
 
@@ -11,7 +10,7 @@ tree with a position for every value.
 errors where it can and returns every error it found:
 
 ```typescript
-import { fromJson, jsonSyntaxErrorMessage } from "@hyperjump/browser/json";
+import { fromJson, jsonSyntaxErrorMessage } from "@hyperjump/browser";
 
 const result = fromJson(`{ "a": [1, 2,] }`);
 result.status; // "recovered"
@@ -55,7 +54,7 @@ reference node gets an `href`, which is the reference's URI resolved against the
 document:
 
 ```typescript
-import { fromJref } from "@hyperjump/browser/jref";
+import { fromJref } from "@hyperjump/browser";
 
 const jref = `{ "x": { "$ref": "#/y" }, "y": 1 }`;
 const { node } = fromJref(jref, "https://example.com/doc");
@@ -88,12 +87,11 @@ Each node has a `jsonType`, a `location`, and a `position`. The `location` is a
 URL with a JSON Pointer to the node. The `position` says where the node is in
 the text.
 
-To read values out of the AST, use the functions that `@hyperjump/browser/json`
-exports. This example gets a node with a JSON Pointer then reads the node's
+To read values out of the AST, use the JSON AST functions. This example gets a node with a JSON Pointer then reads the node's
 value and its position:
 
 ```typescript
-import { fromJson, jsonValue, pointerGet } from "@hyperjump/browser/json";
+import { fromJson, jsonValue, pointerGet } from "@hyperjump/browser";
 
 const { node } = fromJson(`{ "a": { "b": [10, 20] } }`);
 const twenty = pointerGet("/a/b/1", node);
@@ -122,7 +120,7 @@ argument. In an AST from a parse whose status is `"failure"`, a value that
 couldn't be parsed is `undefined`:
 
 ```typescript
-import { JsonPointerError } from "@hyperjump/browser/json";
+import { JsonPointerError } from "@hyperjump/browser";
 
 const { node } = fromJson(`{ "a": }`);
 pointerGet("/a", node); // undefined
@@ -146,7 +144,7 @@ parent's `location`. It encodes and normalizes the result the way the parser
 does, so you can compare it to the locations the parser made:
 
 ```typescript
-import { appendToLocation } from "@hyperjump/browser/json";
+import { appendToLocation } from "@hyperjump/browser";
 
 appendToLocation("a b", "https://example.com/doc#/x");
 // "https://example.com/doc#/x/a%20b"
@@ -171,14 +169,13 @@ narrows the document's type in TypeScript, so a document with the status
 `"success"` or `"recovered"` is known to have no error nodes:
 
 ```typescript
-import { hasStatus } from "@hyperjump/browser/json";
+import { hasStatus } from "@hyperjump/browser";
 
 if (hasStatus(document, "success", "recovered")) {
   // document.children has no error nodes
 }
 ```
 
-`@hyperjump/browser/jref` exports a `hasStatus` that works for JRef documents
-too.
+`hasStatus` works for JRef documents too.
 [`@hyperjump/json-schema`](https://github.com/hyperjump-io/json-schema/blob/v2/website/unified/README.md)
 uses these plugins to validate and lint JSON files.

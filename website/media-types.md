@@ -20,13 +20,11 @@ plugin for a YAML version of JRef. It parses the YAML and hands the result to
 the JRef parser:
 
 ```typescript
-import { Hyperjump } from "@hyperjump/browser";
+import { fromJref, Hyperjump, jsonSyntaxErrorMessage } from "@hyperjump/browser";
 import type {
   JrefMediaTypeDocument,
   MediaTypePlugin
 } from "@hyperjump/browser";
-import { fromJref } from "@hyperjump/browser/jref";
-import { jsonSyntaxErrorMessage } from "@hyperjump/browser/json";
 import YAML from "yaml";
 
 type YrefDocument = JrefMediaTypeDocument;

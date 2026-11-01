@@ -3,7 +3,10 @@ import { unified } from "unified";
 import { VFileMessage } from "vfile-message";
 import {
   fromJson,
+  fromJref,
   hasStatus,
+  jrefParse,
+  jrefStringify,
   jsonSyntaxErrorMessage,
   jsonArrayIter,
   jsonObjectEntries,
@@ -15,8 +18,7 @@ import {
   rejsonStringify,
   toJson,
   JsonPointerError
-} from "./index.js";
-import { fromJref, hasStatus as jrefHasStatus, jrefParse, jrefStringify } from "../jref/index.js";
+} from "../hyperjump/index.js";
 
 const rejson = unified()
   .use(rejsonParse)
@@ -30,6 +32,7 @@ const jref = unified()
 /**
  * @import { Position } from "unist"
  * @import {
+ *   JrefNode,
  *   JsonDocumentNode,
  *   JsonErrorNode,
  *   JsonNode,
@@ -37,8 +40,7 @@ const jref = unified()
  *   JsonPropertyNode,
  *   JsonSyntaxError,
  *   JsonTolerantNode
- * } from "./index.js"
- * @import { JrefNode } from "../jref/index.js"
+ * } from "../hyperjump/index.js"
  */
 
 /**
@@ -1502,7 +1504,7 @@ describe("hasStatus", () => {
     const document = jref().use(jrefParse, { accept: "failure" })
       .parse(`{ "$ref": "foo", }`);
 
-    if (!jrefHasStatus(document, "success", "recovered")) {
+    if (!hasStatus(document, "success", "recovered")) {
       expect.fail("Expected the parse to recover");
     }
 
@@ -1512,7 +1514,7 @@ describe("hasStatus", () => {
   });
 
   test("the JRef version works for JSON documents too", () => {
-    expect(jrefHasStatus(processor.parse(`[1]`), "success")).toBe(true);
+    expect(hasStatus(processor.parse(`[1]`), "success")).toBe(true);
   });
 });
 

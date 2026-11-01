@@ -3,7 +3,7 @@ import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump } from "./index.js";
 
 /**
- * @import { JrefNode } from "../jref/index.js"
+ * @import { JrefNode } from "./index.js"
  */
 
 describe("JSON Browser", () => {

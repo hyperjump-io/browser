@@ -2,7 +2,7 @@ import type { JsonDocumentNode, JsonErrorNode, JsonParseStatus } from "../json/j
 import type { JsonOptions, JsonParseResult } from "../json/jsonast-util.d.ts";
 import type { JrefDocumentNode, JrefNode, JrefTolerantNode } from "./jref-ast.d.ts";
 
-export type Reviver<A extends JrefNode<X> | undefined, X = never> = (node: JrefNode<X>, key?: string) => A;
+export type JrefReviver<A extends JrefNode<X> | undefined, X = never> = (node: JrefNode<X>, key?: string) => A;
 
 /**
  * Parse a JRef string into a JRef AST. Includes a reviver option similar to
@@ -14,7 +14,7 @@ export type Reviver<A extends JrefNode<X> | undefined, X = never> = (node: JrefN
  * Parsing never throws. The result works the same way as the result of
  * `fromJson`.
  */
-export const fromJref: <A extends JrefTolerantNode | undefined = JrefTolerantNode>(json: string, uri?: string, reviver?: Reviver<A, JsonErrorNode>, options?: JsonOptions) => JsonParseResult<JrefNode | Extract<A, undefined>, A | JsonErrorNode>;
+export const fromJref: <A extends JrefTolerantNode | undefined = JrefTolerantNode>(json: string, uri?: string, reviver?: JrefReviver<A, JsonErrorNode>, options?: JsonOptions) => JsonParseResult<JrefNode | Extract<A, undefined>, A | JsonErrorNode>;
 
 /**
  * Check a document's parse status and narrow its type. This is the same

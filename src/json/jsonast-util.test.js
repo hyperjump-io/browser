@@ -17,7 +17,7 @@ import {
   jsonValue,
   pointerStep,
   JsonPointerError
-} from "./index.js";
+} from "../hyperjump/index.js";
 
 const rejson = unified()
   .use(rejsonParse)
@@ -25,7 +25,7 @@ const rejson = unified()
   .freeze();
 
 /**
- * @import { JsonNode, JsonTolerantNode } from "./index.js"
+ * @import { JsonNode, JsonTolerantNode } from "../hyperjump/index.js"
  */
 
 describe("jsonast-util", async () => {
