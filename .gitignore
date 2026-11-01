@@ -1,3 +1,6 @@
 node_modules/
 scratch/
 TODO*
+
+# Downloaded by `vale sync`
+.vale/
