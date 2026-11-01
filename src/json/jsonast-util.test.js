@@ -1,5 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { cwd } from "node:process";
+import { pathToFileURL } from "node:url";
 import { describe, test, expect, beforeEach } from "vitest";
 import { unified } from "unified";
 import { VFileMessage } from "vfile-message";
@@ -15,6 +17,7 @@ import {
   jsonObjectValues,
   jsonObjectEntries,
   jsonValue,
+  pointerGet,
   pointerStep,
   JsonPointerError
 } from "../hyperjump/index.js";
@@ -210,6 +213,38 @@ describe("jsonast-util", async () => {
 
     test("'-' refers to a nonexistent element", () => {
       expect(() => pointerStep("-", subject)).to.throw(JsonPointerError);
+    });
+  });
+
+  describe("JSON Pointer error messages", () => {
+    test("say the location from the node", () => {
+      const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": { "b": 1 } }`, "https://example.com/doc").node);
+      expect(() => pointerGet("/a/c", subject)).to.throw(JsonPointerError, "Property 'c' doesn't exist at https://example.com/doc#/a/c");
+    });
+
+    test("say the location of a missing value", () => {
+      const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": }`, "https://example.com/doc").node);
+      expect(() => pointerGet("/a/b", subject)).to.throw(JsonPointerError, "Can't index into a missing value at https://example.com/doc#/a");
+    });
+
+    test("say the location of a missing root", () => {
+      const subject = /** @type JsonTolerantNode */ (fromJson(``, "https://example.com/doc").node);
+      expect(() => pointerGet("/a", subject)).to.throw(JsonPointerError, "Can't index into a missing value at https://example.com/doc#");
+    });
+
+    test("say the location of an invalid value", () => {
+      const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": NaN }`, "https://example.com/doc").node);
+      expect(() => pointerGet("/a/b", subject)).to.throw(JsonPointerError, "Can't index into an invalid value at https://example.com/doc#/a");
+    });
+
+    test("say a file URL relative to the working directory", () => {
+      const subject = /** @type JsonTolerantNode */ (fromJson(`{}`, `${pathToFileURL(cwd()).href}/data/a.json`).node);
+      expect(() => pointerGet("/a", subject)).to.throw(JsonPointerError, "Property 'a' doesn't exist at data/a.json#/a");
+    });
+
+    test("say only the fragment without a document URI", () => {
+      const subject = parse(`[]`);
+      expect(() => pointerStep("0", subject)).to.throw(JsonPointerError, "Index '0' doesn't exist at #/0");
     });
   });
 

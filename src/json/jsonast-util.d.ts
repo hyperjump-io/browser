@@ -165,7 +165,7 @@ export type JsonMemberValue<N> = Exclude<JsonMember<N>, JsonMissingNode> | (Json
  *
  * @throws A {@link JsonPointerError} if the property or item doesn't exist.
  */
-export const pointerStep: <N extends AnyJsonNode>(segment: string, node: N, uri?: string) => JsonMemberValue<N>;
+export const pointerStep: <N extends AnyJsonNode>(segment: string, node: N) => JsonMemberValue<N>;
 
 /**
  * Get a JsonNode using a JSON Pointer. If the last segment points to a missing
@@ -174,7 +174,7 @@ export const pointerStep: <N extends AnyJsonNode>(segment: string, node: N, uri?
  * @throws A {@link JsonPointerError} if the pointer doesn't resolve,
  * including when it tries to index into a missing or invalid value.
  */
-export const pointerGet: <N extends AnyJsonNode>(pointer: string, tree: N, documentUri?: string) => N | JsonMemberValue<N>;
+export const pointerGet: <N extends AnyJsonNode>(pointer: string, tree: N) => N | JsonMemberValue<N>;
 
 /**
  * The value of a node as a JavaScript value. Arrays and objects are copied.

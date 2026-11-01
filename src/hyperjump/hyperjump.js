@@ -345,7 +345,7 @@ export class Session {
     const document = await this.getDocument(uri, options);
 
     const cursor = fragment === undefined ? "" : this.#hyperjump.fragmentPointer(document, fragment);
-    const node = pointerGet(cursor, document.children[0], document.uri && relativeFileUri(document.uri));
+    const node = pointerGet(cursor, document.children[0]);
     return await this.#followReferences(node, referenceChain);
   }
 

@@ -14,8 +14,9 @@ they are.
   `RetrievalError`, instead of Node.js's error, whose message says the
   absolute path. Another error reading a file says its code, like
   `EACCES`, for the same reason.
-- `pointerGet`'s message says the document URI it's given, which `get`
-  gives relative.
+- A `JsonPointerError` says the location of the node it failed at, made
+  relative the same way. The location is already on the node, so
+  `pointerGet` and `pointerStep` aren't given the document's URI.
 - `relativeFileUri` is exported, so applications say URLs the same way in
   their own messages.
 - A URL is normalized before it's made relative, so one written as

@@ -115,18 +115,20 @@ None of these follow references. To follow references, use a
 [session](browsing.md).
 
 `pointerGet` and `pointerStep` throw a `JsonPointerError` when a property or
-item doesn't exist. Both take the document's base URI as an optional last
-argument. In an AST from a parse whose status is `"failure"`, a value that
-couldn't be parsed is `undefined`:
+item doesn't exist. Its message says the location that couldn't be reached.
+That location is built from the node's `location`, so it starts with the base
+URI given to `fromJson` or `fromJs`.
+In an AST from a parse whose status is `"failure"`, a value that couldn't be
+parsed is `undefined`:
 
 ```typescript
 import { JsonPointerError } from "@hyperjump/browser";
 
-const { node } = fromJson(`{ "a": }`);
+const { node } = fromJson(`{ "a": }`, "https://example.com/doc");
 pointerGet("/a", node); // undefined
 
 try {
-  pointerGet("/b", node, "https://example.com/doc");
+  pointerGet("/b", node);
 } catch (error) {
   error instanceof JsonPointerError; // true
   error.message; // "Property 'b' doesn't exist at https://example.com/doc#/b"

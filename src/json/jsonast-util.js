@@ -121,7 +121,7 @@ export const toJson = (node, replacer = defaultReplacer, space = "") => {
 const arrayIndexPattern = /^(?:0|[1-9][0-9]*)$/;
 
 /** @type API.pointerStep */
-export const pointerStep = (segment, node, uri = "#") => {
+export const pointerStep = (segment, node) => {
   switch (node.jsonType) {
     case "object": {
       let found = false;
@@ -131,52 +131,53 @@ export const pointerStep = (segment, node, uri = "#") => {
           // RFC 6901: If a referenced member name is not unique in an object,
           // the member that is referenced is undefined, and evaluation fails.
           if (found) {
-            const uriMessage = uri ? ` at ${uri}` : "";
-            throw new JsonPointerError(`Property '${segment}' is not unique${uriMessage}`);
+            throw new JsonPointerError(`Property '${segment}' is not unique at ${stepLocation(segment, node)}`);
           }
           found = true;
           result = valueNode;
         }
       }
       if (!found) {
-        const uriMessage = uri ? ` at ${uri}` : "";
-        throw new JsonPointerError(`Property '${segment}' doesn't exist${uriMessage}`);
+        throw new JsonPointerError(`Property '${segment}' doesn't exist at ${stepLocation(segment, node)}`);
       }
       return result;
     }
     case "array": {
       if (segment !== "-" && !arrayIndexPattern.test(segment)) {
-        const uriMessage = uri ? ` at ${uri}` : "";
-        throw new JsonPointerError(`'${segment}' is not a valid array index${uriMessage}`);
+        throw new JsonPointerError(`'${segment}' is not a valid array index at ${stepLocation(segment, node)}`);
       }
       const index = segment === "-" ? node.children.length : parseInt(segment, 10);
       if (!node.children[index]) {
-        const uriMessage = uri ? ` at ${uri}` : "";
-        throw new JsonPointerError(`Index '${index}' doesn't exist${uriMessage}`);
+        throw new JsonPointerError(`Index '${index}' doesn't exist at ${stepLocation(segment, node)}`);
       }
       return memberValue(node.children[index]);
     }
     default: {
-      const uriMessage = uri ? ` at ${uri}` : "";
-      throw new JsonPointerError(`Can't index into scalar value${uriMessage}`);
+      throw new JsonPointerError(`Can't index into scalar value at ${stepLocation(segment, node)}`);
     }
   }
 };
 
+/** @type (segment: string, node: { location: string }) => string */
+const stepLocation = (segment, node) => relativeFileUri(appendToLocation(segment, node.location));
+
 /** @type API.pointerGet */
-export const pointerGet = (pointer, tree, documentUri) => {
-  let uri = `${documentUri}#`;
+export const pointerGet = (pointer, tree) => {
+  let parent = tree;
+  let parentSegment;
   let node = memberValue(tree);
   for (const segment of pointerSegments(pointer)) {
     if (node === undefined) {
-      throw new JsonPointerError(`Can't index into a missing value at ${uri}`);
+      const location = parentSegment === undefined ? relativeFileUri(tree.location) : stepLocation(parentSegment, parent);
+      throw new JsonPointerError(`Can't index into a missing value at ${location}`);
     }
     if (node.type === "json-invalid") {
-      throw new JsonPointerError(`Can't index into an invalid value at ${uri}`);
+      throw new JsonPointerError(`Can't index into an invalid value at ${relativeFileUri(node.location)}`);
     }
 
-    uri = appendToLocation(segment, uri);
-    node = pointerStep(segment, /** @type Parameters<typeof pointerStep>[1] */ (node), uri);
+    parent = node;
+    parentSegment = segment;
+    node = pointerStep(segment, /** @type Parameters<typeof pointerStep>[1] */ (node));
   }
 
   return node;
