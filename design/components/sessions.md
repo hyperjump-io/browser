@@ -33,6 +33,18 @@ State is separated by how long it lives.
   Reading it once for the `Hyperjump` was
   rejected, because a single-page application keeps one `Hyperjump` while
   its page changes.
+  - Taking only absolute URLs, like Node.js's `fetch`, so that Browser
+    never reads it, was rejected. The default `allowRetrieval`, `["./"]`,
+    needs something to be relative to, so the default would have to allow
+    nothing. Every application would turn paths into URLs itself, and
+    `@hyperjump/json-schema` and the `hyperjump` CLI would read the working
+    directory instead, so it would only move.
+  - A `baseUri` session option is left out until something needs it. The
+    session would still read the context URI for the default, so it adds
+    an option without taking anything away. It's for a process whose
+    working directory isn't the project, like a language server for a
+    workspace, or a CLI with a `--cwd` that would otherwise allow `./`
+    from the process's working directory.
 
 ## Configuring plugins
 

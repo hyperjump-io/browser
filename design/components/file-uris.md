@@ -32,6 +32,12 @@ Rejected:
 - Leaving it to whatever reports the error. Every application that shows
   an error would have to rewrite its text, and it can't tell which part of
   a message is a URL.
+- Giving `relativeFileUri` the base (`relativeFileUri(uri, base)`), such as
+  a session's context URI. Messages are made in many places that don't
+  have a session, like `@hyperjump/json-schema`'s errors and output, so
+  every one would need a base passed to it. A message is for whoever reads
+  it, and relative to the working directory is what a relative path means
+  to them.
 
 Known limitations:
 
