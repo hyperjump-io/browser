@@ -1,4 +1,4 @@
-import * as JsonPointer from "@hyperjump/json-pointer";
+import { pointerAppend } from "@hyperjump/json-pointer";
 import { encodeIriFragment } from "@hyperjump/uri";
 
 /**
@@ -18,7 +18,7 @@ const maxCachedSegmentLength = 100;
 export const appendToLocation = (segment, location) => {
   let encoded = encodedSegments.get(segment);
   if (encoded === undefined) {
-    encoded = encodeIriFragment(JsonPointer.append(segment, ""));
+    encoded = encodeIriFragment(pointerAppend(segment, ""));
     if (segment.length <= maxCachedSegmentLength) {
       if (encodedSegments.size >= maxCachedSegments) {
         encodedSegments.clear();
