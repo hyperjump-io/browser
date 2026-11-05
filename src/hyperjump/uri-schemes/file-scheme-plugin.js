@@ -1,10 +1,10 @@
 import { createReadStream } from "node:fs";
 import { realpath } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { parseIri, toAbsoluteIri } from "@hyperjump/uri";
 import { Readable } from "node:stream";
 import { FileNotFoundError } from "../hyperjump.js";
 import { relativeFileUri } from "../file-uris.js";
+import { withoutFragment } from "../urls.js";
 
 /**
  * @import * as API from "./file-scheme-plugin.d.ts"
@@ -19,9 +19,7 @@ export class FileUriSchemePlugin {
   /** @type API.FileUriSchemePlugin["retrieve"] */
   async retrieve(uri, options) {
     if (options.referencedFrom) {
-      const { scheme } = parseIri(options.referencedFrom);
-
-      if (scheme !== "file") {
+      if (new URL(options.referencedFrom).protocol !== "file:") {
         throw Error(`Accessing a file (${relativeFileUri(uri)}) from a non-filesystem context (${options.referencedFrom}) is not allowed`);
       }
     }
@@ -43,7 +41,7 @@ export class FileUriSchemePlugin {
       }
       throw error;
     }
-    const responseUri = realFilePath === filePath ? toAbsoluteIri(uri) : pathToFileURL(realFilePath).toString();
+    const responseUri = realFilePath === filePath ? withoutFragment(uri) : pathToFileURL(realFilePath).toString();
 
     // A file doesn't have a media type, so it's the one its extension has
     const headers = new Headers();

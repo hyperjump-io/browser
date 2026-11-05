@@ -1,7 +1,7 @@
 import CachePolicy from "http-cache-semantics";
-import { toAbsoluteIri } from "@hyperjump/uri";
 import { defaultHttpCache } from "#default-http-cache";
 import { redirectMode } from "#redirect-mode";
+import { withoutFragment } from "../urls.js";
 
 /**
  * @import { HttpCacheStore } from "./http-cache-store.d.ts"
@@ -86,12 +86,12 @@ export class HttpUriSchemePlugin {
       const headers = new Headers(response.headers);
       headers.set("content-type", mediaType);
       const typedResponse = new Response(response.body, { status: response.status, statusText: response.statusText, headers });
-      Object.defineProperty(typedResponse, "url", { value: response.url || toAbsoluteIri(uri) });
+      Object.defineProperty(typedResponse, "url", { value: response.url || withoutFragment(uri) });
 
       return typedResponse;
     }
 
-    const url = toAbsoluteIri(uri);
+    const url = withoutFragment(uri);
     const key = JSON.stringify([url, accept]);
     let pending = this.#pending.get(key);
     if (!pending) {

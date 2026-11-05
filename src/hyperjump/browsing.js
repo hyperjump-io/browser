@@ -1,5 +1,5 @@
-import { toAbsoluteIri } from "@hyperjump/uri";
 import { jsonArrayIter, jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonObjectValues, jsonStep, jsonValue } from "../json/jsonast-util.js";
+import { withoutFragment } from "./urls.js";
 
 /**
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
@@ -57,7 +57,7 @@ export const jrefValue = /** @type API.jrefValue */ ((/** @type JrefNode */ node
  */
 const follow = async (session, node) => {
   if (node.type === "reference") {
-    return session.get(node.href, { referencedFrom: toAbsoluteIri(node.location) });
+    return session.get(node.href, { referencedFrom: withoutFragment(node.location) });
   } else {
     return node;
   }

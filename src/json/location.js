@@ -1,5 +1,4 @@
 import { pointerAppend } from "@hyperjump/json-pointer";
-import { encodeIriFragment } from "@hyperjump/uri";
 
 /**
  * @import * as API from "./location.d.ts"
@@ -14,11 +13,19 @@ const encodedSegments = new Map();
 const maxCachedSegments = 10_000;
 const maxCachedSegmentLength = 100;
 
+// The URL fragment percent-encode set, and `%`, because a fragment is decoded
+// before it's followed as a JSON Pointer. A URL parser removes tabs and
+// newlines, so it can't encode a segment that has them.
+const fragmentEncoded = /[\0-\x20"<>`%\x7F-\u{10FFFF}]/gu;
+
+/** @type (fragment: string) => string */
+const encodeFragment = (fragment) => fragment.toWellFormed().replace(fragmentEncoded, encodeURIComponent);
+
 /** @type API.appendToLocation */
 export const appendToLocation = (segment, location) => {
   let encoded = encodedSegments.get(segment);
   if (encoded === undefined) {
-    encoded = encodeIriFragment(pointerAppend(segment, ""));
+    encoded = encodeFragment(pointerAppend(segment, ""));
     if (segment.length <= maxCachedSegmentLength) {
       if (encodedSegments.size >= maxCachedSegments) {
         encodedSegments.clear();

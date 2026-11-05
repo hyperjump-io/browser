@@ -1,4 +1,3 @@
-import { resolveIri } from "@hyperjump/uri";
 import { fromJson, hasStatus as jsonHasStatus } from "../json/jsonast-util.js";
 
 /**
@@ -40,7 +39,7 @@ const annotateReferences = (node, uri) => {
         Object.assign(node, {
           type: "reference",
           // Without a base URI, relative references can't be resolved
-          href: uri === undefined ? valueNode.value : resolveIri(valueNode.value, uri)
+          href: uri === undefined ? valueNode.value : new URL(valueNode.value, uri).href
         });
         isReference = true;
       }

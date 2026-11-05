@@ -1,4 +1,3 @@
-import { parseIri, resolveIri, toAbsoluteIri } from "@hyperjump/uri";
 import { contextUri } from "#context-uri";
 import { defaultUriSchemePlugins } from "#default-uri-scheme-plugins";
 import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
@@ -7,6 +6,7 @@ import { jsonPointerGet } from "../json/jsonast-util.js";
 import { acceptHeader, fragmentPointer, mediaTypeByExtension, mediaTypePluginFor } from "./media-type-plugins.js";
 import { AllowedUrls, configSource, resolveAllowRetrieval, sessionSource } from "./allowed-urls.js";
 import { relativeFileUri } from "./file-uris.js";
+import { resolveUrl, withoutFragment } from "./urls.js";
 
 /**
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
@@ -189,20 +189,20 @@ export class Session {
    * @returns {Promise<FollowedNode>}
    */
   async #get(uri, options, referenceChain) {
-    uri = resolveIri(uri, this.#contextUri);
+    uri = resolveUrl(uri, this.#contextUri);
     if (referenceChain.includes(uri)) {
       throw new ReferenceCycleError([...referenceChain, uri]);
     }
     referenceChain = [...referenceChain, uri];
 
-    const { fragment } = parseIri(uri);
+    const { hash } = new URL(uri);
     // Subclasses can override getDocument, so every lookup goes through it
     const document = await this.getDocument(uri, options);
 
-    const cursor = fragment === undefined ? "" : this.#hyperjump.fragmentPointer(document, fragment);
+    const cursor = hash === "" ? "" : this.#hyperjump.fragmentPointer(document, hash.slice(1));
     const node = jsonPointerGet(cursor, document.children[0]);
     if (node.type === "reference") {
-      return this.#get(node.href, { referencedFrom: toAbsoluteIri(node.location) }, referenceChain);
+      return this.#get(node.href, { referencedFrom: withoutFragment(node.location) }, referenceChain);
     } else {
       return node;
     }
@@ -210,8 +210,8 @@ export class Session {
 
   /** @type API.Session<JrefNode>["getDocument"] */
   async getDocument(uri, options = {}) {
-    uri = resolveIri(uri, this.#contextUri);
-    const id = toAbsoluteIri(uri);
+    uri = resolveUrl(uri, this.#contextUri);
+    const id = withoutFragment(uri);
 
     this.#cache[id] ??= this.#retrieveDocument(uri, options).catch((/** @type unknown */ error) => {
       // A failure isn't cached, so it can be tried again
@@ -234,12 +234,12 @@ export class Session {
    * @type (uri: string, options: API.GetOptions) => Promise<DocumentNode>
    */
   async #retrieveDocument(uri, options) {
-    const id = toAbsoluteIri(uri);
+    const id = withoutFragment(uri);
 
     let response;
     let url = uri;
     for (let redirects = 0; ; redirects++) {
-      const hop = toAbsoluteIri(url);
+      const hop = withoutFragment(url);
       if (!await this.#allowedUrls.allows(hop)) {
         throw this.#notAllowedError(id, hop);
       }
@@ -263,13 +263,13 @@ export class Session {
       // `retrieve` gives every response a URL. The fragment isn't part of
       // what's retrieved.
       try {
-        url = toAbsoluteIri(resolveIri(location, response.url));
+        url = withoutFragment(new URL(location, response.url).href);
       } catch (error) {
         throw new RetrievalError(uri, { cause: error });
       }
     }
 
-    if (response.url !== toAbsoluteIri(url) && !await this.#allowedUrls.allows(response.url)) {
+    if (response.url !== withoutFragment(url) && !await this.#allowedUrls.allows(response.url)) {
       await response.body?.cancel();
       throw this.#notAllowedError(id, response.url);
     }
@@ -280,7 +280,7 @@ export class Session {
       // References within the document are relative to the URI it was
       // retrieved from, which can differ from the requested URI (redirects,
       // symlinks), so it needs to be cached under both.
-      this.#cache[toAbsoluteIri(response.url)] ??= Promise.resolve(document);
+      this.#cache[withoutFragment(response.url)] ??= Promise.resolve(document);
 
       return document;
     } catch (error) {
@@ -298,7 +298,7 @@ export class Session {
    * @type (uri: string, options: API.GetOptions) => Promise<Response>
    */
   async #retrieve(uri, options) {
-    const { scheme } = parseIri(uri);
+    const scheme = new URL(uri).protocol.slice(0, -1);
 
     const plugin = this.#hyperjump.uriSchemePlugins.get(scheme);
     if (!plugin) {
@@ -312,7 +312,7 @@ export class Session {
       mediaTypeByExtension: (uri) => mediaTypeByExtension(mediaTypePlugins, uri)
     });
     if (!response.url) {
-      Object.defineProperty(response, "url", { value: toAbsoluteIri(uri) });
+      Object.defineProperty(response, "url", { value: withoutFragment(uri) });
     }
 
     return response;

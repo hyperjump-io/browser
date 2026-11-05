@@ -195,7 +195,7 @@ describe("JSON Browser", () => {
       const subject = await session.get(`${testDomain}/foo#/a%5Eb/c%20d`);
 
       expect(toJson(subject)).to.equal(`42`);
-      expect(subject.location).to.equal(`${testDomain}/foo#/a%5Eb/c%20d`);
+      expect(subject.location).to.equal(`${testDomain}/foo#/a^b/c%20d`);
     });
 
     test("an unnecessarily encoded fragment finds the same node", async () => {

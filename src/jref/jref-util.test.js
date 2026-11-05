@@ -1,6 +1,5 @@
 import { describe, test, expect } from "vitest";
 import { fromJref } from "./jref-util.js";
-import { resolveIri } from "@hyperjump/uri";
 import { jsonStep, toJson } from "../json/jsonast-util.js";
 
 /**
@@ -146,7 +145,7 @@ describe("JRef", () => {
             }
           ],
           location: `${testContext}#`,
-          href: resolveIri("./foo", testContext),
+          href: new URL("./foo", testContext).href,
           position: {
             start: { line: 1, column: 1, offset: 0 },
             end: { line: 1, column: 20, offset: 19 }
@@ -239,7 +238,7 @@ describe("JRef", () => {
                 }
               ],
               location: `${testContext}#/0`,
-              href: resolveIri("./foo", testContext),
+              href: new URL("./foo", testContext).href,
               position: {
                 start: { line: 2, column: 3, offset: 4 },
                 end: { line: 2, column: 22, offset: 23 }
@@ -369,7 +368,7 @@ describe("JRef", () => {
                     }
                   ],
                   location: `${testContext}#/foo`,
-                  href: resolveIri("./foo", testContext),
+                  href: new URL("./foo", testContext).href,
                   position: {
                     start: { line: 2, column: 10, offset: 11 },
                     end: { line: 2, column: 29, offset: 30 }
@@ -392,8 +391,8 @@ describe("JRef", () => {
 
       test("reference in the properties of a reference", () => {
         const subject = /** @type JrefNode */ (fromJref(`{ "$ref": "./foo", "bar": { "$ref": "./bar" } }`, testContext).node);
-        expect(subject).to.include({ type: "reference", href: resolveIri("./foo", testContext) });
-        expect(jsonStep("bar", subject)).to.include({ type: "reference", href: resolveIri("./bar", testContext) });
+        expect(subject).to.include({ type: "reference", href: new URL("./foo", testContext).href });
+        expect(jsonStep("bar", subject)).to.include({ type: "reference", href: new URL("./bar", testContext).href });
       });
 
       test("$ref that isn't a string", () => {
@@ -465,7 +464,7 @@ describe("JRef", () => {
             }
           ],
           location: "#",
-          href: resolveIri("./foo", testContext)
+          href: new URL("./foo", testContext).href
         };
         const subject = toJson(node);
         expect(subject).to.equal(`{"$ref":"./foo"}`);
@@ -544,7 +543,7 @@ describe("JRef", () => {
                 }
               ],
               location: "#/1",
-              href: resolveIri("./foo", testContext)
+              href: new URL("./foo", testContext).href
             },
             {
               type: "json",
@@ -654,7 +653,7 @@ describe("JRef", () => {
                     }
                   ],
                   location: "#/bar",
-                  href: resolveIri("./foo", testContext)
+                  href: new URL("./foo", testContext).href
                 }
               ]
             }
@@ -718,7 +717,7 @@ describe("JRef", () => {
                       ]
                     }
                   ],
-                  href: resolveIri("./foo", testContext),
+                  href: new URL("./foo", testContext).href,
                   location: "#/bar"
                 }
               ]

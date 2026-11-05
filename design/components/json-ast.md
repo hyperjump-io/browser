@@ -92,11 +92,15 @@ status with it:
 
 ## Locations
 
-- A node's location is a URI whose fragment is a JSON Pointer. Pointer
-  segments are percent-encoded where a fragment requires it
-  (`appendToLocation`, `@hyperjump/uri`'s `encodeIriFragment`), so
-  locations are valid, normalized IRIs. `get` decodes a fragment before
-  following it as a JSON Pointer.
+- A node's location is a URL whose fragment is a JSON Pointer. Pointer
+  segments are percent-encoded with the URL fragment percent-encode set
+  (`appendToLocation`), so a location is what a URL parser makes of it and
+  can be compared to a resolved reference. `%` is encoded too, because
+  `get` decodes a fragment before following it as a JSON Pointer.
+- The set is encoded directly instead of by a URL parser, because a parser
+  removes tabs and newlines.
+- A lone surrogate in a property name is encoded as U+FFFD, as a URL
+  encodes it, so two property names can have the same location.
 - `appendToLocation` caches the encoded form of each segment, because
   encoding was most of the time `fromJs` took (see
   [Node locations](../benchmarks/node-locations.md)).
