@@ -15,12 +15,14 @@ export function jrefParse(options) {
     const { status, node, errors, comments } = fromJref(document, uri, options);
     reportSyntaxErrors(file, errors, status, options?.accept);
 
-    return /** @type JrefDocumentNode */ ({
+    /** @type JrefDocumentNode */
+    const tree = {
       type: "jref-document",
       status: status,
       children: node ? [node] : [],
       comments: comments,
       uri: uri
-    });
+    };
+    return tree;
   };
 }

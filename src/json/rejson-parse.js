@@ -12,11 +12,13 @@ export function rejsonParse(options) {
     const { status, node, errors, comments } = fromJson(document, options?.location, options);
     reportSyntaxErrors(file, errors, status, options?.accept);
 
-    return /** @type JsonDocumentNode */ ({
+    /** @type JsonDocumentNode */
+    const tree = {
       type: "json-document",
       status: status,
       children: node ? [node] : [],
       comments: comments
-    });
+    };
+    return tree;
   };
 }

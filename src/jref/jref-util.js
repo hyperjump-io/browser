@@ -14,8 +14,7 @@ export const fromJref = (jref, uri, options = {}) => {
   const result = fromJson(jref, uri, options);
   annotateReferences(result.node, uri);
 
-  // The tree is annotated in place, which the JSON types can't follow
-  return /** @type any */ (result);
+  return result;
 };
 
 /**

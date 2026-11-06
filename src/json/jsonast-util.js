@@ -179,7 +179,7 @@ export const jsonPointerGet = (pointer, tree) => {
 
     parent = node;
     parentSegment = segment;
-    node = jsonStep(segment, /** @type Parameters<typeof jsonStep>[1] */ (node));
+    node = jsonStep(segment, node);
   }
 
   return node;

@@ -93,11 +93,11 @@ export class Hyperjump {
   }
 
   get uriSchemePlugins() {
-    return /** @type ReadonlyMap<string, UriSchemePlugin> */ (this.#uriSchemePlugins);
+    return this.#uriSchemePlugins;
   }
 
   get mediaTypePlugins() {
-    return /** @type ReadonlyMap<string, MediaTypePlugin<DocumentNode>> */ (this.#mediaTypePlugins);
+    return this.#mediaTypePlugins;
   }
 
   get accept() {

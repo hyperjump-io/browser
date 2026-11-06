@@ -12,14 +12,22 @@ import { appendToLocation } from "./location.js";
  *   JsonParseStatus,
  *   JsonNode,
  *   JsonPropertyNameNode,
- *   JsonPropertyNode
+ *   JsonPropertyNode,
+ *   JsonTolerantNode
  * } from "./jsonast.d.ts"
  * @import { JsonOptions, JsonParseResult, JsonSyntaxError, JsonSyntaxErrorCode } from "./jsonast-util.d.ts"
  * @import * as API from "./jsonast-util.d.ts"
  */
 
 /**
- * @typedef {JsonNode<object, JsonErrorNode> | JsonErrorNode} JsonValueNode
+ * @typedef {JsonTolerantNode | JsonErrorNode} JsonValueNode
+ */
+
+/**
+ * @typedef {{ jsonType: "null", value: null }
+ *   | { jsonType: "boolean", value: boolean }
+ *   | { jsonType: "number", value: number }
+ *   | { jsonType: "string", value: string }} JsonScalar
  */
 
 /**
@@ -79,7 +87,7 @@ export const jsonSyntaxErrorMessage = (error) => MESSAGES[error.ruleId](error.ac
  * Parse JSON text into a JSON AST, recovering from syntax errors wherever
  * possible. Every error found is returned along with the best-effort AST.
  *
- * @type (text: string, location: string, options?: JsonOptions) => JsonParseResult<any, any>
+ * @type (text: string, location: string, options?: JsonOptions) => JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode>
  */
 export const parseJson = (text, location, options = {}) => {
   const lineStarts = findLineStarts(text);
@@ -179,11 +187,6 @@ export const parseJson = (text, location, options = {}) => {
   /** @type (node: { position?: Position }) => number */
   const endOf = (node) => /** @type Position */ (node.position).end.offset ?? 0;
 
-  /** @type (node: { position?: Position }, end: number) => void */
-  const finish = (node, end) => {
-    /** @type Position */ (node.position).end = point(end);
-  };
-
   // Looking ahead scans the token that's usually consumed next, so the first
   // token scanned is kept to save scanning it again
   let peekedFrom = -1;
@@ -238,7 +241,7 @@ export const parseJson = (text, location, options = {}) => {
     }
   };
 
-  /** @type (code: JsonSyntaxErrorCode, container: JsonNode<object>, lastItem: { position?: Position } | undefined) => void */
+  /** @type (code: JsonSyntaxErrorCode, container: JsonTolerantNode, lastItem: { position?: Position } | undefined) => void */
   const reportNotClosed = (code, container, lastItem) => {
     unclosed.add(container);
     if (ranToEndOfFile) {
@@ -333,15 +336,15 @@ export const parseJson = (text, location, options = {}) => {
     return node;
   };
 
-  /** @type (jsonType: "null" | "boolean" | "number" | "string", value: unknown, nodeLocation: string) => JsonNode<object> */
-  const parseScalar = (jsonType, value, nodeLocation) => {
-    const node = /** @type JsonNode<object> */ ({
+  /** @type (scalar: JsonScalar, nodeLocation: string) => JsonTolerantNode */
+  const parseScalar = (scalar, nodeLocation) => {
+    /** @type JsonTolerantNode */
+    const node = {
       type: "json",
-      jsonType: jsonType,
-      value: value,
+      ...scalar,
       location: nodeLocation,
       position: position(token.offset, token.offset + token.length)
-    });
+    };
     next();
     return node;
   };
@@ -350,7 +353,7 @@ export const parseJson = (text, location, options = {}) => {
    * Parse a property. The value is returned separately, and is `undefined`
    * when it's missing, so the caller can tell where the property's text ends.
    *
-   * @type (objectLocation: string) => { property: JsonPropertyNode<object, JsonErrorNode>, value: JsonValueNode | undefined }
+   * @type (objectLocation: string) => { property: JsonPropertyNode<{ type: "json" }, JsonErrorNode>, value: JsonValueNode | undefined }
    */
   const parseProperty = (objectLocation) => {
     const start = token.offset;
@@ -408,7 +411,7 @@ export const parseJson = (text, location, options = {}) => {
       // The missing value has no width, but the property extends to where
       // parsing stopped so the cursor is inside it while typing the value
       const missingNode = missing(valueLocation, previousOffset + previousLength);
-      /** @type JsonPropertyNode<object, JsonErrorNode> */
+      /** @type JsonPropertyNode<{ type: "json" }, JsonErrorNode> */
       const property = {
         type: "json-property",
         children: [keyNode, missingNode],
@@ -417,7 +420,7 @@ export const parseJson = (text, location, options = {}) => {
       return { property, value };
     }
 
-    /** @type JsonPropertyNode<object, JsonErrorNode> */
+    /** @type JsonPropertyNode<{ type: "json" }, JsonErrorNode> */
     const property = {
       type: "json-property",
       children: [keyNode, value],
@@ -510,18 +513,18 @@ export const parseJson = (text, location, options = {}) => {
     return parseInvalid(nodeLocation);
   };
 
-  /** @type (jsonType: "object" | "array", containerLocation: string, isArrayItem: boolean) => JsonNode<object> */
+  /** @type (jsonType: "object" | "array", containerLocation: string, isArrayItem: boolean) => JsonTolerantNode */
   const parseContainer = (jsonType, containerLocation, isArrayItem) => {
     depth++;
-    const container = /** @type JsonNode<object> & { children: unknown[] } */ ({
-      type: "json",
-      jsonType: jsonType,
-      children: [],
-      location: containerLocation,
-      position: position(token.offset, token.offset + token.length)
-    });
+    const start = token.offset;
     const closer = jsonType === "object" ? "}" : "]";
     next();
+
+    /** @type JsonPropertyNode<{ type: "json" }, JsonErrorNode>[] */
+    const properties = [];
+
+    /** @type JsonValueNode[] */
+    const items = [];
 
     /** @type {{ position?: Position } | undefined} */
     let lastItem;
@@ -534,7 +537,7 @@ export const parseJson = (text, location, options = {}) => {
         const gapOffset = parseComma(closer, !separator, index === 0);
         if (gapOffset !== undefined && jsonType === "array") {
           // An index never needs escaping or encoding
-          container.children.push(missing(`${containerLocation}/${index}`, gapOffset));
+          items.push(missing(`${containerLocation}/${index}`, gapOffset));
         }
         if (gapOffset !== undefined) {
           index++;
@@ -564,35 +567,40 @@ export const parseJson = (text, location, options = {}) => {
       if (jsonType === "object") {
         index++;
         const { property, value } = parseProperty(containerLocation);
-        container.children.push(property);
+        properties.push(property);
         lastItem = property;
         separator = separatorAfter(value);
       } else {
+        // Every token that isn't a value was handled above
         const item = /** @type JsonValueNode */ (parseValue(`${containerLocation}/${index++}`, true));
-        container.children.push(item);
+        items.push(item);
         lastItem = item;
         separator = separatorAfter(item);
       }
     }
 
-    if (token.kind !== closer) {
-      // An unclosed container extends to where parsing stopped, including any
-      // whitespace after its last token. Editors look up the node at the
-      // cursor, and while typing at the end of a truncated document, the
-      // cursor is usually in that whitespace.
-      finish(container, token.offset);
-      reportNotClosed(jsonType === "object" ? "brace-not-closed" : "bracket-not-closed", container, lastItem);
-      depth--;
-      return container;
-    }
+    // An unclosed container extends to where parsing stopped, including any
+    // whitespace after its last token. Editors look up the node at the
+    // cursor, and while typing at the end of a truncated document, the
+    // cursor is usually in that whitespace.
+    const isClosed = token.kind === closer;
+    const containerPosition = position(start, isClosed ? token.offset + token.length : token.offset);
 
-    finish(container, token.offset + token.length);
-    next();
+    /** @type JsonTolerantNode */
+    const container = jsonType === "object"
+      ? { type: "json", jsonType: jsonType, children: properties, location: containerLocation, position: containerPosition }
+      : { type: "json", jsonType: jsonType, children: items, location: containerLocation, position: containerPosition };
+
+    if (isClosed) {
+      next();
+    } else {
+      reportNotClosed(jsonType === "object" ? "brace-not-closed" : "bracket-not-closed", container, lastItem);
+    }
     depth--;
     return container;
   };
 
-  /** @type (valueLocation: string, isArrayItem?: boolean) => JsonNode<object> | JsonInvalidNode | undefined */
+  /** @type (valueLocation: string, isArrayItem?: boolean) => JsonTolerantNode | JsonInvalidNode | undefined */
   const parseValue = (valueLocation, isArrayItem = false) => {
     if ((token.kind === "{" || token.kind === "[") && depth >= MAX_DEPTH) {
       return parseTooDeep(valueLocation);
@@ -609,23 +617,23 @@ export const parseJson = (text, location, options = {}) => {
         if (token.quote === "'") {
           report("string-single-quoted", token.offset, token.length);
         }
-        return parseScalar("string", token.value, valueLocation);
+        return parseScalar({ jsonType: "string", value: token.value }, valueLocation);
 
       case "number":
         if (!NUMBER.test(token.value)) {
           report("number-invalid", token.offset, token.length, token.value);
           return parseInvalid(valueLocation);
         }
-        return parseScalar("number", Number(token.value), valueLocation);
+        return parseScalar({ jsonType: "number", value: Number(token.value) }, valueLocation);
 
       case "true":
-        return parseScalar("boolean", true, valueLocation);
+        return parseScalar({ jsonType: "boolean", value: true }, valueLocation);
 
       case "false":
-        return parseScalar("boolean", false, valueLocation);
+        return parseScalar({ jsonType: "boolean", value: false }, valueLocation);
 
       case "null":
-        return parseScalar("null", null, valueLocation);
+        return parseScalar({ jsonType: "null", value: null }, valueLocation);
 
       case "unknown":
         report("invalid-literal", token.offset, token.length, token.value);
@@ -674,7 +682,7 @@ export const parseJson = (text, location, options = {}) => {
 
   // The status is what decides the type of the node, which is checked by the
   // tests rather than the type system
-  return /** @type JsonParseResult<any, any> */ ({ status, node, errors: syntaxErrors, comments });
+  return /** @type JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode> */ ({ status, node, errors: syntaxErrors, comments });
 };
 
 /** @type (text: string) => number[] */

@@ -5,47 +5,52 @@ import { jsonArrayIter, jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonOb
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
  * @import { Session } from "./hyperjump.js"
  * @import * as API from "./browsing.d.ts"
+ * @import { FollowedNode } from "./browsing.d.ts"
+ * @import { JsonNode } from "../json/jsonast.d.ts"
+ * @import { JsonMemberValue } from "../json/jsonast-util.d.ts"
  */
 
-// eslint-disable-next-line @stylistic/no-extra-parens
-export const jrefStep = /** @type typeof API.jrefStep */ (async (/** @type Session */ session, /** @type string */ key, /** @type JrefNode */ node) => {
+/** @type typeof API.jrefStep */
+export const jrefStep = async (session, key, node) => {
   return follow(session, jsonStep(key, node));
-});
+};
 
-// eslint-disable-next-line @stylistic/no-extra-parens
-export const jrefArrayIter = /** @type typeof API.jrefArrayIter */ (async function* (/** @type Session */ session, /** @type JrefNode */ node) {
+/** @type typeof API.jrefArrayIter */
+export const jrefArrayIter = async function* (session, node) {
   for (const itemNode of jsonArrayIter(node)) {
     yield follow(session, itemNode);
   }
-});
+};
 
-// eslint-disable-next-line @stylistic/no-extra-parens
-export const jrefObjectValues = /** @type typeof API.jrefObjectValues */ (async function* (/** @type Session */ session, /** @type JrefNode */ node) {
+/** @type typeof API.jrefObjectValues */
+export const jrefObjectValues = async function* (session, node) {
   for (const valueNode of jsonObjectValues(node)) {
     yield follow(session, valueNode);
   }
-});
+};
 
-// eslint-disable-next-line @stylistic/no-extra-parens
-export const jrefObjectEntries = /** @type typeof API.jrefObjectEntries */ (async function* (/** @type Session */ session, /** @type JrefNode */ node) {
+/** @type typeof API.jrefObjectEntries */
+export const jrefObjectEntries = async function* (session, node) {
   for (const [key, valueNode] of jsonObjectEntries(node)) {
-    yield /** @type [string, JrefNode] */ ([key, await follow(session, valueNode)]);
+    yield [key, await follow(session, valueNode)];
   }
-});
+};
 
 // The same functions as the JSON ones, typed to take a node that isn't a
 // reference
-export const jrefObjectHas = /** @type typeof API.jrefObjectHas */ (jsonObjectHas);
-export const jrefObjectKeys = /** @type typeof API.jrefObjectKeys */ (jsonObjectKeys);
+/** @type typeof API.jrefObjectHas */
+export const jrefObjectHas = jsonObjectHas;
+/** @type typeof API.jrefObjectKeys */
+export const jrefObjectKeys = jsonObjectKeys;
 
-// eslint-disable-next-line @stylistic/no-extra-parens
-export const jrefValue = /** @type typeof API.jrefValue */ ((/** @type JrefNode */ node) => {
+/** @type typeof API.jrefValue */
+export const jrefValue = (node) => {
   if (node.jsonType === "object" || node.jsonType === "array") {
     throw Error("Can't get the value of a structured value.");
   }
 
   return /** @type never */ (jsonValue(node));
-});
+};
 
 /**
  * A reference's value, or the node if it isn't a reference. It uses the
@@ -53,12 +58,16 @@ export const jrefValue = /** @type typeof API.jrefValue */ ((/** @type JrefNode 
  * an application's would be. `get` follows a reference to another reference
  * too.
  *
- * @type (session: Session, node: JrefNode) => Promise<JrefNode>
+ * @template {JsonNode<{ type: string }>} T
+ * @param {Session<T>} session
+ * @param {JsonMemberValue<FollowedNode<T>>} node
+ * @returns {Promise<FollowedNode<T>>}
  */
 const follow = async (session, node) => {
-  if (node.type === "reference") {
-    return session.get(node.href, { referencedFrom: toAbsoluteIri(node.location) });
+  const jrefNode = /** @type JrefNode */ (node);
+  if (jrefNode.type === "reference") {
+    return session.get(jrefNode.href, { referencedFrom: toAbsoluteIri(jrefNode.location) });
   } else {
-    return node;
+    return /** @type FollowedNode<T> */ (node);
   }
 };
