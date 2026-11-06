@@ -19,17 +19,19 @@ import { appendToLocation } from "./location.js";
  * @import * as API from "./jsonast-util.d.ts"
  */
 
-/** @type API.fromJson */
+/** @type typeof API.fromJson */
 export const fromJson = (json, location = "", options = {}) => {
   return parseJson(json, location, options);
 };
 
-/** @type API.hasStatus */
-export const hasStatus = (document, ...statuses) => {
+// A function's return type isn't inferred as a type predicate, so the
+// function is cast to the declared type rather than annotated with it.
+// eslint-disable-next-line @stylistic/no-extra-parens
+export const hasStatus = /** @type typeof API.hasStatus */ ((document, ...statuses) => {
   return /** @type string[] */ (statuses).includes(document.status);
-};
+});
 
-/** @type API.fromJs */
+/** @type typeof API.fromJs */
 export const fromJs = (js, location = "#") => {
   switch (typeof js) {
     case "boolean":
@@ -111,7 +113,7 @@ export const fromJs = (js, location = "#") => {
   }
 };
 
-/** @type API.toJson */
+/** @type typeof API.toJson */
 export const toJson = (node, options = {}) => {
   const valueNode = presentValue(node);
   return valueNode ? stringifyValue(valueNode, options.space ?? "", 1) : "";
@@ -120,7 +122,7 @@ export const toJson = (node, options = {}) => {
 // RFC 6901: array-index = %x30 / ( %x31-39 *(%x30-39) )
 const arrayIndexPattern = /^(?:0|[1-9][0-9]*)$/;
 
-/** @type API.jsonStep */
+/** @type typeof API.jsonStep */
 export const jsonStep = (key, node) => {
   switch (node.jsonType) {
     case "object": {
@@ -161,7 +163,7 @@ export const jsonStep = (key, node) => {
 /** @type (segment: string, node: { location: string }) => string */
 const stepLocation = (segment, node) => relativeFileUri(appendToLocation(segment, node.location));
 
-/** @type API.jsonPointerGet */
+/** @type typeof API.jsonPointerGet */
 export const jsonPointerGet = (pointer, tree) => {
   let parent = tree;
   let parentSegment;
@@ -184,7 +186,7 @@ export const jsonPointerGet = (pointer, tree) => {
 };
 
 // eslint-disable-next-line @stylistic/no-extra-parens
-export const jsonValue = /** @type API.jsonValue */ ((/** @type JsonNode<unknown, JsonErrorNode> */ node) => {
+export const jsonValue = /** @type typeof API.jsonValue */ ((/** @type JsonNode<unknown, JsonErrorNode> */ node) => {
   switch (node.jsonType) {
     case "array":
       return node.children.map((itemNode) => isErrorNode(itemNode) ? null : jsonValue(itemNode));
@@ -206,7 +208,7 @@ export const jsonValue = /** @type API.jsonValue */ ((/** @type JsonNode<unknown
   }
 });
 
-/** @type API.jsonObjectHas */
+/** @type typeof API.jsonObjectHas */
 export const jsonObjectHas = (key, node) => {
   if (node.jsonType === "object") {
     for (const [keyNode] of propertyEntries(node.children)) {
@@ -219,7 +221,7 @@ export const jsonObjectHas = (key, node) => {
   return false;
 };
 
-/** @type API.jsonArrayIter */
+/** @type typeof API.jsonArrayIter */
 export const jsonArrayIter = function* (node) {
   if (node.jsonType === "array") {
     for (const itemNode of node.children) {
@@ -228,7 +230,7 @@ export const jsonArrayIter = function* (node) {
   }
 };
 
-/** @type API.jsonObjectKeys */
+/** @type typeof API.jsonObjectKeys */
 export const jsonObjectKeys = function* (node) {
   if (node.jsonType === "object") {
     for (const [keyNode] of propertyEntries(node.children)) {
@@ -237,7 +239,7 @@ export const jsonObjectKeys = function* (node) {
   }
 };
 
-/** @type API.jsonObjectValues */
+/** @type typeof API.jsonObjectValues */
 export const jsonObjectValues = function* (node) {
   if (node.jsonType === "object") {
     for (const [, valueNode] of propertyEntries(node.children)) {
@@ -246,7 +248,7 @@ export const jsonObjectValues = function* (node) {
   }
 };
 
-/** @type API.jsonObjectEntries */
+/** @type typeof API.jsonObjectEntries */
 export const jsonObjectEntries = function* (node) {
   if (node.jsonType === "object") {
     for (const [keyNode, valueNode] of propertyEntries(node.children)) {
@@ -360,7 +362,10 @@ const unescapePointerSegment = (segment) => segment.toString()
   .replace(/~1/g, "/")
   .replace(/~0/g, "~");
 
-/** @type (node: JsonNode<unknown, JsonErrorNode> | JsonErrorNode) => node is JsonErrorNode */
+/**
+ * @param {JsonNode<unknown, JsonErrorNode> | JsonErrorNode} node
+ * @returns {node is JsonErrorNode}
+ */
 const isErrorNode = (node) => node.type === "json-missing" || node.type === "json-invalid";
 
 /**

@@ -8,26 +8,26 @@ import { jsonArrayIter, jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonOb
  */
 
 // eslint-disable-next-line @stylistic/no-extra-parens
-export const jrefStep = /** @type API.jrefStep */ (async (/** @type Session */ session, /** @type string */ key, /** @type JrefNode */ node) => {
+export const jrefStep = /** @type typeof API.jrefStep */ (async (/** @type Session */ session, /** @type string */ key, /** @type JrefNode */ node) => {
   return follow(session, jsonStep(key, node));
 });
 
 // eslint-disable-next-line @stylistic/no-extra-parens
-export const jrefArrayIter = /** @type API.jrefArrayIter */ (async function* (/** @type Session */ session, /** @type JrefNode */ node) {
+export const jrefArrayIter = /** @type typeof API.jrefArrayIter */ (async function* (/** @type Session */ session, /** @type JrefNode */ node) {
   for (const itemNode of jsonArrayIter(node)) {
     yield follow(session, itemNode);
   }
 });
 
 // eslint-disable-next-line @stylistic/no-extra-parens
-export const jrefObjectValues = /** @type API.jrefObjectValues */ (async function* (/** @type Session */ session, /** @type JrefNode */ node) {
+export const jrefObjectValues = /** @type typeof API.jrefObjectValues */ (async function* (/** @type Session */ session, /** @type JrefNode */ node) {
   for (const valueNode of jsonObjectValues(node)) {
     yield follow(session, valueNode);
   }
 });
 
 // eslint-disable-next-line @stylistic/no-extra-parens
-export const jrefObjectEntries = /** @type API.jrefObjectEntries */ (async function* (/** @type Session */ session, /** @type JrefNode */ node) {
+export const jrefObjectEntries = /** @type typeof API.jrefObjectEntries */ (async function* (/** @type Session */ session, /** @type JrefNode */ node) {
   for (const [key, valueNode] of jsonObjectEntries(node)) {
     yield /** @type [string, JrefNode] */ ([key, await follow(session, valueNode)]);
   }
@@ -35,11 +35,11 @@ export const jrefObjectEntries = /** @type API.jrefObjectEntries */ (async funct
 
 // The same functions as the JSON ones, typed to take a node that isn't a
 // reference
-export const jrefObjectHas = /** @type API.jrefObjectHas */ (jsonObjectHas);
-export const jrefObjectKeys = /** @type API.jrefObjectKeys */ (jsonObjectKeys);
+export const jrefObjectHas = /** @type typeof API.jrefObjectHas */ (jsonObjectHas);
+export const jrefObjectKeys = /** @type typeof API.jrefObjectKeys */ (jsonObjectKeys);
 
 // eslint-disable-next-line @stylistic/no-extra-parens
-export const jrefValue = /** @type API.jrefValue */ ((/** @type JrefNode */ node) => {
+export const jrefValue = /** @type typeof API.jrefValue */ ((/** @type JrefNode */ node) => {
   if (node.jsonType === "object" || node.jsonType === "array") {
     throw Error("Can't get the value of a structured value.");
   }

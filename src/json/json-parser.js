@@ -72,7 +72,7 @@ const NUMBER = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?$/;
 /** @type Set<JsonTokenKind> */
 const KEY_STARTS = new Set(["string", "number", "true", "false", "null", "unknown"]);
 
-/** @type API.jsonSyntaxErrorMessage */
+/** @type typeof API.jsonSyntaxErrorMessage */
 export const jsonSyntaxErrorMessage = (error) => MESSAGES[error.ruleId](error.actual);
 
 /**

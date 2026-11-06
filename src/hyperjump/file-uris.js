@@ -5,7 +5,7 @@ import { contextUri } from "#context-uri";
  * @import * as API from "./file-uris.d.ts"
  */
 
-/** @type API.relativeFileUri */
+/** @type typeof API.relativeFileUri */
 export const relativeFileUri = (uri) => {
   // It can be anything else, like a location that's only a fragment
   if (!/^file:/i.test(uri)) {

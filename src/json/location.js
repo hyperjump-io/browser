@@ -14,7 +14,7 @@ const encodedSegments = new Map();
 const maxCachedSegments = 10_000;
 const maxCachedSegmentLength = 100;
 
-/** @type API.appendToLocation */
+/** @type typeof API.appendToLocation */
 export const appendToLocation = (segment, location) => {
   let encoded = encodedSegments.get(segment);
   if (encoded === undefined) {

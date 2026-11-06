@@ -5,7 +5,7 @@ import { toJson } from "./jsonast-util.js";
  * @import * as API from "./rejson-stringify.d.ts"
  */
 
-/** @type API.rejsonStringify */
+/** @type typeof API.rejsonStringify */
 export function rejsonStringify(options) {
   this.compiler = (tree) => {
     return toJson(/** @type JsonDocumentNode */ (tree).children[0], options) + "\n";

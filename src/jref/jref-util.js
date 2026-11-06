@@ -7,9 +7,9 @@ import { fromJson, hasStatus as jsonHasStatus } from "../json/jsonast-util.js";
  */
 
 // eslint-disable-next-line @stylistic/no-extra-parens
-export const hasStatus = /** @type API.hasStatus */ (jsonHasStatus);
+export const hasStatus = /** @type typeof API.hasStatus */ (jsonHasStatus);
 
-/** @type API.fromJref */
+/** @type typeof API.fromJref */
 export const fromJref = (jref, uri, options = {}) => {
   const result = fromJson(jref, uri, options);
   annotateReferences(result.node, uri);
