@@ -110,6 +110,41 @@ describe("JSON Browser", () => {
       ]);
     });
 
+    test("a reference is given to an overridden getDocument as it's written", async () => {
+      /** @type {{ uri: string; referencedFrom?: string }[]} */
+      const lookups = [];
+
+      class TestSession extends Session {
+        /**
+         * @param {string} uri
+         * @param {GetOptions} [options]
+         */
+        async getDocument(uri, options) {
+          lookups.push({ uri, referencedFrom: options?.referencedFrom });
+          if (uri === "URN:test:foo") {
+            const node = /** @type JrefNode */ (fromJref(`{ "$ref": "" }`, "URN:test:foo").node);
+            // A media type plugin can resolve references without normalizing
+            // them, like JSON Schema's does
+            Object.assign(node, { href: "HTTPS://Example.com/bar#/bar" });
+            return { type: "jref-document", children: [node], uri: "URN:test:foo", mediaType: "application/reference+json" };
+          } else if (uri === "HTTPS://Example.com/bar#/bar") {
+            const node = /** @type JrefNode */ (fromJref(`{ "bar": 42 }`, "HTTPS://Example.com/bar").node);
+            return { type: "jref-document", children: [node], uri: "HTTPS://Example.com/bar", mediaType: "application/reference+json" };
+          }
+          return super.getDocument(uri, options);
+        }
+      }
+
+      const session = new TestSession(new Hyperjump({ allowRetrieval: [] }));
+      const subject = await session.get("URN:test:foo");
+
+      expect(toJson(subject)).to.equal(`42`);
+      expect(lookups).to.eql([
+        { uri: "URN:test:foo", referencedFrom: undefined },
+        { uri: "HTTPS://Example.com/bar#/bar", referencedFrom: "URN:test:foo" }
+      ]);
+    });
+
     test("follow fragment-only reference", async () => {
       const path = "/foo";
       const uri = `${testDomain}${path}`;

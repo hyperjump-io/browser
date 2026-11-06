@@ -7,6 +7,7 @@ import { jsonPointerGet } from "../json/jsonast-util.js";
 import { acceptHeader, fragmentPointer, mediaTypeByExtension, mediaTypePluginFor } from "./media-type-plugins.js";
 import { AllowedUrls, configSource, resolveAllowRetrieval, sessionSource } from "./allowed-urls.js";
 import { relativeFileUri } from "./file-uris.js";
+import { hasScheme, withoutFragment } from "./uri-parts.js";
 
 /**
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
@@ -189,7 +190,7 @@ export class Session {
    * @returns {Promise<FollowedNode>}
    */
   async #get(uri, options, referenceChain) {
-    uri = resolveIri(uri, this.#contextUri);
+    uri = this.#resolve(uri);
     if (referenceChain.includes(uri)) {
       throw new ReferenceCycleError([...referenceChain, uri]);
     }
@@ -202,13 +203,30 @@ export class Session {
     const cursor = fragment === undefined ? "" : this.#hyperjump.fragmentPointer(document, fragment);
     const node = jsonPointerGet(cursor, document.children[0]);
     if (node.type === "reference") {
-      return this.#get(node.href, { referencedFrom: toAbsoluteIri(node.location) }, referenceChain);
+      return this.#get(node.href, { referencedFrom: withoutFragment(node.location) }, referenceChain);
     } else {
       return node;
     }
   }
 
-  /** @type API.Session<JrefNode>["getDocument"] */
+  /**
+   * A relative URI is resolved against the session's context URI. An
+   * absolute one is kept as it's written, so a `getDocument` override finds
+   * it that way. A media type plugin has already resolved a reference when
+   * it parsed it, so a reference that's followed is never resolved again.
+   *
+   * @type (uri: string) => string
+   */
+  #resolve(uri) {
+    return hasScheme(uri) ? uri : resolveIri(uri, this.#contextUri);
+  }
+
+  /**
+   * The document is cached and retrieved by its URI resolved and without
+   * its fragment, after an override has looked for the URI as it's written.
+   *
+   * @type API.Session<JrefNode>["getDocument"]
+   */
   async getDocument(uri, options = {}) {
     uri = resolveIri(uri, this.#contextUri);
     const id = toAbsoluteIri(uri);

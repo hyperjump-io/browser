@@ -166,6 +166,16 @@ Applications build on `Hyperjump` and `Session` by subclassing them.
     (`findDocument(uri, options, next)`) was rejected. It's the override
     passed as a function, and it takes nothing away: a subclass still
     adds its own methods.
+- An override gets a URI as it's written. `get` resolves only a relative
+  URI against the context URI. A reference it follows isn't resolved
+  again, because the media type plugin resolved it when it parsed the
+  document. `referencedFrom` is the referencing node's location up to its
+  fragment. The session's own `getDocument` resolves the URI it's given,
+  and caches and retrieves the document by that.
+  - Resolving every URI in `get` was rejected. Resolving normalizes, so
+    an override that finds documents by identifiers as their documents
+    write them, like one with an uppercase host, would miss them. It's
+    also work the media type plugin already did.
 - A media type plugin's `parse` gets the session the document is being
   retrieved in, so a media type that needs other resources to parse a
   document retrieves them in the same session.
