@@ -179,6 +179,19 @@ describe("JSON Browser", () => {
         const document = await hyperjump.session().getDocument("foo:something#/foo");
         expect(document.uri).to.equal("foo:something");
       });
+
+      test("a response without a URL gets the URI without its dot segments", async () => {
+        const hyperjump = new Hyperjump({
+          allowRetrieval: ["foo:/"],
+          uriSchemePlugins: [{
+            schemes: ["foo"],
+            retrieve: async () => new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } })
+          }]
+        });
+
+        const document = await hyperjump.session().getDocument("foo:/a/./b/../c");
+        expect(document.uri).to.equal("foo:/a/c");
+      });
     });
 
     describe("redirects", () => {
