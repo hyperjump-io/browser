@@ -1,6 +1,10 @@
 import { realUrl } from "#real-url";
 
 /**
+ * @import { AbsoluteIri } from "@hyperjump/uri"
+ */
+
+/**
  * Where a session's `allowRetrieval` came from, said the way an error says
  * where to change it: `in the ${source}`, `Use the ${source}`.
  */
@@ -9,10 +13,10 @@ export const sessionSource = "session's 'allowRetrieval' option";
 
 /**
  * Resolve `allowRetrieval` entries against the context URI. One that isn't a
- * URL, or is relative where there's no context URI (`""`), such as in a
- * worker, throws, and the error says where the list came from (`source`).
+ * URL, or is relative where there's no context URI, such as in a worker,
+ * throws, and the error says where the list came from (`source`).
  *
- * @type (allowRetrieval: string[], contextUri: string, source: string) => string[]
+ * @type (allowRetrieval: string[], contextUri: AbsoluteIri | undefined, source: string) => string[]
  */
 export const resolveAllowRetrieval = (allowRetrieval, contextUri, source) => {
   return allowRetrieval.map((entry) => {
@@ -20,7 +24,7 @@ export const resolveAllowRetrieval = (allowRetrieval, contextUri, source) => {
     try {
       url = new URL(entry);
     } catch {
-      if (contextUri === "") {
+      if (contextUri === undefined) {
         throw Error(`'${entry}' in the ${source} is relative, and there's nothing to resolve it against here. Use an absolute URL.`);
       }
 
@@ -52,7 +56,7 @@ export class AllowedUrls {
   /** @type string[] | undefined */
   #entries;
 
-  /** @type string */
+  /** @type AbsoluteIri | undefined */
   #contextUri;
 
   /** @type Promise<string[]> | undefined */
@@ -60,7 +64,7 @@ export class AllowedUrls {
 
   /**
    * @param {string[] | undefined} entries - Resolved entries. Without them, it's the default.
-   * @param {string} contextUri - What the default is resolved against
+   * @param {AbsoluteIri | undefined} contextUri - What the default is resolved against
    */
   constructor(entries, contextUri) {
     this.#entries = entries;
@@ -80,10 +84,10 @@ export class AllowedUrls {
  * The default is relative, so without a context URI the application has to
  * configure a list of absolute URLs
  *
- * @type (contextUri: string) => string[]
+ * @type (contextUri: AbsoluteIri | undefined) => string[]
  */
 const resolveDefault = (contextUri) => {
-  if (contextUri === "") {
+  if (contextUri === undefined) {
     throw Error(`The default 'allowRetrieval' is '${defaultAllowRetrieval.join("', '")}', which is relative, and there's nothing to resolve it against here. Use the ${configSource} with absolute URLs.`);
   }
 

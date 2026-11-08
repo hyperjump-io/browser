@@ -6,9 +6,11 @@ import { pathToFileURL } from "node:url";
 import { describe, test, beforeAll, afterAll, expect } from "vitest";
 import { FileNotFoundError, Hyperjump, RetrievalError, RetrievalNotAllowedError } from "./index.js";
 import { AllowedUrls, configSource, resolveAllowRetrieval } from "./allowed-urls.js";
+import { contextUri } from "#context-uri";
 import { toJson } from "../json/jsonast-util.js";
 
 /**
+ * @import { AbsoluteIri } from "@hyperjump/uri"
  * @import { HyperjumpConfig, UriSchemePlugin } from "./index.js"
  */
 
@@ -112,7 +114,7 @@ describe("allowRetrieval", () => {
     });
 
     test("an origin without a '/' allows everything on it", async () => {
-      const allowed = new AllowedUrls(resolveAllowRetrieval(["https://example.com"], "", configSource), "");
+      const allowed = new AllowedUrls(resolveAllowRetrieval(["https://example.com"], undefined, configSource), undefined);
       expect(await allowed.allows("https://example.com/foo/bar")).to.equal(true);
       expect(await allowed.allows("https://other.example.com/foo")).to.equal(false);
     });
@@ -215,22 +217,22 @@ describe("allowRetrieval", () => {
 
   describe("against a page, or nothing", () => {
     test("the default is the page's directory", async () => {
-      const allowed = new AllowedUrls(undefined, "https://example.com/app/index.html");
+      const allowed = new AllowedUrls(undefined, /** @type AbsoluteIri */ ("https://example.com/app/index.html"));
       expect(await allowed.allows("https://example.com/app/document")).to.equal(true);
       expect(await allowed.allows("https://example.com/document")).to.equal(false);
       expect(await allowed.allows("https://other.example.com/app/document")).to.equal(false);
     });
 
     test("a relative entry without a page throws", () => {
-      expect(() => resolveAllowRetrieval(["./documents/"], "", configSource)).to.throw("'./documents/' in the 'allowRetrieval' config is relative");
+      expect(() => resolveAllowRetrieval(["./documents/"], undefined, configSource)).to.throw("'./documents/' in the 'allowRetrieval' config is relative");
     });
 
     test("an absolute entry without a page is fine", () => {
-      expect(resolveAllowRetrieval(["https://example.com/documents/"], "", configSource)).to.eql(["https://example.com/documents/"]);
+      expect(resolveAllowRetrieval(["https://example.com/documents/"], undefined, configSource)).to.eql(["https://example.com/documents/"]);
     });
 
     test("the default without a page throws when it's checked, not before", async () => {
-      const allowed = new AllowedUrls(undefined, "");
+      const allowed = new AllowedUrls(undefined, undefined);
       await expect(allowed.allows("https://example.com/document")).rejects.toThrow("The default 'allowRetrieval' is './', which is relative, and there's nothing to resolve it against here. Use the 'allowRetrieval' config with absolute URLs.");
     });
   });
@@ -241,7 +243,7 @@ describe("the working directory's entry", () => {
   let allowed;
 
   beforeAll(() => {
-    allowed = new AllowedUrls(resolveAllowRetrieval(["./"], directoryUri(cwd()), configSource), directoryUri(cwd()));
+    allowed = new AllowedUrls(resolveAllowRetrieval(["./"], contextUri(), configSource), contextUri());
   });
 
   test("a sibling directory whose name starts with the working directory's isn't in it", async () => {

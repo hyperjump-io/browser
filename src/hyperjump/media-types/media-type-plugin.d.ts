@@ -1,3 +1,4 @@
+import type { AbsoluteIri } from "@hyperjump/uri";
 import type { JrefNode } from "../../jref/jref-ast.js";
 import type { Session } from "../hyperjump.d.ts";
 
@@ -7,7 +8,7 @@ import type { Session } from "../hyperjump.d.ts";
 export type DocumentNode<T = JrefNode> = {
   type: string;
   children: T[];
-  uri?: string;
+  uri?: AbsoluteIri;
   /**
    * The media type that defines what its fragments identify. It's the media
    * type of the plugin that parsed it, unless the plugin set another one,
@@ -16,6 +17,12 @@ export type DocumentNode<T = JrefNode> = {
    */
   mediaType?: string;
 };
+
+/**
+ * The response a media type plugin parses. The session made its `url` an
+ * IRI, without a fragment, so it can be a document's `uri`.
+ */
+export type RetrievedResponse = Response & { readonly url: AbsoluteIri };
 
 export interface MediaTypePlugin<T extends DocumentNode<unknown>> {
   mediaType: string;
@@ -37,7 +44,7 @@ export interface MediaTypePlugin<T extends DocumentNode<unknown>> {
    * media type that needs other resources to parse a document, such as a
    * schema's meta-schema, retrieves them in this session.
    */
-  parse(response: Response, session: Session<any>): Promise<T>;
+  parse(response: RetrievedResponse, session: Session<any>): Promise<T>;
 
   /**
    * The JSON Pointer to the node a fragment identifies. The fragment is

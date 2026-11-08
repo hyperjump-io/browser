@@ -4,7 +4,8 @@ import { mediaTypeByExtension, mediaTypePluginFor } from "./media-type-plugins.j
 import { fromJs } from "../json/jsonast-util.js";
 
 /**
- * @import { DocumentNode, HyperjumpConfig, MediaTypePlugin } from "./index.js"
+ * @import { AbsoluteIri } from "@hyperjump/uri"
+ * @import { DocumentNode, HyperjumpConfig, MediaTypePlugin, RetrievedResponse } from "./index.js"
  */
 
 describe("JSON Browser", () => {
@@ -132,7 +133,7 @@ describe("JSON Browser", () => {
         const jref = new JrefMediaTypePlugin();
         const { mediaTypePlugins } = new Hyperjump({ mediaTypePlugins: [jref] });
 
-        const [, plugin] = mediaTypePluginFor(mediaTypePlugins, "application/reference+json", "test:/foo");
+        const [, plugin] = mediaTypePluginFor(mediaTypePlugins, "application/reference+json", /** @type AbsoluteIri */ ("test:/foo"));
         expect(plugin).to.equal(jref);
       });
 
@@ -156,6 +157,20 @@ describe("JSON Browser", () => {
         expect(pluginMediaType(config, "application/foo")).to.equal("application/foo");
       });
     });
+
+    describe("JRef plugin", () => {
+      test("a document with an invalid reference can't be used", async () => {
+        const response = new Response(`{ "$ref": "a b" }`);
+        Object.defineProperty(response, "url", { value: "https://example.com/main.jref" });
+
+        await expect(new JrefMediaTypePlugin().parse(/** @type RetrievedResponse */ (response))).rejects.toMatchObject({
+          reason: "'a b' is not a valid reference",
+          source: "jref",
+          ruleId: "invalid-reference",
+          fatal: true
+        });
+      });
+    });
   });
 });
 
@@ -175,6 +190,6 @@ const extensionMediaType = (config, uri) => {
  * @type (config: HyperjumpConfig, contentType: string | null) => string
  */
 const pluginMediaType = (config, contentType) => {
-  const [mediaType] = mediaTypePluginFor(new Hyperjump(config).mediaTypePlugins, contentType, "test:/foo");
+  const [mediaType] = mediaTypePluginFor(new Hyperjump(config).mediaTypePlugins, contentType, /** @type AbsoluteIri */ ("test:/foo"));
   return mediaType;
 };

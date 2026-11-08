@@ -9,6 +9,7 @@ import { UnsupportedMediaTypeError } from "./hyperjump.js";
  * configured, so they're tested without retrieving anything. They aren't
  * exported from the package.
  *
+ * @import { AbsoluteIri } from "@hyperjump/uri"
  * @import { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.d.ts"
  * @typedef {ReadonlyMap<string, MediaTypePlugin<DocumentNode>>} MediaTypePlugins
  */
@@ -66,7 +67,7 @@ export const mediaTypeByExtension = (mediaTypePlugins, uri) => {
  * and the media type it's keyed by. If there's a tie, the plugin that comes
  * first wins. `url` is where the response came from, for the error.
  *
- * @type (mediaTypePlugins: MediaTypePlugins, contentTypeText: string | null, url: string) => [string, MediaTypePlugin<DocumentNode>]
+ * @type (mediaTypePlugins: MediaTypePlugins, contentTypeText: string | null, url: AbsoluteIri) => [string, MediaTypePlugin<DocumentNode>]
  */
 export const mediaTypePluginFor = (mediaTypePlugins, contentTypeText, url) => {
   if (contentTypeText === null) {

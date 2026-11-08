@@ -1,3 +1,4 @@
+import type { Iri } from "@hyperjump/uri";
 import type { RetrieveOptions, UriSchemePlugin } from "./uri-scheme-plugin.d.ts";
 
 /**
@@ -15,5 +16,5 @@ import type { RetrieveOptions, UriSchemePlugin } from "./uri-scheme-plugin.d.ts"
 export class FileUriSchemePlugin implements UriSchemePlugin {
   constructor();
   schemes: string[];
-  retrieve(uri: string, options: RetrieveOptions): Promise<Response>;
+  retrieve(uri: Iri, options: RetrieveOptions): Promise<Response>;
 }

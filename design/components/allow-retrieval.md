@@ -27,13 +27,19 @@ local to it.
   `Hyperjump` was created with, and the `WeakMap` is one more thing to keep
   in sync. `allowed-urls.js` is given the context URI rather
   than reading it, so its tests give it a page or nothing instead of
-  mocking modules. Without a page, it's `""`, which counts as none.
+  mocking modules. Without a page, it's `undefined`.
   - Entries are resolved when the config or the session's options are
     given, so one that isn't a URL throws there. A relative entry where
     there's no context URI, such as in a worker, throws and says to use an
     absolute URL, instead of quietly allowing nothing. The default is
     resolved when a session first checks a URL, so an application without
     a context URI that never retrieves anything doesn't need the config.
+- Entries and the URLs checked against them are compared as WHATWG URLs,
+  inside `allowed-urls.js`, though the URL it's given is an IRI (see
+  [Identifiers are IRIs](../principles/identifiers-are-iris.md)). `new URL`
+  is what makes them comparable, with the same case, dot segments, and
+  ports. Comparing IRIs was rejected, because it would need
+  `normalizeIri` to do the same.
 - The default is `["./"]` everywhere: the working directory in Node.js, and
   the page's directory in a browser. Browsers can't read `file:` URLs
   anyway.

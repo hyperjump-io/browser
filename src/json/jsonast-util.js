@@ -1,3 +1,4 @@
+import { assertAbsoluteIri, assertIriReference } from "@hyperjump/uri";
 import { parseJson } from "./json-parser.js";
 
 export { jsonSyntaxErrorMessage } from "./json-parser.js";
@@ -16,11 +17,16 @@ import { appendToLocation } from "./location.js";
  *   JsonPropertyNode,
  *   ReadonlyJson
  * } from "./jsonast.js"
+ * @import { IriReference } from "@hyperjump/uri"
  * @import * as API from "./jsonast-util.d.ts"
  */
 
 /** @type typeof API.fromJson */
-export const fromJson = (json, location = "", options = {}) => {
+export const fromJson = (json, location, options = {}) => {
+  if (location !== undefined) {
+    assertAbsoluteIri(location);
+  }
+
   return parseJson(json, location, options);
 };
 
@@ -33,84 +39,8 @@ export const hasStatus = /** @type typeof API.hasStatus */ ((document, ...status
 
 /** @type typeof API.fromJs */
 export const fromJs = (js, location = "#") => {
-  switch (typeof js) {
-    case "boolean":
-      return {
-        type: "json",
-        jsonType: "boolean",
-        value: js,
-        location: location
-      };
-
-    case "number":
-      return {
-        type: "json",
-        jsonType: "number",
-        value: js,
-        location: location
-      };
-
-    case "string":
-      return {
-        type: "json",
-        jsonType: "string",
-        value: js,
-        location: location
-      };
-
-    case "object":
-      if (js === null) {
-        return {
-          type: "json",
-          jsonType: "null",
-          value: js,
-          location: location
-        };
-      }
-
-      if (Array.isArray(js)) {
-        return {
-          type: "json",
-          jsonType: "array",
-          // An index never needs escaping or encoding
-          children: js.map((item, index) => fromJs(item, `${location}/${index}`)),
-          location: location
-        };
-      }
-
-      if (Object.getPrototypeOf(js) === Object.prototype) {
-        // `Array.isArray` doesn't narrow out readonly arrays
-        const object = /** @type {{ readonly [property: string]: ReadonlyJson }} */ (js);
-        /** @type JsonPropertyNode<JsonNode>[] */
-        const properties = [];
-        for (const key in object) {
-          properties.push({
-            type: "json-property",
-            children: [
-              {
-                type: "json-property-name",
-                jsonType: "string",
-                value: key
-              },
-              fromJs(object[key], appendToLocation(key, location))
-            ]
-          });
-        }
-
-        return {
-          type: "json",
-          jsonType: "object",
-          children: properties,
-          location: location
-        };
-      }
-
-      const type = js.constructor?.name ?? "*anonymous*";
-      throw TypeError(`Not a JSON compatible type: ${type}`);
-
-    default:
-      throw TypeError(`Not a JSON compatible type: ${typeof js}`);
-  }
+  assertIriReference(location);
+  return jsToNode(js, location);
 };
 
 /** @type typeof API.toJson */
@@ -160,7 +90,7 @@ export const jsonStep = (key, node) => {
   }
 };
 
-/** @type (segment: string, node: { location: string }) => string */
+/** @type (segment: string, node: { location: IriReference }) => string */
 const stepLocation = (segment, node) => relativeFileUri(appendToLocation(segment, node.location));
 
 /** @type typeof API.jsonPointerGet */
@@ -382,5 +312,91 @@ const propertyEntries = function* (propertyNodes) {
   for (const propertyNode of propertyNodes) {
     const [keyNode, valueNode] = propertyNode.children;
     yield [keyNode, memberValue(valueNode)];
+  }
+};
+
+/**
+ * `fromJs` without checking its location, for each node it makes
+ *
+ * @type (js: ReadonlyJson, location: IriReference) => JsonNode
+ */
+const jsToNode = (js, location) => {
+  switch (typeof js) {
+    case "boolean":
+      return {
+        type: "json",
+        jsonType: "boolean",
+        value: js,
+        location: location
+      };
+
+    case "number":
+      return {
+        type: "json",
+        jsonType: "number",
+        value: js,
+        location: location
+      };
+
+    case "string":
+      return {
+        type: "json",
+        jsonType: "string",
+        value: js,
+        location: location
+      };
+
+    case "object":
+      if (js === null) {
+        return {
+          type: "json",
+          jsonType: "null",
+          value: js,
+          location: location
+        };
+      }
+
+      if (Array.isArray(js)) {
+        return {
+          type: "json",
+          jsonType: "array",
+          // An index never needs escaping or encoding
+          children: js.map((item, index) => jsToNode(item, /** @type IriReference */ (`${location}/${index}`))),
+          location: location
+        };
+      }
+
+      if (Object.getPrototypeOf(js) === Object.prototype) {
+        // `Array.isArray` doesn't narrow out readonly arrays
+        const object = /** @type {{ readonly [property: string]: ReadonlyJson }} */ (js);
+        /** @type JsonPropertyNode<JsonNode>[] */
+        const properties = [];
+        for (const key in object) {
+          properties.push({
+            type: "json-property",
+            children: [
+              {
+                type: "json-property-name",
+                jsonType: "string",
+                value: key
+              },
+              jsToNode(object[key], appendToLocation(key, location))
+            ]
+          });
+        }
+
+        return {
+          type: "json",
+          jsonType: "object",
+          children: properties,
+          location: location
+        };
+      }
+
+      const type = js.constructor?.name ?? "*anonymous*";
+      throw TypeError(`Not a JSON compatible type: ${type}`);
+
+    default:
+      throw TypeError(`Not a JSON compatible type: ${typeof js}`);
   }
 };

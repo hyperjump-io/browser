@@ -1,13 +1,19 @@
 import { VFileMessage } from "vfile-message";
-import { jsonSyntaxErrorMessage } from "./json-parser.js";
 
 /**
  * @import { Parser } from "unified"
+ * @import { Position } from "unist"
  * @import { JsonParseStatus } from "./jsonast.d.ts"
- * @import { JsonSyntaxError } from "./jsonast-util.d.ts"
  */
 
 /** @typedef {Parameters<Parser>[1]} VFile */
+
+/**
+ * A syntax error from any parser, like a `JsonSyntaxError`, which `message`
+ * describes for people
+ *
+ * @typedef {{ source: string, ruleId: string, place: Position, actual?: string }} ParserError
+ */
 
 /** @type Record<JsonParseStatus, number> */
 const STATUS_RANK = {
@@ -20,17 +26,17 @@ const STATUS_RANK = {
  * Add every syntax error to a file as a message. If the parse status is worse
  * than the accepted status, the first error fails the file.
  *
- * @type (file: VFile, errors: JsonSyntaxError[], status: JsonParseStatus, accept?: JsonParseStatus) => void
+ * @type <E extends ParserError>(file: VFile, errors: E[], message: (error: E) => string, status: JsonParseStatus, accept?: JsonParseStatus) => void
  */
-export const reportSyntaxErrors = (file, errors, status, accept = "success") => {
+export const reportSyntaxErrors = (file, errors, message, status, accept = "success") => {
   const fileMessages = withoutStackTraces(() => errors.map((error) => {
-    const message = file.message(jsonSyntaxErrorMessage(error), {
+    const fileMessage = file.message(message(error), {
       place: error.place,
       ruleId: error.ruleId,
       source: error.source
     });
-    message.actual = error.actual;
-    return message;
+    fileMessage.actual = error.actual;
+    return fileMessage;
   }));
 
   if (STATUS_RANK[status] > STATUS_RANK[accept]) {
@@ -42,17 +48,17 @@ export const reportSyntaxErrors = (file, errors, status, accept = "success") => 
 /**
  * A syntax error as a fatal message, to throw when a document can't be used
  *
- * @type (error: JsonSyntaxError) => VFileMessage
+ * @type <E extends ParserError>(error: E, message: (error: E) => string) => VFileMessage
  */
-export const fatalSyntaxError = (error) => withoutStackTraces(() => {
-  const message = new VFileMessage(jsonSyntaxErrorMessage(error), {
+export const fatalSyntaxError = (error, message) => withoutStackTraces(() => {
+  const fileMessage = new VFileMessage(message(error), {
     place: error.place,
     ruleId: error.ruleId,
     source: error.source
   });
-  message.actual = error.actual;
-  message.fatal = true;
-  return message;
+  fileMessage.actual = error.actual;
+  fileMessage.fatal = true;
+  return fileMessage;
 });
 
 /**

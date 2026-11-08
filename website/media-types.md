@@ -29,11 +29,12 @@ YAML and passes the result to the JRef parser:
 import {
   fromJref,
   Hyperjump,
-  jsonSyntaxErrorMessage
+  jrefSyntaxErrorMessage
 } from "@hyperjump/browser";
 import type {
   JrefMediaTypeDocument,
-  MediaTypePlugin
+  MediaTypePlugin,
+  RetrievedResponse
 } from "@hyperjump/browser";
 import YAML from "yaml";
 
@@ -43,11 +44,11 @@ class YrefMediaTypePlugin implements MediaTypePlugin<YrefDocument> {
   mediaType = "application/reference+yaml";
   extensions = [".yref"];
 
-  async parse(response: Response): Promise<YrefDocument> {
+  async parse(response: RetrievedResponse): Promise<YrefDocument> {
     const json = JSON.stringify(YAML.parse(await response.text()));
     const result = fromJref(json, response.url);
     if (result.status !== "success") {
-      throw Error(jsonSyntaxErrorMessage(result.errors[0]));
+      throw Error(jrefSyntaxErrorMessage(result.errors[0]));
     }
 
     return {
@@ -76,9 +77,13 @@ A plugin has these properties:
 | --- | --- |
 | `mediaType` | The media type it parses |
 | `extensions` | File extensions for it, such as `.yref`. A name that starts with `/` is a whole filename, such as `/.bowerrc`. |
-| `parse(response, session)` | Parses a `Response` into a document node. If parsing needs other documents, retrieve them with `session`. Throw if the document isn't valid. |
+| `parse(response, session)` | Parses a `RetrievedResponse` into a document node. If parsing needs other documents, retrieve them with `session`. Throw if the document isn't valid. |
 | `fragmentPointer(document, fragment)` | Returns the JSON Pointer a fragment identifies. Without it, the session ignores fragments. |
 | `quality` | Optional. Its quality in the `Accept` header, a number from 0 to 1 with at most three decimal places. The `Hyperjump` constructor throws for any other value. |
+
+A `RetrievedResponse` is a `Response` whose `url` the session made an IRI,
+so a plugin can use it as the document's `uri` and as the base URI it
+resolves references against.
 
 A plugin is a `MediaTypePlugin<D>`, where `D` is the type of the document node
 it parses. A `Hyperjump` can only browse documents made of JRef nodes. This

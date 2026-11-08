@@ -1,4 +1,4 @@
-import { fromJson } from "./jsonast-util.js";
+import { fromJson, jsonSyntaxErrorMessage } from "./jsonast-util.js";
 import { reportSyntaxErrors } from "./report-syntax-errors.js";
 
 /**
@@ -10,7 +10,7 @@ import { reportSyntaxErrors } from "./report-syntax-errors.js";
 export function rejsonParse(options) {
   this.parser = function (document, file) {
     const { status, node, errors, comments } = fromJson(document, options?.location, options);
-    reportSyntaxErrors(file, errors, status, options?.accept);
+    reportSyntaxErrors(file, errors, jsonSyntaxErrorMessage, status, options?.accept);
 
     /** @type JsonDocumentNode */
     const tree = {

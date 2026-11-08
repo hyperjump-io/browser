@@ -1,3 +1,4 @@
+import type { Iri } from "@hyperjump/uri";
 import type { relativeFileUri } from "./file-uris.d.ts";
 import type { JsonNode } from "../json/jsonast.d.ts";
 import type { JrefNode } from "../jref/jref-ast.d.ts";
@@ -155,6 +156,8 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    * `mediaTypePlugins` config ({@link HyperjumpConfig}) to add support for
    * additional media types.
    *
+   * @throws An `InvalidIriError` if `uri` isn't an IRI-reference, or
+   * `referencedFrom` isn't an IRI.
    * @throws A {@link RetrievalNotAllowedError} if `allowRetrieval` refuses
    * the document's URL.
    * @throws A {@link RetrievalError} if a document can't be retrieved or
@@ -176,6 +179,8 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    * the ones it follows references to, so a subclass can override it to find
    * documents somewhere other than the session or a URI scheme plugin.
    *
+   * @throws An `InvalidIriError` if `uri` isn't an IRI-reference, or
+   * `referencedFrom` isn't an IRI.
    * @throws A {@link RetrievalError} if the document can't be retrieved or
    * parsed. The cause is the error that prevented it.
    */
@@ -188,9 +193,9 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
  */
 export class RetrievalError extends Error {
   /** The URL that couldn't be retrieved */
-  uri: string;
+  uri: Iri;
 
-  constructor(uri: string, options: { cause: unknown });
+  constructor(uri: Iri, options: { cause: unknown });
 }
 
 /**
@@ -201,9 +206,9 @@ export class RetrievalError extends Error {
  */
 export class FileNotFoundError extends Error {
   /** The URL of the file */
-  uri: string;
+  uri: Iri;
 
-  constructor(uri: string);
+  constructor(uri: Iri);
 }
 
 /**
@@ -214,13 +219,13 @@ export class FileNotFoundError extends Error {
  */
 export class RetrievalNotAllowedError extends Error {
   /** The URL that was refused. For a redirect, it's where it led. */
-  uri: string;
+  uri: Iri;
 
   /**
    * The message says which list to change, the config's or a session's
    * own, so it's given rather than made from the URL.
    */
-  constructor(uri: string, message: string);
+  constructor(uri: Iri, message: string);
 }
 
 /**
@@ -228,9 +233,9 @@ export class RetrievalNotAllowedError extends Error {
  * followed, so the references never resolve to a value.
  */
 export class ReferenceCycleError extends Error {
-  referenceChain: string[];
+  referenceChain: Iri[];
 
-  constructor(referenceChain: string[]);
+  constructor(referenceChain: Iri[]);
 }
 
 export class UnsupportedUriSchemeError extends Error {

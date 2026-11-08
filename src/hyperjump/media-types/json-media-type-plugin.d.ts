@@ -1,5 +1,5 @@
 import type { JsonDocumentNode } from "../../json/jsonast.d.ts";
-import type { MediaTypePlugin } from "./media-type-plugin.d.ts";
+import type { MediaTypePlugin, RetrievedResponse } from "./media-type-plugin.d.ts";
 
 /**
  * Documents are only produced for valid JSON, so their status is always
@@ -18,7 +18,7 @@ export class JsonMediaTypePlugin implements MediaTypePlugin<JsonMediaTypeDocumen
   mediaType: string;
   extensions: string[];
   quality?: number;
-  parse(response: Response): Promise<JsonMediaTypeDocument>;
+  parse(response: RetrievedResponse): Promise<JsonMediaTypeDocument>;
 }
 
 export type JsonMediaTypePluginOptions = {

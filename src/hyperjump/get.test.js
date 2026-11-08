@@ -1,10 +1,12 @@
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
+import { InvalidIriError } from "@hyperjump/uri";
 import { Hyperjump, jrefStep, ReferenceCycleError, Session } from "./index.js";
 import { toJson } from "../json/jsonast-util.js";
 import { fromJref } from "../jref/jref-util.js";
 
 /**
+ * @import { AbsoluteIri } from "@hyperjump/uri"
  * @import { GetOptions } from "./index.js"
  * @import { JrefNode } from "../jref/jref-ast.js"
  */
@@ -77,6 +79,46 @@ describe("JSON Browser", () => {
       expect(subject.children[0].jsonType === "object" && subject.children[0].children[0].children[1]).to.equal(node);
     });
 
+    test("a URI that isn't an IRI-reference throws", async () => {
+      const session = new Hyperjump().session();
+      await expect(session.get("a b")).rejects.toBeInstanceOf(InvalidIriError);
+    });
+
+    test("getDocument checks its URI too", async () => {
+      const session = new Hyperjump().session();
+      await expect(session.getDocument("a b")).rejects.toBeInstanceOf(InvalidIriError);
+    });
+
+    test.each([
+      ["isn't an IRI", "https://example.com/a b"],
+      ["is relative", "doc.jref"]
+    ])("a referencedFrom that %s throws", async (_description, referencedFrom) => {
+      const session = new Hyperjump().session();
+
+      await expect(session.get(`${testDomain}/foo`, { referencedFrom })).rejects.toBeInstanceOf(InvalidIriError);
+      await expect(session.getDocument(`${testDomain}/foo`, { referencedFrom })).rejects.toBeInstanceOf(InvalidIriError);
+    });
+
+    test("equivalent URIs are one document", async () => {
+      let retrievals = 0;
+      const hyperjump = new Hyperjump({
+        allowRetrieval: ["https://example.com/"],
+        uriSchemePlugins: [{
+          schemes: ["https"],
+          retrieve: async () => {
+            retrievals++;
+            return new Response(`{ "foo": 42 }`, { headers: { "Content-Type": "application/reference+json" } });
+          }
+        }]
+      });
+      const session = hyperjump.session();
+
+      const document = await session.getDocument("https://example.com/a");
+      expect(await session.getDocument("HTTPS://Example.com:443/a")).to.equal(document);
+      expect(await session.getDocument("https://example.com/b/../a#/foo")).to.equal(document);
+      expect(retrievals).to.equal(1);
+    });
+
     test("references are followed through an overridden getDocument", async () => {
       mockAgent.get(testDomain)
         .intercept({ method: "GET", path: "/foo" })
@@ -94,7 +136,7 @@ describe("JSON Browser", () => {
           lookups.push({ uri, referencedFrom: options?.referencedFrom });
           if (uri === `${testDomain}/bar#/bar`) {
             const node = /** @type JrefNode */ (fromJref(`{ "bar": 42 }`, `${testDomain}/bar`).node);
-            return { type: "jref-document", children: [node], uri: `${testDomain}/bar`, mediaType: "application/reference+json" };
+            return { type: "jref-document", children: [node], uri: /** @type AbsoluteIri */ (`${testDomain}/bar`), mediaType: "application/reference+json" };
           }
           return super.getDocument(uri, options);
         }
@@ -107,6 +149,36 @@ describe("JSON Browser", () => {
       expect(lookups).to.eql([
         { uri: `${testDomain}/foo`, referencedFrom: undefined },
         { uri: `${testDomain}/bar#/bar`, referencedFrom: `${testDomain}/foo` }
+      ]);
+    });
+
+    test("a reference in a document without a URI has no referencedFrom", async () => {
+      /** @type {{ uri: string; referencedFrom?: string }[]} */
+      const lookups = [];
+
+      class TestSession extends Session {
+        /**
+         * @param {string} uri
+         * @param {GetOptions} [options]
+         */
+        async getDocument(uri, options) {
+          lookups.push({ uri, referencedFrom: options?.referencedFrom });
+          if (uri === "urn:test:main") {
+            // Without a URI, locations are only fragments
+            const node = /** @type JrefNode */ (fromJref(`{ "$ref": "urn:test:other" }`).node);
+            return { type: "jref-document", children: [node], mediaType: "application/reference+json" };
+          }
+          const node = /** @type JrefNode */ (fromJref(`42`, "urn:test:other").node);
+          return { type: "jref-document", children: [node], uri: /** @type AbsoluteIri */ ("urn:test:other"), mediaType: "application/reference+json" };
+        }
+      }
+
+      const subject = await new TestSession(new Hyperjump()).get("urn:test:main");
+
+      expect(toJson(subject)).to.equal(`42`);
+      expect(lookups).to.eql([
+        { uri: "urn:test:main", referencedFrom: undefined },
+        { uri: "urn:test:other", referencedFrom: undefined }
       ]);
     });
 
@@ -126,10 +198,10 @@ describe("JSON Browser", () => {
             // A media type plugin can resolve references without normalizing
             // them, like JSON Schema's does
             Object.assign(node, { href: "HTTPS://Example.com/bar#/bar" });
-            return { type: "jref-document", children: [node], uri: "URN:test:foo", mediaType: "application/reference+json" };
+            return { type: "jref-document", children: [node], uri: /** @type AbsoluteIri */ ("URN:test:foo"), mediaType: "application/reference+json" };
           } else if (uri === "HTTPS://Example.com/bar#/bar") {
             const node = /** @type JrefNode */ (fromJref(`{ "bar": 42 }`, "HTTPS://Example.com/bar").node);
-            return { type: "jref-document", children: [node], uri: "HTTPS://Example.com/bar", mediaType: "application/reference+json" };
+            return { type: "jref-document", children: [node], uri: /** @type AbsoluteIri */ ("HTTPS://Example.com/bar"), mediaType: "application/reference+json" };
           }
           return super.getDocument(uri, options);
         }

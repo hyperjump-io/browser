@@ -2,6 +2,7 @@ import { pointerAppend } from "@hyperjump/json-pointer";
 import { encodeIriFragment } from "@hyperjump/uri";
 
 /**
+ * @import { IriReference } from "@hyperjump/uri"
  * @import * as API from "./location.d.ts"
  */
 
@@ -27,5 +28,7 @@ export const appendToLocation = (segment, location) => {
     }
   }
 
-  return location + encoded;
+  // A location's fragment is last, and the segment is encoded for one, so
+  // the result is an IRI-reference too
+  return /** @type IriReference */ (location + encoded);
 };

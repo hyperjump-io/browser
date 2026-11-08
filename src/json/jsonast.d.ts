@@ -1,10 +1,11 @@
+import type { IriReference } from "@hyperjump/uri";
 import type { Data, Position } from "unist";
 
 export type JsonNullNode = {
   type: string;
   jsonType: "null";
   value: null;
-  location: string;
+  location: IriReference;
   data?: Data;
   position?: Position;
 };
@@ -13,7 +14,7 @@ export type JsonBooleanNode = {
   type: string;
   jsonType: "boolean";
   value: boolean;
-  location: string;
+  location: IriReference;
   data?: Data;
   position?: Position;
 };
@@ -22,7 +23,7 @@ export type JsonNumberNode = {
   type: string;
   jsonType: "number";
   value: number;
-  location: string;
+  location: IriReference;
   data?: Data;
   position?: Position;
 };
@@ -31,7 +32,7 @@ export type JsonStringNode = {
   type: string;
   jsonType: "string";
   value: string;
-  location: string;
+  location: IriReference;
   data?: Data;
   position?: Position;
 };
@@ -40,7 +41,7 @@ export type JsonArrayNode<A, X = never, P = unknown> = {
   type: string;
   jsonType: "array";
   children: (JsonNode<A, X, P> | X)[];
-  location: string;
+  location: IriReference;
   data?: Data;
   position?: Position;
 };
@@ -64,7 +65,7 @@ export type JsonObjectNode<A, X = never, P = unknown> = {
   type: string;
   jsonType: "object";
   children: JsonPropertyNode<A, X, P>[];
-  location: string;
+  location: IriReference;
   data?: Data;
   position?: Position;
 };
@@ -94,7 +95,7 @@ export type JsonInvalidNode = {
   type: "json-invalid";
   /** The text as it was written */
   raw: string;
-  location: string;
+  location: IriReference;
   data?: Data;
   position?: Position;
 };
@@ -107,7 +108,7 @@ export type JsonInvalidNode = {
  */
 export type JsonMissingNode = {
   type: "json-missing";
-  location: string;
+  location: IriReference;
   data?: Data;
   position?: Position;
 };

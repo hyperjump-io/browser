@@ -1,3 +1,4 @@
+import type { Iri } from "@hyperjump/uri";
 import type { GetOptions } from "../hyperjump.js";
 
 export interface UriSchemePlugin {
@@ -5,7 +6,8 @@ export interface UriSchemePlugin {
 
   /**
    * A response without a `Content-Type` can't be parsed. A response without a
-   * URL gets the URI that was retrieved.
+   * URL gets the URI that was retrieved. A response's URL can be an IRI, or
+   * a URL like `fetch`'s, which the session makes an IRI.
    *
    * A redirect (301, 302, 303, 307, or 308 with a `Location`, such as from
    * `Response.redirect`) is followed by the session. Where it leads is
@@ -14,11 +16,14 @@ export interface UriSchemePlugin {
    * against the response's URL. A plugin for a scheme that maps to another
    * URI, like `urn:`, redirects to it.
    */
-  retrieve(uri: string, options: RetrieveOptions): Promise<Response>;
+  retrieve(uri: Iri, options: RetrieveOptions): Promise<Response>;
 }
 
 /** What a request needs, which the `Hyperjump` gives a plugin */
-export type RetrieveOptions = GetOptions & {
+export type RetrieveOptions = Omit<GetOptions, "referencedFrom"> & {
+  /** The URI of the document with the reference that's being followed */
+  referencedFrom?: Iri;
+
   /** An `Accept` header for the media types that are supported */
   accept: string;
 

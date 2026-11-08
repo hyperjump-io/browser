@@ -55,18 +55,21 @@ describe("Browser compatibility", () => {
   }
 
   describe("browser variants", () => {
-    test("contextUri is the document's location", () => {
-      const location = "https://example.com/foo/bar.html";
-      Object.defineProperty(globalThis, "document", { value: { location }, configurable: true });
+    test.each([
+      ["https://example.com/foo/bar.html", "https://example.com/foo/bar.html"],
+      ["https://example.com/foo/bar.html#top", "https://example.com/foo/bar.html"],
+      ["https://example.com/a|b/", "https://example.com/a%7Cb/"]
+    ])("contextUri of a document at %s is %s", (href, expected) => {
+      Object.defineProperty(globalThis, "document", { value: { location: { href } }, configurable: true });
       try {
-        expect(contextUri()).to.equal(location);
+        expect(contextUri()).to.equal(expected);
       } finally {
         Reflect.deleteProperty(globalThis, "document");
       }
     });
 
-    test("contextUri is empty without a document", () => {
-      expect(contextUri()).to.equal("");
+    test("there's no contextUri without a document", () => {
+      expect(contextUri()).to.equal(undefined);
     });
 
     test("the file: scheme isn't a default URI scheme", () => {
@@ -95,6 +98,9 @@ describe("Browser compatibility", () => {
         ["/foo", "percent%25.jref"],
         ["/foo", "unicodé.jref"],
         ["/foo", "back\\slash.jref"],
+        ["/foo", "pipe|and^caret.jref"],
+        ["/foo", "[brackets].jref"],
+        ["/a|b", "bar.jref"],
         ["/foo", "tab\tand\nnewline.jref"],
         ["/with space", "bar.jref"]
       ];

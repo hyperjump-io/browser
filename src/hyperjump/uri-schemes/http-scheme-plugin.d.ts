@@ -1,3 +1,4 @@
+import type { Iri } from "@hyperjump/uri";
 import type { RetrieveOptions, UriSchemePlugin } from "./uri-scheme-plugin.d.ts";
 import type { HttpCacheStore } from "./http-cache-store.d.ts";
 
@@ -24,7 +25,7 @@ export class HttpUriSchemePlugin implements UriSchemePlugin {
    * @throws An {@link HttpError} if the response is an error or has a status
    * code that isn't supported
    */
-  retrieve(uri: string, options: RetrieveOptions): Promise<Response>;
+  retrieve(uri: Iri, options: RetrieveOptions): Promise<Response>;
 }
 
 export type HttpUriSchemePluginOptions = {

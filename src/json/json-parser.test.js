@@ -1,12 +1,14 @@
 import { describe, test, expect } from "vitest";
 import { unified } from "unified";
 import { VFileMessage } from "vfile-message";
+import { InvalidIriError } from "@hyperjump/uri";
 import {
   fromJson,
   fromJref,
   hasStatus,
   jrefParse,
   jrefStringify,
+  jrefSyntaxErrorMessage,
   jsonSyntaxErrorMessage,
   jsonArrayIter,
   jsonObjectEntries,
@@ -1196,7 +1198,7 @@ describe("JSONC", () => {
   });
 
   test("a document with comments is a success with the flag", () => {
-    const { status, node } = fromJson(`{ "a": 1 } // done`, "", { allowComments: true });
+    const { status, node } = fromJson(`{ "a": 1 } // done`, undefined, { allowComments: true });
 
     expect(status).toBe("success");
     expect(toJson(node)).toBe(`{"a":1}`);
@@ -1249,7 +1251,7 @@ describe("JSONC", () => {
 
 describe("comments in the AST", () => {
   test("are listed in document order with their kind, text, and position", () => {
-    const { comments } = fromJson(`// first\n{ "a" /* second */: 1 }`, "", { allowComments: true });
+    const { comments } = fromJson(`// first\n{ "a" /* second */: 1 }`, undefined, { allowComments: true });
 
     expect(comments).toEqual([
       {
@@ -1274,7 +1276,7 @@ describe("comments in the AST", () => {
   });
 
   test("an unclosed block comment runs to the end of the document", () => {
-    const { comments } = fromJson(`1 /* open`, "", { allowComments: true });
+    const { comments } = fromJson(`1 /* open`, undefined, { allowComments: true });
 
     expect(comments).toMatchObject([{ kind: "block", value: " open" }]);
   });
@@ -1286,7 +1288,7 @@ describe("comments in the AST", () => {
   });
 
   test("aren't children of any node", () => {
-    const { node } = fromJson(`[1, /* two */ 2]`, "", { allowComments: true });
+    const { node } = fromJson(`[1, /* two */ 2]`, undefined, { allowComments: true });
 
     expect(itemValues(node)).toEqual([1, 2]);
   });
@@ -1306,7 +1308,7 @@ describe("comments in the AST", () => {
   });
 
   test("are returned with the AST", () => {
-    const { node, comments } = fromJson(`// one\n[1]`, "", { allowComments: true });
+    const { node, comments } = fromJson(`// one\n[1]`, undefined, { allowComments: true });
 
     expect(toJson(node)).toBe(`[1]`);
     expect(comments).toMatchObject([{ kind: "line", value: " one" }]);
@@ -1320,7 +1322,7 @@ describe("comments in the AST", () => {
   });
 
   test("are returned even when there are syntax errors", () => {
-    const { status, comments } = fromJson(`[1,] // done`, "", { allowComments: true });
+    const { status, comments } = fromJson(`[1,] // done`, undefined, { allowComments: true });
 
     expect(status).toBe("recovered");
     expect(comments).toMatchObject([{ value: " done" }]);
@@ -1529,6 +1531,105 @@ describe("jref with errors", () => {
   });
 });
 
+describe("invalid references", () => {
+  const base = "https://example.com/main.jref";
+
+  test("a $ref that isn't an IRI-reference is an invalid reference", () => {
+    const result = fromJref(`{ "$ref": "a b" }`, base);
+
+    expect(result.status).toBe("failure");
+    expect(result.node).toMatchObject({ type: "invalid-reference", jsonType: "object" });
+    expect(result.node).not.toHaveProperty("href");
+    expect(result.errors).toEqual([{
+      source: "jref",
+      ruleId: "invalid-reference",
+      place: {
+        start: { line: 1, column: 11, offset: 10 },
+        end: { line: 1, column: 16, offset: 15 }
+      },
+      actual: "a b"
+    }]);
+  });
+
+  test("an invalid reference keeps its properties", () => {
+    const { node } = fromJref(`{ "$ref": "a b", "foo": 42 }`, base);
+
+    expect([...jsonObjectKeys(/** @type JsonNode */ (node))]).toEqual(["$ref", "foo"]);
+  });
+
+  test("a reference that doesn't resolve to a valid IRI is an invalid reference", () => {
+    const { status, node, errors } = fromJref(`{ "$ref": "b" }`, "urn:example:a");
+
+    expect(status).toBe("failure");
+    expect(node).toMatchObject({ type: "invalid-reference" });
+    expect(errors.map((error) => error.actual)).toEqual(["b"]);
+  });
+
+  test("without a base URI, a $ref that isn't an IRI-reference is still invalid", () => {
+    const { status, node } = fromJref(`{ "$ref": "a b" }`);
+
+    expect(status).toBe("failure");
+    expect(node).toMatchObject({ type: "invalid-reference" });
+  });
+
+  test("an invalid reference makes a recovered parse a failure", () => {
+    const { status, errors } = fromJref(`{ "$ref": "a b", }`, base);
+
+    expect(status).toBe("failure");
+    expect(errors.map((error) => error.ruleId)).toEqual(["invalid-reference", "trailing-comma"]);
+  });
+
+  test("errors are in document order", () => {
+    const { errors } = fromJref(`[{ "$ref": "a b" }, , { "$ref": "%" }]`, base);
+
+    expect(errors.map((error) => error.ruleId)).toEqual(["invalid-reference", "value-expected", "invalid-reference"]);
+  });
+
+  test("valid references in the same document are still references", () => {
+    const { node } = fromJref(`[{ "$ref": "a b" }, { "$ref": "foo" }]`, base);
+
+    expect(node).toMatchObject({
+      children: [{ type: "invalid-reference" }, { type: "reference", href: "https://example.com/foo" }]
+    });
+  });
+
+  test.each([
+    ["a relative reference", "main.jref"],
+    ["an IRI with a fragment", "https://example.com/main.jref#foo"],
+    ["a string that isn't an IRI", "https://example.com/a b"]
+  ])("a base URI that's %s throws", (_description, uri) => {
+    expect(() => fromJref(`{ "$ref": "foo" }`, uri)).toThrow(InvalidIriError);
+  });
+
+  test("the message says the reference", () => {
+    const { errors } = fromJref(`{ "$ref": "a b" }`, base);
+
+    expect(jrefSyntaxErrorMessage(errors[0])).toBe("'a b' is not a valid reference");
+  });
+
+  test("JSON syntax errors have their own messages", () => {
+    const { errors } = fromJref(`{ "$ref": "foo", }`, base);
+
+    expect(jrefSyntaxErrorMessage(errors[0])).toBe("Trailing commas are not allowed");
+  });
+
+  test("the processor fails the file with the message", () => {
+    try {
+      jref.processSync(`{ "$ref": "a b" }`);
+      expect.fail("Expected a VFileMessage");
+    } catch (error) {
+      expect(error).toBeInstanceOf(VFileMessage);
+      const message = /** @type VFileMessage */ (error);
+      expect(message.reason).toBe("'a b' is not a valid reference");
+      expect(message.source).toBe("jref");
+      expect(message.ruleId).toBe("invalid-reference");
+      expect(message.actual).toBe("a b");
+      expect(message.line).toBe(1);
+      expect(message.column).toBe(11);
+    }
+  });
+});
+
 /** @type (syntaxError: JsonSyntaxError) => TestError */
 const toError = (syntaxError) => {
   const place = syntaxError.place;
@@ -1593,6 +1694,6 @@ const span = (node) => {
 
 /** @type (json: string, options?: JsonOptions) => { root: TolerantValue, errors: TestError[] } */
 const parse = (json, options) => {
-  const { node, errors } = fromJson(json, "", options);
+  const { node, errors } = fromJson(json, undefined, options);
   return { root: node, errors: errors.map(toError) };
 };

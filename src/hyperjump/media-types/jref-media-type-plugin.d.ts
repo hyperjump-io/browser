@@ -1,5 +1,5 @@
 import type { JrefDocumentNode } from "../../jref/jref-ast.d.ts";
-import type { MediaTypePlugin } from "./media-type-plugin.d.ts";
+import type { MediaTypePlugin, RetrievedResponse } from "./media-type-plugin.d.ts";
 
 /**
  * Documents are only produced for valid JRef, so their status is always
@@ -18,7 +18,7 @@ export class JrefMediaTypePlugin implements MediaTypePlugin<JrefMediaTypeDocumen
   mediaType: string;
   extensions: string[];
   quality?: number;
-  parse(response: Response): Promise<JrefMediaTypeDocument>;
+  parse(response: RetrievedResponse): Promise<JrefMediaTypeDocument>;
 
   /** A fragment is a percent-encoded JSON Pointer. */
   fragmentPointer(document: JrefMediaTypeDocument, fragment: string): string;

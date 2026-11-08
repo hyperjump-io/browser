@@ -21,6 +21,12 @@ State is separated by how long it lives.
 - The cache holds promises, so a document that's asked for again while it's
   being retrieved is only retrieved once. A failure isn't cached, so it can
   be tried again.
+- The cache is keyed by the normalized URI (`normalizeIri`), so equivalent
+  URIs, like `HTTPS://Example.com:443/a` and `https://example.com/a`, are
+  one document. A document is retrieved by its URI as it's written, and
+  errors say it that way. Normalizing is only for the key, because
+  resolving doesn't normalize (see
+  [Identifiers are IRIs](../principles/identifiers-are-iris.md)).
 - A document is also cached under the URL its response came from, which can
   differ from the URI that was asked for (redirects, symlinks). References
   in it are relative to where it came from.
@@ -31,6 +37,19 @@ State is separated by how long it lives.
   relative URIs and its `allowRetrieval` against that. Everything a session
   does sees the same one, and a new session sees a change, like a new
   working directory or a page a single-page application navigated to.
+  It's an IRI, made from the platform's URL with `urlToIri` (see
+  [Identifiers are IRIs](../principles/identifiers-are-iris.md)), and a
+  page's is without its fragment, since a base can't have one. Where
+  there's no document, such as in a worker, there's no context URI, and a
+  relative URI given to `get` or `getDocument` throws.
+- A response's URL is made an IRI by the session, right after a URI scheme
+  plugin returns it, so no plugin has to. One that's already an IRI, like
+  the URI the file plugin was given, is kept as it's written, and any
+  other is a URL, like `fetch`'s, made an IRI with `urlToIri`. The
+  response's `url` is redefined only when that changed it, since one a
+  plugin defined itself can't be, and it's already an IRI. Making each
+  plugin convert was rejected: an application's plugin that returns
+  `fetch`'s response would have to know to.
   Reading it each time it's needed, deep inside `get`, `getDocument`, and
   `allowed-urls.js`, was rejected because one session could see two.
   Reading it once for the `Hyperjump` was
@@ -169,13 +188,24 @@ Applications build on `Hyperjump` and `Session` by subclassing them.
 - An override gets a URI as it's written. `get` resolves only a relative
   URI against the context URI. A reference it follows isn't resolved
   again, because the media type plugin resolved it when it parsed the
-  document. `referencedFrom` is the referencing node's location up to its
-  fragment. The session's own `getDocument` resolves the URI it's given,
-  and caches and retrieves the document by that.
-  - Resolving every URI in `get` was rejected. Resolving normalizes, so
-    an override that finds documents by identifiers as their documents
-    write them, like one with an uppercase host, would miss them. It's
-    also work the media type plugin already did.
+  document. `referencedFrom` is the URI of the document the referencing
+  node is in, from its location up to its fragment, as it's written. A
+  document without a URI has locations that are only fragments, so a
+  reference in it has no `referencedFrom`. The session's own
+  `getDocument` resolves the URI it's given, retrieves the document by
+  that, and caches it by that, normalized.
+  - Resolving every URI in `get` was rejected. Resolving removes dot
+    segments, so an override that finds documents by identifiers as their
+    documents write them, like one with a `..` segment, would miss them.
+    It's also work the media type plugin already did.
+- `get` and `getDocument` check the URI they're given with
+  `assertIriReference`, and `referencedFrom` with `assertIri`, because
+  they come from outside (see
+  [Identifiers are IRIs](../principles/identifiers-are-iris.md)). One
+  that isn't valid throws its `InvalidIriError`, not a `RetrievalError`,
+  because it's the caller's mistake and nothing was retrieved.
+  `getDocument` checks a reference that `get` follows again, which is one
+  pattern test, so there's no unchecked version for `get` to call.
 - A media type plugin's `parse` gets the session the document is being
   retrieved in, so a media type that needs other resources to parse a
   document retrieves them in the same session.

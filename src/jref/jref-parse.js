@@ -1,6 +1,6 @@
 import { pathToUri } from "#path-to-uri";
 import { reportSyntaxErrors } from "../json/report-syntax-errors.js";
-import { fromJref } from "./jref-util.js";
+import { fromJref, jrefSyntaxErrorMessage } from "./jref-util.js";
 
 /**
  * @import { JrefDocumentNode } from "./jref-ast.js"
@@ -13,7 +13,7 @@ export function jrefParse(options) {
     const uri = file.path ? pathToUri(file.cwd, file.path) : undefined;
 
     const { status, node, errors, comments } = fromJref(document, uri, options);
-    reportSyntaxErrors(file, errors, status, options?.accept);
+    reportSyntaxErrors(file, errors, jrefSyntaxErrorMessage, status, options?.accept);
 
     /** @type JrefDocumentNode */
     const tree = {

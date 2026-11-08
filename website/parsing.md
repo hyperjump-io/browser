@@ -34,7 +34,8 @@ Each error is plain data with a `ruleId` and a `place`. The `ruleId` is a name
 such as `"trailing-comma"`. To turn an error into a message for people to read,
 use `jsonSyntaxErrorMessage`.
 
-The second argument of `fromJson` is the document's base URI. With the
+The second argument of `fromJson` is the document's base URI. It has to be an
+absolute IRI, without a fragment, or `fromJson` throws. With the
 `allowComments` option, `fromJson` accepts `//` and `/* */` comments the way
 JSON with Comments (JSONC) does. Comments aren't part of the AST. The result
 lists them in `comments` in the order they appear:
@@ -61,8 +62,25 @@ const jref = `{ "x": { "$ref": "#/y" }, "y": 1 }`;
 const { node } = fromJref(jref, "https://example.com/doc");
 ```
 
-Without a URI, `href` is the reference as written. `fromJref` takes the
+Without a URI, `href` is the reference as written. A URI has to be an absolute
+IRI, without a fragment, or `fromJref` throws. `fromJref` takes the
 `allowComments` option too.
+
+A `$ref` whose value isn't an IRI-reference isn't a reference. Neither is one
+that doesn't resolve to a valid IRI against the document's URI. Its object is an
+error node with the `type` `"invalid-reference"`, the `status` is `"failure"`,
+and the error's `ruleId` is `"invalid-reference"`. To turn the errors from
+`fromJref` into messages, use `jrefSyntaxErrorMessage`, which describes JSON
+syntax errors too:
+
+```typescript
+import { fromJref, jrefSyntaxErrorMessage } from "@hyperjump/browser";
+
+const result = fromJref(`{ "$ref": "a b" }`);
+result.status; // "failure"
+result.node.type; // "invalid-reference"
+jrefSyntaxErrorMessage(result.errors[0]); // "'a b' is not a valid reference"
+```
 
 ## Read the AST
 
@@ -143,13 +161,15 @@ make it `null` so the items after it keep their positions.
 
 If you build nodes of your own, use `appendToLocation` to give them a
 `location`. It adds a property name or array index to the JSON Pointer of the
-parent's `location`. It encodes and normalizes the result the way the parser
-does, so you can compare it to the locations the parser made:
+parent's `location`. It encodes the result the way the parser does, so you can
+compare it to the locations the parser made:
 
 ```typescript
-import { appendToLocation } from "@hyperjump/browser";
+import { appendToLocation, fromJson, jsonPointerGet } from "@hyperjump/browser";
 
-appendToLocation("a b", "https://example.com/doc#/x");
+const { node } = fromJson(`{ "x": {} }`, "https://example.com/doc");
+const parent = jsonPointerGet("/x", node);
+appendToLocation("a b", parent.location);
 // "https://example.com/doc#/x/a%20b"
 ```
 

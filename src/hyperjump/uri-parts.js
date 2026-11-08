@@ -1,14 +1,14 @@
-/** @type (uri: string) => boolean */
-export const hasScheme = (uri) => /^[a-z][a-z\d+.-]*:/i.test(uri);
+import { hasScheme, toAbsoluteIri } from "@hyperjump/uri";
 
 /**
- * The URI without its fragment, as it's written. Making it absolute with a
- * URI library would normalize it too, and an application can be looking for
- * it as it's written, in a `getDocument` override.
- *
- * @type (uri: string) => string
+ * @import { AbsoluteIri, IriReference } from "@hyperjump/uri"
  */
-export const withoutFragment = (uri) => {
-  const index = uri.indexOf("#");
-  return index === -1 ? uri : uri.slice(0, index);
-};
+
+/**
+ * The URI of the document a node is in, from the node's location, as it's
+ * written, so a `getDocument` override finds it that way. A document without
+ * a URI has locations that are only fragments, like `#/a`, so it has none.
+ *
+ * @type (location: IriReference) => AbsoluteIri | undefined
+ */
+export const documentUriOf = (location) => hasScheme(location) ? toAbsoluteIri(location) : undefined;

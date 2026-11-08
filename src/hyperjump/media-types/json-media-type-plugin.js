@@ -1,4 +1,4 @@
-import { fromJson } from "../../json/jsonast-util.js";
+import { fromJson, jsonSyntaxErrorMessage } from "../../json/jsonast-util.js";
 import { fatalSyntaxError } from "../../json/report-syntax-errors.js";
 
 /**
@@ -20,7 +20,7 @@ export class JsonMediaTypePlugin {
   async parse(response) {
     const result = fromJson(await response.text());
     if (result.status !== "success") {
-      throw fatalSyntaxError(result.errors[0]);
+      throw fatalSyntaxError(result.errors[0], jsonSyntaxErrorMessage);
     }
 
     return {

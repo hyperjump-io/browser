@@ -1,3 +1,4 @@
+import type { InvalidIriError } from "@hyperjump/uri";
 import type { Position } from "unist";
 import type {
   Json,
@@ -17,10 +18,15 @@ import type {
 } from "./jsonast.d.ts";
 
 /**
- * Parse a JSON string into a JSON AST.
+ * Parse a JSON string into a JSON AST. `location` is the document's URI,
+ * which every node's location starts with.
  *
- * Parsing never throws. Malformed input produces an AST whenever possible and
- * the result's `status` says how much to trust it. See {@link JsonParseResult}.
+ * Nothing in the document makes it throw. Malformed input produces an AST
+ * whenever possible and the result's `status` says how much to trust it. See
+ * {@link JsonParseResult}.
+ *
+ * @throws {InvalidIriError} If `location` isn't an absolute IRI. It's the
+ *   caller's mistake, not the document's.
  */
 export const fromJson: (json: string, location?: string, options?: JsonOptions) => JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode>;
 
@@ -49,19 +55,20 @@ export type JsonOptions = {
 /**
  * The result of a parse. Discriminate on `status` to get the type of the AST.
  * Only a `failure` can contain {@link JsonErrorNode}s. `S` is the AST type for
- * `success` and `recovered` and `F` is the AST type for `failure`.
+ * `success` and `recovered`, `F` is the AST type for `failure`, and `E` is
+ * the type of the errors.
  *
  * Every syntax error found is in `errors`, in document order.
  */
-export type JsonParseResult<S, F> = {
+export type JsonParseResult<S, F, E = JsonSyntaxError> = {
   /**
    * Every comment, in document order. It's empty unless comments are allowed.
    */
   comments: JsonCommentNode[];
 } & (
   { status: "success"; node: S; errors: [] }
-  | { status: "recovered"; node: S; errors: JsonSyntaxError[] }
-  | { status: "failure"; node: F; errors: JsonSyntaxError[] }
+  | { status: "recovered"; node: S; errors: E[] }
+  | { status: "failure"; node: F; errors: E[] }
 );
 
 /**
@@ -112,7 +119,10 @@ export type JsonSyntaxErrorCode
     | "max-depth-exceeded";
 
 /**
- * Parse a JSON compatible JavaScript value into a JSON AST.
+ * Parse a JSON compatible JavaScript value into a JSON AST. `location` is the
+ * root node's location, like `https://example.com/doc#`.
+ *
+ * @throws {InvalidIriError} If `location` isn't an IRI-reference.
  */
 export const fromJs: (js: ReadonlyJson, location?: string) => JsonNode;
 

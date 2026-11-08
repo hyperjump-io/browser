@@ -14,7 +14,8 @@ status with it:
 - `recovered`: every syntax error was resolved by interpreting the intent,
   such as a trailing comma or an unclosed bracket
 - `failure`: some value is invalid or missing, a property name is missing,
-  or input had to be discarded
+  or input had to be discarded. For JRef, a `$ref` that isn't a valid
+  reference is a failure too (see [Transforming](#transforming)).
 
 - The result's type discriminates on the status, so only a failure can
   contain `json-invalid` and `json-missing` nodes. `JsonNode` takes a type
@@ -56,6 +57,30 @@ status with it:
     needs one except `fromJref`.
   - Keeping `fromJref` in one pass with a reviver that isn't exported was
     rejected because the second pass costs little.
+- A string `$ref` that isn't an IRI-reference, or that doesn't resolve to
+  a valid IRI against the document's URI (like `b` against
+  `urn:example:a`), is an error: the object is a `JrefInvalidReferenceNode`
+  (`type: "invalid-reference"`), which keeps its properties, and a
+  `JrefSyntaxError` (`source: "jref"`, `ruleId: "invalid-reference"`) is
+  merged into `errors` in document order. The status is `failure`, so the
+  node is only in the tolerant types, and a `success` or `recovered` tree's
+  references can all be followed. A session can't use the document, the
+  same as one with any other failure. A `$ref` that isn't a string isn't a
+  reference, so it's an ordinary object.
+  - `jrefSyntaxErrorMessage` describes JRef's errors and JSON's, and
+    `reportSyntaxErrors` and `fatalSyntaxError` take the message function,
+    so `json/` doesn't know JRef's messages.
+  - An annotation that isn't an error, with the document's status still
+    `success`, was rejected. A session could use the rest of the document,
+    but every complete tree could have references that can't be followed,
+    and everything that switches on a node's type would handle one more.
+  - A `reference` with an optional `href` was rejected for the same
+    reasons, and it's easier to miss: code that only reads `href` doesn't
+    have to check it.
+  - `"invalid-reference"` as a `JsonSyntaxErrorCode` was rejected. The JSON
+    parser never makes it, so code that handles every code of `fromJson`'s
+    errors would handle one that can't happen, and its `source` would say
+    `json`.
   - Either one could come back as an option of `fromJson`, `fromJref`, or
     `toJson`, without breaking their signatures. A reviver runs during a
     parse and can start another, so the parser would have to keep no state
@@ -95,7 +120,11 @@ status with it:
 - A node's location is a URI whose fragment is a JSON Pointer. Pointer
   segments are percent-encoded where a fragment requires it
   (`appendToLocation`, `@hyperjump/uri`'s `encodeIriFragment`), so
-  locations are valid, normalized IRIs. `get` decodes a fragment before
+  locations are IRIs, typed `IriReference`, since without a document URI
+  a location is only a fragment, like `#/a`. A document URI comes from
+  outside, so `fromJson` checks it's an absolute IRI, and `fromJs` checks
+  its root's location is an IRI-reference. The recursion inside `fromJs`
+  doesn't check again. `get` decodes a fragment before
   following it as a JSON Pointer.
 - `appendToLocation` caches the encoded form of each segment, because
   encoding was most of the time `fromJs` took (see

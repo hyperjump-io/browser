@@ -1,4 +1,4 @@
-import { parseIri, resolveIri, toAbsoluteIri } from "@hyperjump/uri";
+import { assertIri, assertIriReference, hasScheme, isIri, normalizeIri, parseIri, resolveIri, toAbsoluteIri, urlToIri } from "@hyperjump/uri";
 import { contextUri } from "#context-uri";
 import { defaultUriSchemePlugins } from "#default-uri-scheme-plugins";
 import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
@@ -7,15 +7,19 @@ import { jsonPointerGet } from "../json/jsonast-util.js";
 import { acceptHeader, fragmentPointer, mediaTypeByExtension, mediaTypePluginFor } from "./media-type-plugins.js";
 import { AllowedUrls, configSource, resolveAllowRetrieval, sessionSource } from "./allowed-urls.js";
 import { relativeFileUri } from "./file-uris.js";
-import { hasScheme, withoutFragment } from "./uri-parts.js";
+import { documentUriOf } from "./uri-parts.js";
 
 /**
+ * @import { AbsoluteIri, Iri, IriReference, NormalizedIri } from "@hyperjump/uri"
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
  * @import { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.d.ts"
- * @import { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.d.ts"
+ * @import { DocumentNode, MediaTypePlugin, RetrievedResponse } from "./media-types/media-type-plugin.d.ts"
  * @import { FollowedNode } from "./browsing.d.ts"
  * @import * as API from "./hyperjump.d.ts"
+ * @import { RetrieveOptions } from "./uri-schemes/uri-scheme-plugin.d.ts"
  */
+
+/** @typedef {Omit<RetrieveOptions, "accept" | "mediaTypeByExtension">} CheckedGetOptions */
 
 /**
  * Redirects are followed this many times, like `fetch` does, so a redirect
@@ -131,10 +135,11 @@ export class Session {
   #hyperjump;
 
   /**
-   * Documents by URI. The promise is cached so a document that's requested
-   * again while it's being retrieved is only retrieved once.
+   * Documents by normalized URI, so equivalent URIs, like ones written with
+   * a different case, are one document. The promise is cached so a document
+   * that's requested again while it's being retrieved is only retrieved once.
    *
-   * @type Record<string, Promise<DocumentNode>>
+   * @type Record<NormalizedIri, Promise<DocumentNode>>
    */
   #cache;
 
@@ -153,9 +158,10 @@ export class Session {
   /**
    * What relative URIs are resolved against, as it was when the session was
    * created, so it's the same for everything the session does. A new
-   * session sees a change, like any other.
+   * session sees a change, like any other. There's none where there's no
+   * document, such as in a worker.
    *
-   * @type string
+   * @type AbsoluteIri | undefined
    */
   #contextUri;
 
@@ -180,30 +186,32 @@ export class Session {
 
   /** @type API.Session<JrefNode>["get"] */
   async get(uri, options = {}) {
+    assertIriReference(uri);
+    assertGetOptions(options);
     return this.#get(uri, options, []);
   }
 
   /**
-   * @param {string} uri
+   * @param {IriReference} uri
    * @param {API.GetOptions} options
-   * @param {string[]} referenceChain - URIs of the references followed to get here
+   * @param {Iri[]} referenceChain - URIs of the references followed to get here
    * @returns {Promise<FollowedNode>}
    */
   async #get(uri, options, referenceChain) {
-    uri = this.#resolve(uri);
-    if (referenceChain.includes(uri)) {
-      throw new ReferenceCycleError([...referenceChain, uri]);
+    const iri = this.#resolve(uri);
+    if (referenceChain.includes(iri)) {
+      throw new ReferenceCycleError([...referenceChain, iri]);
     }
-    referenceChain = [...referenceChain, uri];
+    referenceChain = [...referenceChain, iri];
 
-    const { fragment } = parseIri(uri);
+    const { fragment } = parseIri(iri);
     // Subclasses can override getDocument, so every lookup goes through it
-    const document = await this.getDocument(uri, options);
+    const document = await this.getDocument(iri, options);
 
     const cursor = fragment === undefined ? "" : this.#hyperjump.fragmentPointer(document, fragment);
     const node = jsonPointerGet(cursor, document.children[0]);
     if (node.type === "reference") {
-      return this.#get(node.href, { referencedFrom: withoutFragment(node.location) }, referenceChain);
+      return this.#get(node.href, { referencedFrom: documentUriOf(node.location) }, referenceChain);
     } else {
       return node;
     }
@@ -215,10 +223,27 @@ export class Session {
    * it that way. A media type plugin has already resolved a reference when
    * it parsed it, so a reference that's followed is never resolved again.
    *
-   * @type (uri: string) => string
+   * @type (uri: IriReference) => Iri
    */
   #resolve(uri) {
-    return hasScheme(uri) ? uri : resolveIri(uri, this.#contextUri);
+    return hasScheme(uri) ? uri : this.#resolveAgainstContext(uri);
+  }
+
+  /**
+   * Without a context URI, only a URI with a scheme can be resolved. It's
+   * resolved against itself, since a base isn't read when the reference has
+   * a scheme, so it's the same as with one: its dot segments are removed.
+   *
+   * @type (uri: IriReference) => Iri
+   */
+  #resolveAgainstContext(uri) {
+    if (this.#contextUri !== undefined) {
+      return resolveIri(uri, this.#contextUri);
+    } else if (hasScheme(uri)) {
+      return resolveIri(uri, toAbsoluteIri(uri));
+    } else {
+      throw Error(`'${uri}' is relative, and there's nothing to resolve it against here. Use an absolute URI.`);
+    }
   }
 
   /**
@@ -228,10 +253,12 @@ export class Session {
    * @type API.Session<JrefNode>["getDocument"]
    */
   async getDocument(uri, options = {}) {
-    uri = resolveIri(uri, this.#contextUri);
-    const id = toAbsoluteIri(uri);
+    assertIriReference(uri);
+    assertGetOptions(options);
+    const iri = this.#resolveAgainstContext(uri);
+    const id = normalizeIri(toAbsoluteIri(iri));
 
-    this.#cache[id] ??= this.#retrieveDocument(uri, options).catch((/** @type unknown */ error) => {
+    this.#cache[id] ??= this.#retrieveDocument(iri, options).catch((/** @type unknown */ error) => {
       // A failure isn't cached, so it can be tried again
       delete this.#cache[id];
       throw error;
@@ -249,12 +276,13 @@ export class Session {
    * somewhere else. A refused URL isn't one that couldn't be retrieved, so
    * it isn't a RetrievalError.
    *
-   * @type (uri: string, options: API.GetOptions) => Promise<DocumentNode>
+   * @type (uri: Iri, options: CheckedGetOptions) => Promise<DocumentNode>
    */
   async #retrieveDocument(uri, options) {
     const id = toAbsoluteIri(uri);
 
     let response;
+    let responseUrl;
     let url = uri;
     for (let redirects = 0; ; redirects++) {
       const hop = toAbsoluteIri(url);
@@ -263,7 +291,7 @@ export class Session {
       }
 
       try {
-        response = await this.#retrieve(url, options);
+        ({ response, url: responseUrl } = await this.#retrieve(url, options));
       } catch (error) {
         throw new RetrievalError(uri, { cause: error });
       }
@@ -278,18 +306,20 @@ export class Session {
         throw new RetrievalError(uri, { cause: Error(`It was redirected more than ${maxRedirects} times`) });
       }
 
-      // `retrieve` gives every response a URL. The fragment isn't part of
-      // what's retrieved.
+      // `retrieve` gives every response a URL. The `Location` comes from
+      // outside, so it's checked. The fragment isn't part of what's
+      // retrieved.
       try {
-        url = toAbsoluteIri(resolveIri(location, response.url));
+        assertIriReference(location);
+        url = toAbsoluteIri(resolveIri(location, responseUrl));
       } catch (error) {
         throw new RetrievalError(uri, { cause: error });
       }
     }
 
-    if (response.url !== toAbsoluteIri(url) && !await this.#allowedUrls.allows(response.url)) {
+    if (responseUrl !== toAbsoluteIri(url) && !await this.#allowedUrls.allows(responseUrl)) {
       await response.body?.cancel();
-      throw this.#notAllowedError(id, response.url);
+      throw this.#notAllowedError(id, responseUrl);
     }
 
     try {
@@ -298,7 +328,7 @@ export class Session {
       // References within the document are relative to the URI it was
       // retrieved from, which can differ from the requested URI (redirects,
       // symlinks), so it needs to be cached under both.
-      this.#cache[toAbsoluteIri(response.url)] ??= Promise.resolve(document);
+      this.#cache[normalizeIri(responseUrl)] ??= Promise.resolve(document);
 
       return document;
     } catch (error) {
@@ -309,11 +339,17 @@ export class Session {
   /**
    * Retrieve with the plugin for the URI's scheme. It gives the plugin the
    * Accept header for the media types that are supported, and the media type
-   * of a URL's extension, for a scheme without a Content-Type. A response
-   * without a URL gets the one that was retrieved, so a redirect's
-   * `Location` can be relative to it.
+   * of a URL's extension, for a scheme without a Content-Type.
    *
-   * @type (uri: string, options: API.GetOptions) => Promise<Response>
+   * The response's URL comes from outside, so it's made an IRI here, for
+   * every plugin: one that's already an IRI, like the URI the file plugin
+   * was given, is kept as it is, and any other is a URL, like `fetch`'s, and
+   * made one with `urlToIri`. A response without a URL gets the one that was
+   * retrieved, so a redirect's `Location` can be relative to it. The
+   * response's `url` is the IRI too, so a media type plugin has it. The
+   * fragment isn't part of what's retrieved.
+   *
+   * @type (uri: Iri, options: CheckedGetOptions) => Promise<{ response: RetrievedResponse, url: AbsoluteIri }>
    */
   async #retrieve(uri, options) {
     const { scheme } = parseIri(uri);
@@ -329,11 +365,17 @@ export class Session {
       accept: this.#hyperjump.accept,
       mediaTypeByExtension: (uri) => mediaTypeByExtension(mediaTypePlugins, uri)
     });
-    if (!response.url) {
-      Object.defineProperty(response, "url", { value: toAbsoluteIri(uri) });
+    const url = toAbsoluteIri(!response.url
+      ? uri
+      : isIri(response.url) ? response.url : urlToIri(new URL(response.url)));
+    // Only a URL that changed is redefined. One that a plugin defined itself
+    // can't be, and it's already an IRI.
+    if (url !== response.url) {
+      Object.defineProperty(response, "url", { value: url });
     }
 
-    return response;
+    // Its URL is `url` now
+    return { response: /** @type RetrievedResponse */ (response), url };
   }
 
   /**
@@ -342,7 +384,7 @@ export class Session {
    * response that no plugin can parse has its body cancelled, so its file or
    * connection is released.
    *
-   * @type (response: Response) => Promise<DocumentNode>
+   * @type (response: RetrievedResponse) => Promise<DocumentNode>
    */
   async #parseResponse(response) {
     let pattern, plugin;
@@ -364,7 +406,7 @@ export class Session {
    * The error for a URL that was asked for (`id`), or one it led to, that
    * isn't allowed
    *
-   * @type (id: string, url: string) => RetrievalNotAllowedError
+   * @type (id: AbsoluteIri, url: AbsoluteIri) => RetrievalNotAllowedError
    */
   #notAllowedError(id, url) {
     const message = url === id
@@ -374,9 +416,23 @@ export class Session {
   }
 }
 
+/**
+ * The options given to `get` or `getDocument` come from outside, like the
+ * URI, so `referencedFrom` is checked. One from a reference that's followed
+ * is checked again, which is one pattern test.
+ *
+ * @param {API.GetOptions} options
+ * @returns {asserts options is CheckedGetOptions}
+ */
+function assertGetOptions(options) {
+  if (options.referencedFrom !== undefined) {
+    assertIri(options.referencedFrom);
+  }
+}
+
 export class RetrievalError extends Error {
   /**
-   * @param {string} uri
+   * @param {Iri} uri
    * @param {{ cause: unknown }} options
    */
   constructor(uri, options) {
@@ -388,7 +444,7 @@ export class RetrievalError extends Error {
 
 export class FileNotFoundError extends Error {
   /**
-   * @param {string} uri
+   * @param {Iri} uri
    */
   constructor(uri) {
     super(`There's no file at '${relativeFileUri(uri)}'`);
@@ -399,7 +455,7 @@ export class FileNotFoundError extends Error {
 
 export class RetrievalNotAllowedError extends Error {
   /**
-   * @param {string} uri
+   * @param {Iri} uri
    * @param {string} message
    */
   constructor(uri, message) {
@@ -410,11 +466,11 @@ export class RetrievalNotAllowedError extends Error {
 }
 
 export class ReferenceCycleError extends Error {
-  /** @type string[] */
+  /** @type Iri[] */
   referenceChain;
 
   /**
-   * @param {string[]} referenceChain
+   * @param {Iri[]} referenceChain
    */
   constructor(referenceChain) {
     super(`Reference cycle: ${referenceChain.map(relativeFileUri).join(" -> ")}`);

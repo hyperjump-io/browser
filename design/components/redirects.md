@@ -43,6 +43,9 @@ where it leads, with the plugin for that URL's scheme.
     retrieval's, so a plugin that left them out didn't lose
     `referencedFrom`. A redirect does all of that with nothing to add. A
     plugin can't wrap another scheme's response, but nothing needs to.
+- A `Location` comes from outside, so it has to be an IRI-reference, or
+  the retrieval fails with the `InvalidIriError` as its cause (see
+  [Identifiers are IRIs](../principles/identifiers-are-iris.md)).
 - A relative `Location` is resolved against the URL of the response that
   redirected. Its fragment is dropped, because a fragment isn't part of
   what's retrieved. `get` uses the fragment that was asked for, not one in a

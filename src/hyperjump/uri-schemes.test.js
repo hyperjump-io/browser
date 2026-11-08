@@ -1,5 +1,6 @@
 import { Readable } from "node:stream";
 import { describe, test, expect } from "vitest";
+import { InvalidIriError } from "@hyperjump/uri";
 import { Hyperjump, RetrievalError, RetrievalNotAllowedError } from "./index.js";
 import { toJson } from "../json/jsonast-util.js";
 
@@ -188,6 +189,51 @@ describe("JSON Browser", () => {
         expect(document.uri).to.equal("foo:something");
       });
 
+      test("a Location that isn't an IRI-reference isn't followed", async () => {
+        const hyperjump = new Hyperjump({
+          allowRetrieval: ["foo:/a", "foo:/a b"],
+          uriSchemePlugins: [{
+            schemes: ["foo"],
+            retrieve: async () => new Response(null, { status: 302, headers: { Location: "a b" } })
+          }]
+        });
+
+        // A scheme that isn't built in, so resolving doesn't check the result
+        const error = await hyperjump.session().get("foo:/a")
+          .catch((/** @type unknown */ error) => error);
+        expect(error).to.be.instanceof(RetrievalError);
+        expect(/** @type RetrievalError */ (error).cause).to.be.instanceof(InvalidIriError);
+      });
+
+      test("a response's URL that isn't an IRI is made one", async () => {
+        const hyperjump = new Hyperjump({
+          allowRetrieval: ["foo:/a", "foo:/a%7Cb"],
+          uriSchemePlugins: [responseWithUrl("foo:/a|b")]
+        });
+
+        const document = await hyperjump.session().getDocument("foo:/a");
+        expect(document.uri).to.equal("foo:/a%7Cb");
+      });
+
+      test("a response's URL that's an IRI is kept as it is", async () => {
+        const hyperjump = new Hyperjump({
+          allowRetrieval: ["foo:/a", "foo:/rosé"],
+          uriSchemePlugins: [responseWithUrl("foo:/rosé")]
+        });
+
+        const document = await hyperjump.session().getDocument("foo:/a");
+        expect(document.uri).to.equal("foo:/rosé");
+      });
+
+      test("a response's URL that isn't a URL fails the retrieval", async () => {
+        const hyperjump = new Hyperjump({
+          allowRetrieval: ["foo:/a"],
+          uriSchemePlugins: [responseWithUrl("not a URL")]
+        });
+
+        await expect(hyperjump.session().getDocument("foo:/a")).rejects.toBeInstanceOf(RetrievalError);
+      });
+
       test("a redirect is retrieved with the same options", async () => {
         /** @type string | undefined */
         let referencedFrom;
@@ -308,6 +354,22 @@ const fooPlugin = (document) => ({
 const urnPlugin = (uri) => ({
   schemes: ["urn"],
   retrieve: async () => Response.redirect(uri)
+});
+
+/**
+ * A `foo:` plugin whose responses have this URL, the way `fetch`'s do: from
+ * the prototype, not set on the response
+ *
+ * @type (url: string) => UriSchemePlugin
+ */
+const responseWithUrl = (url) => ({
+  schemes: ["foo"],
+  retrieve: async () => {
+    const response = new Response(`{"foo": 42}`, { headers: { "Content-Type": "application/reference+json" } });
+    return Object.setPrototypeOf(response, Object.create(Response.prototype, {
+      url: { get: () => url }
+    }));
+  }
 });
 
 /**

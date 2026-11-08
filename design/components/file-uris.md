@@ -18,7 +18,10 @@ they are.
   relative the same way. The location is already on the node, so
   `jsonPointerGet` and `jsonStep` aren't given the document's URI.
 - `relativeFileUri` is exported, so applications say URLs the same way in
-  their own messages.
+  their own messages. It takes an `IriReference`, what browser hands out:
+  a document's URI, a location, or an error's `uri`. So it doesn't check
+  it (see [Identifiers are IRIs](../principles/identifiers-are-iris.md)).
+  A location that's only a fragment is returned as it is.
 - A URL is normalized before it's made relative, so one written as
   `FILE:///…`, as a schema author might, is relative too.
 - Where the working directory isn't a folder, as in a browser, there are no
