@@ -21,7 +21,8 @@ export class FileUriSchemePlugin {
     if (options.referencedFrom) {
       const { scheme } = parseIri(options.referencedFrom);
 
-      if (scheme !== "file") {
+      // A scheme is case-insensitive
+      if (scheme.toLowerCase() !== "file") {
         throw Error(`Accessing a file (${relativeFileUri(uri)}) from a non-filesystem context (${options.referencedFrom}) is not allowed`);
       }
     }

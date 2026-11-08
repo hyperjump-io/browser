@@ -12,7 +12,8 @@
   for, was rejected because what's read wouldn't necessarily be what the
   response's URL says.
 - A file can't be retrieved from a reference in a document that isn't a
-  file, so a document from the web can't read files.
+  file, so a document from the web can't read files. A document is a file
+  when its scheme is `file`, compared case-insensitively.
 - A file doesn't have a media type, so its response's `Content-Type` is
   the media type of its extension, the longest one a media type plugin
   matches (`options.mediaTypeByExtension`, see [Media types](media-types.md)).

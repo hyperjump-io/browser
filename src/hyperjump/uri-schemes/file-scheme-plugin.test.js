@@ -89,6 +89,16 @@ describe("JSON Browser", () => {
         }
       });
 
+      test("a file is retrieved from a file context with an uppercase scheme", async () => {
+        const path = `${fixtureDirectory}/foo.jref`;
+        await writeFile(fileURLToPath(`${testUri}/${path}`), `42`);
+
+        const hyperjump = new Hyperjump();
+        const referencedFrom = `FILE:${testUri.slice("file:".length)}/${fixtureDirectory}/main.jref`;
+        const subject = await hyperjump.session().get(path, { referencedFrom });
+        expect(toJson(subject)).to.equal(`42`);
+      });
+
       describe("http context", () => {
         /** @type MockAgent */
         let mockAgent;
