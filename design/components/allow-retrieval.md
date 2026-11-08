@@ -129,6 +129,14 @@ local to it.
 - A file that doesn't exist has no real path, so its path is checked as it
   is. If it's allowed, retrieving it fails as missing instead of being
   refused.
+- A `file:` URL with a host, and an entry with one, is compared as it is,
+  without its real path. On Windows its path is a UNC path, and `realpath`
+  would connect to the host, sending the user's credentials, before the
+  URL is refused. A document can name any host, so the check can't touch
+  it. A symlink on a share isn't followed by the check. Only the
+  application can allow a host, so that's its choice. Checking the path as
+  written before finding its real path was rejected: a symlink outside an
+  allowed directory that points into it would be refused.
 
 ## Known limitations
 

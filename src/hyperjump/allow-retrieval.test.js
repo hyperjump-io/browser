@@ -79,6 +79,14 @@ describe("allowRetrieval", () => {
       await expect(session.get(uri)).rejects.toThrow(RetrievalNotAllowedError);
     });
 
+    test("a file on another host is refused", async () => {
+      const uri = "file://example.com/share/document.json";
+      const error = await defaultSession().get(uri)
+        .catch((/** @type unknown */ error) => error);
+      expect(error).to.be.instanceOf(RetrievalNotAllowedError);
+      expect(/** @type RetrievalNotAllowedError */ (error).uri).to.equal(uri);
+    });
+
     test("http(s): is refused", async () => {
       const session = defaultSession();
       await expect(session.get("https://example.com/document")).rejects.toThrow(RetrievalNotAllowedError);
@@ -129,6 +137,12 @@ describe("allowRetrieval", () => {
       const session = hyperjumpWith({ allowRetrieval: [directoryUri(join(inside, "linked-directory"))] }).session();
       const node = await session.get(fileUri(join(outside, "outside.json")));
       expect(toJson(node)).to.equal(`{"foo":42}`);
+    });
+
+    test("a file: entry with a host is compared as it is", async () => {
+      const allowed = new AllowedUrls(resolveAllowRetrieval(["file://example.com/share/"], undefined, configSource), undefined);
+      expect(await allowed.allows("file://example.com/share/document.json")).to.equal(true);
+      expect(await allowed.allows("file://example.com/other/document.json")).to.equal(false);
     });
 
     test("an entry's fragment is ignored", async () => {
