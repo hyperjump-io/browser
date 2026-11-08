@@ -29,11 +29,12 @@ local to it.
   than reading it, so its tests give it a page or nothing instead of
   mocking modules. Without a page, it's `undefined`.
   - Entries are resolved when the config or the session's options are
-    given, so one that isn't a URL throws there. A relative entry where
-    there's no context URI, such as in a worker, throws and says to use an
-    absolute URL, instead of quietly allowing nothing. The default is
-    resolved when a session first checks a URL, so an application without
-    a context URI that never retrieves anything doesn't need the config.
+    given, so one that isn't a URL throws a `TypeError` there. A relative
+    entry where there's no context URI, such as in a worker, throws a
+    `TypeError` and says to use an absolute URL, instead of quietly
+    allowing nothing. The default is resolved when a session first checks
+    a URL, so an application without a context URI that never retrieves
+    anything doesn't need the config.
 - Entries and the URLs checked against them are compared as WHATWG URLs,
   inside `allowed-urls.js`, though the URL it's given is an IRI (see
   [Identifiers are IRIs](../principles/identifiers-are-iris.md)). `new URL`

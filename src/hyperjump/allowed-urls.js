@@ -25,13 +25,13 @@ export const resolveAllowRetrieval = (allowRetrieval, contextUri, source) => {
       url = new URL(entry);
     } catch {
       if (contextUri === undefined) {
-        throw Error(`'${entry}' in the ${source} is relative, and there's nothing to resolve it against here. Use an absolute URL.`);
+        throw TypeError(`'${entry}' in the ${source} is relative, and there's nothing to resolve it against here. Use an absolute URL.`);
       }
 
       try {
         url = new URL(entry, contextUri);
       } catch {
-        throw Error(`'${entry}' in the ${source} isn't a URL`);
+        throw TypeError(`'${entry}' in the ${source} isn't a URL`);
       }
     }
 
@@ -88,7 +88,7 @@ export class AllowedUrls {
  */
 const resolveDefault = (contextUri) => {
   if (contextUri === undefined) {
-    throw Error(`The default 'allowRetrieval' is '${defaultAllowRetrieval.join("', '")}', which is relative, and there's nothing to resolve it against here. Use the ${configSource} with absolute URLs.`);
+    throw TypeError(`The default 'allowRetrieval' is '${defaultAllowRetrieval.join("', '")}', which is relative, and there's nothing to resolve it against here. Use the ${configSource} with absolute URLs.`);
   }
 
   return resolveAllowRetrieval(defaultAllowRetrieval, contextUri, configSource);

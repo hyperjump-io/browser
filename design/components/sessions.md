@@ -41,7 +41,9 @@ State is separated by how long it lives.
   [Identifiers are IRIs](../principles/identifiers-are-iris.md)), and a
   page's is without its fragment, since a base can't have one. Where
   there's no document, such as in a worker, there's no context URI, and a
-  relative URI given to `get` or `getDocument` throws.
+  relative URI given to `get` or `getDocument` throws a `TypeError`. It's
+  a mistake in the application, like `new URL` without a base, not
+  something to handle, so it isn't an error class of its own.
 - A response's URL is made an IRI by the session, right after a URI scheme
   plugin returns it, so no plugin has to. One that's already an IRI, like
   the URI the file plugin was given, is kept as it's written, and any

@@ -243,7 +243,7 @@ export class Session {
     } else if (hasScheme(uri)) {
       return resolveIri(uri, toAbsoluteIri(uri));
     } else {
-      throw Error(`'${uri}' is relative, and there's nothing to resolve it against here. Use an absolute URI.`);
+      throw TypeError(`'${uri}' is relative, and there's nothing to resolve it against here. Use an absolute URI.`);
     }
   }
 

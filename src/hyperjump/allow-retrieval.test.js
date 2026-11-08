@@ -143,7 +143,7 @@ describe("allowRetrieval", () => {
     });
 
     test("an entry that isn't a URL throws when it's configured", () => {
-      expect(() => hyperjumpWith({ allowRetrieval: ["http://[example"] })).to.throw("'http://[example' in the 'allowRetrieval' config isn't a URL");
+      expect(() => hyperjumpWith({ allowRetrieval: ["http://[example"] })).to.throw(TypeError, "'http://[example' in the 'allowRetrieval' config isn't a URL");
     });
 
     test("changing the list it was configured with doesn't change it", async () => {
@@ -211,7 +211,7 @@ describe("allowRetrieval", () => {
     });
 
     test("an entry that isn't a URL throws when the session is created", () => {
-      expect(() => hyperjumpWith().session({ allowRetrieval: ["http://[example"] })).to.throw("'http://[example' in the session's 'allowRetrieval' option isn't a URL");
+      expect(() => hyperjumpWith().session({ allowRetrieval: ["http://[example"] })).to.throw(TypeError, "'http://[example' in the session's 'allowRetrieval' option isn't a URL");
     });
   });
 
@@ -224,7 +224,7 @@ describe("allowRetrieval", () => {
     });
 
     test("a relative entry without a page throws", () => {
-      expect(() => resolveAllowRetrieval(["./documents/"], undefined, configSource)).to.throw("'./documents/' in the 'allowRetrieval' config is relative");
+      expect(() => resolveAllowRetrieval(["./documents/"], undefined, configSource)).to.throw(TypeError, "'./documents/' in the 'allowRetrieval' config is relative");
     });
 
     test("an absolute entry without a page is fine", () => {
@@ -233,6 +233,7 @@ describe("allowRetrieval", () => {
 
     test("the default without a page throws when it's checked, not before", async () => {
       const allowed = new AllowedUrls(undefined, undefined);
+      await expect(allowed.allows("https://example.com/document")).rejects.toBeInstanceOf(TypeError);
       await expect(allowed.allows("https://example.com/document")).rejects.toThrow("The default 'allowRetrieval' is './', which is relative, and there's nothing to resolve it against here. Use the 'allowRetrieval' config with absolute URLs.");
     });
   });

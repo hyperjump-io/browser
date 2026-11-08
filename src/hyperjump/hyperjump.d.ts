@@ -22,7 +22,8 @@ export type HyperjumpConfig<T extends JsonNode<{ type: string }> = JrefNode> = {
    * Any other allows only itself. An origin, with or without the `/`, allows
    * everything on it, because it's the URL of its root. A relative one is resolved against the
    * working directory in Node.js and the page in a browser. Where there's
-   * nothing to resolve it against, such as in a worker, it throws.
+   * nothing to resolve it against, such as in a worker, it throws a
+   * `TypeError`, and so does one that isn't a URL.
    *
    * It's checked for everything a session retrieves, before the URI scheme
    * plugins, so a cached HTTP response isn't a way around it.
@@ -158,6 +159,8 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    *
    * @throws An `InvalidIriError` if `uri` isn't an IRI-reference, or
    * `referencedFrom` isn't an IRI.
+   * @throws A `TypeError` if `uri` is relative, or `allowRetrieval` is the
+   * default, and there's nothing to resolve it against, such as in a worker.
    * @throws A {@link RetrievalNotAllowedError} if `allowRetrieval` refuses
    * the document's URL.
    * @throws A {@link RetrievalError} if a document can't be retrieved or
@@ -181,6 +184,8 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    *
    * @throws An `InvalidIriError` if `uri` isn't an IRI-reference, or
    * `referencedFrom` isn't an IRI.
+   * @throws A `TypeError` if `uri` is relative, or `allowRetrieval` is the
+   * default, and there's nothing to resolve it against, such as in a worker.
    * @throws A {@link RetrievalError} if the document can't be retrieved or
    * parsed. The cause is the error that prevented it.
    */
