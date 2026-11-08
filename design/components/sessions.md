@@ -21,12 +21,21 @@ State is separated by how long it lives.
 - The cache holds promises, so a document that's asked for again while it's
   being retrieved is only retrieved once. A failure isn't cached, so it can
   be tried again.
-- The cache is keyed by the normalized URI (`normalizeIri`), so equivalent
-  URIs, like `HTTPS://Example.com:443/a` and `https://example.com/a`, are
-  one document. A document is retrieved by its URI as it's written, and
-  errors say it that way. Normalizing is only for the key, because
-  resolving doesn't normalize (see
-  [Identifiers are IRIs](../principles/identifiers-are-iris.md)).
+- `getDocument` normalizes the URI it's given (`normalizeIri`), and the
+  document is retrieved by that and cached by it, so equivalent URIs, like
+  `HTTPS://Example.com:443/a` and `https://example.com/a`, are one
+  document. It's where equivalent URIs have to be the same, so it's where
+  they're normalized (see
+  [Identifiers are IRIs](../principles/identifiers-are-iris.md)). A
+  document's URI doesn't depend on whether its plugin gives the response a
+  URL: one that does, like the HTTP plugin with `fetch`'s, mostly gives a
+  normalized one anyway. Errors say the URI normalized.
+  - Retrieving by the URI as it's written and normalizing only for the
+    key was rejected. The file plugin and a plugin without a URL made
+    documents whose URI was as it's written, while `fetch`'s was
+    normalized. And an absolute URI's dot segments had to be removed by
+    resolving it against itself. RFC 3986 section 6.2.2.3 says removing
+    them from an absolute URI is normalization's job.
 - A document is also cached under the URL its response came from, which can
   differ from the URI that was asked for (redirects, symlinks). References
   in it are relative to where it came from.
@@ -200,8 +209,8 @@ Applications build on `Hyperjump` and `Session` by subclassing them.
   node is in, from its location up to its fragment, as it's written. A
   document without a URI has locations that are only fragments, so a
   reference in it has no `referencedFrom`. The session's own
-  `getDocument` resolves the URI it's given, retrieves the document by
-  that, and caches it by that, normalized.
+  `getDocument` resolves the URI it's given and normalizes it, and
+  retrieves and caches the document by that.
   - Resolving every URI in `get` was rejected. Resolving removes dot
     segments, so an override that finds documents by identifiers as their
     documents write them, like one with a `..` segment, would miss them.

@@ -227,37 +227,28 @@ export class Session {
    * @type (uri: IriReference) => Iri
    */
   #resolve(uri) {
-    return hasScheme(uri) ? uri : this.#resolveAgainstContext(uri);
-  }
-
-  /**
-   * Without a context URI, only a URI with a scheme can be resolved. It's
-   * resolved against itself, since a base isn't read when the reference has
-   * a scheme, so it's the same as with one: its dot segments are removed.
-   *
-   * @type (uri: IriReference) => Iri
-   */
-  #resolveAgainstContext(uri) {
-    if (this.#contextUri !== undefined) {
-      return resolveIri(uri, this.#contextUri);
-    } else if (hasScheme(uri)) {
-      return resolveIri(uri, toAbsoluteIri(uri));
-    } else {
+    if (hasScheme(uri)) {
+      return uri;
+    } else if (this.#contextUri === undefined) {
       throw TypeError(`'${uri}' is relative, and there's nothing to resolve it against here. Use an absolute URI.`);
+    } else {
+      return resolveIri(uri, this.#contextUri);
     }
   }
 
   /**
-   * The document is cached and retrieved by its URI resolved and without
-   * its fragment, after an override has looked for the URI as it's written.
+   * The document is retrieved by its URI resolved and normalized, and cached
+   * by that without its fragment, after an override has looked for the URI
+   * as it's written. Equivalent URIs are one document, and its URI doesn't
+   * depend on whether its plugin gives the response a URL.
    *
    * @type API.Session<JrefNode>["getDocument"]
    */
   async getDocument(uri, options = {}) {
     assertIriReference(uri);
     assertGetOptions(options);
-    const iri = this.#resolveAgainstContext(uri);
-    const id = normalizeIri(toAbsoluteIri(iri));
+    const iri = normalizeIri(this.#resolve(uri));
+    const id = toAbsoluteIri(iri);
 
     this.#cache[id] ??= this.#retrieveDocument(iri, options).catch((/** @type unknown */ error) => {
       // A failure isn't cached, so it can be tried again

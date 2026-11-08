@@ -180,17 +180,28 @@ describe("JSON Browser", () => {
         expect(document.uri).to.equal("foo:something");
       });
 
-      test("a response without a URL gets the URI without its dot segments", async () => {
+      test.each([
+        ["dot segments", "foo:/a/./b/../c", "foo:/a/c"],
+        ["an uppercase scheme", "FOO:/a", "foo:/a"],
+        ["a percent-encoded unreserved character", "foo:/%7ea", "foo:/~a"],
+        ["percent-encoded Unicode", "foo:/r%C3%A9sum%C3%A9", "foo:/résumé"]
+      ])("a URI with %s is retrieved normalized", async (_name, uri, expected) => {
+        /** @type string | undefined */
+        let retrieved;
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:/"],
           uriSchemePlugins: [{
             schemes: ["foo"],
-            retrieve: async () => new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } })
+            retrieve: async (uri) => {
+              retrieved = uri;
+              return new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } });
+            }
           }]
         });
 
-        const document = await hyperjump.session().getDocument("foo:/a/./b/../c");
-        expect(document.uri).to.equal("foo:/a/c");
+        const document = await hyperjump.session().getDocument(uri);
+        expect(retrieved).to.equal(expected);
+        expect(document.uri).to.equal(expected);
       });
     });
 

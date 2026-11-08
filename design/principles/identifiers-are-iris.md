@@ -22,6 +22,11 @@ resolves, and normalizes them.
 - What a scheme's identifiers mean, and whether they can be retrieved, is
   its URI scheme plugin's. An identifier like a `urn:` is an IRI even
   though it isn't a URL.
+- An IRI is normalized only where equivalent ones have to be the same,
+  like the session's cache, because normalizing costs something and
+  changes how an identifier reads. Resolving doesn't normalize. Where one
+  is normalized, its type says so (`NormalizedIri`), so code that needs a
+  normalized one asks for that type instead of normalizing it again.
 
 Where a value comes from decides its type, not whether a function is
 public:
