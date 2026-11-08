@@ -1,4 +1,4 @@
-import type { IriReference } from "@hyperjump/uri";
+import type { AbsoluteIri, IriReference } from "@hyperjump/uri";
 import type { Data, Position } from "unist";
 
 export type JsonNullNode = {
@@ -175,6 +175,8 @@ export type JsonDocumentNode<S extends JsonParseStatus = JsonParseStatus> = {
    * allowed.
    */
   comments: JsonCommentNode[];
+  /** The document's URI, which its nodes' locations start with, if it has one */
+  uri?: AbsoluteIri;
   data?: Data;
 };
 

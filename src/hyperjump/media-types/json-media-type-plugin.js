@@ -18,7 +18,7 @@ export class JsonMediaTypePlugin {
 
   /** @type API.JsonMediaTypePlugin["parse"] */
   async parse(response) {
-    const result = fromJson(await response.text());
+    const result = fromJson(await response.text(), response.url);
     if (result.status !== "success") {
       throw fatalSyntaxError(result.errors[0], jsonSyntaxErrorMessage);
     }
@@ -27,7 +27,8 @@ export class JsonMediaTypePlugin {
       type: "json-document",
       status: result.status,
       children: [result.node],
-      comments: []
+      comments: [],
+      uri: response.url
     };
   }
 }

@@ -1451,6 +1451,20 @@ describe("rejson processor", () => {
 
     expect(file.messages).toEqual([]);
   });
+
+  test("a file without a path has only fragments for locations", () => {
+    const tree = rejson.parse(`{ "a": 1 }`);
+
+    expect(tree.uri).toBe(undefined);
+    expect(property(tree.children[0], 0).children[1].location).toBe("#/a");
+  });
+
+  test("a relative path is resolved against the file's cwd", () => {
+    const tree = rejson.parse({ cwd: "/foo", path: "bar/main.json", value: `{ "a": 1 }` });
+
+    expect(tree.uri).toBe("file:///foo/bar/main.json");
+    expect(property(tree.children[0], 0).children[1].location).toBe("file:///foo/bar/main.json#/a");
+  });
 });
 
 describe("hasStatus", () => {

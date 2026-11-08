@@ -182,10 +182,12 @@ file when the parser recovers from its syntax errors and reports those errors as
 warnings.
 
 The parse plugins take the `allowComments` option, which works as it does for
-`fromJson`. `rejsonParse` also takes a `location`, which is the document's base
-URI. The stringify plugins take the `space` option of `toJson`. To change the
-AST in a pipeline, use a transformer plugin between the parse and stringify
-plugins.
+`fromJson`. The document's URI comes from the file's `path`, resolved against
+the file's `cwd`, and the document node has it as its `uri`. Node locations
+start with it, and JRef references are resolved against it. A file without a
+`path` has no URI, so its locations are only fragments, like `#/a`. The
+stringify plugins take the `space` option of `toJson`. To change the AST in a
+pipeline, use a transformer plugin between the parse and stringify plugins.
 
 The parse plugins produce a document node whose `status` says how parsing went.
 Use `hasStatus` to check it. Unlike checking `status` directly, `hasStatus`

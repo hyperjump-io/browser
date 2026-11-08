@@ -171,6 +171,20 @@ describe("JSON Browser", () => {
         });
       });
     });
+
+    describe.each([
+      ["JSON", JsonMediaTypePlugin],
+      ["JRef", JrefMediaTypePlugin]
+    ])("%s plugin", (_name, Plugin) => {
+      test("a document's URI is its response's URL, which its locations start with", async () => {
+        const response = new Response(`{ "a": 1 }`);
+        Object.defineProperty(response, "url", { value: "https://example.com/main" });
+
+        const document = await new Plugin().parse(/** @type RetrievedResponse */ (response));
+        expect(document.uri).to.equal("https://example.com/main");
+        expect(document.children[0].location).to.equal("https://example.com/main#");
+      });
+    });
   });
 });
 

@@ -7,8 +7,8 @@ import { contextUri } from "./hyperjump/context-uri.browser.js";
 import { defaultHttpCache } from "./hyperjump/uri-schemes/default-http-cache.browser.js";
 import { defaultUriSchemePlugins } from "./hyperjump/uri-schemes/default-uri-scheme-plugins.browser.js";
 import { FileUriSchemePlugin } from "./hyperjump/uri-schemes/file-scheme-plugin.browser.js";
-import { pathToUri as browserPathToUri } from "./jref/path-to-uri.browser.js";
-import { pathToUri } from "./jref/path-to-uri.js";
+import { pathToUri as browserPathToUri } from "./json/path-to-uri.browser.js";
+import { pathToUri } from "./json/path-to-uri.js";
 
 /**
  * @typedef {{

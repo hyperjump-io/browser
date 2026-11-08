@@ -22,12 +22,12 @@ import { appendToLocation } from "./location.js";
  */
 
 /** @type typeof API.fromJson */
-export const fromJson = (json, location, options = {}) => {
-  if (location !== undefined) {
-    assertAbsoluteIri(location);
+export const fromJson = (json, uri, options = {}) => {
+  if (uri !== undefined) {
+    assertAbsoluteIri(uri);
   }
 
-  return parseJson(json, location, options);
+  return parseJson(json, uri, options);
 };
 
 // A function's return type isn't inferred as a type predicate, so the

@@ -126,6 +126,14 @@ status with it:
   its root's location is an IRI-reference. The recursion inside `fromJs`
   doesn't check again. `get` decodes a fragment before
   following it as a JSON Pointer.
+- JSON and JRef get their document URI the same way, and their document
+  nodes have it as `uri`. The unified parse plugins make it from the
+  file's `path` and `cwd` (`pathToUri`), and the media type plugins use
+  the response's URL. A file without a `path` has no URI.
+  - A `location` option on `rejsonParse` was rejected. The file already
+    says where the document is, so the option was a second place to say
+    it, which could disagree with the first, and a caller's string that
+    only JSON took.
 - `appendToLocation` caches the encoded form of each segment, because
   encoding was most of the time `fromJs` took (see
   [Node locations](../benchmarks/node-locations.md)).

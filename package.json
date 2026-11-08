@@ -51,8 +51,8 @@
       "default": "./src/hyperjump/uri-schemes/file-scheme-plugin.browser.js"
     },
     "#path-to-uri": {
-      "node": "./src/jref/path-to-uri.js",
-      "default": "./src/jref/path-to-uri.browser.js"
+      "node": "./src/json/path-to-uri.js",
+      "default": "./src/json/path-to-uri.browser.js"
     },
     "#real-url": {
       "node": "./src/hyperjump/real-url.js",

@@ -18,17 +18,18 @@ import type {
 } from "./jsonast.d.ts";
 
 /**
- * Parse a JSON string into a JSON AST. `location` is the document's URI,
- * which every node's location starts with.
+ * Parse a JSON string into a JSON AST. `uri` is the document's URI, which
+ * every node's location starts with. If `uri` is not given, locations are
+ * only fragments, like `#/a`.
  *
  * Nothing in the document makes it throw. Malformed input produces an AST
  * whenever possible and the result's `status` says how much to trust it. See
  * {@link JsonParseResult}.
  *
- * @throws {InvalidIriError} If `location` isn't an absolute IRI. It's the
+ * @throws {InvalidIriError} If `uri` isn't an absolute IRI. It's the
  *   caller's mistake, not the document's.
  */
-export const fromJson: (json: string, location?: string, options?: JsonOptions) => JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode>;
+export const fromJson: (json: string, uri?: string, options?: JsonOptions) => JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode>;
 
 /**
  * Check a document's parse status. Unlike checking `document.status`

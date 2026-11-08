@@ -3,7 +3,6 @@ import type { JsonDocumentNode, JsonParseStatus } from "./jsonast.d.ts";
 import type { JsonOptions } from "./jsonast-util.d.ts";
 
 export type JsonParseOptions = JsonOptions & {
-  location?: string;
   /**
    * The worst parse status that doesn't fail the file. Every syntax error is
    * added to the file as a message either way. The document's `status` says
