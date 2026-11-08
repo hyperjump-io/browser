@@ -215,6 +215,38 @@ describe("JSON Browser", () => {
         expect(document.uri).to.equal("foo:/a%7Cb");
       });
 
+      test.each([
+        ["isn't an IRI", "foo:/a|b", "foo:/a%7Cb"],
+        ["has a fragment", "foo:/b#c", "foo:/b"]
+      ])("a response's URL that a plugin defined and %s is made one", async (_name, url, expected) => {
+        const hyperjump = new Hyperjump({
+          allowRetrieval: ["foo:/"],
+          uriSchemePlugins: [definedUrl(url)]
+        });
+
+        const document = await hyperjump.session().getDocument("foo:/a");
+        expect(document.uri).to.equal(expected);
+      });
+
+      test("a redirect whose URL a plugin defined and isn't an IRI is followed", async () => {
+        const hyperjump = new Hyperjump({
+          allowRetrieval: ["foo:/"],
+          uriSchemePlugins: [{
+            schemes: ["foo"],
+            retrieve: async (uri) => {
+              const response = uri === "foo:/a"
+                ? new Response(null, { status: 302, headers: { location: "c" } })
+                : new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } });
+              Object.defineProperty(response, "url", { value: uri === "foo:/a" ? "foo:/a|b/" : uri });
+              return response;
+            }
+          }]
+        });
+
+        const document = await hyperjump.session().getDocument("foo:/a");
+        expect(document.uri).to.equal("foo:/a%7Cb/c");
+      });
+
       test("a response's URL that's an IRI is kept as it is", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:/a", "foo:/rosé"],
@@ -369,6 +401,21 @@ const responseWithUrl = (url) => ({
     return Object.setPrototypeOf(response, Object.create(Response.prototype, {
       url: { get: () => url }
     }));
+  }
+});
+
+/**
+ * A `foo:` plugin that defines its responses' URL as this one, which makes it
+ * read-only
+ *
+ * @type (url: string) => UriSchemePlugin
+ */
+const definedUrl = (url) => ({
+  schemes: ["foo"],
+  retrieve: async () => {
+    const response = new Response(`{"foo": 42}`, { headers: { "Content-Type": "application/reference+json" } });
+    Object.defineProperty(response, "url", { value: url });
+    return response;
   }
 });
 

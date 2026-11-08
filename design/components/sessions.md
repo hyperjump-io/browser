@@ -45,9 +45,12 @@ State is separated by how long it lives.
 - A response's URL is made an IRI by the session, right after a URI scheme
   plugin returns it, so no plugin has to. One that's already an IRI, like
   the URI the file plugin was given, is kept as it's written, and any
-  other is a URL, like `fetch`'s, made an IRI with `urlToIri`. The
-  response's `url` is redefined only when that changed it, since one a
-  plugin defined itself can't be, and it's already an IRI. Making each
+  other is a URL, like `fetch`'s, made an IRI with `urlToIri`. When that
+  changes it, the IRI goes on a new response with the same status,
+  headers, and body. Redefining `url` on the plugin's response was
+  rejected, because a plugin that defined `url` itself made it read-only,
+  and that one isn't always an IRI. In a browser, `fetch` follows
+  redirects to URLs like `https://example.com/a|b`. Making each
   plugin convert was rejected: an application's plugin that returns
   `fetch`'s response would have to know to.
   Reading it each time it's needed, deep inside `get`, `getDocument`, and

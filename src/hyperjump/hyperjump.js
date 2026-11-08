@@ -368,14 +368,16 @@ export class Session {
     const url = toAbsoluteIri(!response.url
       ? uri
       : isIri(response.url) ? response.url : urlToIri(new URL(response.url)));
-    // Only a URL that changed is redefined. One that a plugin defined itself
-    // can't be, and it's already an IRI.
-    if (url !== response.url) {
-      Object.defineProperty(response, "url", { value: url });
+    if (url === response.url) {
+      return { response: /** @type RetrievedResponse */ (response), url };
     }
 
-    // Its URL is `url` now
-    return { response: /** @type RetrievedResponse */ (response), url };
+    // A plugin can have defined its response's URL, which can't be redefined,
+    // so the IRI goes on a new response with the same status, headers, and
+    // body
+    const retrieved = new Response(response.body, response);
+    Object.defineProperty(retrieved, "url", { value: url });
+    return { response: /** @type RetrievedResponse */ (retrieved), url };
   }
 
   /**
