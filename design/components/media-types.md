@@ -24,6 +24,11 @@ fragments identify. JSON and JRef are built in.
   - The JRef and JSON plugins don't check their `quality` option
     themselves. The `Hyperjump` checks every plugin's, including ones an
     application writes.
+- The JRef and JSON plugins' `parse` takes only the response's `text` and
+  `url`, which is all they read. A plugin that's read the text already,
+  like `@hyperjump/json-schema`'s for JSON that might be a schema, gives
+  them the text as it is, without making a new `Response` and defining its
+  `url`, which its constructor can't set.
 - A response without a `Content-Type` can't be parsed. A plugin for a
   scheme without media types, like `file:`, gives a response the media type
   of its URL's extension with `options.mediaTypeByExtension`. The

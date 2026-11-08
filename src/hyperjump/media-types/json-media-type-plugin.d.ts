@@ -18,7 +18,11 @@ export class JsonMediaTypePlugin implements MediaTypePlugin<JsonMediaTypeDocumen
   mediaType: string;
   extensions: string[];
   quality?: number;
-  parse(response: RetrievedResponse): Promise<JsonMediaTypeDocument>;
+  /**
+   * It only reads the response's text and URL, so anything with those can
+   * be parsed, like text that's already been read from a response.
+   */
+  parse(response: Pick<RetrievedResponse, "text" | "url">): Promise<JsonMediaTypeDocument>;
 }
 
 export type JsonMediaTypePluginOptions = {
