@@ -34,6 +34,19 @@ describe("JSON Browser", () => {
       await expect(result).rejects.toHaveProperty("cause", expect.objectContaining({ name: "UnsupportedUriSchemeError" }));
     });
 
+    test.each([
+      ["a URI", "FOO:something", "foo"],
+      ["a plugin", "foo:something", "FOO"]
+    ])("a scheme in %s is case-insensitive", async (_name, uri, scheme) => {
+      const hyperjump = new Hyperjump({
+        allowRetrieval: ["foo:something"],
+        uriSchemePlugins: [{ ...fooPlugin(fixtureDocument), schemes: [scheme] }]
+      });
+
+      const subject = await hyperjump.session().get(uri);
+      expect(toJson(subject)).to.equal(`{"foo":42}`);
+    });
+
     describe("Custom URI scheme plugin", () => {
       test("is configured", async () => {
         const hyperjump = new Hyperjump({

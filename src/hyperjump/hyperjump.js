@@ -80,8 +80,9 @@ export class Hyperjump {
     // place, which is the order of the Accept header and of ties.
     this.#uriSchemePlugins = new Map();
     for (const plugin of [...defaultUriSchemePlugins(), ...config.uriSchemePlugins ?? []]) {
+      // A scheme is case-insensitive
       for (const scheme of plugin.schemes) {
-        this.#uriSchemePlugins.set(scheme, plugin);
+        this.#uriSchemePlugins.set(scheme.toLowerCase(), plugin);
       }
     }
 
@@ -354,7 +355,7 @@ export class Session {
   async #retrieve(uri, options) {
     const { scheme } = parseIri(uri);
 
-    const plugin = this.#hyperjump.uriSchemePlugins.get(scheme);
+    const plugin = this.#hyperjump.uriSchemePlugins.get(scheme.toLowerCase());
     if (!plugin) {
       throw new UnsupportedUriSchemeError(scheme, `The '${scheme}:' URI scheme is not supported. Use the 'uriSchemePlugins' config to add support for '${scheme}:' URIs.`);
     }

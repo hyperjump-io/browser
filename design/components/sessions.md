@@ -98,6 +98,9 @@ State is separated by how long it lives.
     are only partly replaced is still needed. A `Hyperjump` takes about
     0.5 µs to create in Node.js, the same whether the HTTP plugin is
     replaced or not (measured 2026-10-31).
+- A scheme is case-insensitive (RFC 3986 section 3.1), so the schemes a
+  plugin lists and the one in a URI are lowercased to find its plugin. A
+  URI keeps its scheme as written everywhere else.
 - Adding plugins after a `Hyperjump` is created (`addUriSchemePlugin`,
   `addMediaTypePlugin`) was rejected. Adding one for a scheme or media type
   that's supported would replace it, so changing the HTTP cache or headers
