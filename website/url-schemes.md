@@ -96,10 +96,6 @@ const plugin = new UrnUrlSchemePlugin({
 A plugin for a scheme that the `Hyperjump` already handles replaces the
 existing plugin for that scheme. The existing plugin still handles any other
 schemes it lists. When more than one plugin in the list has the same scheme,
-the `Hyperjump` uses the later one. Replacing the HTTP plugin this way is how
-you change its options. `HttpUrlSchemePlugin` takes these options:
-
-| Option | Description |
-| --- | --- |
-| `cache` | Where to cache responses. Without one, the plugin gets its environment's default. `false` doesn't cache. For more information, see [HTTP caching](http-caching.md). |
-| `headers` | Headers to send with requests, by URL. For more information, see [HTTP headers](http-headers.md). |
+the `Hyperjump` uses the later one. A replacement for `http:` or `https:` still
+gets the session's [HTTP cache](http-caching.md),
+[headers](http-headers.md), and `Accept` header.

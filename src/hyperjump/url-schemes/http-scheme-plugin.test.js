@@ -1,11 +1,10 @@
 import { describe, test, beforeEach, afterEach, expect, vi } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump, HttpError, HttpUrlSchemePlugin, MemoryHttpCacheStore, RetrievalError } from "../index.js";
+import { Hyperjump, HttpError, MemoryHttpCacheStore, RetrievalError } from "../index.js";
 import { toJson } from "../../json/jsonast-util.js";
 
 /**
  * @import { HyperjumpConfig } from "../hyperjump.d.ts"
- * @import { HttpUrlSchemePluginOptions } from "./http-scheme-plugin.d.ts"
  */
 
 describe("JSON Browser", () => {
@@ -94,7 +93,7 @@ describe("JSON Browser", () => {
 
         const hyperjump = new Hyperjump({
           allowRetrieval: ["https://example.com/"],
-          urlSchemePlugins: [new HttpUrlSchemePlugin({ cache })]
+          httpCache: cache
         });
         await refusal(hyperjump.session().get(`${testDomain}/foo`));
         expect(mockAgent.pendingInterceptors()).to.have.length(1);
@@ -163,7 +162,7 @@ describe("JSON Browser", () => {
 
           const hyperjump = new Hyperjump({
             allowRetrieval: ["https://example.com/"],
-            urlSchemePlugins: [new HttpUrlSchemePlugin({ cache })]
+            httpCache: cache
           });
           await expect(hyperjump.session().get(`${testDomain}/foo`)).rejects.toBeInstanceOf(RetrievalError);
           expect(cancelled).to.equal(true);
@@ -379,11 +378,11 @@ describe("JSON Browser", () => {
       describe("headers", () => {
         const contentType = { "content-type": "application/reference+json" };
 
-        /** @type (options: Pick<HyperjumpConfig, "headers"> & HttpUrlSchemePluginOptions) => Hyperjump */
-        const withOptions = ({ headers, ...options }) => {
+        /** @type (config: Pick<HyperjumpConfig, "headers" | "httpCache">) => Hyperjump */
+        const withOptions = ({ headers, httpCache }) => {
           return new Hyperjump({
             allowRetrieval: ["https://example.com/", "https://other.example.com/"],
-            urlSchemePlugins: [new HttpUrlSchemePlugin(options)],
+            httpCache,
             headers
           });
         };
@@ -405,7 +404,7 @@ describe("JSON Browser", () => {
             .reply(200, `42`, { headers: contentType });
 
           const hyperjump = withOptions({
-            cache: new MemoryHttpCacheStore(),
+            httpCache: new MemoryHttpCacheStore(),
             headers: { "https://example.com/": { Authorization: "Bearer token" } }
           });
           const subject = await hyperjump.session().get(`${testDomain}/foo`);
@@ -419,7 +418,7 @@ describe("JSON Browser", () => {
             .reply(200, `42`, { headers: contentType });
 
           const hyperjump = withOptions({
-            cache: false,
+            httpCache: false,
             headers: { "https://example.com/": { Authorization: "Bearer token" } }
           });
           const subject = await hyperjump.session().get(`${testDomain}/foo`);
@@ -505,7 +504,7 @@ describe("JSON Browser", () => {
             .reply(200, `42`, { headers: contentType });
 
           const hyperjump = withOptions({
-            cache,
+            httpCache: cache,
             headers: { "https://example.com/": { "Authorization": "Bearer token", "X-Token": "token" } }
           });
           const subject = await hyperjump.session().get(`${testDomain}/foo`);
@@ -556,7 +555,7 @@ describe("JSON Browser", () => {
           /** @type string | undefined */
           let href;
           const hyperjump = withOptions({
-            cache,
+            httpCache: cache,
             headers: {
               "https://example.com/": (url) => {
                 href = url.href;
@@ -628,7 +627,7 @@ describe("JSON Browser", () => {
         const withOptions = (cache, mediaTypeByExtension) => {
           return new Hyperjump({
             allowRetrieval: ["https://example.com/", "https://other.example.com/"],
-            urlSchemePlugins: [new HttpUrlSchemePlugin({ cache })],
+            httpCache: cache,
             mediaTypeByExtension
           });
         };

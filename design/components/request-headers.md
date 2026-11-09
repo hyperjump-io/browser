@@ -5,9 +5,9 @@
   (`request-headers.js`, see [Layers](layers.md)) adds them to a request,
   and the URL scheme plugin sends them.
   - A `headers` option of `HttpUrlSchemePlugin`, because headers are
-    HTTP's, was rejected. Setting them meant replacing the default plugin,
-    which a new plugin's `cache` had to account for, and a plugin of the
-    application's for another scheme couldn't have them.
+    HTTP's, was rejected. Setting them would mean replacing the default
+    plugin, and a plugin of the application's for another scheme couldn't
+    have them.
 - They're by URL, `Record<string, HeadersInit | HeadersFunction>`.
   Documents aren't trusted and can name any URL `allowRetrieval` allows, so
   a fixed set of headers would send credentials to every origin. Only the
@@ -53,8 +53,8 @@
   shared by every session, so headers belong to the `Hyperjump`, not a
   session. Responses are cached by URL, so different credentials for
   different URLs can share a cache. Different credentials for the same URL
-  need `Hyperjump`s whose plugins don't share a cache, which each one's
-  default plugin doesn't.
+  need `Hyperjump`s that don't share a store, which each one's default
+  doesn't.
 - A redirect gets the headers for the URL it leads to, because the session
   follows it with a new request (see [Redirects](redirects.md)). In
   browsers, `fetch` follows redirects and sends the same headers, except

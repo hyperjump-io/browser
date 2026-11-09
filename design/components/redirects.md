@@ -31,7 +31,8 @@ scheme.
   from, so `file:` from `file:` still refuses a file for a document on the
   web, whatever led there.
 - The `http(s):` plugin only returns a redirect to an `http:` or `https:`
-  URL, like `fetch`. Anything else is an `HttpError`. Otherwise a server
+  URL, like `fetch`. It answers anything else with a 502 (Problem Details,
+  see [Layers](layers.md)), which the session gives as an `HttpError`. Otherwise a server
   could send a session to a file it allows, when there's no
   `Referer` for `file:` from `file:` to refuse, such as a URL an
   application passes to `get`.

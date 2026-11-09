@@ -93,7 +93,6 @@ const alice = hyperjumpFor(await getToken("alice"));
 const bob = hyperjumpFor(await getToken("bob"));
 ```
 
-Each `Hyperjump` has its own default HTTP plugin with its own cache, so Bob
-never gets a response to a request with Alice's token. If you configure an HTTP
-plugin yourself, don't give their `Hyperjump`s the same plugin or the same
-cache.
+Each `Hyperjump` has its own default cache, so Bob never gets a response to a
+request with Alice's token. If you give them an `httpCache` yourself, don't give
+them the same one.

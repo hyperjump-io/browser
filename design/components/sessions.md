@@ -4,7 +4,7 @@ State is separated by how long it lives.
 
 | Level | Has |
 | --- | --- |
-| `Hyperjump` | Configuration: URL scheme and media type plugins, `allowRetrieval`, and (in the `http(s):` plugin) the HTTP cache |
+| `Hyperjump` | Configuration: URL scheme and media type plugins, `allowRetrieval`, and the HTTP cache |
 | `Session` | A document cache, and retrieval: `get` and `getDocument` |
 
 - The long-lived level only has state that doesn't depend on a session.
@@ -101,8 +101,8 @@ State is separated by how long it lives.
   is.
 - Adding plugins after a `Hyperjump` is created (`addUrlSchemePlugin`,
   `addMediaTypePlugin`) was rejected. Adding one for a scheme or media type
-  that's supported would replace it, so changing the HTTP cache or headers
-  would mean knowing that. Something that registered a plugin could
+  that's supported would replace it, so changing a plugin would mean
+  knowing that. Something that registered a plugin could
   replace one the application had, and the config would only be part of
   the configuration.
   - `add*` beside the config, for what isn't configured, was rejected.
@@ -118,8 +118,6 @@ State is separated by how long it lives.
     which can't happen. A subclass would have to take out the
     application's plugins for its own media types before passing them on,
     and an application couldn't replace a subclass's plugin.
-  - A `config.http` for the default HTTP plugin's options was rejected
-    (see [HTTP cache](http-cache.md)).
 - A URL scheme plugin for a scheme that maps to another URL, like `urn:`,
   returns a redirect to it, which the session follows (see
   [Redirects](redirects.md)).
@@ -130,8 +128,9 @@ State is separated by how long it lives.
     returning `Promise<Response>` fixes it, but the error doesn't say so.
     An `options.retrieve` was rejected too (see [Redirects](redirects.md)).
 - A `Hyperjump` is what it resolved from its config: its plugins by scheme
-  and by media type (`urlSchemePlugins`, `mediaTypePlugins`) and the
-  `Accept` header (`accept`), as read-only properties. A session retrieves
+  and by media type (`urlSchemePlugins`, `mediaTypePlugins`), the
+  `Accept` header (`accept`), and the HTTP cache (`httpCache`, see
+  [HTTP cache](http-cache.md)), as read-only properties. A session retrieves
   and parses with them. What's worked out from the media type plugins, like
   the plugin for a `Content-Type` or the media type of an extension, is
   pure functions of them (`media-type-plugins.js`), so they're tested
@@ -160,8 +159,7 @@ State is separated by how long it lives.
     `@hyperjump/json-schema`'s `JsonSchema` subclasses it for its own config
     and its own session, which a class does well. A `Session` that built
     its own plugins from `hyperjump.config` was rejected because it would
-    create the default plugins for each session, which wouldn't share the
-    HTTP cache.
+    create the default plugins for each session.
   - `fragmentPointer` is a method. `getDocument` ignores the fragment, and
     `fragmentPointer` is what finds the node it identifies, according to
     the media type plugin that parsed the document. `@hyperjump/json-schema`

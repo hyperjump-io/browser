@@ -9,6 +9,8 @@ import type { FileUrlSchemePlugin } from "./url-schemes/file-scheme-plugin.d.ts"
 import type { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.d.ts";
 import type { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.d.ts";
 import type { FollowedNode, jrefStep } from "./browsing.d.ts";
+import type { HttpCacheStore } from "./url-schemes/http-cache-store.d.ts";
+import type { HttpCache } from "./http-cache.d.ts";
 
 export type HyperjumpConfig<T extends JsonNode<{ type: string }> = JrefNode> = {
   /**
@@ -50,8 +52,7 @@ export type HyperjumpConfig<T extends JsonNode<{ type: string }> = JrefNode> = {
    * or different plugins for the ones that are supported by default:
    * {@link HttpUrlSchemePlugin | `http(s):`} and, in Node.js,
    * {@link FileUrlSchemePlugin | `file:`}. A plugin replaces the default,
-   * or an earlier plugin in the list, for each scheme it lists, so one with
-   * different HTTP caching replaces the default for `http:` and `https:`.
+   * or an earlier plugin in the list, for each scheme it lists.
    */
   urlSchemePlugins?: UrlSchemePlugin[];
 
@@ -105,6 +106,18 @@ export type HyperjumpConfig<T extends JsonNode<{ type: string }> = JrefNode> = {
    * `Hyperjump`s whose HTTP plugins don't share a cache.
    */
   headers?: Record<string, HeadersInit | HeadersFunction>;
+
+  /**
+   * Where to cache `http:` and `https:` responses, according to their
+   * caching headers (RFC 9111, as a private cache). A stale response is
+   * revalidated when it has an `ETag` or `Last-Modified`. Every session
+   * shares it, and concurrent requests for the same URL share one request.
+   *
+   * Without one, it's the environment's default: a new memory store in
+   * Node.js, and none in a browser, where `fetch` already caches. `false`
+   * doesn't cache.
+   */
+  httpCache?: HttpCacheStore | false;
 };
 
 /**
@@ -160,6 +173,12 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
    * doesn't change it.
    */
   readonly accept: string;
+
+  /**
+   * The HTTP cache every session shares, from the `httpCache` config, or
+   * `undefined` when nothing's cached
+   */
+  readonly httpCache: HttpCache | undefined;
 
   /**
    * Start a session. Each session has its own documents, so nothing one

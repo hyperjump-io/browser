@@ -3,11 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { FileHttpCacheStore, Hyperjump, HttpUrlSchemePlugin, MemoryHttpCacheStore } from "../index.js";
-import { toJson } from "../../json/jsonast-util.js";
+import { FileHttpCacheStore, Hyperjump, MemoryHttpCacheStore } from "./index.js";
+import { toJson } from "../json/jsonast-util.js";
 
 /**
- * @import { HttpCacheStore } from "../index.js"
+ * @import { HttpCacheStore } from "./index.js"
  */
 
 describe("JSON Browser", () => {
@@ -34,7 +34,7 @@ describe("JSON Browser", () => {
     const withCache = (cache) => {
       return new Hyperjump({
         allowRetrieval: ["https://example.com/"],
-        urlSchemePlugins: [new HttpUrlSchemePlugin({ cache })]
+        httpCache: cache
       });
     };
 
@@ -128,15 +128,29 @@ describe("JSON Browser", () => {
       expect(toJson(second)).to.equal(`42`);
     });
 
+    test("references from different documents at the same time share one request", async () => {
+      mockAgent.get(testDomain)
+        .intercept({ method: "GET", path: "/foo" })
+        .reply(200, `{ "foo": 42 }`, { headers: contentType });
+
+      const session = new Hyperjump({ allowRetrieval: ["https://example.com/"] }).session();
+      const [first, second] = await Promise.all([
+        session.getDocument(url, { referencedFrom: `${testDomain}/a` }),
+        session.getDocument(`${testDomain}/foo`, { referencedFrom: `${testDomain}/b` })
+      ]);
+
+      expect(first).to.equal(second);
+    });
+
     test("requests at the same time with different Accept headers don't share a request", async () => {
-      const plugin = new HttpUrlSchemePlugin({ cache: new MemoryHttpCacheStore() });
+      const httpCache = new MemoryHttpCacheStore();
       const fooPlugin = {
         mediaType: "application/foo+json",
         extensions: [],
         parse: async (/** @type Response */ response) => ({ type: "foo-document", url: response.url, children: [] })
       };
-      const jrefOnly = new Hyperjump({ allowRetrieval: ["https://example.com/"], urlSchemePlugins: [plugin] });
-      const withFoo = new Hyperjump({ allowRetrieval: ["https://example.com/"], urlSchemePlugins: [plugin], mediaTypePlugins: [fooPlugin] });
+      const jrefOnly = new Hyperjump({ allowRetrieval: ["https://example.com/"], httpCache });
+      const withFoo = new Hyperjump({ allowRetrieval: ["https://example.com/"], httpCache, mediaTypePlugins: [fooPlugin] });
 
       mockAgent.get(testDomain)
         .intercept({ method: "GET", path: "/foo", headers: (headers) => !headers.accept.includes("application/foo+json") })
@@ -154,7 +168,7 @@ describe("JSON Browser", () => {
       expect(foo.mediaType).to.equal("application/foo+json");
     });
 
-    test("a plugin without a cache has the default", async () => {
+    test("without an httpCache config, it's the default", async () => {
       mockAgent.get(testDomain)
         .intercept({ method: "GET", path: "/foo" })
         .reply(200, `{ "foo": 42 }`, { headers: { ...contentType, "cache-control": "max-age=60" } });
@@ -166,7 +180,7 @@ describe("JSON Browser", () => {
       expect(toJson(subject)).to.equal(`42`);
     });
 
-    test("with `cache: false`, nothing is cached", async () => {
+    test("with `httpCache: false`, nothing is cached", async () => {
       mockAgent.get(testDomain)
         .intercept({ method: "GET", path: "/foo" })
         .reply(200, `{ "foo": 42 }`, { headers: { ...contentType, "cache-control": "max-age=60" } });
@@ -206,7 +220,7 @@ describe("JSON Browser", () => {
       const headers = { "https://example.com/": { Authorization: "Bearer token" } };
       const hyperjump = new Hyperjump({
         allowRetrieval: ["https://example.com/"],
-        urlSchemePlugins: [new HttpUrlSchemePlugin({ cache: new MemoryHttpCacheStore() })],
+        httpCache: new MemoryHttpCacheStore(),
         headers
       });
       await hyperjump.session().get(url);
@@ -227,7 +241,7 @@ describe("JSON Browser", () => {
       const headers = { "https://example.com/": () => ({ Authorization: `Bearer ${token}` }) };
       const hyperjump = new Hyperjump({
         allowRetrieval: ["https://example.com/"],
-        urlSchemePlugins: [new HttpUrlSchemePlugin({ cache: new MemoryHttpCacheStore() })],
+        httpCache: new MemoryHttpCacheStore(),
         headers
       });
       await hyperjump.session().get(url);

@@ -11,6 +11,8 @@ import { fileFromFileLayer } from "./file-from-file.js";
 import { mediaTypeByExtensionLayer, resolveExtensionUrls } from "./media-type-by-extension.js";
 import { acceptLayer } from "./accept.js";
 import { requestHeadersLayer, resolveRequestHeaders } from "./request-headers.js";
+import { HttpCache, httpCacheLayer } from "./http-cache.js";
+import { defaultHttpCache } from "#default-http-cache";
 import { problemDetail } from "./problem-details.js";
 import { relativeFileUrl } from "./file-urls.js";
 import { withoutFragment } from "./url-parts.js";
@@ -59,6 +61,13 @@ export class Hyperjump {
   #accept;
 
   /**
+   * The HTTP cache every session shares, or none when nothing's cached
+   *
+   * @type HttpCache | undefined
+   */
+  #httpCache;
+
+  /**
    * @param {API.HyperjumpConfig} [config]
    */
   constructor(config = {}) {
@@ -97,6 +106,9 @@ export class Hyperjump {
     }
 
     this.#accept = acceptHeader(this.#mediaTypePlugins);
+
+    const store = config.httpCache === false ? undefined : config.httpCache ?? defaultHttpCache();
+    this.#httpCache = store && new HttpCache(store);
   }
 
   get config() {
@@ -113,6 +125,10 @@ export class Hyperjump {
 
   get accept() {
     return this.#accept;
+  }
+
+  get httpCache() {
+    return this.#httpCache;
   }
 
   /** @type API.Hyperjump<JrefNode>["session"] */
@@ -193,7 +209,8 @@ export class Session {
       fileFromFileLayer,
       mediaTypeByExtensionLayer(extensionUrls, (url) => mediaTypeByExtension(mediaTypePlugins, url)),
       requestHeadersLayer(requestHeaders),
-      acceptLayer(hyperjump.accept)
+      acceptLayer(hyperjump.accept),
+      ...hyperjump.httpCache ? [httpCacheLayer(hyperjump.httpCache)] : []
     ], urlSchemesFetch(hyperjump.urlSchemePlugins));
   }
 
