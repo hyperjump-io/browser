@@ -1,18 +1,22 @@
-# Redirects (`src/hyperjump/redirects.js`)
+# Redirects (`src/hyperjump/hyperjump.js`)
 
-A session follows redirects itself, with the redirects layer at the top of
-its stack (see [Layers](layers.md)). A URL scheme plugin returns a redirect
-(301, 302, 303, 307 or 308 with a `Location`) and the layer sends a new
-request for where it leads down the stack, to the plugin for that URL's
-scheme.
+A session follows redirects itself, above its stack (see
+[Layers](layers.md)). A URL scheme plugin returns a redirect (301, 302,
+303, 307 or 308 with a `Location`) and the session sends a new request for
+where it leads to its `fetch`, through every layer, to the plugin for that
+URL's scheme.
 
+- It isn't a layer. A layer that's added goes on top, so a redirects layer
+  would be below a subclass's layers, and a redirect to a URL a subclass's
+  layer answers would go past it (see [Extending](layers.md#extending)).
 - Each URL a redirect leads to is checked against `allowRetrieval` before
-  it's retrieved, because the layer is above it (see
+  it's retrieved, like the first (see
   [What can be retrieved](allow-retrieval.md)). So a
   document can't make an application send a request to a URL it refused,
   such as an internal address.
 - Each request gets the headers for its own URL, because each one is a new
-  request through the layers below, and a new `retrieve` by the plugin (see [Request headers](request-headers.md)). A
+  request through the layers, and a new `retrieve` by the plugin (see
+  [Request headers](request-headers.md)). A
   token for one URL isn't sent to wherever its server redirects.
 - Letting `fetch` follow redirects was rejected. Headers would be chosen
   once for the URL that was asked for, and `fetch` sends them on to
@@ -56,7 +60,7 @@ scheme.
   what's retrieved. `get` uses the fragment that was asked for, not one in a
   `Location`.
 - Redirects are followed at most 20 times, like `fetch`, and then the
-  layer throws, which fails the retrieval. That's also how a redirect cycle ends. Following a
+  retrieval fails. That's also how a redirect cycle ends. Following a
   redirect with `getDocument`, to reuse the session's cache, was rejected:
   a cycle would wait for its own document forever.
 - A document is cached under the URL that was asked for and the URL its

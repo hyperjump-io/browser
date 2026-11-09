@@ -178,6 +178,10 @@ Applications build on `Hyperjump` and `Session` by subclassing them.
   types, puts them before the application's when it calls `super`, so the
   application can replace them:
   `super({ ...config, mediaTypePlugins: [schemaPlugin, ...config.mediaTypePlugins ?? []] })`.
+- Everything a session retrieves is requested with `fetch`, its stack, so
+  a subclass adds a layer by overriding it (see
+  [Extending](layers.md#extending)). The session follows redirects with
+  new requests to it.
 - Every document lookup, including following references, goes through
   `getDocument`, so a subclass can find documents somewhere other than the
   cache or a URL scheme plugin. `getDocument` also returns the document

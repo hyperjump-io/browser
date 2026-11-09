@@ -88,12 +88,14 @@ local to it.
   [Layers](layers.md)), so it checks every request for a document that
   isn't in the session's cache: `get`, `getDocument`, and following
   references. A subclass that overrides `getDocument` to find documents
-  elsewhere first isn't checked for those. It's above the URL scheme
+  elsewhere first, or adds a layer to `fetch` that answers with them,
+  isn't checked for those. It's above the URL scheme
   plugins, so it's above the HTTP cache too, and a cached response isn't a
   way around it. It's given the function that checks a URL, not the
   session.
 - A redirect is checked before it's followed, because the session follows
-  it with a request down its stack (see [Redirects](redirects.md)). That includes a plugin for a scheme
+  it with a new request through its stack (see [Redirects](redirects.md)).
+  That includes a plugin for a scheme
   that maps to another URL, like `urn:`, which redirects to it.
 - An error about a list, or a refused URL's, says which list to change:
   the config's, or the session's own option, which replaces the config's

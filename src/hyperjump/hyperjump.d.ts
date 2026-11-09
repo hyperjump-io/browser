@@ -256,6 +256,25 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    * parsed. The cause is the error that prevented it.
    */
   getDocument(url: string, options?: GetOptions): Promise<DocumentNode<T>>;
+
+  /**
+   * Everything the session retrieves is requested with this method: its
+   * stack, which checks `allowRetrieval`, down to the URL scheme plugins. It
+   * doesn't follow redirects. The session follows them with a new request
+   * to this method, so each URL a redirect leads to goes through it.
+   *
+   * A subclass adds a layer on top of the session's by overriding it, to
+   * answer from documents it has, for example. A layer it adds answers
+   * before `allowRetrieval`, so what it answers with doesn't have to be
+   * allowed.
+   *
+   * ```js
+   * fetch(request) {
+   *   return myLayer((request) => super.fetch(request))(request);
+   * }
+   * ```
+   */
+  fetch(request: Request): Promise<Response>;
 }
 
 /**

@@ -33,11 +33,10 @@ From the session down:
 
 | Layer | Answers or changes | Scope |
 | --- | --- | --- |
-| Redirects | follows a 3xx `Location` by sending a new request down the stack | session |
-| Read-only caches | answers from stores that are never written | session, then `Hyperjump` |
+| A subclass's | whatever they're for, in the order they're added | session |
+| The application's | whatever they're for, in the order they're given | `Hyperjump` |
 | `allowRetrieval` | answers 403 for a URL that isn't allowed, and checks the response's URL too | session |
 | `file:` from `file:` | answers 403 for a `file:` URL whose `Referer` isn't a `file:` URL | session |
-| The application's | whatever they're for, in the order they're given | `Hyperjump` |
 | Media type by extension | gives a response without a `Content-Type` the media type of its URL's extension | `Hyperjump` |
 | Request headers | adds the headers configured for a URL | `Hyperjump` |
 | `Accept` | sets `Accept` from the media type plugins | `Hyperjump` |
@@ -50,13 +49,16 @@ session shares, like the HTTP cache's store, so the `Hyperjump` resolves
 that state and each session's layer is built over it. Sessions share the
 state, not a stack (see [Sessions](sessions.md)).
 
-Where a layer goes is decided by what it has to see:
+A layer's place is the order it's added. A layer that's added goes on top
+of what's there, so where it goes doesn't need a way to say it. The
+session follows redirects itself, above the stack, with a new request for
+each URL a redirect leads to (see [Redirects](redirects.md)), so every
+layer sees each one.
 
-- Redirects are above `allowRetrieval`, so each URL a redirect leads to is
-  checked like the first. A redirect gets its own request headers too.
-- Read-only caches are above `allowRetrieval`, because nothing is
-  retrieved from them. The HTTP cache is below it, so a session can't get
-  a response another session was allowed to retrieve.
+The built-in layers are in the order that what each has to see decides:
+
+- The HTTP cache is below `allowRetrieval`, so a session can't get a
+  response another session was allowed to retrieve.
 - `allowRetrieval` checks the response's URL as well as the request's,
   because a symlink, or a redirect `fetch` followed in a browser, can end
   somewhere else.
@@ -65,24 +67,6 @@ Where a layer goes is decided by what it has to see:
 - The media type by extension is above the HTTP cache, so the cache keeps
   the `Content-Type` the server sent, and changing the option doesn't need
   the cache cleared.
-
-## Read-only caches
-
-A read-only cache is a store of responses that's never written. It's for
-documents an application has that aren't retrieved, like files it has
-read or documents it was given.
-
-- A store only needs `get(url)`. Being read-only is how the stack uses a
-  store, not a kind of store, so one an application builds by writing to
-  a memory or a file store is used read-only after.
-- Its responses are always fresh, so they're never revalidated, which is
-  why the layer never writes.
-- Its entries are a URL, headers, and a body, with no cache policy.
-  - One entry format with the HTTP cache's was rejected. Every entry would
-    need a policy made up to say it never expires.
-- A session's read-only caches come before its `Hyperjump`'s, and a
-  read-only cache comes before the HTTP cache, so a document an
-  application has wins over one that was retrieved before.
 
 ## Errors are responses
 
@@ -169,14 +153,40 @@ doesn't depend on `Referer`, which a browser drops.
 
 ## Extending
 
-An application adds layers with the `layers` config of its `Hyperjump`.
-They're below redirects, so they see each URL a redirect leads to, and
-below the built-in checks, `allowRetrieval` and `file:` from `file:`. They're
-above request headers, `Accept`, the media type by extension, and the HTTP
-cache, so a cached response goes through them, and a header they add is
-part of what the cache matches a `Vary` against. A read-only cache answers
-before them, so a document the application has doesn't go through them.
+A layer is added on top of the stack, so it answers or changes a request
+before the built-in layers do, including `allowRetrieval`. That's what an
+application's own documents need: a layer that answers with them, like
+`@hyperjump/json-schema`'s registry, answers for URLs that nothing allows,
+because nothing is retrieved. A layer that's the application's own code is
+trusted like the rest of it.
 
+- A subclass of `Session` adds a layer by overriding `fetch`, the session's
+  stack, which everything the session retrieves is requested with:
+
+  ```js
+  fetch(request) {
+    return registryLayer(this.#registry)((request) => super.fetch(request))(request);
+  }
+  ```
+
+  It's a method, so a subclass's layer can have the subclass's state, like
+  a registry that needs the session.
+- An application adds layers with the `layers` config of its `Hyperjump`,
+  on top of the built-in ones, in the order they're given. A subclass's
+  are on top of those.
+- `fetch` doesn't follow redirects. A redirect is followed with a new
+  request to `fetch`, so a layer sees each URL a redirect leads to, and a
+  layer that answers a URL answers it when a redirect leads there too.
+  - Following redirects with a layer at the top of the stack was rejected.
+    A layer added on top would be above it and only see the first request,
+    so a redirect to a URL it answers would go past it. Making it a layer
+    that's always on top would make where a layer goes more than the order
+    it's added.
+- Read-only caches, stores of responses an application has, as part of
+  the stack, were rejected. A layer that answers from what it has does
+  the same, without a store or an entry format.
+- A place for layers below the built-in checks was rejected. Where a layer
+  goes would be more than the order it's added.
 - A URL scheme plugin's `retrieve` is a `Fetch` for its schemes, and
   doesn't get options for `Accept` or the media type by extension, because
   the layers above give those.
@@ -189,13 +199,10 @@ before them, so a document the application has doesn't go through them.
   `{ schemes: plugin.schemes, retrieve: logged((request) => plugin.retrieve(request)) }`.
   - A place to put layers below the cache was rejected, because wrapping a
     plugin already does it.
-- A session doesn't take layers of its own. Its stack has its read-only
-  caches and `allowRetrieval`.
-
 - Overriding `getDocument` to find documents somewhere other than the
-  cache or a URL scheme plugin was rejected. A read-only cache and embedded
-  documents find them in the stack, so a subclass doesn't have to stand
-  between the session and everything it retrieves.
+  cache or a URL scheme plugin was rejected. A layer and embedded documents
+  find them in the stack, so a subclass doesn't have to stand between the
+  session and everything it retrieves.
 
 ## Known limitations
 

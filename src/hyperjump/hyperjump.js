@@ -6,7 +6,6 @@ import { jsonPointerGet } from "../json/jsonast-util.js";
 import { acceptHeader, fragmentPointer, mediaTypeByExtension, mediaTypePluginFor } from "./media-type-plugins.js";
 import { AllowedUrls, allowRetrievalLayer, configSource, resolveAllowRetrieval, sessionSource } from "./allowed-urls.js";
 import { compose } from "./layers.js";
-import { redirectsLayer } from "./redirects.js";
 import { fileFromFileLayer } from "./file-from-file.js";
 import { mediaTypeByExtensionLayer, resolveExtensionUrls } from "./media-type-by-extension.js";
 import { acceptLayer } from "./accept.js";
@@ -31,6 +30,14 @@ import { urlSchemesFetch } from "./url-schemes/url-schemes-fetch.js";
 
 /** The statuses whose response is a representation the session can parse */
 const successStatuses = new Set([200, 203]);
+
+const redirectStatuses = new Set([301, 302, 303, 307, 308]);
+
+/**
+ * Redirects are followed this many times, like `fetch` does, so a redirect
+ * cycle fails instead of going on forever
+ */
+const maxRedirects = 20;
 
 /**
  * @class
@@ -204,7 +211,6 @@ export class Session {
     const extensionUrls = resolveExtensionUrls(hyperjump.config.mediaTypeByExtension ?? []);
     const requestHeaders = resolveRequestHeaders(hyperjump.config.headers ?? {});
     this.#fetch = compose([
-      redirectsLayer,
       allowRetrievalLayer((url) => allowedUrls.allows(url), source),
       fileFromFileLayer,
       mediaTypeByExtensionLayer(extensionUrls, (url) => mediaTypeByExtension(mediaTypePlugins, url)),
@@ -216,6 +222,11 @@ export class Session {
 
   get hyperjump() {
     return this.#hyperjump;
+  }
+
+  /** @type API.Session<JrefNode>["fetch"] */
+  async fetch(request) {
+    return this.#fetch(request);
   }
 
   /** @type API.Session<JrefNode>["get"] */
@@ -286,8 +297,8 @@ export class Session {
   }
 
   /**
-   * Retrieve a document through the session's stack, which follows
-   * redirects and checks `allowRetrieval`. A response the session can't
+   * Retrieve a document through the session's stack, following redirects,
+   * and checked by `allowRetrieval`. A response the session can't
    * parse, like a refusal or a server's 404, is an `HttpError`, explained
    * by its Problem Details `detail` if it has one.
    *
@@ -333,7 +344,39 @@ export class Session {
       headers.set("referer", options.referencedFrom);
     }
 
-    return this.#fetch(new Request(url, { headers }));
+    return this.#followRedirects(new Request(url, { headers }));
+  }
+
+  /**
+   * A redirect is followed with a new request through `fetch`, so each URL
+   * it leads to goes through every layer, including a subclass's, and gets
+   * its own request headers. The new request has the same headers as the
+   * one that was redirected, like its `Referer`, so it's retrieved with the
+   * same options.
+   *
+   * The bottom of the stack gives every response a URL, so a relative
+   * `Location` is resolved against it. The `Location` comes from outside, so
+   * it's parsed, and one that isn't a URL throws, which fails the retrieval.
+   * The fragment isn't part of what's retrieved.
+   *
+   * @type (request: Request) => Promise<Response>
+   */
+  async #followRedirects(request) {
+    let response = await this.fetch(request);
+    for (let redirects = 0; ; redirects++) {
+      const location = redirectStatuses.has(response.status) ? response.headers.get("location") : null;
+      if (location === null) {
+        return response;
+      }
+
+      await response.body?.cancel();
+      if (redirects === maxRedirects) {
+        throw Error(`It was redirected more than ${maxRedirects} times`);
+      }
+
+      const url = withoutFragment(new URL(location, response.url).href);
+      response = await this.fetch(new Request(url, { headers: request.headers }));
+    }
   }
 
   /**
