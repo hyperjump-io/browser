@@ -23,6 +23,8 @@ when it changed. That's in git. The `.d.ts` files in
 ## Components
 
 - [`Hyperjump` and sessions](components/sessions.md), and extending them
+- [Layers](components/layers.md): retrieval as a stack of layers, like the
+  web's layered system (being built)
 - [Browsing](components/browsing.md): the `jref*` functions, which follow
   references
 - [Media types](components/media-types.md)
