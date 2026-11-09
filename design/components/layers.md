@@ -42,6 +42,7 @@ From the session down:
 | Read-only caches | answers from stores that are never written | session, then `Hyperjump` |
 | `allowRetrieval` | answers 403 for a URL that isn't allowed, and checks the response's URL too | session |
 | `file:` from `file:` | answers 403 for a `file:` URL whose `Referer` isn't a `file:` URL | `Hyperjump` |
+| The application's | whatever they're for, in the order they're given | `Hyperjump` |
 | Media type by extension | gives a response without a `Content-Type` the media type of its URL's extension | `Hyperjump` |
 | Request headers | adds the headers configured for a URL | `Hyperjump` |
 | `Accept` | sets `Accept` from the media type plugins | `Hyperjump` |
@@ -89,9 +90,29 @@ read or documents it was given.
 
 What happens to a request is a response, as it is on the web: a refusal is
 a 403, a file that isn't there is a 404, and a scheme without a plugin is a
-501. A layer above sees them like any other response. The session turns
-them into its errors, like `RetrievalNotAllowedError`, when it parses.
+501. A layer above sees them like any other response.
 
+- A layer that answers with an error explains it in the body, as Problem
+  Details (RFC 9457, `application/problem+json`), with the explanation in
+  `detail`. A server that sends Problem Details is explained the same way.
+- The session gives an `HttpError` for any response it can't parse, with
+  the status and, if there is one, the `detail` in its message. The
+  `detail` comes from outside, so it's cut to a few hundred characters and
+  its control characters are removed. A refusal, a missing file, and a
+  scheme without a plugin are `HttpError`s with their status, like a
+  server's.
+  - Telling a layer's refusal from a server's 403, to keep a
+    `RetrievalNotAllowedError`, was rejected. On the web, a client doesn't
+    know whether a proxy or the server refused, and what the distinction
+    was for, a message that says which `allowRetrieval` to change, is in
+    the `detail`. Marking a layer's responses with a header that the bottom
+    of the stack strips from servers' was rejected as machinery for one
+    message, and a `Response` subclass because a layer that makes a new
+    response loses it.
+  - The explanation in `statusText` was rejected. It's the reason phrase,
+    "Forbidden" for a 403, and HTTP/2 doesn't send one. A header was
+    rejected because there's no standard one: `Warning` is obsolete
+    (RFC 9111).
 - A layer throws only when something fails without a response, like a
   network error. The session wraps that in a `RetrievalError`.
 - Errors thrown by each layer were rejected. A layer above, like a cache
@@ -100,10 +121,11 @@ them into its errors, like `RetrievalNotAllowedError`, when it parses.
 
 ## `Referer`
 
-The URL of the document a reference is in is the request's `Referer`
-header, the web's way of saying where a request came from. The session
-sets it from a reference's document, and a layer that cares, like
-`file:` from `file:`, reads it.
+A request for a reference has a `Referer` header: the URL of the document
+the reference was found in, which is what `Referer` means on the web. It's
+the document's URL, not the location of the node the reference is in,
+which a media type can make the URI of something else, like an embedded
+document's. A layer that cares, like `file:` from `file:`, reads it.
 
 ## Above the stack
 
@@ -111,28 +133,55 @@ The session turns responses into documents and keeps them:
 
 - Its document cache, keyed by the normalized IRI.
 - Embedded documents: a media type plugin can give a document the
-  documents it contains, and they're found from that document, like a
-  reference from it.
+  documents it contains, each by the URI the document says it has.
 - Parsing, with the media type plugin for the response's `Content-Type`.
+
+## Embedded documents
+
+An embedded document is found only by a request whose `Referer` is the
+document that contains it. A document can say it contains a document with
+any URI, so this keeps it from changing what a reference in another
+document finds.
+
+- An embedded document isn't put in the session's document cache under
+  the URI it says it has, so another document's references don't find it.
+- It isn't retrieved, so `allowRetrieval` doesn't apply to it, and nothing
+  is read from where it says it is. One that says it's a `file:` URL reads
+  no file.
+- A document has one set of embedded documents. One that's also embedded
+  in another document, like a copy in a bundle, has that document's set
+  when it's found from there and its own when it's found by itself, so it
+  never looks in both.
+  - Finding an embedded document from any document that contains the one
+    making the reference was rejected. A document that embeds a copy of
+    another, with a document of its own under a URI the copy refers to,
+    would change what the original's references find.
+- Whether two documents with the same URI are the same document, like a
+  copy in a bundle and the original, is the application's. A media type
+  decides what makes them the same.
 
 ## Extending
 
-An application adds layers to a `Hyperjump`'s or a session's stack.
-A URI scheme plugin is a `Fetch` for its scheme, and doesn't get options
-for `Accept` or the media type by extension, because the layers above
-give those.
+An application adds layers with the `layers` config of its `Hyperjump`.
+They're below redirects, so they see each URL a redirect leads to, and
+below the built-in checks, `allowRetrieval` and `file:` from `file:`. They're
+above request headers, `Accept`, the media type by extension, and the HTTP
+cache, so a cached response goes through them, and a header they add is
+part of what the cache matches a `Vary` against. A read-only cache answers
+before them, so a document the application has doesn't go through them.
+
+- A URI scheme plugin is a `Fetch` for its scheme, and doesn't get options
+  for `Accept` or the media type by extension, because the layers above
+  give those.
+- A layer applied to a `Fetch` is a `Fetch`, so what has to be below the
+  HTTP cache, like a proxy or logging what goes over the network, wraps a
+  URI scheme plugin: `uriSchemePlugins: [logged(httpPlugin)]`.
+  - A place to put layers below the cache was rejected, because wrapping a
+    plugin already does it.
+- A session doesn't take layers of its own. Its stack has its read-only
+  caches and `allowRetrieval`.
 
 - Overriding `getDocument` to find documents somewhere other than the
   cache or a URI scheme plugin was rejected. A read-only cache and embedded
   documents find them in the stack, so a subclass doesn't have to stand
   between the session and everything it retrieves.
-
-## Open questions
-
-- How the session tells a refusal from a layer, like `allowRetrieval`'s,
-  from a server's 403, to give `RetrievalNotAllowedError` for one and
-  `HttpError` for the other.
-- Where an application's layers go in the stack, and whether it can put
-  one between the built-in ones.
-- When an embedded document is found: only from the document that contains
-  it, or also from another document that contains the same one.
