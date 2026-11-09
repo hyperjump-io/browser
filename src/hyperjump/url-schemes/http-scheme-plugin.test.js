@@ -1,6 +1,6 @@
 import { describe, test, beforeEach, afterEach, expect, vi } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump, HttpError, HttpUriSchemePlugin, MemoryHttpCacheStore, RetrievalError, RetrievalNotAllowedError } from "../index.js";
+import { Hyperjump, HttpError, HttpUrlSchemePlugin, MemoryHttpCacheStore, RetrievalError, RetrievalNotAllowedError } from "../index.js";
 import { toJson } from "../../json/jsonast-util.js";
 
 describe("JSON Browser", () => {
@@ -75,7 +75,7 @@ describe("JSON Browser", () => {
         const error = await hyperjump.session().get(`${testDomain}/foo`)
           .catch((/** @type unknown */ error) => error);
         expect(error).to.be.instanceof(RetrievalNotAllowedError);
-        expect(/** @type RetrievalNotAllowedError */ (error).uri).to.equal("https://internal.example.com/foo");
+        expect(/** @type RetrievalNotAllowedError */ (error).url).to.equal("https://internal.example.com/foo");
       });
 
       test.each([
@@ -91,7 +91,7 @@ describe("JSON Browser", () => {
 
         const hyperjump = new Hyperjump({
           allowRetrieval: ["https://example.com/"],
-          uriSchemePlugins: [new HttpUriSchemePlugin({ cache })]
+          urlSchemePlugins: [new HttpUrlSchemePlugin({ cache })]
         });
         await expect(hyperjump.session().get(`${testDomain}/foo`)).rejects.toBeInstanceOf(RetrievalNotAllowedError);
         expect(mockAgent.pendingInterceptors()).to.have.length(1);
@@ -160,7 +160,7 @@ describe("JSON Browser", () => {
 
           const hyperjump = new Hyperjump({
             allowRetrieval: ["https://example.com/"],
-            uriSchemePlugins: [new HttpUriSchemePlugin({ cache })]
+            urlSchemePlugins: [new HttpUrlSchemePlugin({ cache })]
           });
           await expect(hyperjump.session().get(`${testDomain}/foo`)).rejects.toBeInstanceOf(RetrievalError);
           expect(cancelled).to.equal(true);
@@ -192,7 +192,7 @@ describe("JSON Browser", () => {
       [200, 203].forEach((status) => {
         test(`${status}`, async () => {
           const path = "/foo";
-          const uri = `${testDomain}${path}`;
+          const url = `${testDomain}${path}`;
           const jref = `{ "foo": 42 }`;
 
           mockAgent.get(testDomain)
@@ -201,7 +201,7 @@ describe("JSON Browser", () => {
 
           const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
           const session = hyperjump.session();
-          const subject = await session.get(`${uri}#/foo`);
+          const subject = await session.get(`${url}#/foo`);
 
           expect(toJson(subject)).to.equal(`42`);
         });
@@ -210,7 +210,7 @@ describe("JSON Browser", () => {
       [301, 302, 303, 307, 308].forEach((status) => {
         test(`${status}`, async () => {
           const path = "/foo";
-          const uri = `${testDomain}${path}`;
+          const url = `${testDomain}${path}`;
           const redirectPath = "/alternate-foo";
           const jref = `{ "foo": 42 }`;
 
@@ -225,7 +225,7 @@ describe("JSON Browser", () => {
 
           const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
           const session = hyperjump.session();
-          const subject = await session.get(`${uri}#/foo`);
+          const subject = await session.get(`${url}#/foo`);
 
           expect(toJson(subject)).to.equal(`42`);
         });
@@ -258,7 +258,7 @@ describe("JSON Browser", () => {
 
       test("Redirect that inherits a fragment", async () => {
         const path = "/foo";
-        const uri = `${testDomain}${path}`;
+        const url = `${testDomain}${path}`;
         const redirectPath = "/alternate-foo";
         const jref = `{ "foo": 42 }`;
 
@@ -273,7 +273,7 @@ describe("JSON Browser", () => {
 
         const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
-        const subject = await session.get(`${uri}#/foo`);
+        const subject = await session.get(`${url}#/foo`);
 
         expect(toJson(subject)).to.equal(`42`);
       });
@@ -305,7 +305,7 @@ describe("JSON Browser", () => {
       // There isn't a way to make this pass in the browser due to limitations of the Fetch spec.
       test.skip("redirect with a Location that includes a fragment", async () => {
         const path = "/foo";
-        const uri = `${testDomain}${path}`;
+        const url = `${testDomain}${path}`;
         const redirectPath = "/alternate-foo";
         const jref = `{ "foo": 42 }`;
 
@@ -320,7 +320,7 @@ describe("JSON Browser", () => {
 
         const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
-        const subject = await session.get(uri);
+        const subject = await session.get(url);
 
         expect(toJson(subject)).to.equal(`42`);
       });
@@ -328,7 +328,7 @@ describe("JSON Browser", () => {
       // There isn't a way to make this pass in the browser due to limitations of the Fetch spec.
       test.skip("redirect whose inherited fragment gets overridden by the Location's fragment", async () => {
         const path = "/foo";
-        const uri = `${testDomain}${path}`;
+        const url = `${testDomain}${path}`;
         const redirectPath = "/alternate-foo";
         const jref = `{
   "foo": 42,
@@ -346,7 +346,7 @@ describe("JSON Browser", () => {
 
         const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
         const session = hyperjump.session();
-        const subject = await session.get(`${uri}#/bar`);
+        const subject = await session.get(`${url}#/bar`);
 
         expect(toJson(subject)).to.equal(`42`);
       });
@@ -376,11 +376,11 @@ describe("JSON Browser", () => {
       describe("headers", () => {
         const contentType = { "content-type": "application/reference+json" };
 
-        /** @type (options: import("./http-scheme-plugin.d.ts").HttpUriSchemePluginOptions) => Hyperjump */
+        /** @type (options: import("./http-scheme-plugin.d.ts").HttpUrlSchemePluginOptions) => Hyperjump */
         const withOptions = (options) => {
           return new Hyperjump({
             allowRetrieval: ["https://example.com/", "https://other.example.com/"],
-            uriSchemePlugins: [new HttpUriSchemePlugin(options)]
+            urlSchemePlugins: [new HttpUrlSchemePlugin(options)]
           });
         };
 
@@ -590,11 +590,11 @@ describe("JSON Browser", () => {
         });
 
         test("a relative URL throws", () => {
-          expect(() => new HttpUriSchemePlugin({ headers: { "/foo/": {} } })).to.throw("isn't an absolute URL");
+          expect(() => new HttpUrlSchemePlugin({ headers: { "/foo/": {} } })).to.throw("isn't an absolute URL");
         });
 
         test("a URL that isn't http(s): throws", () => {
-          expect(() => new HttpUriSchemePlugin({ headers: { "file:///foo/": {} } })).to.throw("isn't an 'http:' or 'https:' URL");
+          expect(() => new HttpUrlSchemePlugin({ headers: { "file:///foo/": {} } })).to.throw("isn't an 'http:' or 'https:' URL");
         });
 
         test("can't replace Accept", async () => {
@@ -613,17 +613,17 @@ describe("JSON Browser", () => {
       });
 
       describe("mediaTypeByExtension", () => {
-        /** @type (options: import("./http-scheme-plugin.d.ts").HttpUriSchemePluginOptions) => Hyperjump */
+        /** @type (options: import("./http-scheme-plugin.d.ts").HttpUrlSchemePluginOptions) => Hyperjump */
         const withOptions = (options) => {
           return new Hyperjump({
             allowRetrieval: ["https://example.com/", "https://other.example.com/"],
-            uriSchemePlugins: [new HttpUriSchemePlugin(options)]
+            urlSchemePlugins: [new HttpUrlSchemePlugin(options)]
           });
         };
 
-        /** @type (hyperjump: Hyperjump, uri: string) => Promise<string | undefined> */
-        const unsupportedMediaType = async (hyperjump, uri) => {
-          const error = await hyperjump.session().get(uri)
+        /** @type (hyperjump: Hyperjump, url: string) => Promise<string | undefined> */
+        const unsupportedMediaType = async (hyperjump, url) => {
+          const error = await hyperjump.session().get(url)
             .then(() => undefined, (/** @type unknown */ error) => error);
           expect(error).to.be.instanceof(RetrievalError);
           const cause = /** @type Error & { mediaType?: string } */ (/** @type RetrievalError */ (error).cause);
@@ -728,11 +728,11 @@ describe("JSON Browser", () => {
         });
 
         test("a relative URL throws", () => {
-          expect(() => new HttpUriSchemePlugin({ mediaTypeByExtension: ["/foo/"] })).to.throw("'/foo/' in the 'mediaTypeByExtension' option isn't an absolute URL");
+          expect(() => new HttpUrlSchemePlugin({ mediaTypeByExtension: ["/foo/"] })).to.throw("'/foo/' in the 'mediaTypeByExtension' option isn't an absolute URL");
         });
 
         test("a URL that isn't http(s): throws", () => {
-          expect(() => new HttpUriSchemePlugin({ mediaTypeByExtension: ["file:///foo/"] })).to.throw("isn't an 'http:' or 'https:' URL");
+          expect(() => new HttpUrlSchemePlugin({ mediaTypeByExtension: ["file:///foo/"] })).to.throw("isn't an 'http:' or 'https:' URL");
         });
       });
     });

@@ -1,13 +1,13 @@
-# Local paths in errors (`src/hyperjump/file-uris.js`)
+# Local paths in errors (`src/hyperjump/file-urls.js`)
 
 An error's message is copied into logs, issues, and what tools report, and
 a `file:` URL in it says where the files are on the machine. So errors say
-a `file:` URL with `relativeFileUri`, relative to the working directory
-(`contextUri`, which relative URLs are resolved against too):
+a `file:` URL with `relativeFileUrl`, relative to the working directory
+(`contextUrl`, which relative URLs are resolved against too):
 `data/a.json#/a`, or `../other/a.json` outside it. Other URLs are said as
 they are.
 
-- Each error keeps the exact URL on a property (`uri`), for code that needs
+- Each error keeps the exact URL on a property (`url`), for code that needs
   to know what failed. `RetrievalError` takes the URL and makes its own
   message, so every one says it the same way.
 - A missing file is a `FileNotFoundError`, the cause of the
@@ -16,14 +16,12 @@ they are.
   `EACCES`, for the same reason.
 - A `JsonPointerError` says the location of the node it failed at, made
   relative the same way. The location is already on the node, so
-  `jsonPointerGet` and `jsonStep` aren't given the document's URI.
-- `relativeFileUri` is exported, so applications say URLs the same way in
-  their own messages. It takes an `IriReference`, what browser hands out:
-  a document's URI, a location, or an error's `uri`. So it doesn't check
-  it (see [Identifiers are IRIs](../principles/identifiers-are-iris.md)).
-  A location that's only a fragment is returned as it is.
-- A URL is normalized before it's made relative, so one written as
-  `FILE:///…`, as a schema author might, is relative too.
+  `jsonPointerGet` and `jsonStep` aren't given the document's URL.
+- `relativeFileUrl` is exported, so applications say URLs the same way in
+  their own messages. It takes what Browser hands out, an `href`: a
+  document's URL, a location, or an error's `url` (see
+  [Identifiers are URLs](../principles/identifiers-are-urls.md)). A
+  `file:` URL on another host is returned as it is.
 - Where the working directory isn't a folder, as in a browser, there are no
   `file:` URLs, and one is said by its file name.
 
@@ -35,8 +33,8 @@ Rejected:
 - Leaving it to whatever reports the error. Every application that shows
   an error would have to rewrite its text, and it can't tell which part of
   a message is a URL.
-- Giving `relativeFileUri` the base (`relativeFileUri(uri, base)`), such as
-  a session's context URI. Messages are made in many places that don't
+- Giving `relativeFileUrl` the base (`relativeFileUrl(url, base)`), such as
+  a session's context URL. Messages are made in many places that don't
   have a session, like `@hyperjump/json-schema`'s errors and output, so
   every one would need a base passed to it. A message is for whoever reads
   it, and relative to the working directory is what a relative path means

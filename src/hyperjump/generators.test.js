@@ -21,7 +21,7 @@ describe("JSON Browser", () => {
     });
 
     test("iter", async () => {
-      const uri = `${testDomain}/subject`;
+      const url = `${testDomain}/subject`;
       const jref = `[1, { "$ref": "/external" }, { "$ref": "#/1" }]`;
       const external = "2";
 
@@ -35,7 +35,7 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
-      const subject = await session.get(uri);
+      const subject = await session.get(url);
       const generator = jrefArrayIter(session, subject);
 
       const first = await generator.next();
@@ -70,7 +70,7 @@ describe("JSON Browser", () => {
     });
 
     test("values", async () => {
-      const uri = `${testDomain}/subject`;
+      const url = `${testDomain}/subject`;
       const jref = `{
         "a": 1,
         "b": { "$ref": "/external" },
@@ -88,7 +88,7 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
-      const subject = await session.get(uri);
+      const subject = await session.get(url);
       const generator = jrefObjectValues(session, subject);
 
       const first = await generator.next();
@@ -101,7 +101,7 @@ describe("JSON Browser", () => {
     });
 
     test("entries", async () => {
-      const uri = `${testDomain}/subject`;
+      const url = `${testDomain}/subject`;
       const jref = `{
         "a": 1,
         "b": { "$ref": "/external" },
@@ -119,7 +119,7 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
-      const subject = await session.get(uri);
+      const subject = await session.get(url);
       const generator = jrefObjectEntries(session, subject);
 
       const a = await generator.next();

@@ -1,12 +1,11 @@
-import type { Iri } from "@hyperjump/uri";
-import type { relativeFileUri } from "./file-uris.d.ts";
+import type { relativeFileUrl } from "./file-urls.d.ts";
 import type { JsonNode } from "../json/jsonast.d.ts";
 import type { JrefNode } from "../jref/jref-ast.d.ts";
-import type { UriSchemePlugin } from "./uri-schemes/uri-scheme-plugin.d.ts";
+import type { UrlSchemePlugin } from "./url-schemes/url-scheme-plugin.d.ts";
 import type { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.d.ts";
 import type { JsonPointerError } from "../json/jsonast-util.d.ts";
-import type { HttpUriSchemePlugin } from "./uri-schemes/http-scheme-plugin.d.ts";
-import type { FileUriSchemePlugin } from "./uri-schemes/file-scheme-plugin.d.ts";
+import type { HttpUrlSchemePlugin } from "./url-schemes/http-scheme-plugin.d.ts";
+import type { FileUrlSchemePlugin } from "./url-schemes/file-scheme-plugin.d.ts";
 import type { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.d.ts";
 import type { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.d.ts";
 import type { FollowedNode, jrefStep } from "./browsing.d.ts";
@@ -25,7 +24,7 @@ export type HyperjumpConfig<T extends JsonNode<{ type: string }> = JrefNode> = {
    * nothing to resolve it against, such as in a worker, it throws a
    * `TypeError`, and so does one that isn't a URL.
    *
-   * It's checked for everything a session retrieves, before the URI scheme
+   * It's checked for everything a session retrieves, before the URL scheme
    * plugins, so a cached HTTP response isn't a way around it.
    *
    * In Node.js, `file:` URLs are compared by their real paths, so a symlink
@@ -46,15 +45,15 @@ export type HyperjumpConfig<T extends JsonNode<{ type: string }> = JrefNode> = {
 
   /**
    * Support for more
-   * {@link https://www.rfc-editor.org/rfc/rfc3986#section-3.1 | URI schemes},
+   * {@link https://url.spec.whatwg.org/#concept-url-scheme | URL schemes},
    * or different plugins for the ones that are supported by default:
-   * {@link HttpUriSchemePlugin | `http(s):`} and, in Node.js,
-   * {@link FileUriSchemePlugin | `file:`}. A plugin replaces the default,
+   * {@link HttpUrlSchemePlugin | `http(s):`} and, in Node.js,
+   * {@link FileUrlSchemePlugin | `file:`}. A plugin replaces the default,
    * or an earlier plugin in the list, for each scheme it lists, so one with
    * different HTTP caching or headers replaces the default for `http:` and
    * `https:`.
    */
-  uriSchemePlugins?: UriSchemePlugin[];
+  urlSchemePlugins?: UrlSchemePlugin[];
 
   /**
    * Support for more media types, or different plugins for the ones that are
@@ -96,10 +95,10 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
   readonly config: HyperjumpConfig<T>;
 
   /**
-   * The URI scheme plugins by scheme: the defaults, with the config's
+   * The URL scheme plugins by scheme: the defaults, with the config's
    * replacing them for the schemes they list.
    */
-  readonly uriSchemePlugins: ReadonlyMap<string, UriSchemePlugin>;
+  readonly urlSchemePlugins: ReadonlyMap<string, UrlSchemePlugin>;
 
   /**
    * The media type plugins by media type, in the order of the `Accept`
@@ -109,7 +108,7 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
   readonly mediaTypePlugins: ReadonlyMap<string, MediaTypePlugin<DocumentNode<T>>>;
 
   /**
-   * The `Accept` header that's given to URI scheme plugins. It's built when
+   * The `Accept` header that's given to URL scheme plugins. It's built when
    * the `Hyperjump` is created, so changing a plugin's `quality` later
    * doesn't change it.
    */
@@ -117,7 +116,7 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
 
   /**
    * Start a session. Each session has its own documents, so nothing one
-   * session retrieves is seen by another, except through the URI scheme
+   * session retrieves is seen by another, except through the URL scheme
    * plugins (such as an HTTP cache).
    */
   session(options?: SessionOptions): Session<T>;
@@ -145,21 +144,21 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
   readonly hyperjump: Hyperjump<T>;
 
   /**
-   * Retrieve a document located at the given URI. URIs can be relative if a
-   * base URI can be determined. On the server-side, the base URI is the CWD. In
-   * browser, the base URI is the URI of the page. It's the one there was when
-   * the session was created.
+   * Retrieve a document located at the given URL. A URL can be relative if
+   * there's a base URL to resolve it against. In Node.js, it's the working
+   * directory. In a browser, it's the URL of the page. It's the one there was
+   * when the session was created.
    *
-   * @see Use the `uriSchemePlugins` config ({@link HyperjumpConfig}) to add
-   * support for additional URI schemes.
+   * @see Use the `urlSchemePlugins` config ({@link HyperjumpConfig}) to add
+   * support for additional URL schemes.
    * @see Support for {@link JrefMediaTypePlugin | JRef} and
    * {@link JsonMediaTypePlugin | JSON} is built in. Use the
    * `mediaTypePlugins` config ({@link HyperjumpConfig}) to add support for
    * additional media types.
    *
-   * @throws An `InvalidIriError` if `uri` isn't an IRI-reference, or
-   * `referencedFrom` isn't an IRI.
-   * @throws A `TypeError` if `uri` is relative, or `allowRetrieval` is the
+   * @throws A `TypeError` if `url` isn't a URL, or `referencedFrom` isn't an
+   * absolute URL.
+   * @throws A `TypeError` if `url` is relative, or `allowRetrieval` is the
    * default, and there's nothing to resolve it against, such as in a worker.
    * @throws A {@link RetrievalNotAllowedError} if `allowRetrieval` refuses
    * the document's URL.
@@ -170,50 +169,50 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    * @throws A {@link JsonPointerError} if a fragment doesn't resolve to a
    * value.
    */
-  get(uri: string, options?: GetOptions): Promise<FollowedNode<T>>;
+  get(url: string, options?: GetOptions): Promise<FollowedNode<T>>;
 
   /**
-   * Retrieve the document located at the given URI, the same way
+   * Retrieve the document located at the given URL, the same way
    * {@link Session.get} does, but return the document itself rather than a
    * node in it. The fragment is ignored and references aren't followed. Use it
    * for what the document has beyond its values, such as its parse status.
    *
    * Every document {@link Session.get} uses comes from this method, including
    * the ones it follows references to, so a subclass can override it to find
-   * documents somewhere other than the session or a URI scheme plugin.
+   * documents somewhere other than the session or a URL scheme plugin.
    *
-   * @throws An `InvalidIriError` if `uri` isn't an IRI-reference, or
-   * `referencedFrom` isn't an IRI.
-   * @throws A `TypeError` if `uri` is relative, or `allowRetrieval` is the
+   * @throws A `TypeError` if `url` isn't a URL, or `referencedFrom` isn't an
+   * absolute URL.
+   * @throws A `TypeError` if `url` is relative, or `allowRetrieval` is the
    * default, and there's nothing to resolve it against, such as in a worker.
    * @throws A {@link RetrievalError} if the document can't be retrieved or
    * parsed. The cause is the error that prevented it.
    */
-  getDocument(uri: string, options?: GetOptions): Promise<DocumentNode<T>>;
+  getDocument(url: string, options?: GetOptions): Promise<DocumentNode<T>>;
 }
 
 /**
  * A URL that was allowed couldn't be retrieved. Its message says the URL
- * with {@link relativeFileUri}, so it doesn't reveal where files are.
+ * with {@link relativeFileUrl}, so it doesn't reveal where files are.
  */
 export class RetrievalError extends Error {
   /** The URL that couldn't be retrieved */
-  uri: Iri;
+  url: string;
 
-  constructor(uri: Iri, options: { cause: unknown });
+  constructor(url: string, options: { cause: unknown });
 }
 
 /**
  * There's no file at a `file:` URL, or something in its path isn't a
- * folder. Its message says the URL with {@link relativeFileUri}, rather
+ * folder. Its message says the URL with {@link relativeFileUrl}, rather
  * than Node.js's error, which says the absolute path. It's the cause of a
  * {@link RetrievalError}.
  */
 export class FileNotFoundError extends Error {
   /** The URL of the file */
-  uri: Iri;
+  url: string;
 
-  constructor(uri: Iri);
+  constructor(url: string);
 }
 
 /**
@@ -224,13 +223,13 @@ export class FileNotFoundError extends Error {
  */
 export class RetrievalNotAllowedError extends Error {
   /** The URL that was refused. For a redirect, it's where it led. */
-  uri: Iri;
+  url: string;
 
   /**
    * The message says which list to change, the config's or a session's
    * own, so it's given rather than made from the URL.
    */
-  constructor(uri: Iri, message: string);
+  constructor(url: string, message: string);
 }
 
 /**
@@ -238,13 +237,13 @@ export class RetrievalNotAllowedError extends Error {
  * followed, so the references never resolve to a value.
  */
 export class ReferenceCycleError extends Error {
-  referenceChain: Iri[];
+  referenceChain: string[];
 
-  constructor(referenceChain: Iri[]);
+  constructor(referenceChain: string[]);
 }
 
-export class UnsupportedUriSchemeError extends Error {
-  /** The URI scheme that isn't supported, without the `:` */
+export class UnsupportedUrlSchemeError extends Error {
+  /** The URL scheme that isn't supported, without the `:` */
   scheme: string;
 
   constructor(scheme: string, message?: string);

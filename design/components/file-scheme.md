@@ -1,8 +1,8 @@
-# The `file:` scheme (`src/hyperjump/uri-schemes/file-scheme-plugin.js`)
+# The `file:` scheme (`src/hyperjump/url-schemes/file-scheme-plugin.js`)
 
 - A file is read from its real path, with every symlink in the path
   resolved, and the response's URL is that real path. Without a symlink,
-  the response's URL is the URI that was asked for.
+  the response's URL is the URL that was asked for.
 - A document read through a symlink is identified by its real path, so its
   relative references resolve from where the file really is, next to the
   files its author wrote it with. It's how Node.js resolves modules.
@@ -20,5 +20,5 @@
   Without one, the response doesn't have a `Content-Type`.
 - A missing file is a `FileNotFoundError` whose message is relative to the
   working directory, not Node.js's error (see [Local paths in
-  errors](file-uris.md)).
+  errors](file-urls.md)).
 - It isn't available in a browser.

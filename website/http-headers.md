@@ -7,11 +7,11 @@ every request could end up at any server. Instead, you give headers by URL, and
 only the URLs you list get them:
 
 ```typescript
-import { Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";
+import { Hyperjump, HttpUrlSchemePlugin } from "@hyperjump/browser";
 
 const h = new Hyperjump({
   allowRetrieval: ["https://api.example.com/"],
-  uriSchemePlugins: [new HttpUriSchemePlugin({
+  urlSchemePlugins: [new HttpUrlSchemePlugin({
     headers: {
       "https://api.example.com/": {
         Authorization: `Bearer ${process.env.TOKEN}`
@@ -42,7 +42,7 @@ calls it with the URL of each request it matches. It can be async, which lets
 you refresh a token before the plugin sends it:
 
 ```typescript
-new HttpUriSchemePlugin({
+new HttpUrlSchemePlugin({
   headers: {
     "https://api.example.com/": async () => ({
       Authorization: `Bearer ${await getToken()}`
@@ -85,11 +85,11 @@ get the response to Alice's request with her token. To keep them apart, give
 each user a `Hyperjump` with its own plugin:
 
 ```typescript
-import { Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";
+import { Hyperjump, HttpUrlSchemePlugin } from "@hyperjump/browser";
 
 const hyperjumpFor = (token: string) => new Hyperjump({
   allowRetrieval: ["https://api.example.com/"],
-  uriSchemePlugins: [new HttpUriSchemePlugin({
+  urlSchemePlugins: [new HttpUrlSchemePlugin({
     headers: {
       "https://api.example.com/": { Authorization: `Bearer ${token}` }
     }

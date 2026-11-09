@@ -1,11 +1,10 @@
-import type { AbsoluteIri, IriReference } from "@hyperjump/uri";
 import type { Data, Position } from "unist";
 
 export type JsonNullNode = {
   type: string;
   jsonType: "null";
   value: null;
-  location: IriReference;
+  location: string;
   data?: Data;
   position?: Position;
 };
@@ -14,7 +13,7 @@ export type JsonBooleanNode = {
   type: string;
   jsonType: "boolean";
   value: boolean;
-  location: IriReference;
+  location: string;
   data?: Data;
   position?: Position;
 };
@@ -23,7 +22,7 @@ export type JsonNumberNode = {
   type: string;
   jsonType: "number";
   value: number;
-  location: IriReference;
+  location: string;
   data?: Data;
   position?: Position;
 };
@@ -32,7 +31,7 @@ export type JsonStringNode = {
   type: string;
   jsonType: "string";
   value: string;
-  location: IriReference;
+  location: string;
   data?: Data;
   position?: Position;
 };
@@ -41,7 +40,7 @@ export type JsonArrayNode<A, X = never, P = unknown> = {
   type: string;
   jsonType: "array";
   children: (JsonNode<A, X, P> | X)[];
-  location: IriReference;
+  location: string;
   data?: Data;
   position?: Position;
 };
@@ -65,7 +64,7 @@ export type JsonObjectNode<A, X = never, P = unknown> = {
   type: string;
   jsonType: "object";
   children: JsonPropertyNode<A, X, P>[];
-  location: IriReference;
+  location: string;
   data?: Data;
   position?: Position;
 };
@@ -95,7 +94,7 @@ export type JsonInvalidNode = {
   type: "json-invalid";
   /** The text as it was written */
   raw: string;
-  location: IriReference;
+  location: string;
   data?: Data;
   position?: Position;
 };
@@ -108,7 +107,7 @@ export type JsonInvalidNode = {
  */
 export type JsonMissingNode = {
   type: "json-missing";
-  location: IriReference;
+  location: string;
   data?: Data;
   position?: Position;
 };
@@ -175,8 +174,8 @@ export type JsonDocumentNode<S extends JsonParseStatus = JsonParseStatus> = {
    * allowed.
    */
   comments: JsonCommentNode[];
-  /** The document's URI, which its nodes' locations start with, if it has one */
-  uri?: AbsoluteIri;
+  /** The document's URL, which its nodes' locations start with */
+  url: string;
   data?: Data;
 };
 

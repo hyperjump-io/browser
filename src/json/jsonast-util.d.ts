@@ -1,4 +1,3 @@
-import type { InvalidIriError } from "@hyperjump/uri";
 import type { Position } from "unist";
 import type {
   Json,
@@ -18,18 +17,17 @@ import type {
 } from "./jsonast.d.ts";
 
 /**
- * Parse a JSON string into a JSON AST. `uri` is the document's URI, which
- * every node's location starts with. If `uri` is not given, locations are
- * only fragments, like `#/a`.
+ * Parse a JSON string into a JSON AST. `url` is the document's URL, which
+ * every node's location starts with.
  *
  * Nothing in the document makes it throw. Malformed input produces an AST
  * whenever possible and the result's `status` says how much to trust it. See
  * {@link JsonParseResult}.
  *
- * @throws {InvalidIriError} If `uri` isn't an absolute IRI. It's the
+ * @throws {TypeError} If `url` isn't a URL or has a fragment. It's the
  *   caller's mistake, not the document's.
  */
-export const fromJson: (json: string, uri?: string, options?: JsonOptions) => JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode>;
+export const fromJson: (json: string, url: string, options?: JsonOptions) => JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode>;
 
 /**
  * Check a document's parse status. Unlike checking `document.status`
@@ -121,11 +119,12 @@ export type JsonSyntaxErrorCode
 
 /**
  * Parse a JSON compatible JavaScript value into a JSON AST. `location` is the
- * root node's location, like `https://example.com/doc#`.
+ * root node's location, like `https://example.com/doc#/a`. A URL without a
+ * fragment is a document's, so its root is `#`.
  *
- * @throws {InvalidIriError} If `location` isn't an IRI-reference.
+ * @throws {TypeError} If `location` isn't a URL.
  */
-export const fromJs: (js: ReadonlyJson, location?: string) => JsonNode;
+export const fromJs: (js: ReadonlyJson, location: string) => JsonNode;
 
 export type ToJsonOptions = {
   /**

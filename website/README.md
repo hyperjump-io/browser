@@ -27,7 +27,7 @@ you.
 The browser also works with other media types as long as a parser can turn them
 into a JRef abstract syntax tree (AST). It reads plain JSON by default, and you
 can add your own [media types](media-types.md) and
-[URI schemes](uri-schemes.md).
+[URL schemes](url-schemes.md).
 
 - **Safe with documents you don't trust.** A document can't make your app
   retrieve whatever it references. You choose what the browser can retrieve.
@@ -52,7 +52,7 @@ Using version 1.x? Its docs are in the
 - [HTTP caching](http-caching.md)
 - [HTTP headers](http-headers.md): send credentials
 - [Media types](media-types.md): formats other than JSON and JRef
-- [URI schemes](uri-schemes.md): schemes other than `http:`, `https:`,
+- [URL schemes](url-schemes.md): schemes other than `http:`, `https:`,
   and `file:`
 - [Parse JSON and JRef](parsing.md): the parsers and the functions that read
   their ASTs

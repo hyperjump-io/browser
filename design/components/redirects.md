@@ -1,6 +1,6 @@
 # Redirects (`Session`, `src/hyperjump/hyperjump.js`)
 
-A session follows redirects itself. A URI scheme plugin returns a redirect
+A session follows redirects itself. A URL scheme plugin returns a redirect
 (301, 302, 303, 307 or 308 with a `Location`) and the session retrieves
 where it leads, with the plugin for that URL's scheme.
 
@@ -31,21 +31,21 @@ where it leads, with the plugin for that URL's scheme.
   could send a session to a file it allows, when there's no
   `referencedFrom` for the `file:` plugin to refuse, such as a URL an
   application passes to `get`.
-- A plugin for a scheme that maps to another URI, like `urn:`, redirects to
-  it with `Response.redirect`. The mapped URI is checked before it's
+- A plugin for a scheme that maps to another URL, like `urn:`, redirects to
+  it with `Response.redirect`. The mapped URL is checked before it's
   retrieved. It can be any scheme, such as a `file:` URL, because the
   plugin is the application's own code. Only the `http(s):` plugin limits
   where a redirect leads, because its redirects come from a server.
-  - An `options.retrieve`, for a plugin to retrieve another URI with the
+  - An `options.retrieve`, for a plugin to retrieve another URL with the
     plugin for its scheme, was rejected. It wouldn't be checked against
     `allowRetrieval`, only the URL of the response after the fact. It also
     needed rules of its own: without options, it had to be given the
     retrieval's, so a plugin that left them out didn't lose
     `referencedFrom`. A redirect does all of that with nothing to add. A
     plugin can't wrap another scheme's response, but nothing needs to.
-- A `Location` comes from outside, so it has to be an IRI-reference, or
-  the retrieval fails with the `InvalidIriError` as its cause (see
-  [Identifiers are IRIs](../principles/identifiers-are-iris.md)).
+- A `Location` comes from outside, so it's parsed, and one that isn't a URL
+  fails the retrieval with `new URL`'s `TypeError` as its cause (see
+  [Identifiers are URLs](../principles/identifiers-are-urls.md)).
 - A relative `Location` is resolved against the URL of the response that
   redirected. Its fragment is dropped, because a fragment isn't part of
   what's retrieved. `get` uses the fragment that was asked for, not one in a

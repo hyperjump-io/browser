@@ -13,5 +13,6 @@ export type JrefParseOptions = JsonOptions & {
   accept?: JsonParseStatus;
 };
 
-/** Parses JRef to a JRef AST. */
+/** Parses JRef to a JRef AST. A file needs a path, which is the
+ * document's URL, or the parse fails. */
 export const jrefParse: Plugin<[JrefParseOptions?], string, JrefDocumentNode>;

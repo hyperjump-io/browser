@@ -28,7 +28,7 @@ export class JrefMediaTypePlugin {
       status: result.status,
       children: [result.node],
       comments: [],
-      uri: response.url
+      url: response.url
     };
   }
 

@@ -1,7 +1,7 @@
 # Packaging
 
-- It's designed for Node.js and browsers. Subpath imports (`#context-uri`,
-  `#real-url`, `#default-uri-scheme-plugins`, …) give browser-compatible
+- It's designed for Node.js and browsers. Subpath imports (`#context-url`,
+  `#real-url`, `#default-url-scheme-plugins`, …) give browser-compatible
   implementations of the parts that depend on Node.js, which bundlers that
   support the `imports` field select automatically.
 - There's one entry point, `@hyperjump/browser`. Separate ones for the

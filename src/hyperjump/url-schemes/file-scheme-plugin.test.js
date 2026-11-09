@@ -11,8 +11,8 @@ describe("JSON Browser", () => {
   describe("get", () => {
     describe("`file:` scheme", () => {
       const fixtureDirectory = "__test-fixtures__";
-      const testUri = pathToFileURL(cwd()).toString();
-      const testPath = fileURLToPath(`${testUri}/${fixtureDirectory}`);
+      const testUrl = pathToFileURL(cwd()).toString();
+      const testPath = fileURLToPath(`${testUrl}/${fixtureDirectory}`);
 
       beforeEach(async () => {
         await mkdir(testPath, { recursive: true });
@@ -37,7 +37,7 @@ describe("JSON Browser", () => {
 
       // An absolute path would reveal where the files are on the machine
       test("a missing file's messages are relative to the working directory", async () => {
-        const missing = `${testUri}/${fixtureDirectory}/schemas/missing.jref`;
+        const missing = `${testUrl}/${fixtureDirectory}/schemas/missing.jref`;
         const session = new Hyperjump().session();
         const error = await session.get(missing)
           .catch((/** @type unknown */ error) => error);
@@ -45,17 +45,17 @@ describe("JSON Browser", () => {
         expect(error).to.be.instanceof(RetrievalError);
         const retrievalError = /** @type RetrievalError */ (error);
         expect(retrievalError.message).to.equal(`Unable to load resource '${fixtureDirectory}/schemas/missing.jref'`);
-        expect(retrievalError.uri).to.equal(missing);
+        expect(retrievalError.url).to.equal(missing);
         const cause = /** @type FileNotFoundError */ (retrievalError.cause);
         expect(cause.message).to.equal(`There's no file at '${fixtureDirectory}/schemas/missing.jref'`);
-        expect(cause.uri).to.equal(missing);
+        expect(cause.url).to.equal(missing);
       });
 
       test("unknown content type", async () => {
         const path = `${fixtureDirectory}/foo.yaml`;
         const jref = `foo: 42`;
 
-        await writeFile(fileURLToPath(`${testUri}/${path}`), jref);
+        await writeFile(fileURLToPath(`${testUrl}/${path}`), jref);
 
         const hyperjump = new Hyperjump();
         const session = hyperjump.session();
@@ -74,7 +74,7 @@ describe("JSON Browser", () => {
         const path = `${fixtureDirectory}/.jref`;
         const jref = `foo: 42`;
 
-        await writeFile(fileURLToPath(`${testUri}/${path}`), jref);
+        await writeFile(fileURLToPath(`${testUrl}/${path}`), jref);
 
         const hyperjump = new Hyperjump();
         const session = hyperjump.session();
@@ -91,10 +91,10 @@ describe("JSON Browser", () => {
 
       test("a file is retrieved from a file context with an uppercase scheme", async () => {
         const path = `${fixtureDirectory}/foo.jref`;
-        await writeFile(fileURLToPath(`${testUri}/${path}`), `42`);
+        await writeFile(fileURLToPath(`${testUrl}/${path}`), `42`);
 
         const hyperjump = new Hyperjump();
-        const referencedFrom = `FILE:${testUri.slice("file:".length)}/${fixtureDirectory}/main.jref`;
+        const referencedFrom = `FILE:${testUrl.slice("file:".length)}/${fixtureDirectory}/main.jref`;
         const subject = await hyperjump.session().get(path, { referencedFrom });
         expect(toJson(subject)).to.equal(`42`);
       });
@@ -116,7 +116,7 @@ describe("JSON Browser", () => {
         });
 
         test("file references not allowed from non-filesystem context", async () => {
-          const fooUri = `${testUri}/${fixtureDirectory}/foo.jref`;
+          const fooUri = `${testUrl}/${fixtureDirectory}/foo.jref`;
           await writeFile(fileURLToPath(fooUri), `42`);
 
           mockAgent.get(testDomain)
@@ -131,7 +131,7 @@ describe("JSON Browser", () => {
         });
 
         test("file references through another scheme's plugin aren't allowed from non-filesystem context", async () => {
-          const fooUri = `${testUri}/${fixtureDirectory}/foo.jref`;
+          const fooUri = `${testUrl}/${fixtureDirectory}/foo.jref`;
           await writeFile(fileURLToPath(fooUri), `42`);
 
           mockAgent.get(testDomain)
@@ -140,7 +140,7 @@ describe("JSON Browser", () => {
 
           const hyperjump = new Hyperjump({
             allowRetrieval: [`${testDomain}/`, "urn:example:foo", "./"],
-            uriSchemePlugins: [{
+            urlSchemePlugins: [{
               schemes: ["urn"],
               retrieve: async () => Response.redirect(fooUri)
             }]
@@ -152,12 +152,12 @@ describe("JSON Browser", () => {
         });
 
         test("a URN that maps to a file is retrieved", async () => {
-          const fooUri = `${testUri}/${fixtureDirectory}/foo.jref`;
+          const fooUri = `${testUrl}/${fixtureDirectory}/foo.jref`;
           await writeFile(fileURLToPath(fooUri), `42`);
 
           const hyperjump = new Hyperjump({
             allowRetrieval: ["urn:example:foo", "./"],
-            uriSchemePlugins: [{
+            urlSchemePlugins: [{
               schemes: ["urn"],
               retrieve: async () => Response.redirect(fooUri)
             }]
@@ -168,14 +168,14 @@ describe("JSON Browser", () => {
         });
 
         test("a reference from a file to a URN that maps to a file is followed", async () => {
-          const mainUri = `${testUri}/${fixtureDirectory}/main.jref`;
-          const fooUri = `${testUri}/${fixtureDirectory}/foo.jref`;
+          const mainUri = `${testUrl}/${fixtureDirectory}/main.jref`;
+          const fooUri = `${testUrl}/${fixtureDirectory}/foo.jref`;
           await writeFile(fileURLToPath(mainUri), `{ "$ref": "urn:example:foo" }`);
           await writeFile(fileURLToPath(fooUri), `42`);
 
           const hyperjump = new Hyperjump({
             allowRetrieval: ["urn:example:foo", "./"],
-            uriSchemePlugins: [{
+            urlSchemePlugins: [{
               schemes: ["urn"],
               retrieve: async () => Response.redirect(fooUri)
             }]
@@ -188,10 +188,10 @@ describe("JSON Browser", () => {
         test("file references are allowed from file context", async () => {
           const mainPath = `${fixtureDirectory}/main.jref`;
           const fooPath = `${fixtureDirectory}/foo.jref`;
-          const uri = `${testUri}/${mainPath}`;
+          const url = `${testUrl}/${mainPath}`;
 
-          await writeFile(fileURLToPath(uri), `{ "$ref": "foo.jref" }`);
-          await writeFile(fileURLToPath(`${testUri}/${fooPath}`), `42`);
+          await writeFile(fileURLToPath(url), `{ "$ref": "foo.jref" }`);
+          await writeFile(fileURLToPath(`${testUrl}/${fooPath}`), `42`);
 
           const hyperjump = new Hyperjump();
           const session = hyperjump.session();
@@ -205,7 +205,7 @@ describe("JSON Browser", () => {
         test("cwd relative path", async () => {
           const path = `${fixtureDirectory}/foo.jref`;
 
-          await writeFile(fileURLToPath(`${testUri}/${path}`), `{ "foo": 42 }`);
+          await writeFile(fileURLToPath(`${testUrl}/${path}`), `{ "foo": 42 }`);
 
           const hyperjump = new Hyperjump();
           const session = hyperjump.session();
@@ -215,7 +215,7 @@ describe("JSON Browser", () => {
         });
 
         test("full path", async () => {
-          const path = fileURLToPath(`${testUri}/${fixtureDirectory}/foo.jref`, { windows: false });
+          const path = fileURLToPath(`${testUrl}/${fixtureDirectory}/foo.jref`, { windows: false });
 
           await writeFile(fileURLToPath(pathToFileURL(path, { windows: false })), `{ "foo": 42 }`);
 
@@ -226,8 +226,8 @@ describe("JSON Browser", () => {
           expect(toJson(subject)).to.equal(`42`);
         });
 
-        test("full URI with authority", async () => {
-          const path = fileURLToPath(`${testUri}/${fixtureDirectory}/foo.jref`, { windows: false });
+        test("full URL with authority", async () => {
+          const path = fileURLToPath(`${testUrl}/${fixtureDirectory}/foo.jref`, { windows: false });
 
           await writeFile(fileURLToPath(pathToFileURL(path, { windows: false })), `{ "foo": 42 }`);
 
@@ -238,8 +238,8 @@ describe("JSON Browser", () => {
           expect(toJson(subject)).to.equal(`42`);
         });
 
-        test("full URI without authority", async () => {
-          const path = fileURLToPath(`${testUri}/${fixtureDirectory}/foo.jref`);
+        test("full URL without authority", async () => {
+          const path = fileURLToPath(`${testUrl}/${fixtureDirectory}/foo.jref`);
 
           await writeFile(path, `{ "foo": 42 }`);
 
@@ -255,8 +255,8 @@ describe("JSON Browser", () => {
         const path = `${fixtureDirectory}/symlink-foo.jref`;
         const actualPath = `${fixtureDirectory}/foo.jref`;
 
-        await writeFile(fileURLToPath(`${testUri}/${actualPath}`), `{ "foo": 42 }`);
-        await symlink(fileURLToPath(`${testUri}/${actualPath}`), join(cwd(), path));
+        await writeFile(fileURLToPath(`${testUrl}/${actualPath}`), `{ "foo": 42 }`);
+        await symlink(fileURLToPath(`${testUrl}/${actualPath}`), join(cwd(), path));
 
         const hyperjump = new Hyperjump();
         const session = hyperjump.session();
@@ -300,19 +300,19 @@ describe("JSON Browser", () => {
         await symlink(join(testPath, "real"), join(testPath, "linked"));
 
         const session = new Hyperjump().session();
-        const document = await session.getDocument(`${testUri}/${fixtureDirectory}/linked/foo.jref`);
+        const document = await session.getDocument(`${testUrl}/${fixtureDirectory}/linked/foo.jref`);
 
-        // A JRef document's URI is its response's URL
-        expect(document.uri).to.equal(pathToFileURL(await realpath(join(testPath, "real", "foo.jref"))).toString());
+        // A JRef document's URL is its response's URL
+        expect(document.url).to.equal(pathToFileURL(await realpath(join(testPath, "real", "foo.jref"))).toString());
       });
 
-      test("without a symlink, the response's URL is the requested URI", async () => {
+      test("without a symlink, the response's URL is the requested URL", async () => {
         await writeFile(join(testPath, "foo.jref"), `42`);
 
         const session = new Hyperjump().session();
-        const document = await session.getDocument(`${testUri}/${fixtureDirectory}/foo.jref#/foo`);
+        const document = await session.getDocument(`${testUrl}/${fixtureDirectory}/foo.jref#/foo`);
 
-        expect(document.uri).to.equal(`${testUri}/${fixtureDirectory}/foo.jref`);
+        expect(document.url).to.equal(`${testUrl}/${fixtureDirectory}/foo.jref`);
       });
 
       test("chained symlinks", async () => {

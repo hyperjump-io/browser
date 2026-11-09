@@ -1,15 +1,14 @@
 import { Readable } from "node:stream";
 import { describe, test, expect } from "vitest";
-import { InvalidIriError } from "@hyperjump/uri";
 import { Hyperjump, RetrievalError, RetrievalNotAllowedError } from "./index.js";
 import { toJson } from "../json/jsonast-util.js";
 
 /**
- * @import { UriSchemePlugin } from "./index.js"
+ * @import { UrlSchemePlugin } from "./index.js"
  */
 
 describe("JSON Browser", () => {
-  describe("URI schemes", () => {
+  describe("URL schemes", () => {
     const fixtureDocument = `{"foo": 42}`;
 
     test("Error on unsupported scheme", async () => {
@@ -17,12 +16,12 @@ describe("JSON Browser", () => {
       const session = hyperjump.session();
       try {
         await session.get("foo:something");
-        expect.fail("Expected RetrievalError => UnsupportedUriSchemeError");
+        expect.fail("Expected RetrievalError => UnsupportedUrlSchemeError");
       } catch (error) {
         expect(error).to.be.instanceof(RetrievalError);
         const retrievalError = /** @type RetrievalError */ (error);
         const cause = /** @type Error */ (retrievalError.cause);
-        expect(cause.name).to.equal("UnsupportedUriSchemeError");
+        expect(cause.name).to.equal("UnsupportedUrlSchemeError");
       }
     });
 
@@ -31,29 +30,29 @@ describe("JSON Browser", () => {
       const result = hyperjump.session().get("constructor:something");
 
       await expect(result).rejects.toBeInstanceOf(RetrievalError);
-      await expect(result).rejects.toHaveProperty("cause", expect.objectContaining({ name: "UnsupportedUriSchemeError" }));
+      await expect(result).rejects.toHaveProperty("cause", expect.objectContaining({ name: "UnsupportedUrlSchemeError" }));
     });
 
     test.each([
-      ["a URI", "FOO:something", "foo"],
+      ["a URL", "FOO:something", "foo"],
       ["a plugin", "foo:something", "FOO"]
-    ])("a scheme in %s is case-insensitive", async (_name, uri, scheme) => {
+    ])("a scheme in %s is case-insensitive", async (_name, url, scheme) => {
       const hyperjump = new Hyperjump({
         allowRetrieval: ["foo:something"],
-        uriSchemePlugins: [{ ...fooPlugin(fixtureDocument), schemes: [scheme] }]
+        urlSchemePlugins: [{ ...fooPlugin(fixtureDocument), schemes: [scheme] }]
       });
 
-      const subject = await hyperjump.session().get(uri);
+      const subject = await hyperjump.session().get(url);
       expect(toJson(subject)).to.equal(`{"foo":42}`);
     });
 
-    describe("Custom URI scheme plugin", () => {
+    describe("Custom URL scheme plugin", () => {
       test("is configured", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:something"],
-          uriSchemePlugins: [{
+          urlSchemePlugins: [{
             schemes: ["foo"],
-            retrieve: async (uri) => {
+            retrieve: async (url) => {
               const stream = new Readable();
               stream.push(fixtureDocument);
               stream.push(null);
@@ -61,7 +60,7 @@ describe("JSON Browser", () => {
               const response = new Response(webStream, {
                 headers: { "Content-Type": "application/reference+json" }
               });
-              Object.defineProperty(response, "url", { value: uri });
+              Object.defineProperty(response, "url", { value: url });
 
               return response;
             }
@@ -75,7 +74,7 @@ describe("JSON Browser", () => {
       test("a later plugin for a scheme replaces an earlier one", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:something"],
-          uriSchemePlugins: [fooPlugin(`{ "foo": 24 }`), fooPlugin(fixtureDocument)]
+          urlSchemePlugins: [fooPlugin(`{ "foo": 24 }`), fooPlugin(fixtureDocument)]
         });
 
         const subject = await hyperjump.session().get("foo:something");
@@ -85,7 +84,7 @@ describe("JSON Browser", () => {
       test("replaces a default only for the schemes it lists", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["https://example.com/", "http://[::1]:1/"],
-          uriSchemePlugins: [{
+          urlSchemePlugins: [{
             schemes: ["https"],
             retrieve: async () => new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } })
           }]
@@ -101,7 +100,7 @@ describe("JSON Browser", () => {
         let accept;
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:something"],
-          uriSchemePlugins: [{
+          urlSchemePlugins: [{
             schemes: ["foo"],
             retrieve: async (_uri, options) => {
               accept = options.accept;
@@ -119,7 +118,7 @@ describe("JSON Browser", () => {
         let mediaType;
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:something"],
-          uriSchemePlugins: [{
+          urlSchemePlugins: [{
             schemes: ["foo"],
             retrieve: async (_uri, options) => {
               mediaType = options.mediaTypeByExtension("foo:something.json");
@@ -135,7 +134,7 @@ describe("JSON Browser", () => {
       test("a response without a Content-Type doesn't get its extension's media type", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:something.json"],
-          uriSchemePlugins: [withoutContentType]
+          urlSchemePlugins: [withoutContentType]
         });
 
         const result = hyperjump.session().get("foo:something.json");
@@ -150,7 +149,7 @@ describe("JSON Browser", () => {
         let cancelled = false;
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:something"],
-          uriSchemePlugins: [{
+          urlSchemePlugins: [{
             schemes: ["foo"],
             retrieve: async () => {
               const body = new ReadableStream({
@@ -167,41 +166,41 @@ describe("JSON Browser", () => {
         expect(cancelled).to.equal(true);
       });
 
-      test("a response without a URL gets the URI that was retrieved", async () => {
+      test("a response without a URL gets the URL that was retrieved", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:something"],
-          uriSchemePlugins: [{
+          urlSchemePlugins: [{
             schemes: ["foo"],
             retrieve: async () => new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } })
           }]
         });
 
         const document = await hyperjump.session().getDocument("foo:something#/foo");
-        expect(document.uri).to.equal("foo:something");
+        expect(document.url).to.equal("foo:something");
       });
 
       test.each([
         ["dot segments", "foo:/a/./b/../c", "foo:/a/c"],
         ["an uppercase scheme", "FOO:/a", "foo:/a"],
-        ["a percent-encoded unreserved character", "foo:/%7ea", "foo:/~a"],
-        ["percent-encoded Unicode", "foo:/r%C3%A9sum%C3%A9", "foo:/résumé"]
-      ])("a URI with %s is retrieved normalized", async (_name, uri, expected) => {
+        ["Unicode", "foo:/résumé", "foo:/r%C3%A9sum%C3%A9"],
+        ["a space", "foo:/a b", "foo:/a%20b"]
+      ])("a URL with %s is retrieved parsed", async (_name, url, expected) => {
         /** @type string | undefined */
         let retrieved;
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:/"],
-          uriSchemePlugins: [{
+          urlSchemePlugins: [{
             schemes: ["foo"],
-            retrieve: async (uri) => {
-              retrieved = uri;
+            retrieve: async (url) => {
+              retrieved = url;
               return new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } });
             }
           }]
         });
 
-        const document = await hyperjump.session().getDocument(uri);
+        const document = await hyperjump.session().getDocument(url);
         expect(retrieved).to.equal(expected);
-        expect(document.uri).to.equal(expected);
+        expect(document.url).to.equal(expected);
       });
     });
 
@@ -209,7 +208,7 @@ describe("JSON Browser", () => {
       test("a redirect is retrieved with the plugin for its scheme", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["urn:example:foo", "foo:something"],
-          uriSchemePlugins: [fooPlugin(fixtureDocument), urnPlugin("foo:something")]
+          urlSchemePlugins: [fooPlugin(fixtureDocument), urnPlugin("foo:something")]
         });
 
         const subject = await hyperjump.session().get("urn:example:foo");
@@ -219,85 +218,84 @@ describe("JSON Browser", () => {
       test("the document's URL is where the redirect led", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["urn:example:foo", "foo:something"],
-          uriSchemePlugins: [fooPlugin(fixtureDocument), urnPlugin("foo:something")]
+          urlSchemePlugins: [fooPlugin(fixtureDocument), urnPlugin("foo:something")]
         });
 
         const document = await hyperjump.session().getDocument("urn:example:foo");
-        expect(document.uri).to.equal("foo:something");
+        expect(document.url).to.equal("foo:something");
       });
 
-      test("a Location that isn't an IRI-reference isn't followed", async () => {
+      test("a Location that isn't a URL isn't followed", async () => {
         const hyperjump = new Hyperjump({
-          allowRetrieval: ["foo:/a", "foo:/a b"],
-          uriSchemePlugins: [{
+          allowRetrieval: ["foo:/a"],
+          urlSchemePlugins: [{
             schemes: ["foo"],
-            retrieve: async () => new Response(null, { status: 302, headers: { Location: "a b" } })
+            retrieve: async () => new Response(null, { status: 302, headers: { Location: "https://[" } })
           }]
         });
 
-        // A scheme that isn't built in, so resolving doesn't check the result
         const error = await hyperjump.session().get("foo:/a")
           .catch((/** @type unknown */ error) => error);
         expect(error).to.be.instanceof(RetrievalError);
-        expect(/** @type RetrievalError */ (error).cause).to.be.instanceof(InvalidIriError);
+        expect(/** @type RetrievalError */ (error).cause).to.be.instanceof(TypeError);
       });
 
-      test("a response's URL that isn't an IRI is made one", async () => {
+      test("a response's URL is parsed", async () => {
         const hyperjump = new Hyperjump({
-          allowRetrieval: ["foo:/a", "foo:/a%7Cb"],
-          uriSchemePlugins: [responseWithUrl("foo:/a|b")]
+          allowRetrieval: ["foo:/a", "foo:/a b"],
+          urlSchemePlugins: [responseWithUrl("FOO:/a b")]
         });
 
         const document = await hyperjump.session().getDocument("foo:/a");
-        expect(document.uri).to.equal("foo:/a%7Cb");
+        expect(document.url).to.equal("foo:/a%20b");
       });
 
       test.each([
-        ["isn't an IRI", "foo:/a|b", "foo:/a%7Cb"],
+        ["isn't parsed", "FOO:/a b", "foo:/a%20b"],
         ["has a fragment", "foo:/b#c", "foo:/b"]
-      ])("a response's URL that a plugin defined and %s is made one", async (_name, url, expected) => {
+      ])("a response's URL that a plugin defined and %s is parsed", async (_name, url, expected) => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:/"],
-          uriSchemePlugins: [definedUrl(url)]
+          urlSchemePlugins: [definedUrl(url)]
         });
 
         const document = await hyperjump.session().getDocument("foo:/a");
-        expect(document.uri).to.equal(expected);
+        expect(document.url).to.equal(expected);
       });
 
-      test("a redirect whose URL a plugin defined and isn't an IRI is followed", async () => {
+      test("a redirect whose URL a plugin defined and isn't parsed is followed", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:/"],
-          uriSchemePlugins: [{
+          urlSchemePlugins: [{
             schemes: ["foo"],
-            retrieve: async (uri) => {
-              const response = uri === "foo:/a"
+            retrieve: async (url) => {
+              const response = url === "foo:/a"
                 ? new Response(null, { status: 302, headers: { location: "c" } })
                 : new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } });
-              Object.defineProperty(response, "url", { value: uri === "foo:/a" ? "foo:/a|b/" : uri });
+              Object.defineProperty(response, "url", { value: url === "foo:/a" ? "FOO:/a b/" : url });
               return response;
             }
           }]
         });
 
         const document = await hyperjump.session().getDocument("foo:/a");
-        expect(document.uri).to.equal("foo:/a%7Cb/c");
+        expect(document.url).to.equal("foo:/a%20b/c");
       });
 
-      test("a response's URL that's an IRI is kept as it is", async () => {
+      test("a response's URL with Unicode is encoded", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:/a", "foo:/rosé"],
-          uriSchemePlugins: [responseWithUrl("foo:/rosé")]
+          urlSchemePlugins: [responseWithUrl("foo:/rosé")]
         });
 
         const document = await hyperjump.session().getDocument("foo:/a");
-        expect(document.uri).to.equal("foo:/rosé");
+        expect(document.url).to.equal("foo:/ros%C3%A9");
       });
 
       test("a response's URL that isn't a URL fails the retrieval", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:/a"],
-          uriSchemePlugins: [responseWithUrl("not a URL")]
+          urlSchemePlugins: [responseWithUrl("not a URL")]
         });
 
         await expect(hyperjump.session().getDocument("foo:/a")).rejects.toBeInstanceOf(RetrievalError);
@@ -308,7 +306,7 @@ describe("JSON Browser", () => {
         let referencedFrom;
         const hyperjump = new Hyperjump({
           allowRetrieval: ["urn:example:foo", "foo:something"],
-          uriSchemePlugins: [
+          urlSchemePlugins: [
             {
               schemes: ["foo"],
               retrieve: async (_uri, options) => {
@@ -324,11 +322,11 @@ describe("JSON Browser", () => {
         expect(referencedFrom).to.equal("https://example.com/doc");
       });
 
-      test("a redirect to a URI that isn't allowed isn't retrieved", async () => {
+      test("a redirect to a URL that isn't allowed isn't retrieved", async () => {
         let retrieved = false;
         const hyperjump = new Hyperjump({
           allowRetrieval: ["urn:example:foo"],
-          uriSchemePlugins: [
+          urlSchemePlugins: [
             {
               schemes: ["foo"],
               retrieve: async () => {
@@ -343,7 +341,7 @@ describe("JSON Browser", () => {
         const error = await hyperjump.session().get("urn:example:foo")
           .catch((/** @type unknown */ error) => error);
         expect(error).to.be.instanceof(RetrievalNotAllowedError);
-        expect(/** @type RetrievalNotAllowedError */ (error).uri).to.equal("foo:something");
+        expect(/** @type RetrievalNotAllowedError */ (error).url).to.equal("foo:something");
         expect(/** @type RetrievalNotAllowedError */ (error).message).to.contain("led to 'foo:something'");
         expect(retrieved).to.equal(false);
       });
@@ -351,36 +349,36 @@ describe("JSON Browser", () => {
       test("a redirect to an unsupported scheme throws", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["urn:example:foo", "bar:something"],
-          uriSchemePlugins: [urnPlugin("bar:something")]
+          urlSchemePlugins: [urnPlugin("bar:something")]
         });
 
-        await expect(hyperjump.session().get("urn:example:foo")).rejects.toHaveProperty("cause", expect.objectContaining({ name: "UnsupportedUriSchemeError" }));
+        await expect(hyperjump.session().get("urn:example:foo")).rejects.toHaveProperty("cause", expect.objectContaining({ name: "UnsupportedUrlSchemeError" }));
       });
 
       test("a relative Location is resolved against the URL of the redirect", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:/"],
-          uriSchemePlugins: [{
+          urlSchemePlugins: [{
             schemes: ["foo"],
-            retrieve: async (uri) => uri === "foo:/a/b"
+            retrieve: async (url) => url === "foo:/a/b"
               ? new Response(null, { status: 302, headers: { location: "c" } })
               : new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } })
           }]
         });
 
         const document = await hyperjump.session().getDocument("foo:/a/b");
-        expect(document.uri).to.equal("foo:/a/c");
+        expect(document.url).to.equal("foo:/a/c");
       });
 
       test("a redirect cycle fails", async () => {
         let retrievals = 0;
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:/"],
-          uriSchemePlugins: [{
+          urlSchemePlugins: [{
             schemes: ["foo"],
-            retrieve: async (uri) => {
+            retrieve: async (url) => {
               retrievals++;
-              return Response.redirect(uri === "foo:/a" ? "foo:/b" : "foo:/a");
+              return Response.redirect(url === "foo:/a" ? "foo:/b" : "foo:/a");
             }
           }]
         });
@@ -392,7 +390,7 @@ describe("JSON Browser", () => {
       test("a redirect status without a Location is a response", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:/"],
-          uriSchemePlugins: [{
+          urlSchemePlugins: [{
             schemes: ["foo"],
             retrieve: async () => new Response(`42`, { status: 302, headers: { "Content-Type": "application/json" } })
           }]
@@ -405,31 +403,31 @@ describe("JSON Browser", () => {
   });
 });
 
-/** @type (document: string) => UriSchemePlugin */
+/** @type (document: string) => UrlSchemePlugin */
 const fooPlugin = (document) => ({
   schemes: ["foo"],
-  retrieve: async (uri) => {
+  retrieve: async (url) => {
     const response = new Response(document, { headers: { "Content-Type": "application/reference+json" } });
-    Object.defineProperty(response, "url", { value: uri });
+    Object.defineProperty(response, "url", { value: url });
     return response;
   }
 });
 
 /**
- * A `urn:` plugin that redirects every URN to one URI
+ * A `urn:` plugin that redirects every URN to one URL
  *
- * @type (uri: string) => UriSchemePlugin
+ * @type (url: string) => UrlSchemePlugin
  */
-const urnPlugin = (uri) => ({
+const urnPlugin = (url) => ({
   schemes: ["urn"],
-  retrieve: async () => Response.redirect(uri)
+  retrieve: async () => Response.redirect(url)
 });
 
 /**
  * A `foo:` plugin whose responses have this URL, the way `fetch`'s do: from
  * the prototype, not set on the response
  *
- * @type (url: string) => UriSchemePlugin
+ * @type (url: string) => UrlSchemePlugin
  */
 const responseWithUrl = (url) => ({
   schemes: ["foo"],
@@ -445,7 +443,7 @@ const responseWithUrl = (url) => ({
  * A `foo:` plugin that defines its responses' URL as this one, which makes it
  * read-only
  *
- * @type (url: string) => UriSchemePlugin
+ * @type (url: string) => UrlSchemePlugin
  */
 const definedUrl = (url) => ({
   schemes: ["foo"],
@@ -459,7 +457,7 @@ const definedUrl = (url) => ({
 /**
  * A `foo:` plugin whose responses don't have a `Content-Type` or a URL
  *
- * @type UriSchemePlugin
+ * @type UrlSchemePlugin
  */
 const withoutContentType = {
   schemes: ["foo"],

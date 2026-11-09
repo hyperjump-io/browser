@@ -12,5 +12,6 @@ export type JsonParseOptions = JsonOptions & {
   accept?: JsonParseStatus;
 };
 
-/** Parses JSON to a JSON AST. */
+/** Parses JSON to a JSON AST. A file needs a path, which is the
+ * document's URL, or the parse fails. */
 export const rejsonParse: Plugin<[JsonParseOptions?], string, JsonDocumentNode>;

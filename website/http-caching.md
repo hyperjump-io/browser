@@ -31,12 +31,12 @@ the default HTTP plugin with one that has a different `cache`:
 import {
   FileHttpCacheStore,
   Hyperjump,
-  HttpUriSchemePlugin
+  HttpUrlSchemePlugin
 } from "@hyperjump/browser";
 
 // Keep responses on disk so they outlive the process
 const h = new Hyperjump({
-  uriSchemePlugins: [new HttpUriSchemePlugin({
+  urlSchemePlugins: [new HttpUrlSchemePlugin({
     cache: new FileHttpCacheStore("./.cache/hyperjump")
   })]
 });

@@ -6,7 +6,7 @@ follow references with.
 
 | JSON (as written) | JRef (follows references) |
 | --- | --- |
-| `jsonPointerGet(pointer, node)` | `session.get(uri)` |
+| `jsonPointerGet(pointer, node)` | `session.get(url)` |
 | `jsonStep(key, node)` | `jrefStep(session, key, node)` |
 | `jsonArrayIter(node)` | `jrefArrayIter(session, node)` |
 | `jsonObjectValues(node)` | `jrefObjectValues(session, node)` |

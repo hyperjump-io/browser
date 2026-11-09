@@ -3,12 +3,12 @@ import { isBuiltin } from "node:module";
 import { fileURLToPath } from "node:url";
 import { describe, test, expect } from "vitest";
 import { build } from "vite";
-import { contextUri } from "./hyperjump/context-uri.browser.js";
-import { defaultHttpCache } from "./hyperjump/uri-schemes/default-http-cache.browser.js";
-import { defaultUriSchemePlugins } from "./hyperjump/uri-schemes/default-uri-scheme-plugins.browser.js";
-import { FileUriSchemePlugin } from "./hyperjump/uri-schemes/file-scheme-plugin.browser.js";
-import { pathToUri as browserPathToUri } from "./json/path-to-uri.browser.js";
-import { pathToUri } from "./json/path-to-uri.js";
+import { contextUrl } from "./hyperjump/context-url.browser.js";
+import { defaultHttpCache } from "./hyperjump/url-schemes/default-http-cache.browser.js";
+import { defaultUrlSchemePlugins } from "./hyperjump/url-schemes/default-url-scheme-plugins.browser.js";
+import { FileUrlSchemePlugin } from "./hyperjump/url-schemes/file-scheme-plugin.browser.js";
+import { pathToUrl as browserPathToUrl } from "./json/path-to-url.browser.js";
+import { pathToUrl } from "./json/path-to-url.js";
 
 /**
  * @typedef {{
@@ -58,22 +58,22 @@ describe("Browser compatibility", () => {
     test.each([
       ["https://example.com/foo/bar.html", "https://example.com/foo/bar.html"],
       ["https://example.com/foo/bar.html#top", "https://example.com/foo/bar.html"],
-      ["https://example.com/a|b/", "https://example.com/a%7Cb/"]
-    ])("contextUri of a document at %s is %s", (href, expected) => {
+      ["https://example.com/a|b/", "https://example.com/a|b/"]
+    ])("contextUrl of a document at %s is %s", (href, expected) => {
       Object.defineProperty(globalThis, "document", { value: { location: { href } }, configurable: true });
       try {
-        expect(contextUri()).to.equal(expected);
+        expect(contextUrl()).to.equal(expected);
       } finally {
         Reflect.deleteProperty(globalThis, "document");
       }
     });
 
-    test("there's no contextUri without a document", () => {
-      expect(contextUri()).to.equal(undefined);
+    test("there's no contextUrl without a document", () => {
+      expect(contextUrl()).to.equal(undefined);
     });
 
-    test("the file: scheme isn't a default URI scheme", () => {
-      const schemes = defaultUriSchemePlugins().flatMap((plugin) => plugin.schemes);
+    test("the file: scheme isn't a default URL scheme", () => {
+      const schemes = defaultUrlSchemePlugins().flatMap((plugin) => plugin.schemes);
       expect(schemes).to.eql(["http", "https"]);
     });
 
@@ -81,11 +81,11 @@ describe("Browser compatibility", () => {
       expect(defaultHttpCache()).to.equal(undefined);
     });
 
-    test("FileUriSchemePlugin can't be constructed", () => {
-      expect(() => new FileUriSchemePlugin()).to.throw();
+    test("FileUrlSchemePlugin can't be constructed", () => {
+      expect(() => new FileUrlSchemePlugin()).to.throw();
     });
 
-    describe("pathToUri matches the Node.js implementation", () => {
+    describe("pathToUrl matches the Node.js implementation", () => {
       /** @type [string, string][] */
       const cases = [
         ["/", "foo.jref"],
@@ -107,7 +107,7 @@ describe("Browser compatibility", () => {
 
       for (const [cwd, path] of cases) {
         test(`cwd: '${cwd}', path: '${path}'`, () => {
-          expect(browserPathToUri(cwd, path)).to.equal(pathToUri(cwd, path));
+          expect(browserPathToUrl(cwd, path)).to.equal(pathToUrl(cwd, path));
         });
       }
     });

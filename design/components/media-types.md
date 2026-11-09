@@ -10,7 +10,7 @@ fragments identify. JSON and JRef are built in.
   validated, to keep rejecting an invalid `Content-Type`.
 - The `Accept` header lists every plugin with its quality, `q=0` included,
   and `*/*` last. It's the `Hyperjump`'s `accept`, and a session gives it
-  to the URI scheme plugin (`options.accept`). A plugin's quality is the plugin's (`quality`), and
+  to the URL scheme plugin (`options.accept`). A plugin's quality is the plugin's (`quality`), and
   the JRef and JSON plugins take it as a constructor option. Changing a
   default's quality is configuring a replacement. A `setMediaTypeQuality`
   for a registered plugin was rejected with the other ways to change
@@ -82,17 +82,17 @@ fragments identify. JSON and JRef are built in.
 - A response that no plugin can parse, for a missing, invalid or
   unsupported `Content-Type`, has its body cancelled, so its file or
   connection is released. The `file:` plugin opens a file before its media
-  type is known, because the media type plugins decide it, not the URI
+  type is known, because the media type plugins decide it, not the URL
   scheme plugin.
-- A response without a URL gets the URI that was retrieved, so a
+- A response without a URL gets the URL that was retrieved, so a
   redirect's relative `Location` has something to be resolved against.
-- URI scheme plugins don't get the `Hyperjump`. Constructing them with it
+- URL scheme plugins don't get the `Hyperjump`. Constructing them with it
   was rejected. The `http(s):` plugin would only use it for the `Accept`
   header and the `file:` plugin for a file's media type, and the client and
   its plugins would depend on each other. What they need are values
   `retrieve` gives them: `options.accept` and
   `options.mediaTypeByExtension`. A plugin for a scheme that maps to another
-  URI, like `urn:`, returns a redirect (see [Redirects](redirects.md)).
+  URL, like `urn:`, returns a redirect (see [Redirects](redirects.md)).
 - A file's media type is the plugin with the longest matching extension, so
   a plugin for `.schema.json` takes precedence over the JSON plugin, whatever
   order they were added in. Letting the first plugin with a matching

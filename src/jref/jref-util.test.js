@@ -3,12 +3,11 @@ import { fromJref } from "./jref-util.js";
 import { jsonStep, toJson } from "../json/jsonast-util.js";
 
 /**
- * @import { IriReference } from "@hyperjump/uri"
  * @import { JrefNode } from "./jref-ast.d.ts"
  */
 
 describe("JRef", () => {
-  const testContext = "https://test.hyperjump.com";
+  const testContext = "https://test.hyperjump.com/";
 
   describe("parse", () => {
     describe("scalars", () => {
@@ -411,7 +410,7 @@ describe("JRef", () => {
           type: "json",
           jsonType: "null",
           value: null,
-          location: /** @type IriReference */ ("#")
+          location: `${testContext}#`
         };
         const subject = toJson(node);
         expect(subject).to.equal(`null`);
@@ -423,7 +422,7 @@ describe("JRef", () => {
           type: "json",
           jsonType: "boolean",
           value: true,
-          location: /** @type IriReference */ ("")
+          location: `${testContext}#`
         };
         const subject = toJson(node);
         expect(subject).to.equal(`true`);
@@ -435,7 +434,7 @@ describe("JRef", () => {
           type: "json",
           jsonType: "number",
           value: 42,
-          location: /** @type IriReference */ ("")
+          location: `${testContext}#`
         };
         const subject = toJson(node);
         expect(subject).to.equal(`42`);
@@ -459,13 +458,13 @@ describe("JRef", () => {
                   type: "json",
                   jsonType: "string",
                   value: "./foo",
-                  location: /** @type IriReference */ ("#/$ref")
+                  location: `${testContext}#/$ref`
                 }
               ]
             }
           ],
-          location: /** @type IriReference */ ("#"),
-          href: /** @type IriReference */ ("https://test.hyperjump.com/foo")
+          location: `${testContext}#`,
+          href: "https://test.hyperjump.com/foo"
         };
         const subject = toJson(node);
         expect(subject).to.equal(`{"$ref":"./foo"}`);
@@ -479,7 +478,7 @@ describe("JRef", () => {
           type: "json",
           jsonType: "array",
           children: [],
-          location: /** @type IriReference */ ("#")
+          location: `${testContext}#`
         };
         const subject = toJson(node);
         expect(subject).to.eql(`[]`);
@@ -495,16 +494,16 @@ describe("JRef", () => {
               type: "json",
               jsonType: "string",
               value: "foo",
-              location: /** @type IriReference */ ("#/0")
+              location: `${testContext}#/0`
             },
             {
               type: "json",
               jsonType: "number",
               value: 42,
-              location: /** @type IriReference */ ("#/1")
+              location: `${testContext}#/1`
             }
           ],
-          location: /** @type IriReference */ ("#")
+          location: `${testContext}#`
         };
         const subject = toJson(node);
         expect(subject).to.eql(`["foo",42]`);
@@ -520,7 +519,7 @@ describe("JRef", () => {
               type: "json",
               jsonType: "string",
               value: "foo",
-              location: /** @type IriReference */ ("#/0")
+              location: `${testContext}#/0`
             },
             {
               type: "reference",
@@ -538,22 +537,22 @@ describe("JRef", () => {
                       type: "json",
                       jsonType: "string",
                       value: "./foo",
-                      location: /** @type IriReference */ ("#/$ref")
+                      location: `${testContext}#/$ref`
                     }
                   ]
                 }
               ],
-              location: /** @type IriReference */ ("#/1"),
-              href: /** @type IriReference */ ("https://test.hyperjump.com/foo")
+              location: `${testContext}#/1`,
+              href: "https://test.hyperjump.com/foo"
             },
             {
               type: "json",
               jsonType: "number",
               value: 42,
-              location: /** @type IriReference */ ("#/2")
+              location: `${testContext}#/2`
             }
           ],
-          location: /** @type IriReference */ ("#")
+          location: `${testContext}#`
         };
         const subject = toJson(node);
         expect(subject).to.be.equal(`["foo",{"$ref":"./foo"},42]`);
@@ -567,7 +566,7 @@ describe("JRef", () => {
           type: "json",
           jsonType: "object",
           children: [],
-          location: /** @type IriReference */ ("#")
+          location: `${testContext}#`
         };
         const subject = toJson(node);
         expect(subject).to.eql(`{}`);
@@ -591,12 +590,12 @@ describe("JRef", () => {
                   type: "json",
                   jsonType: "number",
                   value: 42,
-                  location: /** @type IriReference */ ("#/foo")
+                  location: `${testContext}#/foo`
                 }
               ]
             }
           ],
-          location: /** @type IriReference */ ("#")
+          location: `${testContext}#`
         };
         const subject = toJson(node);
         expect(subject).to.eql(`{"foo":42}`);
@@ -620,7 +619,7 @@ describe("JRef", () => {
                   type: "json",
                   jsonType: "number",
                   value: 42,
-                  location: /** @type IriReference */ ("#/foo")
+                  location: `${testContext}#/foo`
                 }
               ]
             },
@@ -648,18 +647,18 @@ describe("JRef", () => {
                           type: "json",
                           jsonType: "string",
                           value: "./foo",
-                          location: /** @type IriReference */ ("#/$ref")
+                          location: `${testContext}#/$ref`
                         }
                       ]
                     }
                   ],
-                  location: /** @type IriReference */ ("#/bar"),
-                  href: /** @type IriReference */ ("https://test.hyperjump.com/foo")
+                  location: `${testContext}#/bar`,
+                  href: "https://test.hyperjump.com/foo"
                 }
               ]
             }
           ],
-          location: /** @type IriReference */ ("#")
+          location: `${testContext}#`
         };
         const subject = toJson(node);
         expect(subject).to.equal(`{"foo":42,"bar":{"$ref":"./foo"}}`);
@@ -685,7 +684,7 @@ describe("JRef", () => {
                   type: "json",
                   jsonType: "number",
                   value: 42,
-                  location: /** @type IriReference */ ("#/foo")
+                  location: `${testContext}#/foo`
                 }
               ]
             },
@@ -713,18 +712,18 @@ describe("JRef", () => {
                           type: "json",
                           jsonType: "string",
                           value: "./foo",
-                          location: /** @type IriReference */ ("#/$ref")
+                          location: `${testContext}#/$ref`
                         }
                       ]
                     }
                   ],
-                  href: /** @type IriReference */ ("https://test.hyperjump.com/foo"),
-                  location: /** @type IriReference */ ("#/bar")
+                  href: "https://test.hyperjump.com/foo",
+                  location: `${testContext}#/bar`
                 }
               ]
             }
           ],
-          location: /** @type IriReference */ ("#")
+          location: `${testContext}#`
         };
         const subject = toJson(node, { space: "  " });
         expect(subject).to.equal(`{

@@ -1,4 +1,3 @@
-import type { AbsoluteIri, IriReference } from "@hyperjump/uri";
 import type { Data } from "unist";
 import type { JsonCommentNode, JsonErrorNode, JsonNode, JsonObjectNode, JsonParseStatus, JsonStatusChildren } from "../json/jsonast.d.ts";
 
@@ -6,8 +5,8 @@ type JrefAnnotations = {
   type: "json";
 } | {
   type: "reference";
-  /** Resolved against the document's URI, if it has one */
-  href: IriReference;
+  /** Resolved against the document's URL */
+  href: string;
 };
 
 /**
@@ -16,8 +15,8 @@ type JrefAnnotations = {
 export type JrefNode<X = never> = JsonNode<JrefAnnotations, X>;
 
 /**
- * An object whose `$ref` is a string that isn't an IRI-reference, or that
- * doesn't resolve to a valid IRI against the document's URI. It's still an
+ * An object whose `$ref` is a string that doesn't resolve to a URL against
+ * the document's URL. It's still an
  * object, with its properties. Only a parse whose status is `failure`
  * produces these.
  */
@@ -45,6 +44,6 @@ export type JrefDocumentNode<S extends JsonParseStatus = JsonParseStatus> = {
   children: JsonStatusChildren<S, JrefNode, JrefTolerantNode | JrefInvalidReferenceNode>;
   /** See `JsonDocumentNode` */
   comments: JsonCommentNode[];
-  uri?: AbsoluteIri;
+  url: string;
   data?: Data;
 };

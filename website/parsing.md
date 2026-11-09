@@ -13,7 +13,7 @@ errors where it can and returns every error it found:
 ```typescript
 import { fromJson, jsonSyntaxErrorMessage } from "@hyperjump/browser";
 
-const result = fromJson(`{ "a": [1, 2,] }`);
+const result = fromJson(`{ "a": [1, 2,] }`, "https://example.com/doc");
 result.status; // "recovered"
 result.node; // The AST
 
@@ -34,8 +34,9 @@ Each error is plain data with a `ruleId` and a `place`. The `ruleId` is a name
 such as `"trailing-comma"`. To turn an error into a message for people to read,
 use `jsonSyntaxErrorMessage`.
 
-The second argument of `fromJson` is the document's base URI. It has to be an
-absolute IRI, without a fragment, or `fromJson` throws. With the
+The second argument of `fromJson` is the document's URL, which every node's
+`location` starts with. It has to be an absolute URL without a fragment, or
+`fromJson` throws a `TypeError`. With the
 `allowComments` option, `fromJson` accepts `//` and `/* */` comments the way
 JSON with Comments (JSONC) does. Comments aren't part of the AST. The result
 lists them in `comments` in the order they appear:
@@ -51,9 +52,8 @@ result.node.location; // "https://example.com/doc#"
 result.comments[0].value; // " one"
 ```
 
-`fromJref` parses JRef the same way. If you also pass the document's URI, each
-reference node gets an `href`, which is the reference's URI resolved against the
-document:
+`fromJref` parses JRef the same way. Each reference node gets an `href`, which
+is the reference resolved against the document's URL:
 
 ```typescript
 import { fromJref } from "@hyperjump/browser";
@@ -62,12 +62,10 @@ const jref = `{ "x": { "$ref": "#/y" }, "y": 1 }`;
 const { node } = fromJref(jref, "https://example.com/doc");
 ```
 
-Without a URI, `href` is the reference as written. A URI has to be an absolute
-IRI, without a fragment, or `fromJref` throws. `fromJref` takes the
-`allowComments` option too.
+`fromJref` takes the `allowComments` option too.
 
-A `$ref` whose value isn't an IRI-reference isn't a reference. Neither is one
-that doesn't resolve to a valid IRI against the document's URI. Its object is an
+A `$ref` whose value doesn't resolve to a URL against the document's URL isn't a
+reference. `//[` is one, and so is `b` in a `urn:` document. Its object is an
 error node with the `type` `"invalid-reference"`, the `status` is `"failure"`,
 and the error's `ruleId` is `"invalid-reference"`. To turn the errors from
 `fromJref` into messages, use `jrefSyntaxErrorMessage`, which describes JSON
@@ -76,10 +74,10 @@ syntax errors too:
 ```typescript
 import { fromJref, jrefSyntaxErrorMessage } from "@hyperjump/browser";
 
-const result = fromJref(`{ "$ref": "a b" }`);
+const result = fromJref(`{ "$ref": "//[" }`, "https://example.com/doc");
 result.status; // "failure"
 result.node.type; // "invalid-reference"
-jrefSyntaxErrorMessage(result.errors[0]); // "'a b' is not a valid reference"
+jrefSyntaxErrorMessage(result.errors[0]); // "'//[' is not a valid reference"
 ```
 
 ## Read the AST
@@ -99,7 +97,7 @@ import {
   jsonPointerGet
 } from "@hyperjump/browser";
 
-const result = fromJson(`{ "a": { "b": [10, 20] } }`);
+const result = fromJson(`{ "a": { "b": [10, 20] } }`, "https://example.com/doc");
 if (result.status === "failure") {
   throw Error(jsonSyntaxErrorMessage(result.errors[0]));
 }
@@ -122,15 +120,15 @@ These are the functions for reading the AST:
 | `jsonValue(node)` | The node's value as JavaScript |
 | `jsonObjectHas`, `jsonObjectKeys`, `jsonObjectValues`, `jsonObjectEntries`, `jsonArrayIter` | Read objects and arrays |
 | `toJson(node, options)` | The node as JSON text. The `space` option indents it like the `space` of `JSON.stringify`. |
-| `fromJs(value)` | An AST from a JavaScript value |
+| `fromJs(value, location)` | An AST from a JavaScript value, whose root has the `location`. A URL without a fragment is a document's, so its root is `#`. |
 
 None of these follow references. To follow references, use the `jref`
 functions with a [session](browsing.md).
 
 `jsonPointerGet` and `jsonStep` throw a `JsonPointerError` when a property or
 item doesn't exist. Its message says the location that the pointer couldn't
-reach. That location comes from the node's `location`, so it starts with the
-base URI you gave `fromJson` or `fromJs`.
+reach. That location comes from the node's `location`, so it starts with the URL
+you gave `fromJson` or `fromJs`.
 
 In an AST from a parse whose status is `"failure"`, a value that the parser
 couldn't parse is `undefined`. The root itself can be an error node, so check
@@ -182,10 +180,10 @@ file when the parser recovers from its syntax errors and reports those errors as
 warnings.
 
 The parse plugins take the `allowComments` option, which works as it does for
-`fromJson`. The document's URI comes from the file's `path`, resolved against
-the file's `cwd`, and the document node has it as its `uri`. Node locations
-start with it, and JRef references are resolved against it. A file without a
-`path` has no URI, so its locations are only fragments, like `#/a`. The
+`fromJson`. The document's URL comes from the file's `path`, resolved against
+the file's `cwd`, and the document node has it as its `url`. Node locations
+start with it, and JRef references are resolved against it. A file needs a
+`path`, because without a URL the parse fails. The
 stringify plugins take the `space` option of `toJson`. To change the AST in a
 pipeline, use a transformer plugin between the parse and stringify plugins.
 

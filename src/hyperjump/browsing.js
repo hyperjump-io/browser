@@ -1,4 +1,4 @@
-import { documentUriOf } from "./uri-parts.js";
+import { withoutFragment } from "./url-parts.js";
 import { jsonArrayIter, jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonObjectValues, jsonStep, jsonValue } from "../json/jsonast-util.js";
 
 /**
@@ -66,7 +66,7 @@ export const jrefValue = (node) => {
 const follow = async (session, node) => {
   const jrefNode = /** @type JrefNode */ (node);
   if (jrefNode.type === "reference") {
-    return session.get(jrefNode.href, { referencedFrom: documentUriOf(jrefNode.location) });
+    return session.get(jrefNode.href, { referencedFrom: withoutFragment(jrefNode.location) });
   } else {
     return /** @type FollowedNode<T> */ (node);
   }

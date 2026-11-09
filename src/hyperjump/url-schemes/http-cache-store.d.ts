@@ -1,5 +1,5 @@
 /**
- * Where {@link HttpUriSchemePlugin} keeps the responses it caches. Entries are
+ * Where {@link HttpUrlSchemePlugin} keeps the responses it caches. Entries are
  * keyed by request URL and are JSON, so a store can keep them anywhere.
  */
 export interface HttpCacheStore {

@@ -56,7 +56,7 @@ class YrefMediaTypePlugin implements MediaTypePlugin<YrefDocument> {
       status: result.status,
       children: [result.node],
       comments: [],
-      uri: response.url
+      url: response.url
     };
   }
 
@@ -81,8 +81,8 @@ A plugin has these properties:
 | `fragmentPointer(document, fragment)` | Returns the JSON Pointer a fragment identifies. Without it, the session ignores fragments. |
 | `quality` | Optional. Its quality in the `Accept` header, a number from 0 to 1 with at most three decimal places. The `Hyperjump` constructor throws for any other value. |
 
-A `RetrievedResponse` is a `Response` whose `url` the session made an IRI,
-so a plugin can use it as the document's `uri` and as the base URI it
+A `RetrievedResponse` is a `Response` whose `url` the session parsed, without
+its fragment, so a plugin can use it as the document's `url` and as the URL it
 resolves references against.
 
 A plugin is a `MediaTypePlugin<D>`, where `D` is the type of the document node
@@ -139,11 +139,11 @@ default HTTP plugin with one that has that option. In this example, documents
 from GitHub get their media type from their extension:
 
 ```typescript
-import { Hyperjump, HttpUriSchemePlugin } from "@hyperjump/browser";
+import { Hyperjump, HttpUrlSchemePlugin } from "@hyperjump/browser";
 
 const h = new Hyperjump({
   allowRetrieval: ["https://raw.githubusercontent.com/my-org/my-repo/"],
-  uriSchemePlugins: [new HttpUriSchemePlugin({
+  urlSchemePlugins: [new HttpUrlSchemePlugin({
     mediaTypeByExtension: ["https://raw.githubusercontent.com/"]
   })]
 });

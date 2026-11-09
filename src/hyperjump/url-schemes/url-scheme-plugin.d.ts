@@ -1,28 +1,27 @@
-import type { Iri } from "@hyperjump/uri";
 import type { GetOptions } from "../hyperjump.js";
 
-export interface UriSchemePlugin {
+export interface UrlSchemePlugin {
   schemes: string[];
 
   /**
-   * A response without a `Content-Type` can't be parsed. A response without a
-   * URL gets the URI that was retrieved. A response's URL can be an IRI, or
-   * a URL like `fetch`'s, which the session makes an IRI.
+   * `url` is the `href` of the URL that's retrieved, without its fragment. A
+   * response without a `Content-Type` can't be parsed. A response without a
+   * URL gets the one that was retrieved.
    *
    * A redirect (301, 302, 303, 307, or 308 with a `Location`, such as from
    * `Response.redirect`) is followed by the session. Where it leads is
    * checked against `allowRetrieval` before it's retrieved, with the plugin
    * for its scheme and the same options. A relative `Location` is resolved
    * against the response's URL. A plugin for a scheme that maps to another
-   * URI, like `urn:`, redirects to it.
+   * URL, like `urn:`, redirects to it.
    */
-  retrieve(uri: Iri, options: RetrieveOptions): Promise<Response>;
+  retrieve(url: string, options: RetrieveOptions): Promise<Response>;
 }
 
 /** What a request needs, which the `Hyperjump` gives a plugin */
 export type RetrieveOptions = Omit<GetOptions, "referencedFrom"> & {
-  /** The URI of the document with the reference that's being followed */
-  referencedFrom?: Iri;
+  /** The URL of the document with the reference that's being followed */
+  referencedFrom?: string;
 
   /** An `Accept` header for the media types that are supported */
   accept: string;
@@ -32,5 +31,5 @@ export type RetrieveOptions = Omit<GetOptions, "referencedFrom"> & {
    * has, for a scheme whose responses don't have a `Content-Type`, like
    * `file:`, or a server known to send the wrong one
    */
-  mediaTypeByExtension: (uri: string) => string | undefined;
+  mediaTypeByExtension: (url: string) => string | undefined;
 };

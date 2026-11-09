@@ -4,7 +4,7 @@ State is separated by how long it lives.
 
 | Level | Has |
 | --- | --- |
-| `Hyperjump` | Configuration: URI scheme and media type plugins, `allowRetrieval`, and (in the `http(s):` plugin) the HTTP cache |
+| `Hyperjump` | Configuration: URL scheme and media type plugins, `allowRetrieval`, and (in the `http(s):` plugin) the HTTP cache |
 | `Session` | A document cache, and retrieval: `get` and `getDocument` |
 
 - The long-lived level only has state that doesn't depend on a session.
@@ -12,7 +12,7 @@ State is separated by how long it lives.
 - `hyperjump.session()` creates a session. There's no default session.
   Browsing from a node takes its session, because following a reference
   needs one (see [Browsing](browsing.md)).
-- `get` follows the reference its URI ends at, and any it leads to,
+- `get` follows the reference its URL ends at, and any it leads to,
   so the node it returns is never a reference. Its type says so
   (`FollowedNode<T>`).
 - A session keeps each document it retrieves for as long as it's used. That
@@ -21,49 +21,36 @@ State is separated by how long it lives.
 - The cache holds promises, so a document that's asked for again while it's
   being retrieved is only retrieved once. A failure isn't cached, so it can
   be tried again.
-- `getDocument` normalizes the URI it's given (`normalizeIri`), and the
-  document is retrieved by that and cached by it, so equivalent URIs, like
+- `getDocument` parses the URL it's given, and the document is retrieved
+  and cached by its `href` without the fragment, so equivalent URLs, like
   `HTTPS://Example.com:443/a` and `https://example.com/a`, are one
-  document. It's where equivalent URIs have to be the same, so it's where
-  they're normalized (see
-  [Identifiers are IRIs](../principles/identifiers-are-iris.md)). A
-  document's URI doesn't depend on whether its plugin gives the response a
-  URL: one that does, like the HTTP plugin with `fetch`'s, mostly gives a
-  normalized one anyway. Errors say the URI normalized.
-  - Retrieving by the URI as it's written and normalizing only for the
-    key was rejected. The file plugin and a plugin without a URL made
-    documents whose URI was as it's written, while `fetch`'s was
-    normalized. And an absolute URI's dot segments had to be removed by
-    resolving it against itself. RFC 3986 section 6.2.2.3 says removing
-    them from an absolute URI is normalization's job.
+  document. Parsing is what normalizes a URL, so nothing normalizes it
+  again (see [Identifiers are URLs](../principles/identifiers-are-urls.md)).
+  Errors say the URL parsed.
 - A document is also cached under the URL its response came from, which can
-  differ from the URI that was asked for (redirects, symlinks). References
+  differ from the URL that was asked for (redirects, symlinks). References
   in it are relative to where it came from.
-- Following a reference that leads back to a URI already in the chain is a
+- Following a reference that leads back to a URL already in the chain is a
   `ReferenceCycleError`, rather than waiting forever.
-- A session reads the context URI (`#context-uri`: the working directory
+- A session reads the context URL (`#context-url`: the working directory
   in Node.js, the page in a browser) once, when it's created, and resolves
-  relative URIs and its `allowRetrieval` against that. Everything a session
+  relative URLs and its `allowRetrieval` against that. Everything a session
   does sees the same one, and a new session sees a change, like a new
   working directory or a page a single-page application navigated to.
-  It's an IRI, made from the platform's URL with `urlToIri` (see
-  [Identifiers are IRIs](../principles/identifiers-are-iris.md)), and a
-  page's is without its fragment, since a base can't have one. Where
-  there's no document, such as in a worker, there's no context URI, and a
-  relative URI given to `get` or `getDocument` throws a `TypeError`. It's
+  It's the platform's URL, and a page's is without its fragment, since a
+  base can't have one. Where there's no document, such as in a worker,
+  there's no context URL, and a relative URL given to `get` or
+  `getDocument` throws a `TypeError`. It's
   a mistake in the application, like `new URL` without a base, not
   something to handle, so it isn't an error class of its own.
-- A response's URL is made an IRI by the session, right after a URI scheme
-  plugin returns it, so no plugin has to. One that's already an IRI, like
-  the URI the file plugin was given, is kept as it's written, and any
-  other is a URL, like `fetch`'s, made an IRI with `urlToIri`. When that
-  changes it, the IRI goes on a new response with the same status,
-  headers, and body. Redefining `url` on the plugin's response was
-  rejected, because a plugin that defined `url` itself made it read-only,
-  and that one isn't always an IRI. In a browser, `fetch` follows
-  redirects to URLs like `https://example.com/a|b`. Making each
-  plugin convert was rejected: an application's plugin that returns
-  `fetch`'s response would have to know to.
+- A response's URL is parsed by the session, without its fragment, right
+  after a URL scheme plugin returns it, so no plugin has to. A response
+  without one gets the URL that was retrieved. When parsing changes it,
+  the parsed URL goes on a new response with the same status, headers,
+  and body. Redefining `url` on the plugin's response was rejected,
+  because a plugin that defined `url` itself made it read-only. Making
+  each plugin parse it was rejected: an application's plugin would have to
+  know to.
   Reading it each time it's needed, deep inside `get`, `getDocument`, and
   `allowed-urls.js`, was rejected because one session could see two.
   Reading it once for the `Hyperjump` was
@@ -75,8 +62,8 @@ State is separated by how long it lives.
     nothing. Every application would turn paths into URLs itself, and
     `@hyperjump/json-schema` and the `hyperjump` CLI would read the working
     directory instead, so it would only move.
-  - A `baseUri` session option is left out until something needs it. The
-    session would still read the context URI for the default, so it adds
+  - A `baseUrl` session option is left out until something needs it. The
+    session would still read the context URL for the default, so it adds
     an option without taking anything away. It's for a process whose
     working directory isn't the project, like a language server for a
     workspace, or a CLI with a `--cwd` that would otherwise allow `./`
@@ -84,8 +71,8 @@ State is separated by how long it lives.
 
 ## Configuring plugins
 
-- URI scheme and media type plugins are only configured when a `Hyperjump`
-  is created (`uriSchemePlugins` and `mediaTypePlugins`), with
+- URL scheme and media type plugins are only configured when a `Hyperjump`
+  is created (`urlSchemePlugins` and `mediaTypePlugins`), with
   `allowRetrieval`. So `hyperjump.config` is all of its configuration, and
   nothing changes it later.
   - It's a frozen copy of the config, with frozen copies of its lists.
@@ -109,10 +96,10 @@ State is separated by how long it lives.
     are only partly replaced is still needed. A `Hyperjump` takes about
     0.5 µs to create in Node.js, the same whether the HTTP plugin is
     replaced or not (measured 2026-10-31).
-- A scheme is case-insensitive (RFC 3986 section 3.1), so the schemes a
-  plugin lists and the one in a URI are lowercased to find its plugin. A
-  URI keeps its scheme as written everywhere else.
-- Adding plugins after a `Hyperjump` is created (`addUriSchemePlugin`,
+- A scheme is case-insensitive, so the schemes a plugin lists are
+  lowercased. Parsing lowercases a URL's, so it finds its plugin as it
+  is.
+- Adding plugins after a `Hyperjump` is created (`addUrlSchemePlugin`,
   `addMediaTypePlugin`) was rejected. Adding one for a scheme or media type
   that's supported would replace it, so changing the HTTP cache or headers
   would mean knowing that. Something that registered a plugin could
@@ -121,7 +108,7 @@ State is separated by how long it lives.
   - `add*` beside the config, for what isn't configured, was rejected.
     It's two ways to configure plugins, and the config wouldn't be all of
     it.
-  - Removing plugins (`removeUriSchemePlugin`, `removeMediaTypePlugin`) to
+  - Removing plugins (`removeUrlSchemePlugin`, `removeMediaTypePlugin`) to
     disable a default isn't needed. Nothing is retrieved that
     `allowRetrieval` doesn't allow, so the defaults are safe.
   - Changing a plugin's quality is configuring a plugin with another
@@ -133,7 +120,7 @@ State is separated by how long it lives.
     and an application couldn't replace a subclass's plugin.
   - A `config.http` for the default HTTP plugin's options was rejected
     (see [HTTP cache](http-cache.md)).
-- A URI scheme plugin for a scheme that maps to another URI, like `urn:`,
+- A URL scheme plugin for a scheme that maps to another URL, like `urn:`,
   returns a redirect to it, which the session follows (see
   [Redirects](redirects.md)).
   - A public `Hyperjump.retrieve` for the plugin to call was rejected. A
@@ -143,14 +130,14 @@ State is separated by how long it lives.
     returning `Promise<Response>` fixes it, but the error doesn't say so.
     An `options.retrieve` was rejected too (see [Redirects](redirects.md)).
 - A `Hyperjump` is what it resolved from its config: its plugins by scheme
-  and by media type (`uriSchemePlugins`, `mediaTypePlugins`) and the
+  and by media type (`urlSchemePlugins`, `mediaTypePlugins`) and the
   `Accept` header (`accept`), as read-only properties. A session retrieves
   and parses with them. What's worked out from the media type plugins, like
   the plugin for a `Content-Type` or the media type of an extension, is
   pure functions of them (`media-type-plugins.js`), so they're tested
   without retrieving anything.
   - The functions aren't exported from the package, because their
-    signatures are how a `Hyperjump` keeps its plugins. URI scheme plugins
+    signatures are how a `Hyperjump` keeps its plugins. URL scheme plugins
     get what they need from them as values (`options.accept` and
     `options.mediaTypeByExtension`).
   - The resolved plugins are public because `Session` is another class and
@@ -173,7 +160,7 @@ State is separated by how long it lives.
     the media type plugin that parsed the document. `@hyperjump/json-schema`
     uses it for documents from `getDocument` and for embedded ones that
     never came through it.
-  - A subclass that got a `Response` from somewhere other than a URI
+  - A subclass that got a `Response` from somewhere other than a URL
     scheme plugin calls its media type plugin's `parse`.
 
 ## Extending
@@ -188,7 +175,7 @@ Applications build on `Hyperjump` and `Session` by subclassing them.
   `super({ ...config, mediaTypePlugins: [schemaPlugin, ...config.mediaTypePlugins ?? []] })`.
 - Every document lookup, including following references, goes through
   `getDocument`, so a subclass can find documents somewhere other than the
-  cache or a URI scheme plugin. `getDocument` also returns the document
+  cache or a URL scheme plugin. `getDocument` also returns the document
   itself, for what it has beyond its values.
   - Seeding a session with documents (`SessionOptions.documents`) instead
     was rejected. `@hyperjump/json-schema`'s lookups aren't documents it
@@ -199,30 +186,21 @@ Applications build on `Hyperjump` and `Session` by subclassing them.
     cheap to create. Every document it gets, retrieved or not, is also
     checked against the others for a duplicate identifier.
   - A lookup function in the session's options
-    (`findDocument(uri, options, next)`) was rejected. It's the override
+    (`findDocument(url, options, next)`) was rejected. It's the override
     passed as a function, and it takes nothing away: a subclass still
     adds its own methods.
-- An override gets a URI as it's written. `get` resolves only a relative
-  URI against the context URI. A reference it follows isn't resolved
-  again, because the media type plugin resolved it when it parsed the
-  document. `referencedFrom` is the URI of the document the referencing
-  node is in, from its location up to its fragment, as it's written. A
-  document without a URI has locations that are only fragments, so a
-  reference in it has no `referencedFrom`. The session's own
-  `getDocument` resolves the URI it's given and normalizes it, and
-  retrieves and caches the document by that.
-  - Resolving every URI in `get` was rejected. Resolving removes dot
-    segments, so an override that finds documents by identifiers as their
-    documents write them, like one with a `..` segment, would miss them.
-    It's also work the media type plugin already did.
-- `get` and `getDocument` check the URI they're given with
-  `assertIriReference`, and `referencedFrom` with `assertIri`, because
-  they come from outside (see
-  [Identifiers are IRIs](../principles/identifiers-are-iris.md)). One
-  that isn't valid throws its `InvalidIriError`, not a `RetrievalError`,
+- An override gets a parsed URL. `get` parses what it's given, resolving a
+  relative URL against the context URL. A reference it follows is parsed
+  too, because its media type plugin can be an application's.
+  `referencedFrom` is the URL of the document the referencing node is in:
+  its location without the fragment.
+- `get` and `getDocument` parse the URL they're given, and
+  `referencedFrom`, with `new URL`, because they come from outside (see
+  [Identifiers are URLs](../principles/identifiers-are-urls.md)). One
+  that isn't a URL throws `new URL`'s `TypeError`, not a `RetrievalError`,
   because it's the caller's mistake and nothing was retrieved.
-  `getDocument` checks a reference that `get` follows again, which is one
-  pattern test, so there's no unchecked version for `get` to call.
+  `getDocument` parses a URL that `get` already parsed, which is cheap, so
+  there's no unparsed version for `get` to call.
 - A media type plugin's `parse` gets the session the document is being
   retrieved in, so a media type that needs other resources to parse a
   document retrieves them in the same session.

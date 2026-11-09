@@ -1,9 +1,9 @@
-import { assertAbsoluteIri, assertIriReference } from "@hyperjump/uri";
 import { parseJson } from "./json-parser.js";
 
 export { jsonSyntaxErrorMessage } from "./json-parser.js";
-import { relativeFileUri } from "../hyperjump/file-uris.js";
+import { relativeFileUrl } from "../hyperjump/file-urls.js";
 import { appendToLocation } from "./location.js";
+import { parseDocumentUrl } from "../hyperjump/url-parts.js";
 
 /**
  * @import {
@@ -17,18 +17,11 @@ import { appendToLocation } from "./location.js";
  *   JsonPropertyNode,
  *   ReadonlyJson
  * } from "./jsonast.js"
- * @import { IriReference } from "@hyperjump/uri"
  * @import * as API from "./jsonast-util.d.ts"
  */
 
 /** @type typeof API.fromJson */
-export const fromJson = (json, uri, options = {}) => {
-  if (uri !== undefined) {
-    assertAbsoluteIri(uri);
-  }
-
-  return parseJson(json, uri, options);
-};
+export const fromJson = (json, url, options = {}) => parseJson(json, parseDocumentUrl(url), options);
 
 // A function's return type isn't inferred as a type predicate, so the
 // function is cast to the declared type rather than annotated with it.
@@ -38,9 +31,10 @@ export const hasStatus = /** @type typeof API.hasStatus */ ((document, ...status
 });
 
 /** @type typeof API.fromJs */
-export const fromJs = (js, location = "#") => {
-  assertIriReference(location);
-  return jsToNode(js, location);
+export const fromJs = (js, location) => {
+  // A location without a fragment is a document's, whose root is `#`
+  const { href } = new URL(location);
+  return jsToNode(js, href.includes("#") ? href : `${href}#`);
 };
 
 /** @type typeof API.toJson */
@@ -90,8 +84,8 @@ export const jsonStep = (key, node) => {
   }
 };
 
-/** @type (segment: string, node: { location: IriReference }) => string */
-const stepLocation = (segment, node) => relativeFileUri(appendToLocation(segment, node.location));
+/** @type (segment: string, node: { location: string }) => string */
+const stepLocation = (segment, node) => relativeFileUrl(appendToLocation(segment, node.location));
 
 /** @type typeof API.jsonPointerGet */
 export const jsonPointerGet = (pointer, tree) => {
@@ -100,11 +94,11 @@ export const jsonPointerGet = (pointer, tree) => {
   let node = memberValue(tree);
   for (const segment of pointerSegments(pointer)) {
     if (node === undefined) {
-      const location = parentSegment === undefined ? relativeFileUri(tree.location) : stepLocation(parentSegment, parent);
+      const location = parentSegment === undefined ? relativeFileUrl(tree.location) : stepLocation(parentSegment, parent);
       throw new JsonPointerError(`Can't index into a missing value at ${location}`);
     }
     if (node.type === "json-invalid") {
-      throw new JsonPointerError(`Can't index into an invalid value at ${relativeFileUri(node.location)}`);
+      throw new JsonPointerError(`Can't index into an invalid value at ${relativeFileUrl(node.location)}`);
     }
 
     parent = node;
@@ -211,7 +205,7 @@ const presentValue = (node) => {
       return undefined;
     case "json-invalid": {
       const invalidNode = /** @type JsonInvalidNode */ (node);
-      throw TypeError(`Can't convert an invalid value to JSON: '${invalidNode.raw}' at ${relativeFileUri(invalidNode.location)}`);
+      throw TypeError(`Can't convert an invalid value to JSON: '${invalidNode.raw}' at ${relativeFileUrl(invalidNode.location)}`);
     }
     default:
       return /** @type JsonNode<unknown> */ (node);
@@ -318,7 +312,7 @@ const propertyEntries = function* (propertyNodes) {
 /**
  * `fromJs` without checking its location, for each node it makes
  *
- * @type (js: ReadonlyJson, location: IriReference) => JsonNode
+ * @type (js: ReadonlyJson, location: string) => JsonNode
  */
 const jsToNode = (js, location) => {
   switch (typeof js) {
@@ -361,7 +355,7 @@ const jsToNode = (js, location) => {
           type: "json",
           jsonType: "array",
           // An index never needs escaping or encoding
-          children: js.map((item, index) => jsToNode(item, /** @type IriReference */ (`${location}/${index}`))),
+          children: js.map((item, index) => jsToNode(item, `${location}/${index}`)),
           location: location
         };
       }

@@ -1,10 +1,14 @@
 import { pointerAppend } from "@hyperjump/json-pointer";
-import { encodeIriFragment } from "@hyperjump/uri";
 
 /**
- * @import { IriReference } from "@hyperjump/uri"
  * @import * as API from "./location.d.ts"
  */
+
+/**
+ * What the URL Standard encodes in a fragment, and `%`, so a pointer with a
+ * `%` decodes to itself. A location encoded this way is its own `href`.
+ */
+const fragmentEncodeSet = /[\0-\x20"<>`%\x7F-\u{10FFFF}]/gu;
 
 // Most segments are property names that repeat, in every instance of a
 // schema or every item of an array, and encoding them was most of the time
@@ -19,7 +23,11 @@ const maxCachedSegmentLength = 100;
 export const appendToLocation = (segment, location) => {
   let encoded = encodedSegments.get(segment);
   if (encoded === undefined) {
-    encoded = encodeIriFragment(pointerAppend(segment, ""));
+    // A property name can have a lone surrogate, which isn't UTF-8, so it's
+    // replaced like the URL Standard does
+    encoded = pointerAppend(segment, "")
+      .toWellFormed()
+      .replace(fragmentEncodeSet, encodeURIComponent);
     if (segment.length <= maxCachedSegmentLength) {
       if (encodedSegments.size >= maxCachedSegments) {
         encodedSegments.clear();
@@ -28,7 +36,5 @@ export const appendToLocation = (segment, location) => {
     }
   }
 
-  // A location's fragment is last, and the segment is encoded for one, so
-  // the result is an IRI-reference too
-  return /** @type IriReference */ (location + encoded);
+  return location + encoded;
 };

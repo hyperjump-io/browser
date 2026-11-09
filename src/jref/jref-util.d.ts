@@ -1,4 +1,3 @@
-import type { InvalidIriError } from "@hyperjump/uri";
 import type { Position } from "unist";
 import type { JsonDocumentNode, JsonParseStatus } from "../json/jsonast.d.ts";
 import type { JsonOptions, JsonParseResult, JsonSyntaxError } from "../json/jsonast-util.d.ts";
@@ -7,18 +6,17 @@ import type { JrefDocumentNode, JrefErrorNode, JrefNode, JrefTolerantNode } from
 /**
  * Parse a JRef string into a JRef AST.
  *
- * References are resolved against `uri`. If `uri` is not given, references are
- * left as written.
+ * References are resolved against `url`, the document's URL.
  *
  * Nothing in the document makes it throw. The result works the same way as
  * the result of `fromJson`. A `$ref` that isn't a valid reference is a
  * {@link JrefSyntaxError}, and its object is a `JrefInvalidReferenceNode`,
  * so the status is `failure`.
  *
- * @throws {InvalidIriError} If `uri` isn't an absolute IRI. It's the
+ * @throws {TypeError} If `url` isn't a URL or has a fragment. It's the
  *   caller's mistake, not the document's.
  */
-export const fromJref: (json: string, uri?: string, options?: JsonOptions) => JsonParseResult<JrefNode, JrefTolerantNode | JrefErrorNode, JsonSyntaxError | JrefSyntaxError>;
+export const fromJref: (json: string, url: string, options?: JsonOptions) => JsonParseResult<JrefNode, JrefTolerantNode | JrefErrorNode, JsonSyntaxError | JrefSyntaxError>;
 
 /**
  * An error in JRef that's valid JSON. It's plain data, like a
@@ -29,8 +27,8 @@ export type JrefSyntaxError = {
   source: "jref";
 
   /**
-   * - `invalid-reference`: a `$ref` that isn't an IRI-reference, or that
-   *   doesn't resolve to a valid IRI against the document's URI
+   * - `invalid-reference`: a `$ref` that doesn't resolve to a URL against
+   *   the document's URL
    */
   ruleId: "invalid-reference";
 

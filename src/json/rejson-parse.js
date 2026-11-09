@@ -1,4 +1,4 @@
-import { pathToUri } from "#path-to-uri";
+import { pathToUrl } from "#path-to-url";
 import { fromJson, jsonSyntaxErrorMessage } from "./jsonast-util.js";
 import { reportSyntaxErrors } from "./report-syntax-errors.js";
 
@@ -10,9 +10,13 @@ import { reportSyntaxErrors } from "./report-syntax-errors.js";
 /** @type typeof API.rejsonParse */
 export function rejsonParse(options) {
   this.parser = function (document, file) {
-    const uri = file.path ? pathToUri(file.cwd, file.path) : undefined;
+    // A document's URL is its file's, so a file needs a path
+    if (!file.path) {
+      file.fail("A file needs a path, which is its document's URL");
+    }
+    const url = pathToUrl(file.cwd, file.path);
 
-    const { status, node, errors, comments } = fromJson(document, uri, options);
+    const { status, node, errors, comments } = fromJson(document, url, options);
     reportSyntaxErrors(file, errors, jsonSyntaxErrorMessage, status, options?.accept);
 
     /** @type JsonDocumentNode */
@@ -21,7 +25,7 @@ export function rejsonParse(options) {
       status: status,
       children: node ? [node] : [],
       comments: comments,
-      uri: uri
+      url: url
     };
     return tree;
   };

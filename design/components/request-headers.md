@@ -1,9 +1,9 @@
 # Request headers
 
 - Headers to send with `http(s):` requests, such as credentials, are a
-  `headers` option of `HttpUriSchemePlugin`, like `cache`, because they're
+  `headers` option of `HttpUrlSchemePlugin`, like `cache`, because they're
   HTTP's. Setting them is configuring an HTTP plugin in the
-  `uriSchemePlugins` config, which replaces the default. The new plugin has
+  `urlSchemePlugins` config, which replaces the default. The new plugin has
   the default cache unless it's given another (see
   [HTTP cache](http-cache.md)).
 - They're by URL, `Record<string, HeadersInit | HeadersFunction>`.
@@ -18,7 +18,7 @@
   reasons. The `mediaTypeByExtension` option's URLs are checked and matched
   the same way (see [Media types](media-types.md)).
 - Keys have to be absolute `http:` or `https:` URLs, or the plugin throws
-  when it's created. It doesn't have a context URI to resolve a relative
+  when it's created. It doesn't have a context URL to resolve a relative
   one against, and a key with another scheme would never match.
 - When several keys match, their headers are merged from the shortest key
   to the longest, so a longer key wins a header both have. An origin can

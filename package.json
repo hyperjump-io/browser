@@ -30,37 +30,37 @@
     }
   },
   "imports": {
-    "#context-uri": {
-      "node": "./src/hyperjump/context-uri.js",
-      "default": "./src/hyperjump/context-uri.browser.js"
+    "#context-url": {
+      "node": "./src/hyperjump/context-url.js",
+      "default": "./src/hyperjump/context-url.browser.js"
     },
     "#default-http-cache": {
-      "node": "./src/hyperjump/uri-schemes/default-http-cache.js",
-      "default": "./src/hyperjump/uri-schemes/default-http-cache.browser.js"
+      "node": "./src/hyperjump/url-schemes/default-http-cache.js",
+      "default": "./src/hyperjump/url-schemes/default-http-cache.browser.js"
     },
-    "#default-uri-scheme-plugins": {
-      "node": "./src/hyperjump/uri-schemes/default-uri-scheme-plugins.js",
-      "default": "./src/hyperjump/uri-schemes/default-uri-scheme-plugins.browser.js"
+    "#default-url-scheme-plugins": {
+      "node": "./src/hyperjump/url-schemes/default-url-scheme-plugins.js",
+      "default": "./src/hyperjump/url-schemes/default-url-scheme-plugins.browser.js"
     },
     "#file-http-cache-store": {
-      "node": "./src/hyperjump/uri-schemes/file-http-cache-store.js",
-      "default": "./src/hyperjump/uri-schemes/file-http-cache-store.browser.js"
+      "node": "./src/hyperjump/url-schemes/file-http-cache-store.js",
+      "default": "./src/hyperjump/url-schemes/file-http-cache-store.browser.js"
     },
     "#file-scheme-plugin": {
-      "node": "./src/hyperjump/uri-schemes/file-scheme-plugin.js",
-      "default": "./src/hyperjump/uri-schemes/file-scheme-plugin.browser.js"
+      "node": "./src/hyperjump/url-schemes/file-scheme-plugin.js",
+      "default": "./src/hyperjump/url-schemes/file-scheme-plugin.browser.js"
     },
-    "#path-to-uri": {
-      "node": "./src/json/path-to-uri.js",
-      "default": "./src/json/path-to-uri.browser.js"
+    "#path-to-url": {
+      "node": "./src/json/path-to-url.js",
+      "default": "./src/json/path-to-url.browser.js"
     },
     "#real-url": {
       "node": "./src/hyperjump/real-url.js",
       "default": "./src/hyperjump/real-url.browser.js"
     },
     "#redirect-mode": {
-      "node": "./src/hyperjump/uri-schemes/redirect-mode.js",
-      "default": "./src/hyperjump/uri-schemes/redirect-mode.browser.js"
+      "node": "./src/hyperjump/url-schemes/redirect-mode.js",
+      "default": "./src/hyperjump/url-schemes/redirect-mode.browser.js"
     }
   },
   "scripts": {
@@ -81,7 +81,6 @@
   },
   "dependencies": {
     "@hyperjump/json-pointer": "^2.0.0",
-    "@hyperjump/uri": "file:../uri",
     "@types/unist": "^3.0.3",
     "content-type": "^3.1.1",
     "http-cache-semantics": "^4.3.0",

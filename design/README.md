@@ -29,7 +29,7 @@ when it changed. That's in git. The `.d.ts` files in
   references
 - [Media types](components/media-types.md)
 - [The `file:` scheme](components/file-scheme.md)
-- [Local paths in errors](components/file-uris.md): `file:` URLs in messages are relative to the working directory
+- [Local paths in errors](components/file-urls.md): `file:` URLs in messages are relative to the working directory
 - [HTTP cache](components/http-cache.md)
 - [Request headers](components/request-headers.md)
 - [What can be retrieved](components/allow-retrieval.md)

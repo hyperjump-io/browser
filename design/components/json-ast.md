@@ -57,9 +57,8 @@ status with it:
     needs one except `fromJref`.
   - Keeping `fromJref` in one pass with a reviver that isn't exported was
     rejected because the second pass costs little.
-- A string `$ref` that isn't an IRI-reference, or that doesn't resolve to
-  a valid IRI against the document's URI (like `b` against
-  `urn:example:a`), is an error: the object is a `JrefInvalidReferenceNode`
+- A string `$ref` that doesn't resolve to a URL against the document's URL
+  with `URL.parse` (like `b` against `urn:example:a`) is an error: the object is a `JrefInvalidReferenceNode`
   (`type: "invalid-reference"`), which keeps its properties, and a
   `JrefSyntaxError` (`source: "jref"`, `ruleId: "invalid-reference"`) is
   merged into `errors` in document order. The status is `failure`, so the
@@ -117,19 +116,23 @@ status with it:
 
 ## Locations
 
-- A node's location is a URI whose fragment is a JSON Pointer. Pointer
-  segments are percent-encoded where a fragment requires it
-  (`appendToLocation`, `@hyperjump/uri`'s `encodeIriFragment`), so
-  locations are IRIs, typed `IriReference`, since without a document URI
-  a location is only a fragment, like `#/a`. A document URI comes from
-  outside, so `fromJson` checks it's an absolute IRI, and `fromJs` checks
-  its root's location is an IRI-reference. The recursion inside `fromJs`
-  doesn't check again. `get` decodes a fragment before
-  following it as a JSON Pointer.
-- JSON and JRef get their document URI the same way, and their document
-  nodes have it as `uri`. The unified parse plugins make it from the
-  file's `path` and `cwd` (`pathToUri`), and the media type plugins use
-  the response's URL. A file without a `path` has no URI.
+- A node's location is its document's URL with a fragment that's a JSON
+  Pointer. Pointer segments are percent-encoded with what the URL Standard
+  encodes in a fragment, and `%`, so a pointer with a `%` decodes to
+  itself (`appendToLocation`). A location is its own `href`, so it's a
+  URL like any other and isn't parsed again (see
+  [Identifiers are URLs](../principles/identifiers-are-urls.md)). A
+  document's URL comes from outside, so `fromJson` and `fromJref` parse
+  it, and one with a fragment throws, because its locations would have two.
+  `fromJs` parses its root's location, and one without a fragment is a
+  document's, whose root is `#`. The recursion inside `fromJs` doesn't
+  parse again. `get` decodes a fragment before following it as a JSON
+  Pointer.
+- Every document has a URL. JSON and JRef get theirs the same way, and
+  their document nodes have it as `url`. The unified parse plugins make it
+  from the file's `path` and `cwd` (`pathToUrl`), and the media type
+  plugins use the response's URL. A file without a `path` fails the parse
+  with a message, because its document would have no URL.
   - A `location` option on `rejsonParse` was rejected. The file already
     says where the document is, so the option was a second place to say
     it, which could disagree with the first, and a caller's string that

@@ -44,7 +44,7 @@ describe("jsonast-util", async () => {
     if (entry.name.startsWith("y_")) {
       test(`${entry.name.substring(2)} without spaces`, async () => {
         const processed = await rejson()
-          .process(json);
+          .process({ path: "/doc.json", value: json });
         const expected = JSON.stringify(JSON.parse(json)) + "\n";
         expect(processed.toString()).to.eql(expected);
       });
@@ -52,7 +52,7 @@ describe("jsonast-util", async () => {
       test(`${entry.name.substring(2)} with spaces`, async () => {
         const processed = await rejson()
           .use(rejsonStringify, { space: "  " })
-          .process(json);
+          .process({ path: "/doc.json", value: json });
         const expected = JSON.stringify(JSON.parse(json), null, "  ") + "\n";
         expect(processed.toString()).to.eql(expected);
       });
@@ -109,7 +109,7 @@ describe("jsonast-util", async () => {
     });
 
     test("values that couldn't be parsed", () => {
-      const node = /** @type JsonNode */ (fromJson(`{ "foo": , "bar": [1, , NaN, 2], "baz": True }`).node);
+      const node = /** @type JsonNode */ (fromJson(`{ "foo": , "bar": [1, , NaN, 2], "baz": True }`, "https://example.com/doc").node);
       const subject = jsonValue(node);
       expect(subject).to.eql({ bar: [1, null, null, 2] });
     });
@@ -218,15 +218,15 @@ describe("jsonast-util", async () => {
       expect(() => jsonPointerGet("/a", subject)).to.throw(JsonPointerError, "Property 'a' doesn't exist at data/a.json#/a");
     });
 
-    test("say only the fragment without a document URI", () => {
+    test("say an index that doesn't exist", () => {
       const subject = parse(`[]`);
-      expect(() => jsonStep("0", subject)).to.throw(JsonPointerError, "Index '0' doesn't exist at #/0");
+      expect(() => jsonStep("0", subject)).to.throw(JsonPointerError, "Index '0' doesn't exist at https://example.com/doc#/0");
     });
   });
 
   test("rejson syntax errors keep their position, source, and ruleId", () => {
     try {
-      rejson.processSync(`{ "foo" 1 }`);
+      rejson.processSync({ path: "/doc.json", value: `{ "foo" 1 }` });
       expect.fail("Expected a VFileMessage");
     } catch (error) {
       expect(error).to.be.instanceof(VFileMessage);
@@ -241,7 +241,7 @@ describe("jsonast-util", async () => {
   });
 
   test("missing colon error points at the property name it should follow", () => {
-    const error = fromJson(`{ "foo"\n\n  1 }`).errors[0];
+    const error = fromJson(`{ "foo"\n\n  1 }`, "https://example.com/doc").errors[0];
     expect(jsonSyntaxErrorMessage(error)).to.equal("Expected a colon");
     expect(error.place).to.eql({
       start: { line: 1, column: 3, offset: 2 },
@@ -315,7 +315,7 @@ describe("jsonast-util", async () => {
  * @type (json: string) => JsonNode
  */
 const parse = (json) => {
-  const result = fromJson(json);
+  const result = fromJson(json, "https://example.com/doc");
   if (result.status !== "success") {
     throw Error(jsonSyntaxErrorMessage(result.errors[0]));
   }

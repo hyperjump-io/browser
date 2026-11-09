@@ -1,6 +1,6 @@
 import { isTypeValid, parse as parseContentType } from "content-type";
 import { mimeMatchSpecificity } from "./utilities.js";
-import { relativeFileUri } from "./file-uris.js";
+import { relativeFileUrl } from "./file-urls.js";
 import { UnsupportedMediaTypeError } from "./hyperjump.js";
 
 /**
@@ -9,7 +9,6 @@ import { UnsupportedMediaTypeError } from "./hyperjump.js";
  * configured, so they're tested without retrieving anything. They aren't
  * exported from the package.
  *
- * @import { AbsoluteIri } from "@hyperjump/uri"
  * @import { DocumentNode, MediaTypePlugin } from "./media-types/media-type-plugin.d.ts"
  * @typedef {ReadonlyMap<string, MediaTypePlugin<DocumentNode>>} MediaTypePlugins
  */
@@ -43,15 +42,15 @@ export const acceptHeader = (mediaTypePlugins) => {
  * precedence over `.json`. If there's a tie, the plugin that comes first
  * wins.
  *
- * @type (mediaTypePlugins: MediaTypePlugins, uri: string) => string | undefined
+ * @type (mediaTypePlugins: MediaTypePlugins, url: string) => string | undefined
  */
-export const mediaTypeByExtension = (mediaTypePlugins, uri) => {
+export const mediaTypeByExtension = (mediaTypePlugins, url) => {
   let bestContentType;
   let bestLength = 0;
   for (const [contentType, plugin] of mediaTypePlugins) {
     for (const extension of plugin.extensions) {
-      if (extension.length > bestLength && uri.endsWith(extension)) {
-        if (extension.startsWith("/") || (extension.startsWith(".") && uri[uri.length - extension.length - 1] !== "/")) {
+      if (extension.length > bestLength && url.endsWith(extension)) {
+        if (extension.startsWith("/") || (extension.startsWith(".") && url[url.length - extension.length - 1] !== "/")) {
           bestContentType = contentType;
           bestLength = extension.length;
         }
@@ -67,11 +66,11 @@ export const mediaTypeByExtension = (mediaTypePlugins, uri) => {
  * and the media type it's keyed by. If there's a tie, the plugin that comes
  * first wins. `url` is where the response came from, for the error.
  *
- * @type (mediaTypePlugins: MediaTypePlugins, contentTypeText: string | null, url: AbsoluteIri) => [string, MediaTypePlugin<DocumentNode>]
+ * @type (mediaTypePlugins: MediaTypePlugins, contentTypeText: string | null, url: string) => [string, MediaTypePlugin<DocumentNode>]
  */
 export const mediaTypePluginFor = (mediaTypePlugins, contentTypeText, url) => {
   if (contentTypeText === null) {
-    throw new UnsupportedMediaTypeError(undefined, `The media type of '${relativeFileUri(url)}' could not be determined. A response needs a 'Content-Type' header, and a file needs an extension that a media type plugin has. Use the 'mediaTypePlugins' config to add support for a media type.`);
+    throw new UnsupportedMediaTypeError(undefined, `The media type of '${relativeFileUrl(url)}' could not be determined. A response needs a 'Content-Type' header, and a file needs an extension that a media type plugin has. Use the 'mediaTypePlugins' config to add support for a media type.`);
   }
 
   // The parser is lenient, so the type needs to be validated

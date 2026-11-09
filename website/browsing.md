@@ -107,17 +107,17 @@ When something goes wrong, `get` and `step` throw one of these errors:
 | Error | When |
 | --- | --- |
 | `RetrievalNotAllowedError` | `allowRetrieval` doesn't allow the URL. For more information, see [What a session can retrieve](allow-retrieval.md). |
-| `RetrievalError` | `allowRetrieval` allows the URL, but the session can't retrieve or parse the document. Its `cause` says why. For example, it's an `HttpError` for a `404` or a `FileNotFoundError`. Its `uri` is the URL. |
+| `RetrievalError` | `allowRetrieval` allows the URL, but the session can't retrieve or parse the document. Its `cause` says why. For example, it's an `HttpError` for a `404` or a `FileNotFoundError`. Its `url` is the URL. |
 | `JsonPointerError` | A fragment or a step doesn't find a value |
 | `ReferenceCycleError` | Following references leads back to a reference that the session already followed |
 | `UnsupportedMediaTypeError` | The response doesn't have a valid `Content-Type`, or no media type plugin handles it. It's the `cause` of a `RetrievalError`. |
-| `UnsupportedUriSchemeError` | No URI scheme plugin handles the URL. It's the `cause` of a `RetrievalError`. |
+| `UnsupportedUrlSchemeError` | No URL scheme plugin handles the URL. It's the `cause` of a `RetrievalError`. |
 
 Error messages often end up in logs and bug reports. To keep them from revealing
 where your files are, a message shows a `file:` URL relative to the working
-directory, such as `data/person.json`. The error's `uri` still has the whole
+directory, such as `data/person.json`. The error's `url` still has the whole
 URL. If you want your own messages to show URLs the same way, use
-`relativeFileUri(uri)`.
+`relativeFileUrl(url)`.
 
 ## Sessions
 

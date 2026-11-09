@@ -1,5 +1,4 @@
 import CachePolicy from "http-cache-semantics";
-import { toAbsoluteIri } from "@hyperjump/uri";
 import { defaultHttpCache } from "#default-http-cache";
 import { redirectMode } from "#redirect-mode";
 
@@ -23,8 +22,8 @@ import { redirectMode } from "#redirect-mode";
 const successStatuses = new Set([200, 203]);
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
 
-/** @implements API.HttpUriSchemePlugin */
-export class HttpUriSchemePlugin {
+/** @implements API.HttpUrlSchemePlugin */
+export class HttpUrlSchemePlugin {
   /** @type HttpCacheStore | undefined */
   #cache;
 
@@ -56,7 +55,7 @@ export class HttpUriSchemePlugin {
   #pending;
 
   /**
-   * @param {API.HttpUriSchemePluginOptions} [options]
+   * @param {API.HttpUrlSchemePluginOptions} [options]
    */
   constructor(options = {}) {
     this.schemes = ["http", "https"];
@@ -67,16 +66,16 @@ export class HttpUriSchemePlugin {
     this.#pending = new Map();
   }
 
-  /** @type API.HttpUriSchemePlugin["retrieve"] */
-  async retrieve(uri, { accept, mediaTypeByExtension }) {
+  /** @type API.HttpUrlSchemePlugin["retrieve"] */
+  async retrieve(url, { accept, mediaTypeByExtension }) {
     if (!this.#cache) {
-      const response = await fetch(uri, { headers: await this.#requestHeaders(uri, accept), redirect: redirectMode });
-      await assertUsable(uri, response);
+      const response = await fetch(url, { headers: await this.#requestHeaders(url, accept), redirect: redirectMode });
+      await assertUsable(url, response);
       if (redirectStatuses.has(response.status)) {
         return response;
       }
 
-      const mediaType = this.#extensionMediaType(response.url || uri, mediaTypeByExtension);
+      const mediaType = this.#extensionMediaType(response.url || url, mediaTypeByExtension);
       if (mediaType === undefined) {
         return response;
       }
@@ -86,12 +85,11 @@ export class HttpUriSchemePlugin {
       const headers = new Headers(response.headers);
       headers.set("content-type", mediaType);
       const typedResponse = new Response(response.body, { status: response.status, statusText: response.statusText, headers });
-      Object.defineProperty(typedResponse, "url", { value: response.url || toAbsoluteIri(uri) });
+      Object.defineProperty(typedResponse, "url", { value: response.url || url });
 
       return typedResponse;
     }
 
-    const url = toAbsoluteIri(uri);
     const key = JSON.stringify([url, accept]);
     let pending = this.#pending.get(key);
     if (!pending) {
@@ -163,10 +161,10 @@ export class HttpUriSchemePlugin {
    * fragment, which isn't part of a request. It's a copy for each function,
    * so one that changes it doesn't change what the next one sees.
    *
-   * @type (uri: string, accept: string) => Promise<Record<string, string>>
+   * @type (href: string, accept: string) => Promise<Record<string, string>>
    */
-  async #requestHeaders(uri, accept) {
-    const url = new URL(uri);
+  async #requestHeaders(href, accept) {
+    const url = new URL(href);
     url.hash = "";
 
     const headers = new Headers();
@@ -190,7 +188,7 @@ export class HttpUriSchemePlugin {
    * the server that sends the wrong type. The extension is the path's, without
    * the query, which a URL like a private GitHub raw URL has.
    *
-   * @type (responseUrl: string, mediaTypeByExtension: (uri: string) => string | undefined) => string | undefined
+   * @type (responseUrl: string, mediaTypeByExtension: (url: string) => string | undefined) => string | undefined
    */
   #extensionMediaType(responseUrl, mediaTypeByExtension) {
     const url = new URL(responseUrl);
@@ -266,16 +264,16 @@ const matches = (entry, href) => entry.endsWith("/") ? href.startsWith(entry) : 
  * file. A response that isn't used has its body cancelled, so its
  * connection is released.
  *
- * @type (uri: string, response: Response) => Promise<void>
+ * @type (url: string, response: Response) => Promise<void>
  */
-const assertUsable = async (uri, response) => {
+const assertUsable = async (url, response) => {
   if (successStatuses.has(response.status)) {
     return;
   }
 
   if (redirectStatuses.has(response.status)) {
     const location = response.headers.get("location");
-    if (location !== null && isHttpUrl(location, response.url || uri)) {
+    if (location !== null && isHttpUrl(location, response.url || url)) {
       return;
     }
 
@@ -284,7 +282,7 @@ const assertUsable = async (uri, response) => {
   }
 
   await response.body?.cancel();
-  throw new HttpError(response, response.status >= 400 ? `Failed to retrieve '${uri}'` : "Unsupported HTTP response status code");
+  throw new HttpError(response, response.status >= 400 ? `Failed to retrieve '${url}'` : "Unsupported HTTP response status code");
 };
 
 /** @type (location: string, base: string) => boolean */

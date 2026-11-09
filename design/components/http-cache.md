@@ -1,12 +1,12 @@
-# HTTP cache (`src/hyperjump/uri-schemes/http-scheme-plugin.js`)
+# HTTP cache (`src/hyperjump/url-schemes/http-scheme-plugin.js`)
 
 - Retrieved responses go in an HTTP cache, according to their caching
-  headers. It's under the URI scheme plugins and stores responses, not
+  headers. It's under the URL scheme plugins and stores responses, not
   documents, so it doesn't depend on how a response is parsed, and every
   session from a `Hyperjump` shares it.
-- It's part of `HttpUriSchemePlugin` (a `cache` option), because caching
+- It's part of `HttpUrlSchemePlugin` (a `cache` option), because caching
   headers are HTTP's. Changing it is configuring an HTTP plugin in the
-  `uriSchemePlugins` config. A `config.http` for the default plugin's
+  `urlSchemePlugins` config. A `config.http` for the default plugin's
   options was considered and rejected: no other plugin has config of its
   own, and it wouldn't say what the plugin has once the plugin is replaced.
   With plugins in the config, it adds nothing. It uses `http-cache-semantics`, as a private cache. A

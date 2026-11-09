@@ -17,30 +17,27 @@ local to it.
     `/` explicit, was considered and rejected, because it would refuse a
     spelling of the same URL. Both are the same for `headers` keys (see
     [Request headers](request-headers.md)).
-- A relative entry is resolved against the context URI, like a relative
+- A relative entry is resolved against the context URL, like a relative
   path is. That's the working directory in Node.js and the page in a
-  browser (`#context-uri`). Each session resolves its entries, or the
+  browser (`#context-url`). Each session resolves its entries, or the
   config's (`hyperjump.config`), or the default, against its own context
-  URI (see [Sessions](sessions.md)). Resolving the config's once, when the
+  URL (see [Sessions](sessions.md)). Resolving the config's once, when the
   `Hyperjump` is created, and giving them to sessions through a `WeakMap`
-  was rejected. A session's context URI can differ from the one the
+  was rejected. A session's context URL can differ from the one the
   `Hyperjump` was created with, and the `WeakMap` is one more thing to keep
-  in sync. `allowed-urls.js` is given the context URI rather
+  in sync. `allowed-urls.js` is given the context URL rather
   than reading it, so its tests give it a page or nothing instead of
   mocking modules. Without a page, it's `undefined`.
   - Entries are resolved when the config or the session's options are
     given, so one that isn't a URL throws a `TypeError` there. A relative
-    entry where there's no context URI, such as in a worker, throws a
+    entry where there's no context URL, such as in a worker, throws a
     `TypeError` and says to use an absolute URL, instead of quietly
     allowing nothing. The default is resolved when a session first checks
-    a URL, so an application without a context URI that never retrieves
+    a URL, so an application without a context URL that never retrieves
     anything doesn't need the config.
-- Entries and the URLs checked against them are compared as WHATWG URLs,
-  inside `allowed-urls.js`, though the URL it's given is an IRI (see
-  [Identifiers are IRIs](../principles/identifiers-are-iris.md)). `new URL`
-  is what makes them comparable, with the same case, dot segments, and
-  ports. Comparing IRIs was rejected, because it would need
-  `normalizeIri` to do the same.
+- Entries and the URLs checked against them are compared as parsed URLs,
+  so they have the same case, dot segments, and ports (see
+  [Identifiers are URLs](../principles/identifiers-are-urls.md)).
 - The default is `["./"]` everywhere: the working directory in Node.js, and
   the page's directory in a browser. Browsers can't read `file:` URLs
   anyway.
@@ -76,7 +73,7 @@ local to it.
 - A predicate as well as the list, for anything a list can't say, was
   considered and left out until someone needs it. Whoever used it would
   have the problem the list solves.
-- It's config, because it's a property of the application, like its URI
+- It's config, because it's a property of the application, like its URL
   scheme plugins, and every session should follow it by default. A session
   can have its own (`SessionOptions.allowRetrieval`), which replaces the
   config's rather than adding to it, for an application that allows
@@ -88,18 +85,18 @@ local to it.
 ## Where it's checked
 
 - `Session` checks it when it retrieves a document that isn't in its
-  cache, before it retrieves it with a URI scheme plugin, so it covers `get`,
+  cache, before it retrieves it with a URL scheme plugin, so it covers `get`,
   `getDocument`, and following references. A subclass that overrides
   `getDocument` to find documents elsewhere first isn't checked for those.
-  It's before the URI scheme plugins, so it's before the HTTP cache too,
+  It's before the URL scheme plugins, so it's before the HTTP cache too,
   and a cached response isn't a way around it.
 - A redirect is checked before it's followed, because the session follows
   it (see [Redirects](redirects.md)). That includes a plugin for a scheme
-  that maps to another URI, like `urn:`, which redirects to it.
+  that maps to another URL, like `urn:`, which redirects to it.
 - An error about a list, or a refused URL's, says which list to change:
   the config's, or the session's own option, which replaces the config's
   so adding to the config wouldn't help. The default is the config's,
-  because configuring a list is how it's changed. Without a context URI,
+  because configuring a list is how it's changed. Without a context URL,
   the default's error says to configure absolute URLs, not to use one, since
   the application didn't write `./`.
 - A refused URL is a `RetrievalNotAllowedError`, thrown as it is, not
@@ -108,9 +105,9 @@ local to it.
   refused URL (unknown) from a failed one (missing).
 - The URL a response came from is also checked, for a symlink or a
   redirect that `fetch` followed in a browser. A response from a refused
-  URL is a `RetrievalNotAllowedError` whose `uri` is that URL. Its body is
+  URL is a `RetrievalNotAllowedError` whose `url` is that URL. Its body is
   cancelled. A redirect the session refuses before it's followed is the
-  same error, and its `uri` is where the redirect led.
+  same error, and its `url` is where the redirect led.
 
 ## Symlinks
 

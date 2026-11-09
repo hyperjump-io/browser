@@ -29,7 +29,7 @@ const h = new Hyperjump({
 ```
 
 Retrieving a URL the list doesn't allow throws a `RetrievalNotAllowedError`. Its
-`uri` is the URL that the session refused. Its message says how to allow that
+`url` is the URL that the session refused. Its message says how to allow that
 URL:
 
 ```text
@@ -64,10 +64,10 @@ covers these too:
   sends the request before the session can check it. The session then checks
   the URL that the response came from and doesn't use a response from a URL
   you didn't allow.
-- **The cache.** The check happens before the URI scheme plugins run so a
+- **The cache.** The check happens before the URL scheme plugins run so a
   cached response can't get around the check.
 
-The check applies to every URI scheme, including the ones you add. A plugin
+The check applies to every URL scheme, including the ones you add. A plugin
 can redirect to another URL the way a `urn:` plugin redirects a Uniform Resource
 Name (URN) to the URL it maps to. The list has to allow both the URN and the
-URL. For more information, see [URI schemes](uri-schemes.md).
+URL. For more information, see [URL schemes](url-schemes.md).

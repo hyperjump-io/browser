@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { FileHttpCacheStore, Hyperjump, HttpUriSchemePlugin, MemoryHttpCacheStore } from "../index.js";
+import { FileHttpCacheStore, Hyperjump, HttpUrlSchemePlugin, MemoryHttpCacheStore } from "../index.js";
 import { toJson } from "../../json/jsonast-util.js";
 
 /**
@@ -13,7 +13,7 @@ import { toJson } from "../../json/jsonast-util.js";
 describe("JSON Browser", () => {
   describe("HTTP cache", () => {
     const testDomain = "https://example.com";
-    const uri = `${testDomain}/foo#/foo`;
+    const url = `${testDomain}/foo#/foo`;
     const contentType = { "content-type": "application/reference+json" };
 
     /** @type MockAgent */
@@ -34,7 +34,7 @@ describe("JSON Browser", () => {
     const withCache = (cache) => {
       return new Hyperjump({
         allowRetrieval: ["https://example.com/"],
-        uriSchemePlugins: [new HttpUriSchemePlugin({ cache })]
+        urlSchemePlugins: [new HttpUrlSchemePlugin({ cache })]
       });
     };
 
@@ -44,8 +44,8 @@ describe("JSON Browser", () => {
         .reply(200, `{ "foo": 42 }`, { headers: { ...contentType, "cache-control": "max-age=60" } });
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
-      await hyperjump.session().get(uri);
-      const subject = await hyperjump.session().get(uri);
+      await hyperjump.session().get(url);
+      const subject = await hyperjump.session().get(url);
 
       expect(toJson(subject)).to.equal(`42`);
     });
@@ -59,8 +59,8 @@ describe("JSON Browser", () => {
         .reply(200, `{ "foo": 24 }`, { headers: contentType });
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
-      await hyperjump.session().get(uri);
-      const subject = await hyperjump.session().get(uri);
+      await hyperjump.session().get(url);
+      const subject = await hyperjump.session().get(url);
 
       expect(toJson(subject)).to.equal(`24`);
     });
@@ -74,8 +74,8 @@ describe("JSON Browser", () => {
         .reply(304, "", { headers: { etag: `"1"` } });
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
-      await hyperjump.session().get(uri);
-      const subject = await hyperjump.session().get(uri);
+      await hyperjump.session().get(url);
+      const subject = await hyperjump.session().get(url);
 
       expect(toJson(subject)).to.equal(`42`);
     });
@@ -89,8 +89,8 @@ describe("JSON Browser", () => {
         .reply(200, `{ "foo": 24 }`, { headers: { ...contentType, "cache-control": "no-cache", "etag": `"2"` } });
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
-      await hyperjump.session().get(uri);
-      const subject = await hyperjump.session().get(uri);
+      await hyperjump.session().get(url);
+      const subject = await hyperjump.session().get(url);
 
       expect(toJson(subject)).to.equal(`24`);
     });
@@ -107,8 +107,8 @@ describe("JSON Browser", () => {
         .reply(200, `{ "foo": 24 }`, { headers: { ...contentType, "cache-control": "no-cache", "etag": `"2"` } });
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
-      await hyperjump.session().get(uri);
-      const subject = await hyperjump.session().get(uri);
+      await hyperjump.session().get(url);
+      const subject = await hyperjump.session().get(url);
 
       expect(toJson(subject)).to.equal(`24`);
     });
@@ -120,8 +120,8 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const [first, second] = await Promise.all([
-        hyperjump.session().get(uri),
-        hyperjump.session().get(uri)
+        hyperjump.session().get(url),
+        hyperjump.session().get(url)
       ]);
 
       expect(toJson(first)).to.equal(`42`);
@@ -129,14 +129,14 @@ describe("JSON Browser", () => {
     });
 
     test("requests at the same time with different Accept headers don't share a request", async () => {
-      const plugin = new HttpUriSchemePlugin({ cache: new MemoryHttpCacheStore() });
+      const plugin = new HttpUrlSchemePlugin({ cache: new MemoryHttpCacheStore() });
       const fooPlugin = {
         mediaType: "application/foo+json",
         extensions: [],
-        parse: async () => ({ type: "foo-document", children: [] })
+        parse: async (/** @type Response */ response) => ({ type: "foo-document", url: response.url, children: [] })
       };
-      const jrefOnly = new Hyperjump({ allowRetrieval: ["https://example.com/"], uriSchemePlugins: [plugin] });
-      const withFoo = new Hyperjump({ allowRetrieval: ["https://example.com/"], uriSchemePlugins: [plugin], mediaTypePlugins: [fooPlugin] });
+      const jrefOnly = new Hyperjump({ allowRetrieval: ["https://example.com/"], urlSchemePlugins: [plugin] });
+      const withFoo = new Hyperjump({ allowRetrieval: ["https://example.com/"], urlSchemePlugins: [plugin], mediaTypePlugins: [fooPlugin] });
 
       mockAgent.get(testDomain)
         .intercept({ method: "GET", path: "/foo", headers: (headers) => !headers.accept.includes("application/foo+json") })
@@ -146,8 +146,8 @@ describe("JSON Browser", () => {
         .reply(200, `{}`, { headers: { "content-type": "application/foo+json", "vary": "accept" } });
 
       const [jref, foo] = await Promise.all([
-        jrefOnly.session().getDocument(uri),
-        withFoo.session().getDocument(uri)
+        jrefOnly.session().getDocument(url),
+        withFoo.session().getDocument(url)
       ]);
 
       expect(jref.mediaType).to.equal("application/reference+json");
@@ -160,8 +160,8 @@ describe("JSON Browser", () => {
         .reply(200, `{ "foo": 42 }`, { headers: { ...contentType, "cache-control": "max-age=60" } });
 
       const hyperjump = withCache(undefined);
-      await hyperjump.session().get(uri);
-      const subject = await hyperjump.session().get(uri);
+      await hyperjump.session().get(url);
+      const subject = await hyperjump.session().get(url);
 
       expect(toJson(subject)).to.equal(`42`);
     });
@@ -175,8 +175,8 @@ describe("JSON Browser", () => {
         .reply(200, `{ "foo": 24 }`, { headers: contentType });
 
       const hyperjump = withCache(false);
-      await hyperjump.session().get(uri);
-      const subject = await hyperjump.session().get(uri);
+      await hyperjump.session().get(url);
+      const subject = await hyperjump.session().get(url);
 
       expect(toJson(subject)).to.equal(`24`);
     });
@@ -188,9 +188,9 @@ describe("JSON Browser", () => {
 
       const cache = new MemoryHttpCacheStore();
       await withCache(cache).session()
-        .get(uri);
+        .get(url);
       const subject = await withCache(cache).session()
-        .get(uri);
+        .get(url);
 
       expect(toJson(subject)).to.equal(`42`);
     });
@@ -206,10 +206,10 @@ describe("JSON Browser", () => {
       const headers = { "https://example.com/": { Authorization: "Bearer token" } };
       const hyperjump = new Hyperjump({
         allowRetrieval: ["https://example.com/"],
-        uriSchemePlugins: [new HttpUriSchemePlugin({ cache: new MemoryHttpCacheStore(), headers })]
+        urlSchemePlugins: [new HttpUrlSchemePlugin({ cache: new MemoryHttpCacheStore(), headers })]
       });
-      await hyperjump.session().get(uri);
-      const subject = await hyperjump.session().get(uri);
+      await hyperjump.session().get(url);
+      const subject = await hyperjump.session().get(url);
 
       expect(toJson(subject)).to.equal(`42`);
     });
@@ -226,11 +226,11 @@ describe("JSON Browser", () => {
       const headers = { "https://example.com/": () => ({ Authorization: `Bearer ${token}` }) };
       const hyperjump = new Hyperjump({
         allowRetrieval: ["https://example.com/"],
-        uriSchemePlugins: [new HttpUriSchemePlugin({ cache: new MemoryHttpCacheStore(), headers })]
+        urlSchemePlugins: [new HttpUrlSchemePlugin({ cache: new MemoryHttpCacheStore(), headers })]
       });
-      await hyperjump.session().get(uri);
+      await hyperjump.session().get(url);
       token = 2;
-      const subject = await hyperjump.session().get(uri);
+      const subject = await hyperjump.session().get(url);
 
       expect(toJson(subject)).to.equal(`24`);
     });
@@ -254,9 +254,9 @@ describe("JSON Browser", () => {
 
         const cacheDirectory = join(directory, "cache");
         await withCache(new FileHttpCacheStore(cacheDirectory)).session()
-          .get(uri);
+          .get(url);
         const subject = await withCache(new FileHttpCacheStore(cacheDirectory)).session()
-          .get(uri);
+          .get(url);
 
         expect(toJson(subject)).to.equal(`42`);
       });

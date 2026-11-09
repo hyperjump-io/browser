@@ -22,7 +22,7 @@ describe("JSON Browser", () => {
 
     test("value", async () => {
       const path = "/subject";
-      const uri = `${testDomain}${path}`;
+      const url = `${testDomain}${path}`;
       const jref = `{ "foo": 42 }`;
 
       mockAgent.get(testDomain)
@@ -31,7 +31,7 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
-      const subject = await session.get(uri);
+      const subject = await session.get(url);
       const foo = await jrefStep(session, "foo", subject);
 
       expect(toJson(foo)).to.eql(`42`);
@@ -39,7 +39,7 @@ describe("JSON Browser", () => {
 
     test("local reference to value", async () => {
       const path = "/subject";
-      const uri = `${testDomain}${path}`;
+      const url = `${testDomain}${path}`;
       const jref = `{
   "foo": 42,
   "bar": { "$ref": "#/foo" }
@@ -51,7 +51,7 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
-      const subject = await session.get(uri);
+      const subject = await session.get(url);
       const foo = await jrefStep(session, "bar", subject);
 
       expect(toJson(foo)).to.eql(`42`);
@@ -59,7 +59,7 @@ describe("JSON Browser", () => {
 
     test("local reference to local reference to value", async () => {
       const path = "/subject";
-      const uri = `${testDomain}${path}`;
+      const url = `${testDomain}${path}`;
       const jref = `{
   "foo": 42,
   "bar": { "$ref": "#/foo" },
@@ -72,7 +72,7 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
-      const subject = await session.get(uri);
+      const subject = await session.get(url);
       const foo = await jrefStep(session, "baz", subject);
 
       expect(toJson(foo)).to.eql(`42`);
@@ -80,7 +80,7 @@ describe("JSON Browser", () => {
 
     test("local reference to external reference to value", async () => {
       const subjectPath = "/subject";
-      const uri = `${testDomain}${subjectPath}`;
+      const url = `${testDomain}${subjectPath}`;
       const subjectJref = `{
   "bar": { "$ref": "/external#/foo" },
   "baz": { "$ref": "#/bar" }
@@ -99,7 +99,7 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
-      const subject = await session.get(uri);
+      const subject = await session.get(url);
       const foo = await jrefStep(session, "baz", subject);
 
       expect(toJson(foo)).to.eql(`42`);
@@ -107,7 +107,7 @@ describe("JSON Browser", () => {
 
     test("external reference to value", async () => {
       const subjectPath = "/subject";
-      const uri = `${testDomain}${subjectPath}`;
+      const url = `${testDomain}${subjectPath}`;
       const subjectJref = `{
   "bar": { "$ref": "/external#/foo" }
 }`;
@@ -118,7 +118,7 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
-      const subject = await session.get(uri);
+      const subject = await session.get(url);
 
       const externalPath = "/external";
       const externalJref = `{ "foo": 42 }`;
@@ -134,7 +134,7 @@ describe("JSON Browser", () => {
 
     test("external reference to local reference to value", async () => {
       const subjectPath = "/subject";
-      const uri = `${testDomain}${subjectPath}`;
+      const url = `${testDomain}${subjectPath}`;
       const subjectJref = `{
   "baz": { "$ref": "/external#/bar" }
 }`;
@@ -145,7 +145,7 @@ describe("JSON Browser", () => {
 
       const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
       const session = hyperjump.session();
-      const subject = await session.get(uri);
+      const subject = await session.get(url);
 
       const externalPath = "/external";
       const externalJref = `{

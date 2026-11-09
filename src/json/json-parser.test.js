@@ -1,7 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { unified } from "unified";
 import { VFileMessage } from "vfile-message";
-import { InvalidIriError } from "@hyperjump/uri";
 import {
   fromJson,
   fromJref,
@@ -21,6 +20,16 @@ import {
   toJson,
   JsonPointerError
 } from "../hyperjump/index.js";
+
+/** The document URL for tests that don't care what it is */
+const url = "https://example.com/doc.json";
+
+/**
+ * A file for a processor, which needs a path for the document's URL
+ *
+ * @type (value: string) => { path: string, value: string }
+ */
+const withPath = (value) => ({ path: "/doc.json", value });
 
 const rejson = unified()
   .use(rejsonParse)
@@ -837,7 +846,7 @@ describe("tolerant AST", () => {
 
     expect(property(root, 0).children[1]).toEqual({
       type: "json-missing",
-      location: "#/a",
+      location: `${url}#/a`,
       position: {
         start: { line: 1, column: 7, offset: 6 },
         end: { line: 1, column: 7, offset: 6 }
@@ -867,7 +876,7 @@ describe("tolerant AST", () => {
   test("a property with no key has an empty name and its value is located under it", () => {
     const { root } = parse(`{ : 1 }`);
 
-    expect(property(root, 0).children[1]).toMatchObject({ value: 1, location: "#/" });
+    expect(property(root, 0).children[1]).toMatchObject({ value: 1, location: `${url}#/` });
   });
 
   test("a gap in an array is a missing item that keeps the items after it in place", () => {
@@ -876,9 +885,9 @@ describe("tolerant AST", () => {
     expect(itemValues(root)).toEqual([1, "json-missing", 2]);
     expect(root).toMatchObject({
       children: [
-        { location: "#/0" },
-        { type: "json-missing", location: "#/1" },
-        { location: "#/2" }
+        { location: `${url}#/0` },
+        { type: "json-missing", location: `${url}#/1` },
+        { location: `${url}#/2` }
       ]
     });
   });
@@ -967,7 +976,7 @@ describe("tolerant AST", () => {
         {
           type: "json-invalid",
           raw: "True",
-          location: "#/0",
+          location: `${url}#/0`,
           position: {
             start: { line: 1, column: 2, offset: 1 },
             end: { line: 1, column: 6, offset: 5 }
@@ -986,7 +995,7 @@ describe("tolerant AST", () => {
 
     expect(root).toEqual({
       type: "json-missing",
-      location: "#",
+      location: `${url}#`,
       position: {
         start: { line: 1, column: 1, offset: 0 },
         end: { line: 1, column: 1, offset: 0 }
@@ -998,7 +1007,7 @@ describe("tolerant AST", () => {
   });
 
   test("errors have a line and column", () => {
-    const { errors } = fromJson(`{\n  "a": 1,\n}`);
+    const { errors } = fromJson(`{\n  "a": 1,\n}`, url);
 
     expect(errors).toEqual([{
       source: "json",
@@ -1012,14 +1021,14 @@ describe("tolerant AST", () => {
   });
 
   test("errors with found text include it as the actual value", () => {
-    const { errors } = fromJson(`[True]`);
+    const { errors } = fromJson(`[True]`, url);
 
     expect(errors[0].actual).toBe("True");
     expect(jsonSyntaxErrorMessage(errors[0])).toBe("'True' is not a valid value");
   });
 
   test("lines can end with CRLF", () => {
-    const { errors } = fromJson(`{\r\n  "a": 1,\r\n}`);
+    const { errors } = fromJson(`{\r\n  "a": 1,\r\n}`, url);
 
     expect(errors[0].place).toMatchObject({ start: { line: 2, column: 9 } });
   });
@@ -1035,7 +1044,7 @@ describe("a container where a property name is expected", () => {
     expect(errors).toEqual([
       { code: "brace-not-closed", offset: 6, length: 6 }
     ]);
-    expect(root).toMatchObject({ children: [{ jsonType: "object" }, { jsonType: "object", location: "#/1" }] });
+    expect(root).toMatchObject({ children: [{ jsonType: "object" }, { jsonType: "object", location: `${url}#/1` }] });
     expect(propertyNames(item(root, 1))).toEqual(["b"]);
   });
 
@@ -1114,7 +1123,7 @@ describe("nesting depth", () => {
     const { root } = parse(`[${nested(1000)}, 1]`);
 
     expect(itemValues(root)).toHaveLength(2);
-    expect(item(root, 1)).toMatchObject({ value: 1, location: "#/1" });
+    expect(item(root, 1)).toMatchObject({ value: 1, location: `${url}#/1` });
   });
 
   test("very deep input doesn't overflow the stack", () => {
@@ -1126,7 +1135,7 @@ describe("nesting depth", () => {
   });
 
   test("a container that's too deep is a failure", () => {
-    expect(fromJson(nested(1001)).status).toBe("failure");
+    expect(fromJson(nested(1001), url).status).toBe("failure");
   });
 });
 
@@ -1198,14 +1207,14 @@ describe("JSONC", () => {
   });
 
   test("a document with comments is a success with the flag", () => {
-    const { status, node } = fromJson(`{ "a": 1 } // done`, undefined, { allowComments: true });
+    const { status, node } = fromJson(`{ "a": 1 } // done`, url, { allowComments: true });
 
     expect(status).toBe("success");
     expect(toJson(node)).toBe(`{"a":1}`);
   });
 
   test("a document with comments is recovered without the flag", () => {
-    expect(fromJson(`{ "a": 1 } // done`).status).toBe("recovered");
+    expect(fromJson(`{ "a": 1 } // done`, url).status).toBe("recovered");
   });
 
   test("a comment marker inside a string isn't a comment", () => {
@@ -1229,21 +1238,21 @@ describe("JSONC", () => {
   });
 
   test("fromJref reports no errors for comments with the flag", () => {
-    const { errors } = fromJref(`[1] // done`, undefined, { allowComments: true });
+    const { errors } = fromJref(`[1] // done`, url, { allowComments: true });
 
     expect(errors).toEqual([]);
   });
 
   test("the jref processor takes the flag", () => {
     const file = jref().use(jrefParse, { allowComments: true })
-      .processSync(`{ "$ref": "foo" } // done`);
+      .processSync(withPath(`{ "$ref": "foo" } // done`));
 
     expect(String(file)).toBe(`{"$ref":"foo"}\n`);
   });
 
   test("the rejson processor takes the flag", () => {
     const file = rejson().use(rejsonParse, { allowComments: true })
-      .processSync(`{ "a": 1 } // done`);
+      .processSync(withPath(`{ "a": 1 } // done`));
 
     expect(String(file)).toBe(`{"a":1}\n`);
   });
@@ -1251,7 +1260,7 @@ describe("JSONC", () => {
 
 describe("comments in the AST", () => {
   test("are listed in document order with their kind, text, and position", () => {
-    const { comments } = fromJson(`// first\n{ "a" /* second */: 1 }`, undefined, { allowComments: true });
+    const { comments } = fromJson(`// first\n{ "a" /* second */: 1 }`, url, { allowComments: true });
 
     expect(comments).toEqual([
       {
@@ -1276,39 +1285,39 @@ describe("comments in the AST", () => {
   });
 
   test("an unclosed block comment runs to the end of the document", () => {
-    const { comments } = fromJson(`1 /* open`, undefined, { allowComments: true });
+    const { comments } = fromJson(`1 /* open`, url, { allowComments: true });
 
     expect(comments).toMatchObject([{ kind: "block", value: " open" }]);
   });
 
   test("aren't collected without the flag", () => {
-    const { comments } = fromJson(`1 // one`);
+    const { comments } = fromJson(`1 // one`, url);
 
     expect(comments).toEqual([]);
   });
 
   test("aren't children of any node", () => {
-    const { node } = fromJson(`[1, /* two */ 2]`, undefined, { allowComments: true });
+    const { node } = fromJson(`[1, /* two */ 2]`, url, { allowComments: true });
 
     expect(itemValues(node)).toEqual([1, 2]);
   });
 
   test("are on the document from the rejson processor", () => {
     const document = rejson().use(rejsonParse, { allowComments: true })
-      .parse(`// lint-ignore-next-line\n{ "a": 1 }`);
+      .parse(withPath(`// lint-ignore-next-line\n{ "a": 1 }`));
 
     expect(document.comments).toMatchObject([{ kind: "line", value: " lint-ignore-next-line" }]);
   });
 
   test("are on the document from the jref processor", () => {
     const document = jref().use(jrefParse, { allowComments: true })
-      .parse(`{ "$ref": "foo" } // done`);
+      .parse(withPath(`{ "$ref": "foo" } // done`));
 
     expect(document.comments).toMatchObject([{ kind: "line", value: " done" }]);
   });
 
   test("are returned with the AST", () => {
-    const { node, comments } = fromJson(`// one\n[1]`, undefined, { allowComments: true });
+    const { node, comments } = fromJson(`// one\n[1]`, url, { allowComments: true });
 
     expect(toJson(node)).toBe(`[1]`);
     expect(comments).toMatchObject([{ kind: "line", value: " one" }]);
@@ -1322,20 +1331,20 @@ describe("comments in the AST", () => {
   });
 
   test("are returned even when there are syntax errors", () => {
-    const { status, comments } = fromJson(`[1,] // done`, undefined, { allowComments: true });
+    const { status, comments } = fromJson(`[1,] // done`, url, { allowComments: true });
 
     expect(status).toBe("recovered");
     expect(comments).toMatchObject([{ value: " done" }]);
   });
 
   test("the document has an empty list without the flag", () => {
-    expect(rejson.parse(`1`).comments).toEqual([]);
+    expect(rejson.parse(withPath(`1`)).comments).toEqual([]);
   });
 });
 
 describe("parse status", () => {
   test("valid input is a success", () => {
-    const result = fromJson(`{ "a": [1, "two", null] }`);
+    const result = fromJson(`{ "a": [1, "two", null] }`, url);
 
     expect(result.status).toBe("success");
     expect(result.errors).toEqual([]);
@@ -1358,7 +1367,7 @@ describe("parse status", () => {
     ["an extra comma between properties", `{ "a": 1,, "b": 2 }`],
     ["an unclosed object followed by the next array item", `[{ "a": 1, { "b": 2 }]`]
   ])("%s is recovered", (_description, json) => {
-    expect(fromJson(json).status).toBe("recovered");
+    expect(fromJson(json, url).status).toBe("recovered");
   });
 
   test.each([
@@ -1372,15 +1381,15 @@ describe("parse status", () => {
     ["content after the document", `[1] [2]`],
     ["a container that's too deep", "[".repeat(1001) + "]".repeat(1001)]
   ])("%s is a failure", (_description, json) => {
-    expect(fromJson(json).status).toBe("failure");
+    expect(fromJson(json, url).status).toBe("failure");
   });
 
   test("a recoverable error doesn't hide a failure", () => {
-    expect(fromJson(`[1, 2, ] [3]`).status).toBe("failure");
+    expect(fromJson(`[1, 2, ] [3]`, url).status).toBe("failure");
   });
 
   test("a recovered AST is typed without error nodes", () => {
-    const result = fromJson(`{ a: 1 }`);
+    const result = fromJson(`{ a: 1 }`, url);
     if (result.status === "failure") {
       expect.fail("Expected the parse to recover");
     }
@@ -1394,7 +1403,7 @@ describe("parse status", () => {
 describe("rejson processor", () => {
   test("fails on any syntax error by default", () => {
     try {
-      rejson.processSync(`{ a: 1, "b": 2, }`);
+      rejson.processSync(withPath(`{ a: 1, "b": 2, }`));
       expect.fail("Expected a VFileMessage");
     } catch (error) {
       expect(error).toBeInstanceOf(VFileMessage);
@@ -1406,7 +1415,7 @@ describe("rejson processor", () => {
 
   test("accepting recovered parses adds every syntax error to the file as a warning", () => {
     const file = rejson().use(rejsonParse, { accept: "recovered" })
-      .processSync(`{ a: 1, "b": 2, }`);
+      .processSync(withPath(`{ a: 1, "b": 2, }`));
 
     expect(file.messages.map((message) => message.ruleId)).toEqual(["property-key-not-quoted", "trailing-comma"]);
     expect(file.messages.every((message) => !message.fatal)).toBe(true);
@@ -1416,13 +1425,13 @@ describe("rejson processor", () => {
   test("accepting recovered parses still fails on a failure", () => {
     const processor = rejson().use(rejsonParse, { accept: "recovered" });
 
-    expect(() => processor.processSync(`{ "a": }`)).toThrow(VFileMessage);
+    expect(() => processor.processSync(withPath(`{ "a": }`))).toThrow(VFileMessage);
   });
 
   test("accepting failures always produces an AST with every error as a warning", () => {
     const processor = rejson().use(rejsonParse, { accept: "failure" });
-    const tree = processor.parse(`{ "a": , "b": [1 }`);
-    const file = processor.processSync(`{ "a": , "b": [1 }`);
+    const tree = processor.parse(withPath(`{ "a": , "b": [1 }`));
+    const file = processor.processSync(withPath(`{ "a": , "b": [1 }`));
 
     expect(tree.status).toBe("failure");
     expect(file.messages.map((message) => message.ruleId)).toEqual(["value-expected", "bracket-not-closed"]);
@@ -1432,14 +1441,14 @@ describe("rejson processor", () => {
   test("the document has the parse status", () => {
     const processor = rejson().use(rejsonParse, { accept: "failure" });
 
-    expect(processor.parse(`[1]`).status).toBe("success");
-    expect(processor.parse(`[1,]`).status).toBe("recovered");
-    expect(processor.parse(`[1,,]`).status).toBe("failure");
+    expect(processor.parse(withPath(`[1]`)).status).toBe("success");
+    expect(processor.parse(withPath(`[1,]`)).status).toBe("recovered");
+    expect(processor.parse(withPath(`[1,,]`)).status).toBe("failure");
   });
 
   test("a failed document has error nodes", () => {
     const document = rejson().use(rejsonParse, { accept: "failure" })
-      .parse(`{ "a": `);
+      .parse(withPath(`{ "a": `));
 
     expect(document.status).toBe("failure");
     expect(propertyNames(document.children[0])).toEqual(["a"]);
@@ -1447,22 +1456,19 @@ describe("rejson processor", () => {
   });
 
   test("a valid document has no messages", () => {
-    const file = rejson.processSync(`{ "a": 1 }`);
+    const file = rejson.processSync(withPath(`{ "a": 1 }`));
 
     expect(file.messages).toEqual([]);
   });
 
-  test("a file without a path has only fragments for locations", () => {
-    const tree = rejson.parse(`{ "a": 1 }`);
-
-    expect(tree.uri).toBe(undefined);
-    expect(property(tree.children[0], 0).children[1].location).toBe("#/a");
+  test("a file without a path fails, because it has no URL", () => {
+    expect(() => rejson.parse(`{ "a": 1 }`)).toThrow(VFileMessage);
   });
 
   test("a relative path is resolved against the file's cwd", () => {
     const tree = rejson.parse({ cwd: "/foo", path: "bar/main.json", value: `{ "a": 1 }` });
 
-    expect(tree.uri).toBe("file:///foo/bar/main.json");
+    expect(tree.url).toBe("file:///foo/bar/main.json");
     expect(property(tree.children[0], 0).children[1].location).toBe("file:///foo/bar/main.json#/a");
   });
 });
@@ -1471,15 +1477,15 @@ describe("hasStatus", () => {
   const processor = rejson().use(rejsonParse, { accept: "failure" });
 
   test("is true when the document has one of the statuses", () => {
-    expect(hasStatus(processor.parse(`[1,]`), "success", "recovered")).toBe(true);
+    expect(hasStatus(processor.parse(withPath(`[1,]`)), "success", "recovered")).toBe(true);
   });
 
   test("is false when the document has none of the statuses", () => {
-    expect(hasStatus(processor.parse(`[1,,]`), "success", "recovered")).toBe(false);
+    expect(hasStatus(processor.parse(withPath(`[1,,]`)), "success", "recovered")).toBe(false);
   });
 
   test("narrows a document's children to nodes without errors", () => {
-    const document = processor.parse(`[1,]`);
+    const document = processor.parse(withPath(`[1,]`));
 
     // @ts-expect-error Without narrowing, a child could be an error node
     /** @type JsonNode | undefined */ let child = document.children[0];
@@ -1492,7 +1498,7 @@ describe("hasStatus", () => {
 
   test("narrows a JRef document's children", () => {
     const document = jref().use(jrefParse, { accept: "failure" })
-      .parse(`{ "$ref": "foo", }`);
+      .parse(withPath(`{ "$ref": "foo", }`));
 
     if (!hasStatus(document, "success", "recovered")) {
       expect.fail("Expected the parse to recover");
@@ -1504,7 +1510,7 @@ describe("hasStatus", () => {
   });
 
   test("the JRef version works for JSON documents too", () => {
-    expect(hasStatus(processor.parse(`[1]`), "success")).toBe(true);
+    expect(hasStatus(processor.parse(withPath(`[1]`)), "success")).toBe(true);
   });
 });
 
@@ -1527,19 +1533,19 @@ describe("jref with errors", () => {
 
   test("the processor adds every syntax error to the file as a warning", () => {
     const file = jref().use(jrefParse, { accept: "recovered" })
-      .processSync(`{ "$ref": "foo", }`);
+      .processSync(withPath(`{ "$ref": "foo", }`));
 
     expect(file.messages.map((message) => message.ruleId)).toEqual(["trailing-comma"]);
     expect(file.messages.every((message) => !message.fatal)).toBe(true);
   });
 
   test("the processor fails on any syntax error by default", () => {
-    expect(() => jref.processSync(`{ "$ref": "foo", }`)).toThrow(VFileMessage);
+    expect(() => jref.processSync(withPath(`{ "$ref": "foo", }`))).toThrow(VFileMessage);
   });
 
   test("the document has the parse status", () => {
     const document = jref().use(jrefParse, { accept: "failure" })
-      .parse(`{ "$ref": }`);
+      .parse(withPath(`{ "$ref": }`));
 
     expect(document.status).toBe("failure");
   });
@@ -1548,8 +1554,8 @@ describe("jref with errors", () => {
 describe("invalid references", () => {
   const base = "https://example.com/main.jref";
 
-  test("a $ref that isn't an IRI-reference is an invalid reference", () => {
-    const result = fromJref(`{ "$ref": "a b" }`, base);
+  test("a $ref that isn't a URL is an invalid reference", () => {
+    const result = fromJref(`{ "$ref": "//[" }`, base);
 
     expect(result.status).toBe("failure");
     expect(result.node).toMatchObject({ type: "invalid-reference", jsonType: "object" });
@@ -1561,17 +1567,17 @@ describe("invalid references", () => {
         start: { line: 1, column: 11, offset: 10 },
         end: { line: 1, column: 16, offset: 15 }
       },
-      actual: "a b"
+      actual: "//["
     }]);
   });
 
   test("an invalid reference keeps its properties", () => {
-    const { node } = fromJref(`{ "$ref": "a b", "foo": 42 }`, base);
+    const { node } = fromJref(`{ "$ref": "//[", "foo": 42 }`, base);
 
     expect([...jsonObjectKeys(/** @type JsonNode */ (node))]).toEqual(["$ref", "foo"]);
   });
 
-  test("a reference that doesn't resolve to a valid IRI is an invalid reference", () => {
+  test("a reference that doesn't resolve to a URL is an invalid reference", () => {
     const { status, node, errors } = fromJref(`{ "$ref": "b" }`, "urn:example:a");
 
     expect(status).toBe("failure");
@@ -1579,28 +1585,21 @@ describe("invalid references", () => {
     expect(errors.map((error) => error.actual)).toEqual(["b"]);
   });
 
-  test("without a base URI, a $ref that isn't an IRI-reference is still invalid", () => {
-    const { status, node } = fromJref(`{ "$ref": "a b" }`);
-
-    expect(status).toBe("failure");
-    expect(node).toMatchObject({ type: "invalid-reference" });
-  });
-
   test("an invalid reference makes a recovered parse a failure", () => {
-    const { status, errors } = fromJref(`{ "$ref": "a b", }`, base);
+    const { status, errors } = fromJref(`{ "$ref": "//[", }`, base);
 
     expect(status).toBe("failure");
     expect(errors.map((error) => error.ruleId)).toEqual(["invalid-reference", "trailing-comma"]);
   });
 
   test("errors are in document order", () => {
-    const { errors } = fromJref(`[{ "$ref": "a b" }, , { "$ref": "%" }]`, base);
+    const { errors } = fromJref(`[{ "$ref": "//[" }, , { "$ref": "//[" }]`, base);
 
     expect(errors.map((error) => error.ruleId)).toEqual(["invalid-reference", "value-expected", "invalid-reference"]);
   });
 
   test("valid references in the same document are still references", () => {
-    const { node } = fromJref(`[{ "$ref": "a b" }, { "$ref": "foo" }]`, base);
+    const { node } = fromJref(`[{ "$ref": "//[" }, { "$ref": "foo" }]`, base);
 
     expect(node).toMatchObject({
       children: [{ type: "invalid-reference" }, { type: "reference", href: "https://example.com/foo" }]
@@ -1608,17 +1607,17 @@ describe("invalid references", () => {
   });
 
   test.each([
-    ["a relative reference", "main.jref"],
-    ["an IRI with a fragment", "https://example.com/main.jref#foo"],
-    ["a string that isn't an IRI", "https://example.com/a b"]
-  ])("a base URI that's %s throws", (_description, uri) => {
-    expect(() => fromJref(`{ "$ref": "foo" }`, uri)).toThrow(InvalidIriError);
+    ["a relative URL", "main.jref"],
+    ["a URL with a fragment", "https://example.com/main.jref#foo"],
+    ["a string that isn't a URL", "https://["]
+  ])("a document URL that's %s throws", (_description, url) => {
+    expect(() => fromJref(`{ "$ref": "foo" }`, url)).toThrow(TypeError);
   });
 
   test("the message says the reference", () => {
-    const { errors } = fromJref(`{ "$ref": "a b" }`, base);
+    const { errors } = fromJref(`{ "$ref": "//[" }`, base);
 
-    expect(jrefSyntaxErrorMessage(errors[0])).toBe("'a b' is not a valid reference");
+    expect(jrefSyntaxErrorMessage(errors[0])).toBe("'//[' is not a valid reference");
   });
 
   test("JSON syntax errors have their own messages", () => {
@@ -1629,15 +1628,15 @@ describe("invalid references", () => {
 
   test("the processor fails the file with the message", () => {
     try {
-      jref.processSync(`{ "$ref": "a b" }`);
+      jref.processSync(withPath(`{ "$ref": "//[" }`));
       expect.fail("Expected a VFileMessage");
     } catch (error) {
       expect(error).toBeInstanceOf(VFileMessage);
       const message = /** @type VFileMessage */ (error);
-      expect(message.reason).toBe("'a b' is not a valid reference");
+      expect(message.reason).toBe("'//[' is not a valid reference");
       expect(message.source).toBe("jref");
       expect(message.ruleId).toBe("invalid-reference");
-      expect(message.actual).toBe("a b");
+      expect(message.actual).toBe("//[");
       expect(message.line).toBe(1);
       expect(message.column).toBe(11);
     }
@@ -1694,7 +1693,7 @@ const item = (node, index) => {
 
 /** @type (json: string) => TolerantValue */
 const tree = (json) => {
-  return fromJson(json).node;
+  return fromJson(json, url).node;
 };
 
 /** @type (node: { position?: Position }) => { offset: number | undefined, length: number } */
@@ -1708,6 +1707,6 @@ const span = (node) => {
 
 /** @type (json: string, options?: JsonOptions) => { root: TolerantValue, errors: TestError[] } */
 const parse = (json, options) => {
-  const { node, errors } = fromJson(json, undefined, options);
+  const { node, errors } = fromJson(json, url, options);
   return { root: node, errors: errors.map(toError) };
 };

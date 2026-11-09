@@ -14,17 +14,12 @@ const jref = unified()
   .freeze();
 
 describe("jref processor", () => {
-  test("a file without a path leaves references as written", () => {
-    const tree = jref.parse(`{ "$ref": "foo.jref" }`);
-
-    expect(tree.uri).to.equal(undefined);
-    const node = /** @type JrefNode & { type: "reference" } */ (tree.children[0]);
-    expect(node.type).to.equal("reference");
-    expect(node.href).to.equal("foo.jref");
+  test("a file without a path fails, because it has no URL", () => {
+    expect(() => jref.parse(`{ "$ref": "foo.jref" }`)).to.throw(VFileMessage);
   });
 
-  test("a file without a path can be processed", async () => {
-    const result = await jref.process(`{ "$ref": "foo.jref" }`);
+  test("a file's references are stringified as they were written", async () => {
+    const result = await jref.process({ path: "/doc.jref", value: `{ "$ref": "foo.jref" }` });
 
     expect(String(result)).to.equal(`{"$ref":"foo.jref"}\n`);
   });
@@ -32,7 +27,7 @@ describe("jref processor", () => {
   test("a relative path is resolved against the file's cwd", () => {
     const tree = jref.parse({ cwd: "/foo", path: "bar/main.jref", value: `{ "$ref": "baz.jref" }` });
 
-    expect(tree.uri).to.equal("file:///foo/bar/main.jref");
+    expect(tree.url).to.equal("file:///foo/bar/main.jref");
     const node = /** @type JrefNode & { type: "reference" } */ (tree.children[0]);
     expect(node.href).to.equal("file:///foo/bar/baz.jref");
   });

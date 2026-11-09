@@ -15,7 +15,6 @@ import { appendToLocation } from "./location.js";
  *   JsonPropertyNode,
  *   JsonTolerantNode
  * } from "./jsonast.d.ts"
- * @import { IriReference } from "@hyperjump/uri"
  * @import { JsonOptions, JsonParseResult, JsonSyntaxError, JsonSyntaxErrorCode } from "./jsonast-util.d.ts"
  * @import * as API from "./jsonast-util.d.ts"
  */
@@ -88,9 +87,9 @@ export const jsonSyntaxErrorMessage = (error) => MESSAGES[error.ruleId](error.ac
  * Parse JSON text into a JSON AST, recovering from syntax errors wherever
  * possible. Every error found is returned along with the best-effort AST.
  *
- * @type (text: string, location: string | undefined, options?: JsonOptions) => JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode>
+ * @type (text: string, url: string, options?: JsonOptions) => JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode>
  */
-export const parseJson = (text, location, options = {}) => {
+export const parseJson = (text, url, options = {}) => {
   const lineStarts = findLineStarts(text);
 
   /** @type SyntaxError[] */
@@ -312,7 +311,7 @@ export const parseJson = (text, location, options = {}) => {
     }
   };
 
-  /** @type (nodeLocation: IriReference, offset: number) => JsonMissingNode */
+  /** @type (nodeLocation: string, offset: number) => JsonMissingNode */
   const missing = (nodeLocation, offset) => {
     failed = true;
     return {
@@ -322,7 +321,7 @@ export const parseJson = (text, location, options = {}) => {
     };
   };
 
-  /** @type (nodeLocation: IriReference) => JsonInvalidNode */
+  /** @type (nodeLocation: string) => JsonInvalidNode */
   const parseInvalid = (nodeLocation) => {
     failed = true;
 
@@ -337,7 +336,7 @@ export const parseJson = (text, location, options = {}) => {
     return node;
   };
 
-  /** @type (scalar: JsonScalar, nodeLocation: IriReference) => JsonTolerantNode */
+  /** @type (scalar: JsonScalar, nodeLocation: string) => JsonTolerantNode */
   const parseScalar = (scalar, nodeLocation) => {
     /** @type JsonTolerantNode */
     const node = {
@@ -354,7 +353,7 @@ export const parseJson = (text, location, options = {}) => {
    * Parse a property. The value is returned separately, and is `undefined`
    * when it's missing, so the caller can tell where the property's text ends.
    *
-   * @type (objectLocation: IriReference) => { property: JsonPropertyNode<{ type: "json" }, JsonErrorNode>, value: JsonValueNode | undefined }
+   * @type (objectLocation: string) => { property: JsonPropertyNode<{ type: "json" }, JsonErrorNode>, value: JsonValueNode | undefined }
    */
   const parseProperty = (objectLocation) => {
     const start = token.offset;
@@ -505,7 +504,7 @@ export const parseJson = (text, location, options = {}) => {
    * A container nested too deeply is reported once and kept as a single
    * invalid node so the rest of the document can still be parsed.
    *
-   * @type (nodeLocation: IriReference) => JsonInvalidNode
+   * @type (nodeLocation: string) => JsonInvalidNode
    */
   const parseTooDeep = (nodeLocation) => {
     report("max-depth-exceeded", token.offset, 1);
@@ -514,7 +513,7 @@ export const parseJson = (text, location, options = {}) => {
     return parseInvalid(nodeLocation);
   };
 
-  /** @type (jsonType: "object" | "array", containerLocation: IriReference, isArrayItem: boolean) => JsonTolerantNode */
+  /** @type (jsonType: "object" | "array", containerLocation: string, isArrayItem: boolean) => JsonTolerantNode */
   const parseContainer = (jsonType, containerLocation, isArrayItem) => {
     depth++;
     const start = token.offset;
@@ -538,7 +537,7 @@ export const parseJson = (text, location, options = {}) => {
         const gapOffset = parseComma(closer, !separator, index === 0);
         if (gapOffset !== undefined && jsonType === "array") {
           // An index never needs escaping or encoding
-          items.push(missing(/** @type IriReference */ (`${containerLocation}/${index}`), gapOffset));
+          items.push(missing(`${containerLocation}/${index}`, gapOffset));
         }
         if (gapOffset !== undefined) {
           index++;
@@ -573,7 +572,7 @@ export const parseJson = (text, location, options = {}) => {
         separator = separatorAfter(value);
       } else {
         // Every token that isn't a value was handled above
-        const item = /** @type JsonValueNode */ (parseValue(/** @type IriReference */ (`${containerLocation}/${index++}`), true));
+        const item = /** @type JsonValueNode */ (parseValue(`${containerLocation}/${index++}`, true));
         items.push(item);
         lastItem = item;
         separator = separatorAfter(item);
@@ -601,7 +600,7 @@ export const parseJson = (text, location, options = {}) => {
     return container;
   };
 
-  /** @type (valueLocation: IriReference, isArrayItem?: boolean) => JsonTolerantNode | JsonInvalidNode | undefined */
+  /** @type (valueLocation: string, isArrayItem?: boolean) => JsonTolerantNode | JsonInvalidNode | undefined */
   const parseValue = (valueLocation, isArrayItem = false) => {
     if ((token.kind === "{" || token.kind === "[") && depth >= MAX_DEPTH) {
       return parseTooDeep(valueLocation);
@@ -647,8 +646,7 @@ export const parseJson = (text, location, options = {}) => {
 
   next();
 
-  // Without a document URI, locations are only fragments
-  const rootLocation = /** @type IriReference */ (`${location ?? ""}#`);
+  const rootLocation = `${url}#`;
 
   /** @type JsonValueNode | undefined */
   let node;
