@@ -36,7 +36,7 @@ From the session down:
 | Redirects | follows a 3xx `Location` by sending a new request down the stack | session |
 | Read-only caches | answers from stores that are never written | session, then `Hyperjump` |
 | `allowRetrieval` | answers 403 for a URL that isn't allowed, and checks the response's URL too | session |
-| `file:` from `file:` | answers 403 for a `file:` URL whose `Referer` isn't a `file:` URL | `Hyperjump` |
+| `file:` from `file:` | answers 403 for a `file:` URL whose `Referer` isn't a `file:` URL | session |
 | The application's | whatever they're for, in the order they're given | `Hyperjump` |
 | Media type by extension | gives a response without a `Content-Type` the media type of its URL's extension | `Hyperjump` |
 | Request headers | adds the headers configured for a URL | `Hyperjump` |
@@ -44,8 +44,11 @@ From the session down:
 | HTTP cache | answers fresh responses, revalidates stale ones, and stores responses by their caching headers | `Hyperjump` |
 | URL schemes | answers with the plugin for the URL's scheme | `Hyperjump` |
 
-A session's layers wrap its `Hyperjump`'s, so each session has its own
-stack in front of shared state, like the HTTP cache.
+Each session builds its whole stack from what its `Hyperjump` resolved
+from its config. A layer with `Hyperjump` scope is one whose state every
+session shares, like the HTTP cache's store, so the `Hyperjump` resolves
+that state and each session's layer is built over it. Sessions share the
+state, not a stack (see [Sessions](sessions.md)).
 
 Where a layer goes is decided by what it has to see:
 

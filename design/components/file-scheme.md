@@ -12,8 +12,13 @@
   for, was rejected because what's read wouldn't necessarily be what the
   response's URL says.
 - A file can't be retrieved from a reference in a document that isn't a
-  file, so a document from the web can't read files. A document is a file
-  when its scheme is `file`, compared case-insensitively.
+  file, so a document from the web can't read files. It's the `file:` from
+  `file:` layer of each session's stack (`file-from-file.js`, see
+  [Layers](layers.md)), not the plugin's, so an application's own `file:`
+  plugin gets it too. It answers a 403 for a `file:` URL whose `Referer`,
+  the URL of the document with the reference, isn't a `file:` URL. A
+  request without a `Referer`, like a URL an application passes to `get`,
+  is allowed.
 - A file doesn't have a media type, so its response's `Content-Type` is
   the media type of its extension, the longest one a media type plugin
   matches (`options.mediaTypeByExtension`, see [Media types](media-types.md)).

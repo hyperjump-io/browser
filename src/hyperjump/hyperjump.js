@@ -7,6 +7,7 @@ import { acceptHeader, fragmentPointer, mediaTypeByExtension, mediaTypePluginFor
 import { AllowedUrls, allowRetrievalLayer, configSource, resolveAllowRetrieval, sessionSource } from "./allowed-urls.js";
 import { compose } from "./layers.js";
 import { redirectsLayer } from "./redirects.js";
+import { fileFromFileLayer } from "./file-from-file.js";
 import { problemDetail } from "./problem-details.js";
 import { relativeFileUrl } from "./file-urls.js";
 import { withoutFragment } from "./url-parts.js";
@@ -179,7 +180,7 @@ export class Session {
 
     const { mediaTypePlugins } = hyperjump;
     this.#fetch = compose(
-      [redirectsLayer, allowRetrievalLayer((url) => allowedUrls.allows(url), source)],
+      [redirectsLayer, allowRetrievalLayer((url) => allowedUrls.allows(url), source), fileFromFileLayer],
       urlSchemesFetch(hyperjump.urlSchemePlugins, hyperjump.accept, (url) => mediaTypeByExtension(mediaTypePlugins, url))
     );
   }

@@ -28,12 +28,13 @@ scheme.
     decide, so the plugin doesn't depend on anything.
 - A redirect is requested with the same headers as the request that was
   redirected, so it's retrieved with the same options. Its `Referer`, the
-  plugin's `referencedFrom`, is still the document the reference came from, so the `file:` plugin still
-  refuses a file for a document on the web, whatever led there.
+  plugin's `referencedFrom`, is still the document the reference came
+  from, so `file:` from `file:` still refuses a file for a document on the
+  web, whatever led there.
 - The `http(s):` plugin only returns a redirect to an `http:` or `https:`
   URL, like `fetch`. Anything else is an `HttpError`. Otherwise a server
   could send a session to a file it allows, when there's no
-  `referencedFrom` for the `file:` plugin to refuse, such as a URL an
+  `Referer` for `file:` from `file:` to refuse, such as a URL an
   application passes to `get`.
 - A plugin for a scheme that maps to another URL, like `urn:`, redirects to
   it with `Response.redirect`. The mapped URL is checked before it's

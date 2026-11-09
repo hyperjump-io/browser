@@ -17,10 +17,6 @@ export class FileUrlSchemePlugin {
 
   /** @type API.FileUrlSchemePlugin["retrieve"] */
   async retrieve(url, options) {
-    if (options.referencedFrom && !options.referencedFrom.startsWith("file:")) {
-      throw Error(`Accessing a file (${relativeFileUrl(url)}) from a non-filesystem context (${options.referencedFrom}) is not allowed`);
-    }
-
     // The file is read from its real path, which is also the response's URL,
     // so references resolve relative to where the file really is. That's
     // true for a symlink anywhere in the path, not only the file itself.

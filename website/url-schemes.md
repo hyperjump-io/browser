@@ -73,8 +73,8 @@ the response. Then it checks the result against `allowRetrieval` and retrieves
 it with the plugin for its scheme.
 
 The session gives that plugin the same options, including `referencedFrom`, so
-a redirect can't get around a check that the other plugin makes. For example,
-the `file:` plugin refuses a file that a document on the web refers to. It
+a redirect can't get around a check on where a reference came from. For
+example, the browser refuses a file that a document on the web refers to. It
 refuses that file just the same when the document refers to a URN that maps to
 it.
 

@@ -140,6 +140,13 @@ State is separated by how long it lives.
     signatures are how a `Hyperjump` keeps its plugins. URL scheme plugins
     get what they need from them as values (`options.accept` and
     `options.mediaTypeByExtension`).
+  - A session builds its stack (see [Layers](layers.md)) from them. What
+    sessions share is state the `Hyperjump` resolves, like the HTTP cache's
+    store, not a stack. A `Hyperjump` with a public stack for sessions to
+    wrap was rejected: it's a way to retrieve that `allowRetrieval` doesn't
+    check, and it's public only because `Session` can't read it otherwise.
+    Passing the stack to `Session`'s constructor was rejected because the
+    constructor is public, so the stack would be API anyway.
   - The resolved plugins are public because `Session` is another class and
     can't read a `Hyperjump`'s private fields. They're the instances the
     config already has, so nothing more is exposed. They're `ReadonlyMap`s

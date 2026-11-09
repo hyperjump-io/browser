@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, test, beforeEach, afterEach, expect } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { FileNotFoundError, Hyperjump, RetrievalError } from "../index.js";
+import { FileNotFoundError, HttpError, Hyperjump, RetrievalError } from "../index.js";
 import { toJson } from "../../json/jsonast-util.js";
 
 describe("JSON Browser", () => {
@@ -127,6 +127,8 @@ describe("JSON Browser", () => {
           const result = hyperjump.session().get(`${testDomain}/main`);
 
           await expect(result).rejects.toBeInstanceOf(RetrievalError);
+          await expect(result).rejects.toHaveProperty("cause", expect.any(HttpError));
+          await expect(result).rejects.toHaveProperty("cause.response.status", 403);
           await expect(result).rejects.toHaveProperty("cause.message", expect.stringContaining("non-filesystem context"));
         });
 
@@ -148,6 +150,8 @@ describe("JSON Browser", () => {
           const result = hyperjump.session().get(`${testDomain}/main`);
 
           await expect(result).rejects.toBeInstanceOf(RetrievalError);
+          await expect(result).rejects.toHaveProperty("cause", expect.any(HttpError));
+          await expect(result).rejects.toHaveProperty("cause.response.status", 403);
           await expect(result).rejects.toHaveProperty("cause.message", expect.stringContaining("non-filesystem context"));
         });
 
