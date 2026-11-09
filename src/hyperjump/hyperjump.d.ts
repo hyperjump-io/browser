@@ -245,8 +245,8 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    * for what the document has beyond its values, such as its parse status.
    *
    * Every document {@link Session.get} uses comes from this method, including
-   * the ones it follows references to, so a subclass can override it to find
-   * documents somewhere other than the session or a URL scheme plugin.
+   * the ones it follows references to. A subclass finds documents somewhere
+   * other than a URL scheme plugin with a layer on {@link Session.fetch}.
    *
    * @throws A `TypeError` if `url` isn't a URL, or `referencedFrom` isn't an
    * absolute URL.

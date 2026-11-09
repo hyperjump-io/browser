@@ -87,9 +87,9 @@ local to it.
 - It's a layer in each session's stack (`allowRetrievalLayer`, see
   [Layers](layers.md)), so it checks every request for a document that
   isn't in the session's cache: `get`, `getDocument`, and following
-  references. A subclass that overrides `getDocument` to find documents
-  elsewhere first, or adds a layer to `fetch` that answers with them,
-  isn't checked for those. It's above the URL scheme
+  references. A subclass's layer on `fetch` that answers with documents it
+  has isn't checked for those, and neither are embedded documents, which
+  aren't retrieved. It's above the URL scheme
   plugins, so it's above the HTTP cache too, and a cached response isn't a
   way around it. It's given the function that checks a URL, not the
   session.

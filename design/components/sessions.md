@@ -188,22 +188,26 @@ Applications build on `Hyperjump` and `Session` by subclassing them.
   [Extending](layers.md#extending)). The session follows redirects with
   new requests to it.
 - Every document lookup, including following references, goes through
-  `getDocument`, so a subclass can find documents somewhere other than the
-  cache or a URL scheme plugin. `getDocument` also returns the document
-  itself, for what it has beyond its values.
-  - Seeding a session with documents (`SessionOptions.documents`) instead
-    was rejected. `@hyperjump/json-schema`'s lookups aren't documents it
-    already has. An embedded resource is only found by a reference from
-    the document it's in, so it depends on `referencedFrom`. A registry's
-    schemas are identified and resolved the first time they're needed,
-    which can retrieve a meta-schema in the session, so sessions stay
-    cheap to create. Every document it gets, retrieved or not, is also
-    checked against the others for a duplicate identifier.
+  `getDocument`, which also returns the document itself, for what it has
+  beyond its values. A subclass finds documents somewhere other than a URL
+  scheme plugin with a layer on `fetch`, and a media type gives the
+  documents a document contains as embedded documents, so it doesn't
+  override `getDocument` (see [Layers](layers.md#extending)).
+  - Overriding `getDocument` was rejected. The override stands between the
+    session and everything it retrieves, so each URL is checked and
+    normalized on both sides, and it's a lookup beside the stack that a
+    layer already is.
+  - Seeding a session with documents (`SessionOptions.documents`) was
+    rejected. `@hyperjump/json-schema`'s lookups aren't documents it
+    already has. A registry's schemas are identified and resolved the
+    first time they're needed, which can retrieve a meta-schema in the
+    session, so sessions stay cheap to create. A layer answers when
+    they're requested. An embedded resource is only found by a reference
+    from the document it's in, which embedded documents do.
   - A lookup function in the session's options
-    (`findDocument(url, options, next)`) was rejected. It's the override
-    passed as a function, and it takes nothing away: a subclass still
-    adds its own methods.
-- An override gets a parsed URL. `get` parses what it's given, resolving a
+    (`findDocument(url, options, next)`) was rejected. It's a layer by
+    another name.
+- `getDocument`, and so a layer, gets a parsed URL. `get` parses what it's given, resolving a
   relative URL against the context URL. A reference it follows is parsed
   too, because its media type plugin can be an application's.
   `referencedFrom` is the URL of the document the referencing node is in:
