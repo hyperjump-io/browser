@@ -1,6 +1,7 @@
 /**
- * Where {@link HttpUrlSchemePlugin} keeps the responses it caches. Entries are
- * keyed by request URL and are JSON, so a store can keep them anywhere.
+ * Where the HTTP cache keeps the responses it caches (the `httpCache`
+ * config). Entries are keyed by request URL and are JSON, so a store can keep
+ * them anywhere.
  */
 export interface HttpCacheStore {
   get(url: string): Promise<HttpCacheEntry | undefined>;
