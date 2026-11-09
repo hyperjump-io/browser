@@ -174,6 +174,15 @@ export class Session {
   #cache;
 
   /**
+   * The embedded documents of each document the session parsed, by their
+   * parsed URLs. They're kept here, rather than replacing the plugin's
+   * `embedded`, so the plugin's document is as it made it.
+   *
+   * @type WeakMap<DocumentNode, Record<string, DocumentNode>>
+   */
+  #embeddedDocuments;
+
+  /**
    * The session's stack, which everything it retrieves is requested from
    *
    * @type Fetch
@@ -197,6 +206,7 @@ export class Session {
   constructor(hyperjump, options = {}) {
     this.#hyperjump = hyperjump;
     this.#cache = {};
+    this.#embeddedDocuments = new WeakMap();
     this.#contextUrl = contextUrl();
 
     // Where the session's `allowRetrieval` came from, so a refusal says which
@@ -287,6 +297,11 @@ export class Session {
     const id = withoutFragment(this.#resolve(url));
     const parsedOptions = parseGetOptions(options);
 
+    const embedded = await this.#embedded(id, parsedOptions.referencedFrom);
+    if (embedded) {
+      return embedded;
+    }
+
     this.#cache[id] ??= this.#retrieveDocument(id, parsedOptions).catch((/** @type unknown */ error) => {
       // A failure isn't cached, so it can be tried again
       delete this.#cache[id];
@@ -294,6 +309,24 @@ export class Session {
     });
 
     return this.#cache[id];
+  }
+
+  /**
+   * An embedded document is only found from the document that contains it,
+   * the one at `referencedFrom`, so a document can't change what a reference
+   * in another one finds. The nodes of an embedded document are where they
+   * are in the document that contains it, so a reference in one has that
+   * document's URL as its `referencedFrom`, and it's never looked for in a
+   * document of its own with the same URL.
+   *
+   * @type (id: string, referencedFrom: string | undefined) => Promise<DocumentNode | undefined>
+   */
+  async #embedded(id, referencedFrom) {
+    const container = referencedFrom === undefined ? undefined : this.#cache[referencedFrom];
+    // A container that failed is the failure of its own retrieval, not this
+    // one's
+    const document = await container?.catch(() => undefined);
+    return document && this.#embeddedDocuments.get(document)?.[id];
   }
 
   /**
@@ -400,9 +433,31 @@ export class Session {
     // JSON document that turns out to be in a media type of its own
     const document = await plugin.parse(response, this);
     document.mediaType ??= pattern;
+    if (document.embedded !== undefined) {
+      this.#embeddedDocuments.set(document, parseEmbedded(document.embedded, document.mediaType));
+    }
     return document;
   }
 }
+
+/**
+ * The URLs a media type plugin gives embedded documents come from outside,
+ * so they're parsed, without the fragment, which isn't part of a document's
+ * URL. One that isn't a URL throws, which fails the retrieval. An embedded
+ * document is in its container's media type unless its plugin said
+ * otherwise.
+ *
+ * @type (embedded: Record<string, DocumentNode>, mediaType: string) => Record<string, DocumentNode>
+ */
+const parseEmbedded = (embedded, mediaType) => {
+  /** @type Record<string, DocumentNode> */
+  const parsed = Object.create(null);
+  for (const [url, document] of Object.entries(embedded)) {
+    document.mediaType ??= mediaType;
+    parsed[withoutFragment(new URL(url).href)] = document;
+  }
+  return parsed;
+};
 
 /**
  * The options given to `get` or `getDocument` come from outside, like the

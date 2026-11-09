@@ -105,9 +105,11 @@ a 403, a file that isn't there is a 404, and a scheme without a plugin is a
 
 A request for a reference has a `Referer` header: the URL of the document
 the reference was found in, which is what `Referer` means on the web. It's
-the document's URL, not the location of the node the reference is in,
-which a media type can make the URL of something else, like an embedded
-document's. A layer that cares, like `file:` from `file:`, reads it.
+the location of the node the reference is in, without its fragment. An
+embedded document's nodes are where they are in the document that contains
+it, so a reference in one has that document's URL (see
+[Embedded documents](#embedded-documents)). A layer that cares, like
+`file:` from `file:`, reads it.
 
 - A browser drops a `Referer` header from a `Request` a script makes,
   because it's a forbidden request header, and a `Request`'s `referrer`
@@ -128,11 +130,33 @@ The session turns responses into documents and keeps them:
 
 ## Embedded documents
 
-An embedded document is found only from the document that contains it:
-the `referencedFrom` the session has for the reference. A document can say
+A media type plugin gives a document the documents it contains, each by
+the URL it says it has (`DocumentNode.embedded`). An embedded document is
+found only from the document that contains it: `getDocument` looks for it
+in the embedded documents of the document at the reference's
+`referencedFrom` before the document cache or the stack. A document can say
 it contains a document with any URL, so this keeps it from changing what a
 reference in another document finds. It's found above the stack, so it
 doesn't depend on `Referer`, which a browser drops.
+
+- An embedded document's `url` is the URL it says it has, but its nodes
+  are where they are in the document that contains it, so their locations
+  are in that document. A reference in an embedded document has that
+  document's URL as its `referencedFrom`, so it finds the other documents
+  embedded with it, and nothing else has to remember where an embedded
+  document came from.
+  - Locations that start with the embedded document's URL were rejected.
+    The session would have to remember which document each embedded
+    document was found in, to give a reference in it the container's
+    `referencedFrom` instead of its location's.
+- The URLs a plugin gives come from outside, so the session parses them,
+  without the fragment, and one that isn't a URL fails the retrieval (see
+  [Identifiers are URLs](../principles/identifiers-are-urls.md)). It keeps
+  them parsed itself, so the plugin's `embedded` is as the plugin made it.
+  `@hyperjump/json-schema` keys its own by IRI.
+- An embedded document is in the media type of the document that contains
+  it, unless the plugin gave it its own `mediaType`, so `fragmentPointer`
+  works for it.
 
 - An embedded document isn't put in the session's document cache under
   the URL it says it has, so another document's references don't find it.

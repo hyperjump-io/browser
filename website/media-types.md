@@ -99,6 +99,41 @@ A plugin for a media type that the `Hyperjump` already supports replaces the
 existing plugin and takes its place in the `Accept` header. When more than one
 plugin in the list has the same media type, the `Hyperjump` uses the later one.
 
+## Documents that contain documents
+
+Some media types let a document contain other documents, each with a URL of its
+own, the way a bundle does. A plugin for such a media type gives the document it
+parses an `embedded` property that maps each of those URLs to the document at
+it:
+
+```typescript
+return {
+  type: "jref-document",
+  status: result.status,
+  children: [result.node],
+  comments: [],
+  url: response.url,
+  embedded: {
+    "https://example.com/address": {
+      type: "jref-document",
+      status: result.status,
+      children: [addressNode],
+      comments: [],
+      url: "https://example.com/address"
+    }
+  }
+};
+```
+
+A reference to `https://example.com/address` from the document that contains it
+finds the embedded document, so the session doesn't retrieve it and
+[`allowRetrieval`](allow-retrieval.md) doesn't apply. A reference from any
+other document doesn't find it, so a document can't change what another
+document's references find by claiming a URL. An embedded document's nodes are
+part of the document that contains it, so their locations are in that
+document, and a reference in an embedded document finds the other documents
+embedded with it.
+
 ## Prefer a media type
 
 Every request sends an `Accept` header that lists every media type the

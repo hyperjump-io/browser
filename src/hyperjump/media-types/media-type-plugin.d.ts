@@ -7,7 +7,11 @@ import type { Session } from "../hyperjump.d.ts";
 export type DocumentNode<T = JrefNode> = {
   type: string;
   children: T[];
-  /** The document's URL, which its nodes' locations start with */
+  /**
+   * The document's URL, which its nodes' locations start with. An embedded
+   * document's nodes are where they are in the document that contains it,
+   * so their locations start with that document's URL.
+   */
   url: string;
   /**
    * The media type that defines what its fragments identify. It's the media
@@ -16,6 +20,15 @@ export type DocumentNode<T = JrefNode> = {
    * that's a JSON Schema.
    */
   mediaType?: string;
+  /**
+   * The documents this one contains, by the URL each says it has. One is
+   * only found by a reference from this document, so it doesn't change
+   * what a reference in another document finds. It isn't retrieved, and
+   * `allowRetrieval` doesn't apply to it. A URL that isn't a URL fails the
+   * retrieval. An embedded document is in this one's media type unless it
+   * has its own `mediaType`.
+   */
+  embedded?: Record<string, DocumentNode<T>>;
 };
 
 /**
