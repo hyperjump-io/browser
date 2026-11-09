@@ -1,48 +1,43 @@
 # HTTP headers
 
-The HTTP plugin sends `http:` and `https:` requests. To send headers such as
-credentials with those requests, replace the default HTTP plugin with one that
-has a `headers` option. Documents can refer to any URL, so headers sent with
-every request could end up at any server. Instead, you give headers by URL, and
-only the URLs you list get them:
+To send headers such as credentials with requests, use the `headers` config.
+Documents can refer to any URL, so headers sent with every request could end up
+at any server. Instead, you give headers by URL, and only the URLs you list get
+them:
 
 ```typescript
-import { Hyperjump, HttpUrlSchemePlugin } from "@hyperjump/browser";
+import { Hyperjump } from "@hyperjump/browser";
 
 const h = new Hyperjump({
   allowRetrieval: ["https://api.example.com/"],
-  urlSchemePlugins: [new HttpUrlSchemePlugin({
-    headers: {
-      "https://api.example.com/": {
-        Authorization: `Bearer ${process.env.TOKEN}`
-      }
+  headers: {
+    "https://api.example.com/": {
+      Authorization: `Bearer ${process.env.TOKEN}`
     }
-  })]
+  }
 });
 ```
 
-URLs match the way they do in [`allowRetrieval`](allow-retrieval.md). The plugin
-sends the headers for a URL that ends with `/` with every request under that
-URL. It sends the headers for any other URL only with requests to that exact
-URL. The headers for an origin such as `https://api.example.com` go with every
-request to it with or without the `/` because it's the URL of the origin's
-root. Every URL in `headers` has to be an absolute `http:` or `https:` URL. This
-plugin has no `cache` option, so it still uses the default
-[cache](http-caching.md).
+URLs match the way they do in [`allowRetrieval`](allow-retrieval.md). The
+session sends the headers for a URL that ends with `/` with every request under
+that URL. It sends the headers for any other URL only with requests to that
+exact URL. The headers for an origin such as `https://api.example.com` go with
+every request to it with or without the `/` because it's the URL of the origin's
+root. Every URL in `headers` has to be absolute.
 
-When more than one URL matches a request, the plugin merges their headers and
+When more than one URL matches a request, the session merges their headers and
 the longer URL's headers win. That way an API can have one token and a path
 under it can have another. You don't need to set `Accept`. The session always
 sets it to the media types that the `Hyperjump` supports.
 
 ## Headers that change
 
-Instead of headers, you can give a URL a function that returns them. The plugin
-calls it with the URL of each request it matches. It can be async, which lets
-you refresh a token before the plugin sends it:
+Instead of headers, you can give a URL a function that returns them. The
+session calls it with the URL of each request it matches. It can be async, which
+lets you refresh a token before the session sends it:
 
 ```typescript
-new HttpUrlSchemePlugin({
+new Hyperjump({
   headers: {
     "https://api.example.com/": async () => ({
       Authorization: `Bearer ${await getToken()}`
@@ -69,7 +64,7 @@ another origin doesn't send them.
 
 ## Caching
 
-The cache keeps each URL's responses separately, so one plugin can send
+The cache keeps each URL's responses separately, so one `Hyperjump` can send
 different credentials to different URLs.
 
 Different credentials for the same URL are another matter. The cache is
@@ -77,29 +72,28 @@ private, which means it's for one user. When a response for a URL came from a
 request with credentials, the cache uses it for later requests to the same URL
 even when those requests send different credentials. The only exception is a
 response with a `Vary` header that names the headers that differ. The cache
-gets every header that the plugin sends so it can respect that `Vary`.
+gets every header that the session sends so it can respect that `Vary`.
 
 Suppose Alice and Bob each have their own token for
 `https://api.example.com/me`. If their requests share a cache, Bob's request can
 get the response to Alice's request with her token. To keep them apart, give
-each user a `Hyperjump` with its own plugin:
+each user a `Hyperjump` of their own:
 
 ```typescript
-import { Hyperjump, HttpUrlSchemePlugin } from "@hyperjump/browser";
+import { Hyperjump } from "@hyperjump/browser";
 
 const hyperjumpFor = (token: string) => new Hyperjump({
   allowRetrieval: ["https://api.example.com/"],
-  urlSchemePlugins: [new HttpUrlSchemePlugin({
-    headers: {
-      "https://api.example.com/": { Authorization: `Bearer ${token}` }
-    }
-  })]
+  headers: {
+    "https://api.example.com/": { Authorization: `Bearer ${token}` }
+  }
 });
 
 const alice = hyperjumpFor(await getToken("alice"));
 const bob = hyperjumpFor(await getToken("bob"));
 ```
 
-Each call creates a new plugin with its own default cache, so Bob never gets a
-response to a request with Alice's token. If you give the plugins a cache
-yourself, don't give them the same one.
+Each `Hyperjump` has its own default HTTP plugin with its own cache, so Bob
+never gets a response to a request with Alice's token. If you configure an HTTP
+plugin yourself, don't give their `Hyperjump`s the same plugin or the same
+cache.

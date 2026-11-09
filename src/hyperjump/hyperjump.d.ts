@@ -51,8 +51,7 @@ export type HyperjumpConfig<T extends JsonNode<{ type: string }> = JrefNode> = {
    * {@link HttpUrlSchemePlugin | `http(s):`} and, in Node.js,
    * {@link FileUrlSchemePlugin | `file:`}. A plugin replaces the default,
    * or an earlier plugin in the list, for each scheme it lists, so one with
-   * different HTTP caching or headers replaces the default for `http:` and
-   * `https:`.
+   * different HTTP caching replaces the default for `http:` and `https:`.
    */
   urlSchemePlugins?: UrlSchemePlugin[];
 
@@ -80,7 +79,39 @@ export type HyperjumpConfig<T extends JsonNode<{ type: string }> = JrefNode> = {
    * extension's.
    */
   mediaTypeByExtension?: string[];
+
+  /**
+   * Headers to send with requests, such as credentials, by URL. A URL that
+   * ends with `/` gets its headers for everything under it. Any other gets
+   * them only for itself. An origin, with or without the `/`, gets them for
+   * everything on it, because it's the URL of its root. Only the URLs listed
+   * get headers, because documents can reference any URL. A URL has to be
+   * absolute, or the constructor throws.
+   *
+   * A value can be a {@link HeadersFunction}, to refresh a token for
+   * example. When more than one URL matches, their headers are merged, and
+   * a longer URL's headers win. The `Accept` header is always the one for
+   * the media type plugins.
+   *
+   * A redirect is followed by the session, so the request it leads to gets
+   * the headers for its own URL. In a browser, `fetch` follows redirects
+   * itself and sends the same headers, except `Authorization` and `Cookie`
+   * on a redirect to another origin.
+   *
+   * The HTTP cache is private, so a response retrieved with credentials is
+   * used for any later request for the same URL that it satisfies,
+   * including ones the headers would be different for, unless the response
+   * has a `Vary` for them. Different credentials for the same URL need
+   * `Hyperjump`s whose HTTP plugins don't share a cache.
+   */
+  headers?: Record<string, HeadersInit | HeadersFunction>;
 };
+
+/**
+ * Headers for a request, called with the URL that's requested, without its
+ * fragment. It can be async.
+ */
+export type HeadersFunction = (url: URL) => HeadersInit | undefined | Promise<HeadersInit | undefined>;
 
 export type SessionOptions = {
   /**

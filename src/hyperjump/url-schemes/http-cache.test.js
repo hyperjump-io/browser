@@ -195,7 +195,7 @@ describe("JSON Browser", () => {
       expect(toJson(subject)).to.equal(`42`);
     });
 
-    test("a stale response is revalidated with the plugin's headers", async () => {
+    test("a stale response is revalidated with the headers config's headers", async () => {
       mockAgent.get(testDomain)
         .intercept({ method: "GET", path: "/foo" })
         .reply(200, `{ "foo": 42 }`, { headers: { ...contentType, "cache-control": "no-cache", "etag": `"1"` } });
@@ -206,7 +206,8 @@ describe("JSON Browser", () => {
       const headers = { "https://example.com/": { Authorization: "Bearer token" } };
       const hyperjump = new Hyperjump({
         allowRetrieval: ["https://example.com/"],
-        urlSchemePlugins: [new HttpUrlSchemePlugin({ cache: new MemoryHttpCacheStore(), headers })]
+        urlSchemePlugins: [new HttpUrlSchemePlugin({ cache: new MemoryHttpCacheStore() })],
+        headers
       });
       await hyperjump.session().get(url);
       const subject = await hyperjump.session().get(url);
@@ -226,7 +227,8 @@ describe("JSON Browser", () => {
       const headers = { "https://example.com/": () => ({ Authorization: `Bearer ${token}` }) };
       const hyperjump = new Hyperjump({
         allowRetrieval: ["https://example.com/"],
-        urlSchemePlugins: [new HttpUrlSchemePlugin({ cache: new MemoryHttpCacheStore(), headers })]
+        urlSchemePlugins: [new HttpUrlSchemePlugin({ cache: new MemoryHttpCacheStore() })],
+        headers
       });
       await hyperjump.session().get(url);
       token = 2;

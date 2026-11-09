@@ -3,6 +3,11 @@ import { MockAgent, setGlobalDispatcher } from "undici";
 import { Hyperjump, HttpError, HttpUrlSchemePlugin, MemoryHttpCacheStore, RetrievalError } from "../index.js";
 import { toJson } from "../../json/jsonast-util.js";
 
+/**
+ * @import { HyperjumpConfig } from "../hyperjump.d.ts"
+ * @import { HttpUrlSchemePluginOptions } from "./http-scheme-plugin.d.ts"
+ */
+
 describe("JSON Browser", () => {
   describe("get", () => {
     describe("`http(s):` scheme", () => {
@@ -374,11 +379,12 @@ describe("JSON Browser", () => {
       describe("headers", () => {
         const contentType = { "content-type": "application/reference+json" };
 
-        /** @type (options: import("./http-scheme-plugin.d.ts").HttpUrlSchemePluginOptions) => Hyperjump */
-        const withOptions = (options) => {
+        /** @type (options: Pick<HyperjumpConfig, "headers"> & HttpUrlSchemePluginOptions) => Hyperjump */
+        const withOptions = ({ headers, ...options }) => {
           return new Hyperjump({
             allowRetrieval: ["https://example.com/", "https://other.example.com/"],
-            urlSchemePlugins: [new HttpUrlSchemePlugin(options)]
+            urlSchemePlugins: [new HttpUrlSchemePlugin(options)],
+            headers
           });
         };
 
@@ -588,11 +594,18 @@ describe("JSON Browser", () => {
         });
 
         test("a relative URL throws", () => {
-          expect(() => new HttpUrlSchemePlugin({ headers: { "/foo/": {} } })).to.throw("isn't an absolute URL");
+          expect(() => new Hyperjump({ headers: { "/foo/": {} } })).to.throw("'/foo/' in the 'headers' config isn't an absolute URL");
         });
 
-        test("a URL that isn't http(s): throws", () => {
-          expect(() => new HttpUrlSchemePlugin({ headers: { "file:///foo/": {} } })).to.throw("isn't an 'http:' or 'https:' URL");
+        test("Referer isn't sent", async () => {
+          mockAgent.get(testDomain)
+            .intercept({ method: "GET", path: "/foo", headers: (headers) => !("referer" in headers) })
+            .reply(200, `42`, { headers: contentType });
+
+          const session = withOptions({}).session();
+          const subject = await session.get(`${testDomain}/foo`, { referencedFrom: "file:///home/me/a.json" });
+
+          expect(toJson(subject)).to.equal(`42`);
         });
 
         test("can't replace Accept", async () => {

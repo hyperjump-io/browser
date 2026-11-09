@@ -42,9 +42,8 @@ const h = new Hyperjump({
 });
 ```
 
-A plugin without a `cache` gets the default for its environment, so a plugin
-that sends [headers](http-headers.md) still caches. To turn caching off, give it
-`cache: false`.
+A plugin without a `cache` gets the default for its environment. To turn caching
+off, give it `cache: false`.
 
 To keep responses somewhere else such as Redis, implement `HttpCacheStore`.
 Entries are JSON, so you can store them anywhere. A store defines these

@@ -2,7 +2,6 @@ import CachePolicy from "http-cache-semantics";
 import { defaultHttpCache } from "#default-http-cache";
 import { redirectMode } from "#redirect-mode";
 import { HttpError } from "../hyperjump.js";
-import { matchesUrlEntry, resolveUrlEntry } from "../url-entries.js";
 
 /**
  * @import { HttpCacheStore } from "./http-cache-store.d.ts"
@@ -30,19 +29,10 @@ export class HttpUrlSchemePlugin {
   #cache;
 
   /**
-   * The `headers` option's entries, from the shortest URL to the longest, so
-   * a longer one's headers win when they're merged
-   *
-   * @type [string, HeadersInit | API.HeadersFunction][]
-   */
-  #headers;
-
-  /**
-   * Responses being retrieved, by URL and Accept header, so concurrent
-   * requests for the same URL share one request. A plugin can be in more
-   * than one `Hyperjump`, whose media types, and so Accept headers, can
-   * differ. Its other headers come from its own options, so they're the
-   * same for every request for a URL.
+   * Responses being retrieved, by URL and the headers sent, so concurrent
+   * requests for the same URL with the same headers share one request. A
+   * plugin can be in more than one `Hyperjump`, whose media types and
+   * `headers` config, and so the headers sent, can differ.
    *
    * @type Map<string, Promise<ReadResponse>>
    */
@@ -55,43 +45,44 @@ export class HttpUrlSchemePlugin {
     this.schemes = ["http", "https"];
 
     this.#cache = options.cache === false ? undefined : options.cache ?? defaultHttpCache();
-    this.#headers = resolveHeaders(options.headers ?? {});
     this.#pending = new Map();
   }
 
   /** @type API.HttpUrlSchemePlugin["retrieve"] */
   async retrieve(request) {
-    // Only the request's `Accept` is sent. Its `Referer` can be a file's URL,
-    // which a server shouldn't see.
+    // A request's `Referer` can be a file's URL, which a server shouldn't
+    // see, so it isn't sent
     const { url } = request;
-    const accept = request.headers.get("accept");
+    const headers = new Headers(request.headers);
+    headers.delete("referer");
+    const sent = Object.fromEntries(headers);
     if (!this.#cache) {
-      const response = await fetch(url, { headers: await this.#requestHeaders(url, accept), redirect: redirectMode });
+      const response = await fetch(url, { headers: sent, redirect: redirectMode });
       await assertUsable(url, response);
       return response;
     }
 
-    const key = JSON.stringify([url, accept]);
+    const key = JSON.stringify([url, sent]);
     let pending = this.#pending.get(key);
     if (!pending) {
-      pending = this.#retrieveCached(url, accept, this.#cache).finally(() => {
+      pending = this.#retrieveCached(url, sent, this.#cache).finally(() => {
         this.#pending.delete(key);
       });
       this.#pending.set(key, pending);
     }
 
-    const { body, status, headers, url: responseUrl } = await pending;
+    const { body, status, headers: responseHeaders, url: responseUrl } = await pending;
     // A string body would get a `Content-Type` if the response doesn't have one
-    const response = new Response(new TextEncoder().encode(body), { status, headers });
+    const response = new Response(new TextEncoder().encode(body), { status, headers: responseHeaders });
     Object.defineProperty(response, "url", { value: responseUrl });
 
     return response;
   }
 
-  /** @type (url: string, accept: string | null, cache: HttpCacheStore) => Promise<ReadResponse> */
-  async #retrieveCached(url, accept, cache) {
+  /** @type (url: string, headers: Record<string, string>, cache: HttpCacheStore) => Promise<ReadResponse> */
+  async #retrieveCached(url, headers, cache) {
     // The cache needs every header sent so it can match a `Vary`
-    const request = { url, method: "GET", headers: await this.#requestHeaders(url, accept) };
+    const request = { url, method: "GET", headers };
 
     const cached = await cache.get(url);
     const cachedPolicy = cached && CachePolicy.fromObject(cached.policy);
@@ -132,64 +123,7 @@ export class HttpUrlSchemePlugin {
 
     return { url: response.url, status: response.status, headers: responseHeaders, body };
   }
-
-  /**
-   * A HeadersFunction is called with the URL that's requested, without its
-   * fragment, which isn't part of a request. It's a copy for each function,
-   * so one that changes it doesn't change what the next one sees.
-   *
-   * The request's `Accept` replaces one of these, because the media type
-   * plugins depend on it.
-   *
-   * @type (href: string, accept: string | null) => Promise<Record<string, string>>
-   */
-  async #requestHeaders(href, accept) {
-    const url = new URL(href);
-    url.hash = "";
-
-    const headers = new Headers();
-    for (const [entry, value] of this.#headers) {
-      if (matchesUrlEntry(entry, url.href)) {
-        const entryHeaders = new Headers(typeof value === "function" ? await value(new URL(url)) : value);
-        for (const [name, headerValue] of entryHeaders) {
-          headers.set(name, headerValue);
-        }
-      }
-    }
-    if (accept !== null) {
-      headers.set("accept", accept);
-    }
-
-    return Object.fromEntries(headers);
-  }
 }
-
-/**
- * Check the `headers` option's URLs and sort its entries from the shortest
- * URL to the longest
- *
- * @type (headers: Record<string, HeadersInit | API.HeadersFunction>) => [string, HeadersInit | API.HeadersFunction][]
- */
-const resolveHeaders = (headers) => {
-  return Object.entries(headers)
-    .map(([entry, value]) => /** @type [string, HeadersInit | API.HeadersFunction] */ ([resolveEntry(entry), value]))
-    .sort(([a], [b]) => a.length - b.length);
-};
-
-/**
- * A `headers` URL that isn't an `http(s):` URL would never match, so it
- * throws, like one that isn't absolute
- *
- * @type (entry: string) => string
- */
-const resolveEntry = (entry) => {
-  const href = resolveUrlEntry(entry, "'headers' option");
-  if (!href.startsWith("http:") && !href.startsWith("https:")) {
-    throw Error(`'${entry}' in the 'headers' option isn't an 'http:' or 'https:' URL`);
-  }
-
-  return href;
-};
 
 /**
  * A success, or a redirect for the session to follow. A redirect has to

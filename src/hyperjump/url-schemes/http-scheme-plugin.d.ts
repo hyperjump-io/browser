@@ -3,8 +3,9 @@ import type { HttpCacheStore } from "./http-cache-store.d.ts";
 import type { HttpError, HyperjumpConfig } from "../hyperjump.d.ts";
 
 /**
- * Support the `http:` and `https:` URL schemes. Sends the request's `Accept`
- * header, for the media types that are supported. A response has to have a
+ * Support the `http:` and `https:` URL schemes. Sends the request's headers,
+ * like `Accept` and the `headers` config's, except `Referer`, which can be a
+ * file's URL. A response has to have a
  * `Content-Type`, because a URL's extension doesn't say what's at it, unless
  * its URL is one of the `mediaTypeByExtension` config's (see
  * {@link HyperjumpConfig}).
@@ -35,38 +36,4 @@ export type HttpUrlSchemePluginOptions = {
    * caches. `false` doesn't cache.
    */
   cache?: HttpCacheStore | false;
-
-  /**
-   * Headers to send with requests, such as credentials, by URL. A URL that
-   * ends with `/` gets its headers for everything under it. Any other gets
-   * them only for itself. An origin, with or without the `/`, gets them for
-   * everything on it, because it's the URL of its root. Only the URLs listed
-   * get headers, because
-   * documents can reference any URL. A URL has to be an absolute `http:` or
-   * `https:` URL, or the plugin throws when it's created.
-   *
-   * A value can be a {@link HeadersFunction}, to refresh a token for
-   * example. When more than one URL matches, their headers are merged, and
-   * a longer URL's headers win. The `Accept` header is always the
-   * request's.
-   *
-   * A redirect is followed by the session, so the request it leads to gets
-   * the headers for its own URL. In a browser, `fetch` follows redirects
-   * itself and sends the same headers, except `Authorization` and `Cookie`
-   * on a redirect to another origin. A redirect can only lead to an `http:`
-   * or `https:` URL.
-   *
-   * The cache is private, so a response retrieved with credentials is used
-   * for any later request for the same URL that it satisfies, including ones
-   * the headers would be different for, unless the response has a `Vary`
-   * for them. Different credentials for the same URL need plugins that
-   * don't share a cache.
-   */
-  headers?: Record<string, HeadersInit | HeadersFunction>;
 };
-
-/**
- * Headers for a request, called with the URL that's requested, without its
- * fragment. It can be async.
- */
-export type HeadersFunction = (url: URL) => HeadersInit | undefined | Promise<HeadersInit | undefined>;

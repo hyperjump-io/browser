@@ -29,24 +29,22 @@
   its own memory store, and plugins don't share a cache unless they're
   given the same store.
   - Not caching without a `cache`, with a memory store only in the default
-    plugins, was rejected. Replacing the plugin to send headers would turn
-    caching off without saying so, unless a store was given too, and code
-    for both environments couldn't ask for the default.
+    plugins, was rejected, because code for both environments couldn't ask
+    for the default.
   - `undefined` is the default, so turning caching off needs another value.
     `false` was chosen over `null` because `cache: false` reads as what it
     does.
   - A memory store in browsers too was rejected. It would cache what
     `fetch` already caches and ignore what the browser knows, such as a
     hard reload.
-- With a cache, requests for the same URL and `Accept` header at the same
-  time share one request. A session's document cache keeps it from
-  retrieving the same resource twice.
+- With a cache, requests for the same URL and headers at the same time
+  share one request. A session's document cache keeps it from retrieving
+  the same resource twice.
   - Sharing by URL only would let a plugin in more than one `Hyperjump`,
-    whose media types differ, give one the response the other asked for,
-    which the cache's `Vary` check would have refused. The `Accept` header is the only part of the request that a caller
-    gives the plugin. Its other headers come from its own options.
+    whose media types or `headers` config differ, give one the response the
+    other asked for, which the cache's `Vary` check would have refused.
   - A plugin can be in more than one `Hyperjump`, like one with an
-    application's headers and cache that's also given to a `JsonSchema`.
+    application's cache that's also given to a `JsonSchema`.
     Not sharing plugins was considered. Enforcing it would take a
     module-level record of which `Hyperjump` has each plugin, or a config
     of plugin factories instead of plugins, and the plugin's state is

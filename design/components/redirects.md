@@ -83,4 +83,4 @@ scheme.
     already send those requests itself, and CORS keeps their responses
     from it.
   - Refusing redirects with `redirect: "error"` for requests that have
-    headers from the `headers` option was considered and left out for now.
+    headers from the `headers` config was considered and left out for now.

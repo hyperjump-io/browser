@@ -50,7 +50,8 @@ session retrieves, so the list has to allow both the URN and the URL that the
 URN maps to.
 
 A plugin implements `UrlSchemePlugin`. The session calls its `retrieve` with a
-`Request` for the URL, without its fragment. The request has these headers:
+`Request` for the URL, without its fragment. The request has the
+[`headers`](http-headers.md) config's headers for its URL, and these:
 
 | Header | Description |
 | --- | --- |

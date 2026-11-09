@@ -10,6 +10,7 @@ import { redirectsLayer } from "./redirects.js";
 import { fileFromFileLayer } from "./file-from-file.js";
 import { mediaTypeByExtensionLayer, resolveExtensionUrls } from "./media-type-by-extension.js";
 import { acceptLayer } from "./accept.js";
+import { requestHeadersLayer, resolveRequestHeaders } from "./request-headers.js";
 import { problemDetail } from "./problem-details.js";
 import { relativeFileUrl } from "./file-urls.js";
 import { withoutFragment } from "./url-parts.js";
@@ -66,6 +67,7 @@ export class Hyperjump {
       resolveAllowRetrieval(config.allowRetrieval, contextUrl(), configSource);
     }
     resolveExtensionUrls(config.mediaTypeByExtension ?? []);
+    resolveRequestHeaders(config.headers ?? {});
 
     // A frozen copy, so a change to the object it was given, after it was
     // checked, doesn't change what new sessions allow
@@ -74,7 +76,8 @@ export class Hyperjump {
       allowRetrieval: frozenCopy(config.allowRetrieval),
       urlSchemePlugins: frozenCopy(config.urlSchemePlugins),
       mediaTypePlugins: frozenCopy(config.mediaTypePlugins),
-      mediaTypeByExtension: frozenCopy(config.mediaTypeByExtension)
+      mediaTypeByExtension: frozenCopy(config.mediaTypeByExtension),
+      headers: config.headers && Object.freeze({ ...config.headers })
     });
 
     // The config's plugins come after the defaults, and a later plugin for a
@@ -183,11 +186,13 @@ export class Session {
 
     const { mediaTypePlugins } = hyperjump;
     const extensionUrls = resolveExtensionUrls(hyperjump.config.mediaTypeByExtension ?? []);
+    const requestHeaders = resolveRequestHeaders(hyperjump.config.headers ?? {});
     this.#fetch = compose([
       redirectsLayer,
       allowRetrievalLayer((url) => allowedUrls.allows(url), source),
       fileFromFileLayer,
       mediaTypeByExtensionLayer(extensionUrls, (url) => mediaTypeByExtension(mediaTypePlugins, url)),
+      requestHeadersLayer(requestHeaders),
       acceptLayer(hyperjump.accept)
     ], urlSchemesFetch(hyperjump.urlSchemePlugins));
   }
