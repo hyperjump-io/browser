@@ -7,12 +7,14 @@ import { acceptHeader, fragmentPointer, mediaTypeByExtension, mediaTypePluginFor
 import { AllowedUrls, configSource, resolveAllowRetrieval, sessionSource } from "./allowed-urls.js";
 import { relativeFileUrl } from "./file-urls.js";
 import { withoutFragment } from "./url-parts.js";
+import { urlSchemesFetch } from "./url-schemes/url-schemes-fetch.js";
 
 /**
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
  * @import { UrlSchemePlugin } from "./url-schemes/url-scheme-plugin.d.ts"
  * @import { DocumentNode, MediaTypePlugin, RetrievedResponse } from "./media-types/media-type-plugin.d.ts"
  * @import { FollowedNode } from "./browsing.d.ts"
+ * @import { Fetch } from "./layers.js"
  * @import * as API from "./hyperjump.d.ts"
  * @import { RetrieveOptions } from "./url-schemes/url-scheme-plugin.d.ts"
  */
@@ -143,6 +145,13 @@ export class Session {
    */
   #cache;
 
+  /**
+   * The session's stack, which everything it retrieves is requested from
+   *
+   * @type Fetch
+   */
+  #fetch;
+
   /** @type AllowedUrls */
   #allowedUrls;
 
@@ -173,6 +182,8 @@ export class Session {
     this.#hyperjump = hyperjump;
     this.#cache = {};
     this.#contextUrl = contextUrl();
+    const { mediaTypePlugins } = hyperjump;
+    this.#fetch = urlSchemesFetch(hyperjump.urlSchemePlugins, hyperjump.accept, (url) => mediaTypeByExtension(mediaTypePlugins, url));
     const [allowRetrieval, source] = options.allowRetrieval === undefined
       ? [hyperjump.config.allowRetrieval, configSource]
       : [options.allowRetrieval, sessionSource];
@@ -264,7 +275,6 @@ export class Session {
    */
   async #retrieveDocument(id, options) {
     let response;
-    let responseUrl;
     let url = id;
     for (let redirects = 0; ; redirects++) {
       if (!await this.#allowedUrls.allows(url)) {
@@ -272,7 +282,7 @@ export class Session {
       }
 
       try {
-        ({ response, url: responseUrl } = await this.#retrieve(url, options));
+        response = await this.#retrieve(url, options);
       } catch (error) {
         throw new RetrievalError(id, { cause: error });
       }
@@ -291,12 +301,13 @@ export class Session {
       // outside, so it's parsed. The fragment isn't part of what's
       // retrieved.
       try {
-        url = withoutFragment(new URL(location, responseUrl).href);
+        url = withoutFragment(new URL(location, response.url).href);
       } catch (error) {
         throw new RetrievalError(id, { cause: error });
       }
     }
 
+    const responseUrl = response.url;
     if (responseUrl !== url && !await this.#allowedUrls.allows(responseUrl)) {
       await response.body?.cancel();
       throw this.#notAllowedError(id, responseUrl);
@@ -317,44 +328,20 @@ export class Session {
   }
 
   /**
-   * Retrieve with the plugin for the URL's scheme. It gives the plugin the
-   * Accept header for the media types that are supported, and the media type
-   * of a URL's extension, for a scheme without a Content-Type.
+   * Retrieve through the session's stack. `referencedFrom` is the request's
+   * `Referer`. The bottom of the stack gives every response a URL, without
+   * its fragment, so a redirect's `Location` can be relative to it and a
+   * media type plugin has it.
    *
-   * The response's URL comes from outside, so it's parsed, without its
-   * fragment, which isn't part of what's retrieved. A response without a URL
-   * gets the one that was retrieved, so a redirect's `Location` can be
-   * relative to it. The response's `url` is the parsed one, so a media type
-   * plugin has it.
-   *
-   * @type (url: string, options: ParsedGetOptions) => Promise<{ response: RetrievedResponse, url: string }>
+   * @type (url: string, options: ParsedGetOptions) => Promise<RetrievedResponse>
    */
   async #retrieve(url, options) {
-    // An `href`'s scheme is lowercase
-    const scheme = url.slice(0, url.indexOf(":"));
-
-    const plugin = this.#hyperjump.urlSchemePlugins.get(scheme);
-    if (!plugin) {
-      throw new UnsupportedUrlSchemeError(scheme, `The '${scheme}:' URL scheme is not supported. Use the 'urlSchemePlugins' config to add support for '${scheme}:' URLs.`);
+    const headers = new Headers();
+    if (options.referencedFrom !== undefined) {
+      headers.set("referer", options.referencedFrom);
     }
 
-    const { mediaTypePlugins } = this.#hyperjump;
-    const response = await plugin.retrieve(url, {
-      ...options,
-      accept: this.#hyperjump.accept,
-      mediaTypeByExtension: (url) => mediaTypeByExtension(mediaTypePlugins, url)
-    });
-    const responseUrl = response.url ? withoutFragment(new URL(response.url).href) : url;
-    if (responseUrl === response.url) {
-      return { response, url: responseUrl };
-    }
-
-    // A plugin can have defined its response's URL, which can't be redefined,
-    // so the URL goes on a new response with the same status, headers, and
-    // body
-    const retrieved = new Response(response.body, response);
-    Object.defineProperty(retrieved, "url", { value: responseUrl });
-    return { response: retrieved, url: responseUrl };
+    return this.#fetch(new Request(url, { headers }));
   }
 
   /**

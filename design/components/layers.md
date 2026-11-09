@@ -189,3 +189,12 @@ before them, so a document the application has doesn't go through them.
   cache or a URL scheme plugin was rejected. A read-only cache and embedded
   documents find them in the stack, so a subclass doesn't have to stand
   between the session and everything it retrieves.
+
+## Known limitations
+
+- A `Request` can't be made for a URL with credentials, like
+  `foo://user@host/a`, so a URL with a username or password can't be
+  retrieved. The constructor throws a `TypeError`, which fails the
+  retrieval with it as the cause. `fetch` refuses them too, and a URL
+  scheme plugin that needs credentials gets them from its own options,
+  like the HTTP plugin's `headers`.
