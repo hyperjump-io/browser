@@ -59,9 +59,11 @@ where it leads, with the plugin for that URL's scheme.
   middle of a chain aren't. The HTTP cache keeps a redirect like any other
   response, by its own URL, when it's cacheable, such as a 301 or a 308
   (see [HTTP cache](http-cache.md)).
-- A redirect status without a `Location` isn't a redirect. The `http(s):`
-  plugin throws an `HttpError` for one. From another plugin, it's a
-  response like any other. 300 and 304 aren't redirects.
+- A redirect status without a `Location` isn't a redirect. It isn't a
+  representation either, so the session gives an `HttpError` for it,
+  like any status it can't parse (see
+  [Errors are responses](layers.md#errors-are-responses)). The session
+  parses only a `200` or a `203`. 300 and 304 aren't redirects.
 
 ## Browsers
 

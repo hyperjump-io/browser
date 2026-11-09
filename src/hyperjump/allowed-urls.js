@@ -1,4 +1,10 @@
 import { realUrl } from "#real-url";
+import { relativeFileUrl } from "./file-urls.js";
+import { problemResponse } from "./problem-details.js";
+
+/**
+ * @import { Layer } from "./layers.js"
+ */
 
 /**
  * Where a session's `allowRetrieval` came from, said the way an error says
@@ -98,4 +104,27 @@ const resolveDefault = (contextUrl) => {
 const realEntry = async (entry) => {
   const { href } = await realUrl(new URL(entry));
   return entry.endsWith("/") && !href.endsWith("/") ? `${href}/` : href;
+};
+
+/**
+ * The `allowRetrieval` layer. A URL that isn't allowed is answered with a
+ * 403, so it's never requested from the layers below. The response's URL is
+ * checked too, because a symlink, or a redirect `fetch` followed in a
+ * browser, can lead somewhere else. The `detail` says which list to change
+ * (`source`).
+ *
+ * @type (allows: (url: string) => Promise<boolean>, source: string) => Layer
+ */
+export const allowRetrievalLayer = (allows, source) => (next) => async (request) => {
+  if (!await allows(request.url)) {
+    return problemResponse(request.url, 403, "Forbidden", `Retrieving '${relativeFileUrl(request.url)}' isn't allowed. Use the ${source} to allow it.`);
+  }
+
+  const response = await next(request);
+  if (response.url !== request.url && !await allows(response.url)) {
+    await response.body?.cancel();
+    return problemResponse(response.url, 403, "Forbidden", `Retrieving '${relativeFileUrl(request.url)}' led to '${relativeFileUrl(response.url)}', which isn't allowed. Use the ${source} to allow it.`);
+  }
+
+  return response;
 };

@@ -4,7 +4,9 @@ import { JsonMediaTypePlugin } from "./media-types/json-media-type-plugin.js";
 import { JrefMediaTypePlugin } from "./media-types/jref-media-type-plugin.js";
 import { jsonPointerGet } from "../json/jsonast-util.js";
 import { acceptHeader, fragmentPointer, mediaTypeByExtension, mediaTypePluginFor } from "./media-type-plugins.js";
-import { AllowedUrls, configSource, resolveAllowRetrieval, sessionSource } from "./allowed-urls.js";
+import { AllowedUrls, allowRetrievalLayer, configSource, resolveAllowRetrieval, sessionSource } from "./allowed-urls.js";
+import { compose } from "./layers.js";
+import { problemDetail } from "./problem-details.js";
 import { relativeFileUrl } from "./file-urls.js";
 import { withoutFragment } from "./url-parts.js";
 import { urlSchemesFetch } from "./url-schemes/url-schemes-fetch.js";
@@ -28,6 +30,9 @@ import { urlSchemesFetch } from "./url-schemes/url-schemes-fetch.js";
 const maxRedirects = 20;
 
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
+
+/** The statuses whose response is a representation the session can parse */
+const successStatuses = new Set([200, 203]);
 
 /**
  * @class
@@ -152,18 +157,6 @@ export class Session {
    */
   #fetch;
 
-  /** @type AllowedUrls */
-  #allowedUrls;
-
-  /**
-   * Where the session's `allowRetrieval` came from, so a refused URL's error
-   * says which list to change. A session's own list replaces the config's,
-   * so adding to the config wouldn't allow it.
-   *
-   * @type string
-   */
-  #allowRetrievalSource;
-
   /**
    * What relative URLs are resolved against, as it was when the session was
    * created, so it's the same for everything the session does. A new
@@ -182,13 +175,20 @@ export class Session {
     this.#hyperjump = hyperjump;
     this.#cache = {};
     this.#contextUrl = contextUrl();
-    const { mediaTypePlugins } = hyperjump;
-    this.#fetch = urlSchemesFetch(hyperjump.urlSchemePlugins, hyperjump.accept, (url) => mediaTypeByExtension(mediaTypePlugins, url));
+
+    // Where the session's `allowRetrieval` came from, so a refusal says which
+    // list to change. A session's own list replaces the config's, so adding
+    // to the config wouldn't allow it.
     const [allowRetrieval, source] = options.allowRetrieval === undefined
       ? [hyperjump.config.allowRetrieval, configSource]
       : [options.allowRetrieval, sessionSource];
-    this.#allowRetrievalSource = source;
-    this.#allowedUrls = new AllowedUrls(allowRetrieval === undefined ? undefined : resolveAllowRetrieval(allowRetrieval, this.#contextUrl, source), this.#contextUrl);
+    const allowedUrls = new AllowedUrls(allowRetrieval === undefined ? undefined : resolveAllowRetrieval(allowRetrieval, this.#contextUrl, source), this.#contextUrl);
+
+    const { mediaTypePlugins } = hyperjump;
+    this.#fetch = compose(
+      [allowRetrievalLayer((url) => allowedUrls.allows(url), source)],
+      urlSchemesFetch(hyperjump.urlSchemePlugins, hyperjump.accept, (url) => mediaTypeByExtension(mediaTypePlugins, url))
+    );
   }
 
   get hyperjump() {
@@ -263,13 +263,11 @@ export class Session {
   }
 
   /**
-   * Every retrieval is checked against `allowRetrieval` before the URL
-   * scheme plugins, so before the HTTP cache too. A plugin's redirect is
-   * followed here, so where it leads is checked before it's retrieved, and
-   * its retrieval is given the same options. The response is checked again,
-   * because a symlink, or a redirect `fetch` followed in a browser, can lead
-   * somewhere else. A refused URL isn't one that couldn't be retrieved, so
-   * it isn't a RetrievalError.
+   * A plugin's redirect is followed here, with a request down the whole
+   * stack, so where it leads is checked by `allowRetrieval` before it's
+   * retrieved, and its retrieval is given the same options. A response the
+   * session can't parse, like a refusal or a server's 404, is an
+   * `HttpError`, explained by its Problem Details `detail` if it has one.
    *
    * @type (id: string, options: ParsedGetOptions) => Promise<DocumentNode>
    */
@@ -277,10 +275,6 @@ export class Session {
     let response;
     let url = id;
     for (let redirects = 0; ; redirects++) {
-      if (!await this.#allowedUrls.allows(url)) {
-        throw this.#notAllowedError(id, url);
-      }
-
       try {
         response = await this.#retrieve(url, options);
       } catch (error) {
@@ -308,12 +302,11 @@ export class Session {
     }
 
     const responseUrl = response.url;
-    if (responseUrl !== url && !await this.#allowedUrls.allows(responseUrl)) {
-      await response.body?.cancel();
-      throw this.#notAllowedError(id, responseUrl);
-    }
-
     try {
+      if (!successStatuses.has(response.status)) {
+        throw new HttpError(response, await problemDetail(response));
+      }
+
       const document = await this.#parseResponse(response);
 
       // References within the document are relative to the URL it was
@@ -367,19 +360,6 @@ export class Session {
     document.mediaType ??= pattern;
     return document;
   }
-
-  /**
-   * The error for a URL that was asked for (`id`), or one it led to, that
-   * isn't allowed
-   *
-   * @type (id: string, url: string) => RetrievalNotAllowedError
-   */
-  #notAllowedError(id, url) {
-    const message = url === id
-      ? `Retrieving '${relativeFileUrl(id)}' isn't allowed.`
-      : `Retrieving '${relativeFileUrl(id)}' led to '${relativeFileUrl(url)}', which isn't allowed.`;
-    return new RetrievalNotAllowedError(url, `${message} Use the ${this.#allowRetrievalSource} to allow it.`);
-  }
 }
 
 /**
@@ -416,18 +396,6 @@ export class FileNotFoundError extends Error {
   }
 }
 
-export class RetrievalNotAllowedError extends Error {
-  /**
-   * @param {string} url
-   * @param {string} message
-   */
-  constructor(url, message) {
-    super(message);
-    this.name = this.constructor.name;
-    this.url = url;
-  }
-}
-
 export class ReferenceCycleError extends Error {
   /** @type string[] */
   referenceChain;
@@ -451,6 +419,18 @@ export class UnsupportedUrlSchemeError extends Error {
     super(message);
     this.name = this.constructor.name;
     this.scheme = scheme;
+  }
+}
+
+export class HttpError extends Error {
+  /**
+   * @param {Response} response
+   * @param {string} [message]
+   */
+  constructor(response, message) {
+    super(`${response.status} ${response.statusText}${message ? ` -- ${message}` : ""}`);
+    this.name = this.constructor.name;
+    this.response = response;
   }
 }
 

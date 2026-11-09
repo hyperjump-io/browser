@@ -15,7 +15,8 @@ export type HyperjumpConfig<T extends JsonNode<{ type: string }> = JrefNode> = {
    * What can be retrieved. Documents aren't trusted, so a reference
    * shouldn't be able to make the application retrieve whatever it names,
    * such as an internal address or a file outside the project. A URL it
-   * refuses is a {@link RetrievalNotAllowedError}.
+   * refuses is a {@link RetrievalError} whose cause is an {@link HttpError}
+   * for a `403`, with a message that says which list to change.
    *
    * It's a list of URLs. One that ends with `/` allows everything under it.
    * Any other allows only itself. An origin, with or without the `/`, allows
@@ -158,12 +159,13 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    *
    * @throws A `TypeError` if `url` isn't a URL, or `referencedFrom` isn't an
    * absolute URL.
-   * @throws A `TypeError` if `url` is relative, or `allowRetrieval` is the
-   * default, and there's nothing to resolve it against, such as in a worker.
-   * @throws A {@link RetrievalNotAllowedError} if `allowRetrieval` refuses
-   * the document's URL.
+   * @throws A `TypeError` if `url` is relative and there's nothing to
+   * resolve it against, such as in a worker.
    * @throws A {@link RetrievalError} if a document can't be retrieved or
-   * parsed. The cause is the error that prevented it.
+   * parsed. The cause is the error that prevented it, like an
+   * {@link HttpError} for a `403` when `allowRetrieval` refuses its URL, or
+   * a `TypeError` when `allowRetrieval` is the default and there's nothing
+   * to resolve it against.
    * @throws A {@link ReferenceCycleError} if following references leads back
    * to a reference that was already followed.
    * @throws A {@link JsonPointerError} if a fragment doesn't resolve to a
@@ -183,8 +185,8 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    *
    * @throws A `TypeError` if `url` isn't a URL, or `referencedFrom` isn't an
    * absolute URL.
-   * @throws A `TypeError` if `url` is relative, or `allowRetrieval` is the
-   * default, and there's nothing to resolve it against, such as in a worker.
+   * @throws A `TypeError` if `url` is relative and there's nothing to
+   * resolve it against, such as in a worker.
    * @throws A {@link RetrievalError} if the document can't be retrieved or
    * parsed. The cause is the error that prevented it.
    */
@@ -216,20 +218,16 @@ export class FileNotFoundError extends Error {
 }
 
 /**
- * The `allowRetrieval` config refused a URL (see {@link HyperjumpConfig}).
- * It's distinct from a {@link RetrievalError}, which is for a URL that was
- * allowed and couldn't be retrieved. Tools use the difference: a refused URL
- * is unknown, and one that failed is missing.
+ * A response the session can't parse, like a server's `404` or a refusal by
+ * `allowRetrieval`, which is a `403`. Its message says the status, and the
+ * response's Problem Details `detail` if it has one, like which
+ * `allowRetrieval` to change. It's the cause of a {@link RetrievalError}.
  */
-export class RetrievalNotAllowedError extends Error {
-  /** The URL that was refused. For a redirect, it's where it led. */
-  url: string;
+export class HttpError extends Error {
+  /** The response, whose body has been read or cancelled */
+  response: Response;
 
-  /**
-   * The message says which list to change, the config's or a session's
-   * own, so it's given rather than made from the URL.
-   */
-  constructor(url: string, message: string);
+  constructor(response: Response, message?: string);
 }
 
 /**

@@ -4,7 +4,7 @@ import { join, relative } from "node:path";
 import { cwd } from "node:process";
 import { pathToFileURL } from "node:url";
 import { describe, test, beforeAll, afterAll, expect } from "vitest";
-import { FileNotFoundError, Hyperjump, RetrievalError, RetrievalNotAllowedError } from "./index.js";
+import { FileNotFoundError, HttpError, Hyperjump, RetrievalError } from "./index.js";
 import { AllowedUrls, configSource, resolveAllowRetrieval } from "./allowed-urls.js";
 import { contextUrl } from "#context-url";
 import { toJson } from "../json/jsonast-util.js";
@@ -47,21 +47,18 @@ describe("allowRetrieval", () => {
 
     test("a file outside the working directory is refused", async () => {
       const url = fileUrl(join(outside, "outside.json"));
-      const error = await defaultSession().get(url)
-        .catch((/** @type unknown */ error) => error);
-      expect(error).to.be.instanceOf(RetrievalNotAllowedError);
-      expect(error).not.to.be.instanceOf(RetrievalError);
-      expect(/** @type RetrievalNotAllowedError */ (error).url).to.equal(url);
+      const error = await refusal(defaultSession().get(url));
+      expect(error.response.url).to.equal(url);
     });
 
     test("a symlink to a file outside the working directory is refused", async () => {
       const url = fileUrl(join(inside, "link.json"));
-      await expect(defaultSession().get(url)).rejects.toThrow(RetrievalNotAllowedError);
+      await refusal(defaultSession().get(url));
     });
 
     test("a file in a symlinked directory that's outside the working directory is refused", async () => {
       const url = fileUrl(join(inside, "linked-directory", "outside.json"));
-      await expect(defaultSession().get(url)).rejects.toThrow(RetrievalNotAllowedError);
+      await refusal(defaultSession().get(url));
     });
 
     test("a missing file in the working directory is missing, not refused", async () => {
@@ -75,21 +72,19 @@ describe("allowRetrieval", () => {
     test("a reference to a file outside the working directory is refused", async () => {
       const url = fileUrl(join(inside, "refers-outside.jref"));
       const session = defaultSession();
-      await expect(session.get(url)).rejects.toThrow(RetrievalNotAllowedError);
+      await refusal(session.get(url));
     });
 
     test("a file on another host is refused", async () => {
       const url = "file://example.com/share/document.json";
-      const error = await defaultSession().get(url)
-        .catch((/** @type unknown */ error) => error);
-      expect(error).to.be.instanceOf(RetrievalNotAllowedError);
-      expect(/** @type RetrievalNotAllowedError */ (error).url).to.equal(url);
+      const error = await refusal(defaultSession().get(url));
+      expect(error.response.url).to.equal(url);
     });
 
     test("http(s): is refused", async () => {
       const session = defaultSession();
-      await expect(session.get("https://example.com/document")).rejects.toThrow(RetrievalNotAllowedError);
-      await expect(session.get("http://localhost/document")).rejects.toThrow(RetrievalNotAllowedError);
+      await refusal(session.get("https://example.com/document"));
+      await refusal(session.get("http://localhost/document"));
     });
   });
 
@@ -98,7 +93,7 @@ describe("allowRetrieval", () => {
       const session = hyperjumpWith({ allowRetrieval: [directoryUri(outside)] }).session();
       const node = await session.get(fileUrl(join(outside, "outside.json")));
       expect(toJson(node)).to.equal(`{"foo":42}`);
-      await expect(session.get(fileUrl(join(inside, "inside.json")))).rejects.toThrow(RetrievalNotAllowedError);
+      await refusal(session.get(fileUrl(join(inside, "inside.json"))));
     });
 
     test("an entry that ends with '/' allows what's under it", async () => {
@@ -110,14 +105,14 @@ describe("allowRetrieval", () => {
       const session = hyperjumpWith({ allowRetrieval: [directoryUri(join(inside, "deep"))] }).session();
       const node = await session.get(fileUrl(join(inside, "deep", "under.json")));
       expect(toJson(node)).to.equal(`{"foo":42}`);
-      await expect(session.get(fileUrl(join(inside, "deeper", "sibling.json")))).rejects.toThrow(RetrievalNotAllowedError);
+      await refusal(session.get(fileUrl(join(inside, "deeper", "sibling.json"))));
     });
 
     test("any other entry allows only itself", async () => {
       const session = hyperjumpWith({ allowRetrieval: [fileUrl(join(inside, "inside.json"))] }).session();
       const node = await session.get(fileUrl(join(inside, "inside.json")));
       expect(toJson(node)).to.equal(`{"foo":42}`);
-      await expect(session.get(fileUrl(join(inside, "inside.json.bak")))).rejects.toThrow(RetrievalNotAllowedError);
+      await refusal(session.get(fileUrl(join(inside, "inside.json.bak"))));
     });
 
     test("an origin without a '/' allows everything on it", async () => {
@@ -152,7 +147,7 @@ describe("allowRetrieval", () => {
 
     test("an empty list allows nothing", async () => {
       const session = hyperjumpWith({ allowRetrieval: [] }).session();
-      await expect(session.get(fileUrl(join(inside, "inside.json")))).rejects.toThrow(RetrievalNotAllowedError);
+      await refusal(session.get(fileUrl(join(inside, "inside.json"))));
     });
 
     test("an entry that isn't a URL throws when it's configured", () => {
@@ -166,7 +161,7 @@ describe("allowRetrieval", () => {
       allowRetrieval.push(directoryUri(inside));
       config.allowRetrieval = [directoryUri(inside)];
 
-      await expect(hyperjump.session().get(fileUrl(join(inside, "inside.json")))).rejects.toThrow(RetrievalNotAllowedError);
+      await refusal(hyperjump.session().get(fileUrl(join(inside, "inside.json"))));
     });
 
     test("the config's list can't be changed", () => {
@@ -179,11 +174,9 @@ describe("allowRetrieval", () => {
     test("a response from a refused URL isn't used", async () => {
       const hyperjump = hyperjumpWith({ allowRetrieval: ["test:/"], urlSchemePlugins: [testScheme("https://internal.example.com/document")] });
 
-      const error = await hyperjump.session().get("test:/document")
-        .catch((/** @type unknown */ error) => error);
-      expect(error).to.be.instanceOf(RetrievalNotAllowedError);
-      expect(/** @type RetrievalNotAllowedError */ (error).url).to.equal("https://internal.example.com/document");
-      expect(/** @type Error */ (error).message).to.equal("Retrieving 'test:/document' led to 'https://internal.example.com/document', which isn't allowed. Use the 'allowRetrieval' config to allow it.");
+      const error = await refusal(hyperjump.session().get("test:/document"));
+      expect(error.response.url).to.equal("https://internal.example.com/document");
+      expect(error.message).to.equal("403 Forbidden -- Retrieving 'test:/document' led to 'https://internal.example.com/document', which isn't allowed. Use the 'allowRetrieval' config to allow it.");
     });
   });
 
@@ -196,13 +189,13 @@ describe("allowRetrieval", () => {
 
     test("it can refuse what the config allows", async () => {
       const session = hyperjumpWith({ allowRetrieval: [directoryUri(inside)] }).session({ allowRetrieval: [] });
-      await expect(session.get(fileUrl(join(inside, "inside.json")))).rejects.toThrow(RetrievalNotAllowedError);
+      await refusal(session.get(fileUrl(join(inside, "inside.json"))));
     });
 
     test("other sessions use the config's", async () => {
       const hyperjump = hyperjumpWith({ allowRetrieval: [] });
       hyperjump.session({ allowRetrieval: [directoryUri(inside)] });
-      await expect(hyperjump.session().get(fileUrl(join(inside, "inside.json")))).rejects.toThrow(RetrievalNotAllowedError);
+      await refusal(hyperjump.session().get(fileUrl(join(inside, "inside.json"))));
     });
 
     test("references use it", async () => {
@@ -215,12 +208,14 @@ describe("allowRetrieval", () => {
       const hyperjump = hyperjumpWith({ allowRetrieval: ["test:/", "https://internal.example.com/"], urlSchemePlugins: [testScheme("https://internal.example.com/document")] });
 
       const session = hyperjump.session({ allowRetrieval: ["test:/"] });
-      await expect(session.get("test:/document")).rejects.toThrow("'test:/document' led to 'https://internal.example.com/document', which isn't allowed. Use the session's 'allowRetrieval' option to allow it.");
+      const error = await refusal(session.get("test:/document"));
+      expect(error.message).to.contain("'test:/document' led to 'https://internal.example.com/document', which isn't allowed. Use the session's 'allowRetrieval' option to allow it.");
     });
 
     test("a URL it refuses says to change it, not the config", async () => {
       const session = hyperjumpWith({ allowRetrieval: [directoryUri(inside)] }).session({ allowRetrieval: [] });
-      await expect(session.get(fileUrl(join(inside, "inside.json")))).rejects.toThrow("isn't allowed. Use the session's 'allowRetrieval' option to allow it.");
+      const error = await refusal(session.get(fileUrl(join(inside, "inside.json"))));
+      expect(error.message).to.contain("isn't allowed. Use the session's 'allowRetrieval' option to allow it.");
     });
 
     test("an entry that isn't a URL throws when the session is created", () => {
@@ -298,3 +293,20 @@ const testScheme = (url) => ({
 const hyperjumpWith = (config) => new Hyperjump(config);
 
 const defaultSession = () => new Hyperjump().session();
+
+/**
+ * The `HttpError` for a refusal by `allowRetrieval`, which is the cause of
+ * the `RetrievalError` a session gives
+ *
+ * @type (retrieval: Promise<unknown>) => Promise<HttpError>
+ */
+const refusal = async (retrieval) => {
+  const error = await retrieval.then(() => {
+    throw Error("Expected a refusal");
+  }, (/** @type unknown */ error) => error);
+  expect(error).to.be.instanceOf(RetrievalError);
+  const cause = /** @type Error */ (error).cause;
+  expect(cause).to.be.instanceOf(HttpError);
+  expect(/** @type HttpError */ (cause).response.status).to.equal(403);
+  return /** @type HttpError */ (cause);
+};

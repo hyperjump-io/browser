@@ -37,10 +37,9 @@ fragments identify. JSON and JRef are built in.
   - The `Hyperjump` giving every response without a `Content-Type` its
     extension's media type, after the plugin returns it, was rejected. The
     `http(s):` plugin would have to throw for a response without one to
-    keep it from being guessed. It would throw before `Session` checks the
-    response's URL against `allowRetrieval`, so a redirect to a refused URL
-    would be reported as a `RetrievalError` instead of a
-    `RetrievalNotAllowedError`. Guessing also means replacing a response
+    keep it from being guessed. It would throw before `allowRetrieval`
+    checks the response's URL, so a redirect to a refused URL would be
+    reported as the plugin's error instead of a refusal. Guessing also means replacing a response
     from `fetch`, whose headers can't be changed, with a new `Response`,
     which throws for some statuses and loses `redirected`.
   - A flag on the plugin to turn guessing off was considered. Guessing on

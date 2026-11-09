@@ -84,14 +84,16 @@ local to it.
 
 ## Where it's checked
 
-- `Session` checks it when it retrieves a document that isn't in its
-  cache, before it retrieves it with a URL scheme plugin, so it covers `get`,
-  `getDocument`, and following references. A subclass that overrides
-  `getDocument` to find documents elsewhere first isn't checked for those.
-  It's before the URL scheme plugins, so it's before the HTTP cache too,
-  and a cached response isn't a way around it.
+- It's a layer in each session's stack (`allowRetrievalLayer`, see
+  [Layers](layers.md)), so it checks every request for a document that
+  isn't in the session's cache: `get`, `getDocument`, and following
+  references. A subclass that overrides `getDocument` to find documents
+  elsewhere first isn't checked for those. It's above the URL scheme
+  plugins, so it's above the HTTP cache too, and a cached response isn't a
+  way around it. It's given the function that checks a URL, not the
+  session.
 - A redirect is checked before it's followed, because the session follows
-  it (see [Redirects](redirects.md)). That includes a plugin for a scheme
+  it with a request down its stack (see [Redirects](redirects.md)). That includes a plugin for a scheme
   that maps to another URL, like `urn:`, which redirects to it.
 - An error about a list, or a refused URL's, says which list to change:
   the config's, or the session's own option, which replaces the config's
@@ -99,15 +101,19 @@ local to it.
   because configuring a list is how it's changed. Without a context URL,
   the default's error says to configure absolute URLs, not to use one, since
   the application didn't write `./`.
-- A refused URL is a `RetrievalNotAllowedError`, thrown as it is, not
-  wrapped in a `RetrievalError`. It's distinct from a `RetrievalError` for
-  a URL that was allowed and couldn't be retrieved, so tools can tell a
-  refused URL (unknown) from a failed one (missing).
+- A refused URL is answered with a `403` whose Problem Details `detail`
+  says which list to change, and whose `url` is the refused URL. The
+  session gives an `HttpError` for it, the cause of a `RetrievalError`,
+  like a server's `403` (see [Errors are responses](layers.md#errors-are-responses)).
+  A tool tells a refused URL from a missing one by the status.
 - The URL a response came from is also checked, for a symlink or a
   redirect that `fetch` followed in a browser. A response from a refused
-  URL is a `RetrievalNotAllowedError` whose `url` is that URL. Its body is
-  cancelled. A redirect the session refuses before it's followed is the
-  same error, and its `url` is where the redirect led.
+  URL is answered with a `403` for that URL instead, and its body is
+  cancelled. A redirect to a refused URL is refused when the session
+  requests it, so its `403` is for where the redirect led.
+- Without a context URL, the default can't be resolved, and the layer
+  throws its `TypeError` when it first checks a URL, so it's the cause of
+  a `RetrievalError` like anything else a layer throws.
 
 ## Symlinks
 

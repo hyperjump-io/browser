@@ -1,6 +1,6 @@
 import { describe, test, beforeEach, afterEach, expect, vi } from "vitest";
 import { MockAgent, setGlobalDispatcher } from "undici";
-import { Hyperjump, HttpError, HttpUrlSchemePlugin, MemoryHttpCacheStore, RetrievalError, RetrievalNotAllowedError } from "../index.js";
+import { Hyperjump, HttpError, HttpUrlSchemePlugin, MemoryHttpCacheStore, RetrievalError } from "../index.js";
 import { toJson } from "../../json/jsonast-util.js";
 
 describe("JSON Browser", () => {
@@ -72,10 +72,8 @@ describe("JSON Browser", () => {
           .reply(200, `{ "foo": 42 }`);
 
         const hyperjump = new Hyperjump({ allowRetrieval: ["https://example.com/"] });
-        const error = await hyperjump.session().get(`${testDomain}/foo`)
-          .catch((/** @type unknown */ error) => error);
-        expect(error).to.be.instanceof(RetrievalNotAllowedError);
-        expect(/** @type RetrievalNotAllowedError */ (error).url).to.equal("https://internal.example.com/foo");
+        const error = await refusal(hyperjump.session().get(`${testDomain}/foo`));
+        expect(error.response.url).to.equal("https://internal.example.com/foo");
       });
 
       test.each([
@@ -93,7 +91,7 @@ describe("JSON Browser", () => {
           allowRetrieval: ["https://example.com/"],
           urlSchemePlugins: [new HttpUrlSchemePlugin({ cache })]
         });
-        await expect(hyperjump.session().get(`${testDomain}/foo`)).rejects.toBeInstanceOf(RetrievalNotAllowedError);
+        await refusal(hyperjump.session().get(`${testDomain}/foo`));
         expect(mockAgent.pendingInterceptors()).to.have.length(1);
       });
 
@@ -738,3 +736,20 @@ describe("JSON Browser", () => {
     });
   });
 });
+
+/**
+ * The `HttpError` for a refusal by `allowRetrieval`, which is the cause of
+ * the `RetrievalError` a session gives
+ *
+ * @type (retrieval: Promise<unknown>) => Promise<HttpError>
+ */
+const refusal = async (retrieval) => {
+  const error = await retrieval.then(() => {
+    throw Error("Expected a refusal");
+  }, (/** @type unknown */ error) => error);
+  expect(error).to.be.instanceOf(RetrievalError);
+  const cause = /** @type Error */ (error).cause;
+  expect(cause).to.be.instanceOf(HttpError);
+  expect(/** @type HttpError */ (cause).response.status).to.equal(403);
+  return /** @type HttpError */ (cause);
+};

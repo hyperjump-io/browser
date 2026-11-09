@@ -1,6 +1,6 @@
 import { Readable } from "node:stream";
 import { describe, test, expect } from "vitest";
-import { Hyperjump, RetrievalError, RetrievalNotAllowedError } from "./index.js";
+import { HttpError, Hyperjump, RetrievalError } from "./index.js";
 import { toJson } from "../json/jsonast-util.js";
 
 /**
@@ -338,11 +338,9 @@ describe("JSON Browser", () => {
           ]
         });
 
-        const error = await hyperjump.session().get("urn:example:foo")
-          .catch((/** @type unknown */ error) => error);
-        expect(error).to.be.instanceof(RetrievalNotAllowedError);
-        expect(/** @type RetrievalNotAllowedError */ (error).url).to.equal("foo:something");
-        expect(/** @type RetrievalNotAllowedError */ (error).message).to.contain("led to 'foo:something'");
+        const error = await refusal(hyperjump.session().get("urn:example:foo"));
+        expect(error.response.url).to.equal("foo:something");
+        expect(error.message).to.contain("Retrieving 'foo:something' isn't allowed");
         expect(retrieved).to.equal(false);
       });
 
@@ -387,7 +385,7 @@ describe("JSON Browser", () => {
         expect(retrievals).to.equal(21);
       });
 
-      test("a redirect status without a Location is a response", async () => {
+      test("a redirect status without a Location is an HttpError", async () => {
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:/"],
           urlSchemePlugins: [{
@@ -396,8 +394,10 @@ describe("JSON Browser", () => {
           }]
         });
 
-        const subject = await hyperjump.session().get("foo:/a");
-        expect(toJson(subject)).to.equal(`42`);
+        const error = await hyperjump.session().get("foo:/a")
+          .catch((/** @type unknown */ error) => error);
+        expect(error).to.be.instanceOf(RetrievalError);
+        expect(/** @type Error */ (error).cause).to.be.instanceOf(HttpError);
       });
     });
   });
@@ -463,4 +463,21 @@ const withoutContentType = {
   schemes: ["foo"],
   // A string body would get a `Content-Type`
   retrieve: async () => new Response(new TextEncoder().encode(`{ "foo": 42 }`))
+};
+
+/**
+ * The `HttpError` for a refusal by `allowRetrieval`, which is the cause of
+ * the `RetrievalError` a session gives
+ *
+ * @type (retrieval: Promise<unknown>) => Promise<HttpError>
+ */
+const refusal = async (retrieval) => {
+  const error = await retrieval.then(() => {
+    throw Error("Expected a refusal");
+  }, (/** @type unknown */ error) => error);
+  expect(error).to.be.instanceOf(RetrievalError);
+  const cause = /** @type Error */ (error).cause;
+  expect(cause).to.be.instanceOf(HttpError);
+  expect(/** @type HttpError */ (cause).response.status).to.equal(403);
+  return /** @type HttpError */ (cause);
 };

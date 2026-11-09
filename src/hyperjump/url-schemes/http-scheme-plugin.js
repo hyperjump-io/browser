@@ -1,6 +1,7 @@
 import CachePolicy from "http-cache-semantics";
 import { defaultHttpCache } from "#default-http-cache";
 import { redirectMode } from "#redirect-mode";
+import { HttpError } from "../hyperjump.js";
 
 /**
  * @import { HttpCacheStore } from "./http-cache-store.d.ts"
@@ -199,18 +200,6 @@ export class HttpUrlSchemePlugin {
 
     url.search = "";
     return mediaTypeByExtension(url.href);
-  }
-}
-
-export class HttpError extends Error {
-  /**
-   * @param {Response} response
-   * @param {string} [message]
-   */
-  constructor(response, message) {
-    super(`${response.status} ${response.statusText}${message ? ` -- ${message}` : ""}`);
-    this.name = this.constructor.name;
-    this.response = response;
   }
 }
 

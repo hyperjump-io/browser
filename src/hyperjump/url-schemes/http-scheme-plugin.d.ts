@@ -1,5 +1,6 @@
 import type { RetrieveOptions, UrlSchemePlugin } from "./url-scheme-plugin.d.ts";
 import type { HttpCacheStore } from "./http-cache-store.d.ts";
+import type { HttpError } from "../hyperjump.d.ts";
 
 /**
  * Support the `http:` and `https:` URL schemes. Sends the Accept header it's
@@ -82,12 +83,3 @@ export type HttpUrlSchemePluginOptions = {
  * fragment. It can be async.
  */
 export type HeadersFunction = (url: URL) => HeadersInit | undefined | Promise<HeadersInit | undefined>;
-
-/**
- * Thrown when an HTTP request returns an error or an unsupported status code.
- */
-export class HttpError extends Error {
-  response: Response;
-
-  constructor(response: Response, message?: string);
-}

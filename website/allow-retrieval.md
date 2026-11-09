@@ -28,12 +28,13 @@ const h = new Hyperjump({
 });
 ```
 
-Retrieving a URL the list doesn't allow throws a `RetrievalNotAllowedError`. Its
-`url` is the URL that the session refused. Its message says how to allow that
-URL:
+Retrieving a URL the list doesn't allow throws a `RetrievalError`. Its `cause`
+is an `HttpError` for a `403`, the way a server refuses a request, and the
+`url` of the error's `response` is the URL that the session refused. The
+`HttpError` message says how to allow that URL:
 
 ```text
-Retrieving 'https://example.com/other' isn't allowed. Use the 'allowRetrieval' config to allow it.
+403 Forbidden -- Retrieving 'https://example.com/other' isn't allowed. Use the 'allowRetrieval' config to allow it.
 ```
 
 When a session's own list refused the URL, the message says to use the

@@ -106,8 +106,7 @@ When something goes wrong, `get` and `step` throw one of these errors:
 
 | Error | When |
 | --- | --- |
-| `RetrievalNotAllowedError` | `allowRetrieval` doesn't allow the URL. For more information, see [What a session can retrieve](allow-retrieval.md). |
-| `RetrievalError` | `allowRetrieval` allows the URL, but the session can't retrieve or parse the document. Its `cause` says why. For example, it's an `HttpError` for a `404` or a `FileNotFoundError`. Its `url` is the URL. |
+| `RetrievalError` | `allowRetrieval` allows the URL, but the session can't retrieve or parse the document. Its `cause` says why. For example, it's a `FileNotFoundError`, an `HttpError` for a `404`, or an `HttpError` for a `403` when [`allowRetrieval`](allow-retrieval.md) doesn't allow the URL. Its `url` is the URL. |
 | `JsonPointerError` | A fragment or a step doesn't find a value |
 | `ReferenceCycleError` | Following references leads back to a reference that the session already followed |
 | `UnsupportedMediaTypeError` | The response doesn't have a valid `Content-Type`, or no media type plugin handles it. It's the `cause` of a `RetrievalError`. |
