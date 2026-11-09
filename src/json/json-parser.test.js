@@ -1461,8 +1461,22 @@ describe("rejson processor", () => {
     expect(file.messages).toEqual([]);
   });
 
-  test("a file without a path fails, because it has no URL", () => {
+  test("a file without a path or a url fails, because it has no URL", () => {
     expect(() => rejson.parse(`{ "a": 1 }`)).toThrow(VFileMessage);
+  });
+
+  test("a file without a path has the url option's URL", () => {
+    const tree = unified().use(rejsonParse, { url: "https://example.com/doc.json" })
+      .parse(`{ "a": 1 }`);
+
+    expect(tree.url).toBe("https://example.com/doc.json");
+    expect(property(tree.children[0], 0).children[1].location).toBe("https://example.com/doc.json#/a");
+  });
+
+  test("a file with a path and a url fails", () => {
+    const parse = () => unified().use(rejsonParse, { url: "https://example.com/doc.json" })
+      .parse({ path: "/doc.json", value: `{}` });
+    expect(parse).toThrow("can't have a 'url' option too");
   });
 
   test("a relative path is resolved against the file's cwd", () => {

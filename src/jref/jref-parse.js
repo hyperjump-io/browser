@@ -1,5 +1,5 @@
-import { pathToUrl } from "#path-to-url";
 import { reportSyntaxErrors } from "../json/report-syntax-errors.js";
+import { fileUrl } from "../json/file-url.js";
 import { fromJref, jrefSyntaxErrorMessage } from "./jref-util.js";
 
 /**
@@ -10,11 +10,7 @@ import { fromJref, jrefSyntaxErrorMessage } from "./jref-util.js";
 /** @type typeof API.jrefParse */
 export function jrefParse(options) {
   this.parser = function (document, file) {
-    // A document's URL is its file's, so a file needs a path
-    if (!file.path) {
-      file.fail("A file needs a path, which is its document's URL");
-    }
-    const url = pathToUrl(file.cwd, file.path);
+    const url = fileUrl(file, options?.url);
 
     const { status, node, errors, comments } = fromJref(document, url, options);
     reportSyntaxErrors(file, errors, jrefSyntaxErrorMessage, status, options?.accept);

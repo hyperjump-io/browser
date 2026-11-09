@@ -131,12 +131,17 @@ status with it:
 - Every document has a URL. JSON and JRef get theirs the same way, and
   their document nodes have it as `url`. The unified parse plugins make it
   from the file's `path` and `cwd` (`pathToUrl`), and the media type
-  plugins use the response's URL. A file without a `path` fails the parse
-  with a message, because its document would have no URL.
-  - A `location` option on `rejsonParse` was rejected. The file already
-    says where the document is, so the option was a second place to say
-    it, which could disagree with the first, and a caller's string that
-    only JSON took.
+  plugins use the response's URL. A file without a `path`, like text from
+  stdin, gets it from the `url` option of `rejsonParse` and `jrefParse`. A
+  file with neither fails the parse with a message, because its document
+  would have no URL (`file-url.js`).
+  - A file with a `path` and a `url` fails too. They'd be two places to say
+    where the document is, which could disagree.
+  - A `location` option that replaced the file's path was rejected for the
+    same reason.
+  - Making up a URL for a file without a path was rejected. Its relative
+    references would resolve against a URL that nothing said the document
+    has.
 - `appendToLocation` caches the encoded form of each segment, because
   encoding was most of the time `fromJs` took (see
   [Node locations](../benchmarks/node-locations.md)).

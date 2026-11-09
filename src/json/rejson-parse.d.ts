@@ -10,8 +10,15 @@ export type JsonParseOptions = JsonOptions & {
    * file. A linter might accept `"failure"` to always get an AST.
    */
   accept?: JsonParseStatus;
+
+  /**
+   * The document's URL, for a file without a `path`, like text from stdin.
+   * A file with a `path` has the URL of its path, resolved against its
+   * `cwd`, so giving both fails the parse.
+   */
+  url?: string;
 };
 
-/** Parses JSON to a JSON AST. A file needs a path, which is the
- * document's URL, or the parse fails. */
+/** Parses JSON to a JSON AST. The document's URL is the file's path, or the
+ * `url` option for a file without one. Without either, the parse fails. */
 export const rejsonParse: Plugin<[JsonParseOptions?], string, JsonDocumentNode>;

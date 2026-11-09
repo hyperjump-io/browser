@@ -182,9 +182,18 @@ warnings.
 The parse plugins take the `allowComments` option, which works as it does for
 `fromJson`. The document's URL comes from the file's `path`, resolved against
 the file's `cwd`, and the document node has it as its `url`. Node locations
-start with it, and JRef references are resolved against it. A file needs a
-`path`, because without a URL the parse fails. The
-stringify plugins take the `space` option of `toJson`. To change the AST in a
+start with it, and JRef references are resolved against it. For text that isn't
+a file, such as text from stdin, give the parse plugin a `url` option instead:
+
+```typescript
+const processor = unified()
+  .use(jrefParse, { url: "https://example.com/doc.jref" })
+  .use(jrefStringify);
+```
+
+Without a `path` or a `url`, the document has no URL and the parse fails. A file
+that has both also fails, because they could disagree about where the document
+is. The stringify plugins take the `space` option of `toJson`. To change the AST in a
 pipeline, use a transformer plugin between the parse and stringify plugins.
 
 The parse plugins produce a document node whose `status` says how parsing went.

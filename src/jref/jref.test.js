@@ -14,8 +14,29 @@ const jref = unified()
   .freeze();
 
 describe("jref processor", () => {
-  test("a file without a path fails, because it has no URL", () => {
+  test("a file without a path or a url fails, because it has no URL", () => {
     expect(() => jref.parse(`{ "$ref": "foo.jref" }`)).to.throw(VFileMessage);
+  });
+
+  test("a file without a path has the url option's URL", () => {
+    const tree = unified().use(jrefParse, { url: "HTTPS://example.com/a/doc.jref" })
+      .parse(`{ "$ref": "foo.jref" }`);
+
+    expect(tree.url).to.equal("https://example.com/a/doc.jref");
+    const node = /** @type JrefNode & { type: "reference" } */ (tree.children[0]);
+    expect(node.href).to.equal("https://example.com/a/foo.jref");
+  });
+
+  test("a file with a path and a url fails", () => {
+    const parse = () => unified().use(jrefParse, { url: "https://example.com/doc.jref" })
+      .parse({ path: "/doc.jref", value: `{}` });
+    expect(parse).to.throw("can't have a 'url' option too");
+  });
+
+  test("a url that isn't a URL fails", () => {
+    const parse = () => unified().use(jrefParse, { url: "doc.jref" })
+      .parse(`{}`);
+    expect(parse).to.throw("isn't a URL without a fragment");
   });
 
   test("a file's references are stringified as they were written", async () => {
