@@ -6,6 +6,7 @@ import { jsonPointerGet } from "../json/jsonast-util.js";
 import { acceptHeader, fragmentPointer, mediaTypeByExtension, mediaTypePluginFor } from "./media-type-plugins.js";
 import { AllowedUrls, allowRetrievalLayer, configSource, resolveAllowRetrieval, sessionSource } from "./allowed-urls.js";
 import { compose } from "./layers.js";
+import { redirectsLayer } from "./redirects.js";
 import { problemDetail } from "./problem-details.js";
 import { relativeFileUrl } from "./file-urls.js";
 import { withoutFragment } from "./url-parts.js";
@@ -22,14 +23,6 @@ import { urlSchemesFetch } from "./url-schemes/url-schemes-fetch.js";
  */
 
 /** @typedef {Omit<RetrieveOptions, "accept" | "mediaTypeByExtension">} ParsedGetOptions */
-
-/**
- * Redirects are followed this many times, like `fetch` does, so a redirect
- * cycle fails instead of going on forever
- */
-const maxRedirects = 20;
-
-const redirectStatuses = new Set([301, 302, 303, 307, 308]);
 
 /** The statuses whose response is a representation the session can parse */
 const successStatuses = new Set([200, 203]);
@@ -186,7 +179,7 @@ export class Session {
 
     const { mediaTypePlugins } = hyperjump;
     this.#fetch = compose(
-      [allowRetrievalLayer((url) => allowedUrls.allows(url), source)],
+      [redirectsLayer, allowRetrievalLayer((url) => allowedUrls.allows(url), source)],
       urlSchemesFetch(hyperjump.urlSchemePlugins, hyperjump.accept, (url) => mediaTypeByExtension(mediaTypePlugins, url))
     );
   }
@@ -263,42 +256,19 @@ export class Session {
   }
 
   /**
-   * A plugin's redirect is followed here, with a request down the whole
-   * stack, so where it leads is checked by `allowRetrieval` before it's
-   * retrieved, and its retrieval is given the same options. A response the
-   * session can't parse, like a refusal or a server's 404, is an
-   * `HttpError`, explained by its Problem Details `detail` if it has one.
+   * Retrieve a document through the session's stack, which follows
+   * redirects and checks `allowRetrieval`. A response the session can't
+   * parse, like a refusal or a server's 404, is an `HttpError`, explained
+   * by its Problem Details `detail` if it has one.
    *
    * @type (id: string, options: ParsedGetOptions) => Promise<DocumentNode>
    */
   async #retrieveDocument(id, options) {
     let response;
-    let url = id;
-    for (let redirects = 0; ; redirects++) {
-      try {
-        response = await this.#retrieve(url, options);
-      } catch (error) {
-        throw new RetrievalError(id, { cause: error });
-      }
-
-      const location = redirectStatuses.has(response.status) ? response.headers.get("location") : null;
-      if (location === null) {
-        break;
-      }
-
-      await response.body?.cancel();
-      if (redirects === maxRedirects) {
-        throw new RetrievalError(id, { cause: Error(`It was redirected more than ${maxRedirects} times`) });
-      }
-
-      // `retrieve` gives every response a URL. The `Location` comes from
-      // outside, so it's parsed. The fragment isn't part of what's
-      // retrieved.
-      try {
-        url = withoutFragment(new URL(location, response.url).href);
-      } catch (error) {
-        throw new RetrievalError(id, { cause: error });
-      }
+    try {
+      response = await this.#retrieve(id, options);
+    } catch (error) {
+      throw new RetrievalError(id, { cause: error });
     }
 
     const responseUrl = response.url;
@@ -323,8 +293,7 @@ export class Session {
   /**
    * Retrieve through the session's stack. `referencedFrom` is the request's
    * `Referer`. The bottom of the stack gives every response a URL, without
-   * its fragment, so a redirect's `Location` can be relative to it and a
-   * media type plugin has it.
+   * its fragment, so a media type plugin has it.
    *
    * @type (url: string, options: ParsedGetOptions) => Promise<RetrievedResponse>
    */

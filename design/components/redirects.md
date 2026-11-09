@@ -1,15 +1,18 @@
-# Redirects (`Session`, `src/hyperjump/hyperjump.js`)
+# Redirects (`src/hyperjump/redirects.js`)
 
-A session follows redirects itself. A URL scheme plugin returns a redirect
-(301, 302, 303, 307 or 308 with a `Location`) and the session retrieves
-where it leads, with the plugin for that URL's scheme.
+A session follows redirects itself, with the redirects layer at the top of
+its stack (see [Layers](layers.md)). A URL scheme plugin returns a redirect
+(301, 302, 303, 307 or 308 with a `Location`) and the layer sends a new
+request for where it leads down the stack, to the plugin for that URL's
+scheme.
 
 - Each URL a redirect leads to is checked against `allowRetrieval` before
-  it's retrieved (see [What can be retrieved](allow-retrieval.md)). So a
+  it's retrieved, because the layer is above it (see
+  [What can be retrieved](allow-retrieval.md)). So a
   document can't make an application send a request to a URL it refused,
   such as an internal address.
 - Each request gets the headers for its own URL, because each one is a new
-  `retrieve` by the plugin (see [Request headers](request-headers.md)). A
+  request through the layers below, and a new `retrieve` by the plugin (see [Request headers](request-headers.md)). A
   token for one URL isn't sent to wherever its server redirects.
 - Letting `fetch` follow redirects was rejected. Headers would be chosen
   once for the URL that was asked for, and `fetch` sends them on to
@@ -23,8 +26,9 @@ where it leads, with the plugin for that URL's scheme.
     duplicated the session's check and its errors, which say which list to
     change. Returning the redirect gives the session what it needs to
     decide, so the plugin doesn't depend on anything.
-- A redirect is retrieved with the same options. Its `referencedFrom` is
-  still the document the reference came from, so the `file:` plugin still
+- A redirect is requested with the same headers as the request that was
+  redirected, so it's retrieved with the same options. Its `Referer`, the
+  plugin's `referencedFrom`, is still the document the reference came from, so the `file:` plugin still
   refuses a file for a document on the web, whatever led there.
 - The `http(s):` plugin only returns a redirect to an `http:` or `https:`
   URL, like `fetch`. Anything else is an `HttpError`. Otherwise a server
@@ -51,11 +55,11 @@ where it leads, with the plugin for that URL's scheme.
   what's retrieved. `get` uses the fragment that was asked for, not one in a
   `Location`.
 - Redirects are followed at most 20 times, like `fetch`, and then the
-  retrieval fails. That's also how a redirect cycle ends. Following a
+  layer throws, which fails the retrieval. That's also how a redirect cycle ends. Following a
   redirect with `getDocument`, to reuse the session's cache, was rejected:
   a cycle would wait for its own document forever.
 - A document is cached under the URL that was asked for and the URL its
-  response came from, as before (see [Sessions](sessions.md)). URLs in the
+  response came from (see [Sessions](sessions.md)). URLs in the
   middle of a chain aren't. The HTTP cache keeps a redirect like any other
   response, by its own URL, when it's cacheable, such as a 301 or a 308
   (see [HTTP cache](http-cache.md)).
