@@ -16,7 +16,8 @@ export class FileUrlSchemePlugin {
   }
 
   /** @type API.FileUrlSchemePlugin["retrieve"] */
-  async retrieve(url, options) {
+  async retrieve(request) {
+    const { url } = request;
     // The file is read from its real path, which is also the response's URL,
     // so references resolve relative to where the file really is. That's
     // true for a symlink anywhere in the path, not only the file itself.
@@ -36,14 +37,9 @@ export class FileUrlSchemePlugin {
     }
     const responseUrl = realFilePath === filePath ? url : pathToFileURL(realFilePath).href;
 
-    // A file doesn't have a media type, so it's the one its extension has
-    const headers = new Headers();
-    const mediaType = options.mediaTypeByExtension(responseUrl);
-    if (mediaType !== undefined) {
-      headers.set("content-type", mediaType);
-    }
+    // A file doesn't have a media type. The stack gives it its extension's.
     const stream = /** @type ReadableStream<Uint8Array> */ (Readable.toWeb(createReadStream(realFilePath)));
-    const response = new Response(stream, { headers });
+    const response = new Response(stream);
     Object.defineProperty(response, "url", { value: responseUrl });
 
     return response;

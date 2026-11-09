@@ -1,13 +1,13 @@
-import type { RetrieveOptions, UrlSchemePlugin } from "./url-scheme-plugin.d.ts";
+import type { UrlSchemePlugin } from "./url-scheme-plugin.d.ts";
 import type { HttpCacheStore } from "./http-cache-store.d.ts";
-import type { HttpError } from "../hyperjump.d.ts";
+import type { HttpError, HyperjumpConfig } from "../hyperjump.d.ts";
 
 /**
- * Support the `http:` and `https:` URL schemes. Sends the Accept header it's
- * given (`options.accept`), for the media types that are supported. A
- * response has to have a `Content-Type`, because a URL's extension doesn't
- * say what's at it, unless its URL is one of the `mediaTypeByExtension`
- * option's.
+ * Support the `http:` and `https:` URL schemes. Sends the request's `Accept`
+ * header, for the media types that are supported. A response has to have a
+ * `Content-Type`, because a URL's extension doesn't say what's at it, unless
+ * its URL is one of the `mediaTypeByExtension` config's (see
+ * {@link HyperjumpConfig}).
  *
  * With a cache, responses are cached according to their caching headers
  * (RFC 9111, as a private cache), and stale responses are revalidated when
@@ -25,7 +25,7 @@ export class HttpUrlSchemePlugin implements UrlSchemePlugin {
    * @throws An {@link HttpError} if the response is an error or has a status
    * code that isn't supported
    */
-  retrieve(url: string, options: RetrieveOptions): Promise<Response>;
+  retrieve(request: Request): Promise<Response>;
 }
 
 export type HttpUrlSchemePluginOptions = {
@@ -47,8 +47,8 @@ export type HttpUrlSchemePluginOptions = {
    *
    * A value can be a {@link HeadersFunction}, to refresh a token for
    * example. When more than one URL matches, their headers are merged, and
-   * a longer URL's headers win. The `Accept` header is always the one
-   * `retrieve` is given.
+   * a longer URL's headers win. The `Accept` header is always the
+   * request's.
    *
    * A redirect is followed by the session, so the request it leads to gets
    * the headers for its own URL. In a browser, `fetch` follows redirects
@@ -63,19 +63,6 @@ export type HttpUrlSchemePluginOptions = {
    * don't share a cache.
    */
   headers?: Record<string, HeadersInit | HeadersFunction>;
-
-  /**
-   * URLs whose responses get the media type of their URL's extension, for
-   * servers that send a missing or wrong `Content-Type`, like GitHub raw
-   * URLs, which are `text/plain`. A URL that ends with `/` is for everything
-   * under it, and any other is only for itself, like a `headers` URL. It's
-   * matched by the URL a response came from, after any redirects, and the
-   * extension is its path's, without the query. A response whose extension
-   * no media type plugin has keeps the `Content-Type` the server sent. A URL
-   * has to be an absolute `http:` or `https:` URL, or the plugin throws when
-   * it's created.
-   */
-  mediaTypeByExtension?: string[];
 };
 
 /**

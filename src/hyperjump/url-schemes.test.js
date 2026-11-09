@@ -52,7 +52,7 @@ describe("JSON Browser", () => {
           allowRetrieval: ["foo:something"],
           urlSchemePlugins: [{
             schemes: ["foo"],
-            retrieve: async (url) => {
+            retrieve: async ({ url }) => {
               const stream = new Readable();
               stream.push(fixtureDocument);
               stream.push(null);
@@ -95,15 +95,15 @@ describe("JSON Browser", () => {
         await expect(hyperjump.session().get("http://[::1]:1/foo")).rejects.toHaveProperty("cause", expect.objectContaining({ name: "TypeError" }));
       });
 
-      test("a plugin is given the Accept header", async () => {
+      test("a request has the Accept header", async () => {
         /** @type string | undefined */
         let accept;
         const hyperjump = new Hyperjump({
           allowRetrieval: ["foo:something"],
           urlSchemePlugins: [{
             schemes: ["foo"],
-            retrieve: async (_uri, options) => {
-              accept = options.accept;
+            retrieve: async (request) => {
+              accept = request.headers.get("accept") ?? undefined;
               return new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } });
             }
           }]
@@ -111,24 +111,6 @@ describe("JSON Browser", () => {
 
         await hyperjump.session().get("foo:something");
         expect(accept).to.equal("application/reference+json, application/json, */*; q=0.001");
-      });
-
-      test("a plugin is given the media type of a URL's extension", async () => {
-        /** @type string | undefined */
-        let mediaType;
-        const hyperjump = new Hyperjump({
-          allowRetrieval: ["foo:something"],
-          urlSchemePlugins: [{
-            schemes: ["foo"],
-            retrieve: async (_uri, options) => {
-              mediaType = options.mediaTypeByExtension("foo:something.json");
-              return new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } });
-            }
-          }]
-        });
-
-        await hyperjump.session().get("foo:something");
-        expect(mediaType).to.equal("application/json");
       });
 
       test("a response without a Content-Type doesn't get its extension's media type", async () => {
@@ -191,7 +173,7 @@ describe("JSON Browser", () => {
           allowRetrieval: ["foo:/"],
           urlSchemePlugins: [{
             schemes: ["foo"],
-            retrieve: async (url) => {
+            retrieve: async ({ url }) => {
               retrieved = url;
               return new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } });
             }
@@ -268,7 +250,7 @@ describe("JSON Browser", () => {
           allowRetrieval: ["foo:/"],
           urlSchemePlugins: [{
             schemes: ["foo"],
-            retrieve: async (url) => {
+            retrieve: async ({ url }) => {
               const response = url === "foo:/a"
                 ? new Response(null, { status: 302, headers: { location: "c" } })
                 : new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } });
@@ -301,7 +283,7 @@ describe("JSON Browser", () => {
         await expect(hyperjump.session().getDocument("foo:/a")).rejects.toBeInstanceOf(RetrievalError);
       });
 
-      test("a redirect is retrieved with the same options", async () => {
+      test("a redirect is retrieved with the same headers", async () => {
         /** @type string | undefined */
         let referencedFrom;
         const hyperjump = new Hyperjump({
@@ -309,8 +291,8 @@ describe("JSON Browser", () => {
           urlSchemePlugins: [
             {
               schemes: ["foo"],
-              retrieve: async (_uri, options) => {
-                referencedFrom = options.referencedFrom;
+              retrieve: async (request) => {
+                referencedFrom = request.headers.get("referer") ?? undefined;
                 return new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } });
               }
             },
@@ -358,7 +340,7 @@ describe("JSON Browser", () => {
           allowRetrieval: ["foo:/"],
           urlSchemePlugins: [{
             schemes: ["foo"],
-            retrieve: async (url) => url === "foo:/a/b"
+            retrieve: async ({ url }) => url === "foo:/a/b"
               ? new Response(null, { status: 302, headers: { location: "c" } })
               : new Response(fixtureDocument, { headers: { "Content-Type": "application/reference+json" } })
           }]
@@ -374,7 +356,7 @@ describe("JSON Browser", () => {
           allowRetrieval: ["foo:/"],
           urlSchemePlugins: [{
             schemes: ["foo"],
-            retrieve: async (url) => {
+            retrieve: async ({ url }) => {
               retrievals++;
               return Response.redirect(url === "foo:/a" ? "foo:/b" : "foo:/a");
             }
@@ -406,7 +388,7 @@ describe("JSON Browser", () => {
 /** @type (document: string) => UrlSchemePlugin */
 const fooPlugin = (document) => ({
   schemes: ["foo"],
-  retrieve: async (url) => {
+  retrieve: async ({ url }) => {
     const response = new Response(document, { headers: { "Content-Type": "application/reference+json" } });
     Object.defineProperty(response, "url", { value: url });
     return response;

@@ -133,19 +133,16 @@ server sends. Some servers send the wrong one or none at all. GitHub sends
 read those files as JSON. The file's `.json` extension isn't an authority on
 what the server sends, and anyone can give a URL a misleading extension.
 
-The HTTP plugin uses extensions only for the URLs listed in its
-`mediaTypeByExtension` option. To trust a server's extensions, replace the
-default HTTP plugin with one that has that option. In this example, documents
-from GitHub get their media type from their extension:
+A session uses extensions only for files and the URLs listed in the
+`mediaTypeByExtension` config. To trust a server's extensions, list its URLs. In
+this example, documents from GitHub get their media type from their extension:
 
 ```typescript
-import { Hyperjump, HttpUrlSchemePlugin } from "@hyperjump/browser";
+import { Hyperjump } from "@hyperjump/browser";
 
 const h = new Hyperjump({
   allowRetrieval: ["https://raw.githubusercontent.com/my-org/my-repo/"],
-  urlSchemePlugins: [new HttpUrlSchemePlugin({
-    mediaTypeByExtension: ["https://raw.githubusercontent.com/"]
-  })]
+  mediaTypeByExtension: ["https://raw.githubusercontent.com/"]
 });
 ```
 
@@ -158,7 +155,6 @@ doesn't hide the extension.
 
 URLs in `mediaTypeByExtension` match the way they do in
 [`allowRetrieval`](allow-retrieval.md). A URL that ends with `/` matches every
-URL under it. Any other URL matches only itself. Every URL has to be an absolute
-`http:` or `https:` URL. When a server redirects a request, the plugin matches
-the URL that the redirect leads to because the server at that URL is the one
-that sent the document.
+URL under it. Any other URL matches only itself. Every URL has to be absolute.
+When a server redirects a request, the session matches the URL that the redirect
+leads to because the server at that URL is the one that sent the document.

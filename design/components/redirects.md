@@ -27,8 +27,7 @@ scheme.
     change. Returning the redirect gives the session what it needs to
     decide, so the plugin doesn't depend on anything.
 - A redirect is requested with the same headers as the request that was
-  redirected, so it's retrieved with the same options. Its `Referer`, the
-  plugin's `referencedFrom`, is still the document the reference came
+  redirected. Its `Referer` is still the document the reference came
   from, so `file:` from `file:` still refuses a file for a document on the
   web, whatever led there.
 - The `http(s):` plugin only returns a redirect to an `http:` or `https:`

@@ -2,6 +2,7 @@ import CachePolicy from "http-cache-semantics";
 import { defaultHttpCache } from "#default-http-cache";
 import { redirectMode } from "#redirect-mode";
 import { HttpError } from "../hyperjump.js";
+import { matchesUrlEntry, resolveUrlEntry } from "../url-entries.js";
 
 /**
  * @import { HttpCacheStore } from "./http-cache-store.d.ts"
@@ -37,14 +38,6 @@ export class HttpUrlSchemePlugin {
   #headers;
 
   /**
-   * The `mediaTypeByExtension` option's URLs, for servers that send the wrong
-   * `Content-Type`
-   *
-   * @type string[]
-   */
-  #extensionUrls;
-
-  /**
    * Responses being retrieved, by URL and Accept header, so concurrent
    * requests for the same URL share one request. A plugin can be in more
    * than one `Hyperjump`, whose media types, and so Accept headers, can
@@ -63,32 +56,19 @@ export class HttpUrlSchemePlugin {
 
     this.#cache = options.cache === false ? undefined : options.cache ?? defaultHttpCache();
     this.#headers = resolveHeaders(options.headers ?? {});
-    this.#extensionUrls = (options.mediaTypeByExtension ?? []).map((entry) => resolveEntry(entry, "mediaTypeByExtension"));
     this.#pending = new Map();
   }
 
   /** @type API.HttpUrlSchemePlugin["retrieve"] */
-  async retrieve(url, { accept, mediaTypeByExtension }) {
+  async retrieve(request) {
+    // Only the request's `Accept` is sent. Its `Referer` can be a file's URL,
+    // which a server shouldn't see.
+    const { url } = request;
+    const accept = request.headers.get("accept");
     if (!this.#cache) {
       const response = await fetch(url, { headers: await this.#requestHeaders(url, accept), redirect: redirectMode });
       await assertUsable(url, response);
-      if (redirectStatuses.has(response.status)) {
-        return response;
-      }
-
-      const mediaType = this.#extensionMediaType(response.url || url, mediaTypeByExtension);
-      if (mediaType === undefined) {
-        return response;
-      }
-
-      // A response from `fetch` can't have its headers changed. Its status is
-      // a success, which the constructor accepts.
-      const headers = new Headers(response.headers);
-      headers.set("content-type", mediaType);
-      const typedResponse = new Response(response.body, { status: response.status, statusText: response.statusText, headers });
-      Object.defineProperty(typedResponse, "url", { value: response.url || url });
-
-      return typedResponse;
+      return response;
     }
 
     const key = JSON.stringify([url, accept]);
@@ -101,18 +81,14 @@ export class HttpUrlSchemePlugin {
     }
 
     const { body, status, headers, url: responseUrl } = await pending;
-    // The cache has the `Content-Type` the server sent, so changing the option
-    // doesn't need the cache cleared
-    const mediaType = this.#extensionMediaType(responseUrl, mediaTypeByExtension);
-    const responseHeaders = mediaType === undefined ? headers : { ...headers, "content-type": mediaType };
     // A string body would get a `Content-Type` if the response doesn't have one
-    const response = new Response(new TextEncoder().encode(body), { status, headers: responseHeaders });
+    const response = new Response(new TextEncoder().encode(body), { status, headers });
     Object.defineProperty(response, "url", { value: responseUrl });
 
     return response;
   }
 
-  /** @type (url: string, accept: string, cache: HttpCacheStore) => Promise<ReadResponse> */
+  /** @type (url: string, accept: string | null, cache: HttpCacheStore) => Promise<ReadResponse> */
   async #retrieveCached(url, accept, cache) {
     // The cache needs every header sent so it can match a `Vary`
     const request = { url, method: "GET", headers: await this.#requestHeaders(url, accept) };
@@ -162,7 +138,10 @@ export class HttpUrlSchemePlugin {
    * fragment, which isn't part of a request. It's a copy for each function,
    * so one that changes it doesn't change what the next one sees.
    *
-   * @type (href: string, accept: string) => Promise<Record<string, string>>
+   * The request's `Accept` replaces one of these, because the media type
+   * plugins depend on it.
+   *
+   * @type (href: string, accept: string | null) => Promise<Record<string, string>>
    */
   async #requestHeaders(href, accept) {
     const url = new URL(href);
@@ -170,36 +149,18 @@ export class HttpUrlSchemePlugin {
 
     const headers = new Headers();
     for (const [entry, value] of this.#headers) {
-      if (matches(entry, url.href)) {
+      if (matchesUrlEntry(entry, url.href)) {
         const entryHeaders = new Headers(typeof value === "function" ? await value(new URL(url)) : value);
         for (const [name, headerValue] of entryHeaders) {
           headers.set(name, headerValue);
         }
       }
     }
-    headers.set("accept", accept);
-
-    return Object.fromEntries(headers);
-  }
-
-  /**
-   * The media type of a response's URL's extension, if the URL is one the
-   * `mediaTypeByExtension` option lists and a media type plugin has the
-   * extension. It's matched by the URL the response came from, because that's
-   * the server that sends the wrong type. The extension is the path's, without
-   * the query, which a URL like a private GitHub raw URL has.
-   *
-   * @type (responseUrl: string, mediaTypeByExtension: (url: string) => string | undefined) => string | undefined
-   */
-  #extensionMediaType(responseUrl, mediaTypeByExtension) {
-    const url = new URL(responseUrl);
-    url.hash = "";
-    if (!this.#extensionUrls.some((entry) => matches(entry, url.href))) {
-      return undefined;
+    if (accept !== null) {
+      headers.set("accept", accept);
     }
 
-    url.search = "";
-    return mediaTypeByExtension(url.href);
+    return Object.fromEntries(headers);
   }
 }
 
@@ -211,40 +172,24 @@ export class HttpUrlSchemePlugin {
  */
 const resolveHeaders = (headers) => {
   return Object.entries(headers)
-    .map(([entry, value]) => /** @type [string, HeadersInit | API.HeadersFunction] */ ([resolveEntry(entry, "headers"), value]))
+    .map(([entry, value]) => /** @type [string, HeadersInit | API.HeadersFunction] */ ([resolveEntry(entry), value]))
     .sort(([a], [b]) => a.length - b.length);
 };
 
 /**
- * An option's URL is compared after it's parsed, like an `allowRetrieval`
- * entry, and its fragment is ignored. One that isn't an absolute `http(s):`
- * URL would never match, so it throws.
+ * A `headers` URL that isn't an `http(s):` URL would never match, so it
+ * throws, like one that isn't absolute
  *
- * @type (entry: string, option: string) => string
+ * @type (entry: string) => string
  */
-const resolveEntry = (entry, option) => {
-  let url;
-  try {
-    url = new URL(entry);
-  } catch {
-    throw Error(`'${entry}' in the '${option}' option isn't an absolute URL`);
+const resolveEntry = (entry) => {
+  const href = resolveUrlEntry(entry, "'headers' option");
+  if (!href.startsWith("http:") && !href.startsWith("https:")) {
+    throw Error(`'${entry}' in the 'headers' option isn't an 'http:' or 'https:' URL`);
   }
 
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw Error(`'${entry}' in the '${option}' option isn't an 'http:' or 'https:' URL`);
-  }
-
-  url.hash = "";
-  return url.href;
+  return href;
 };
-
-/**
- * An option's URL that ends with `/` is for everything under it, and any
- * other is only for itself
- *
- * @type (entry: string, href: string) => boolean
- */
-const matches = (entry, href) => entry.endsWith("/") ? href.startsWith(entry) : href === entry;
 
 /**
  * A success, or a redirect for the session to follow. A redirect has to

@@ -137,9 +137,9 @@ State is separated by how long it lives.
   pure functions of them (`media-type-plugins.js`), so they're tested
   without retrieving anything.
   - The functions aren't exported from the package, because their
-    signatures are how a `Hyperjump` keeps its plugins. URL scheme plugins
-    get what they need from them as values (`options.accept` and
-    `options.mediaTypeByExtension`).
+    signatures are how a `Hyperjump` keeps its plugins. The layers of a
+    session's stack are built with what they need from them as values,
+    the `Accept` header and the media type of an extension.
   - A session builds its stack (see [Layers](layers.md)) from them. What
     sessions share is state the `Hyperjump` resolves, like the HTTP cache's
     store, not a stack. A `Hyperjump` with a public stack for sessions to

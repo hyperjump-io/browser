@@ -65,6 +65,21 @@ export type HyperjumpConfig<T extends JsonNode<{ type: string }> = JrefNode> = {
    * order, with each plugin's `quality`.
    */
   mediaTypePlugins?: MediaTypePlugin<DocumentNode<T>>[];
+
+  /**
+   * URLs whose responses get the media type of their URL's extension, for
+   * servers that send a missing or wrong `Content-Type`, like GitHub raw
+   * URLs, which are `text/plain`. A URL that ends with `/` is for everything
+   * under it, and any other is only for itself, like an `allowRetrieval`
+   * URL. It's matched by the URL a response came from, after any redirects,
+   * and the extension is its path's, without the query. A response whose
+   * extension no media type plugin has keeps the `Content-Type` it has. A
+   * URL has to be absolute, or the constructor throws.
+   *
+   * A file doesn't have a media type, so a `file:` response always gets its
+   * extension's.
+   */
+  mediaTypeByExtension?: string[];
 };
 
 export type SessionOptions = {

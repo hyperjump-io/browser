@@ -9,8 +9,10 @@ fragments identify. JSON and JRef are built in.
 - `content-type` v3 doesn't throw for a malformed header, so the type is
   validated, to keep rejecting an invalid `Content-Type`.
 - The `Accept` header lists every plugin with its quality, `q=0` included,
-  and `*/*` last. It's the `Hyperjump`'s `accept`, and a session gives it
-  to the URL scheme plugin (`options.accept`). A plugin's quality is the plugin's (`quality`), and
+  and `*/*` last. It's the `Hyperjump`'s `accept`, and the `Accept` layer
+  of a session's stack (`accept.js`, see [Layers](layers.md)) sets it on
+  every request, replacing one the request has, because the media type
+  plugins depend on it. A plugin's quality is the plugin's (`quality`), and
   the JRef and JSON plugins take it as a constructor option. Changing a
   default's quality is configuring a replacement. A `setMediaTypeQuality`
   for a registered plugin was rejected with the other ways to change
@@ -29,55 +31,56 @@ fragments identify. JSON and JRef are built in.
   like `@hyperjump/json-schema`'s for JSON that might be a schema, gives
   them the text as it is, without making a new `Response` and defining its
   `url`, which its constructor can't set.
-- A response without a `Content-Type` can't be parsed. A plugin for a
-  scheme without media types, like `file:`, gives a response the media type
-  of its URL's extension with `options.mediaTypeByExtension`. The
-  `http(s):` plugin doesn't by default because a URL's extension doesn't
-  say what the server sends.
-  - The `Hyperjump` giving every response without a `Content-Type` its
-    extension's media type, after the plugin returns it, was rejected. The
-    `http(s):` plugin would have to throw for a response without one to
-    keep it from being guessed. It would throw before `allowRetrieval`
-    checks the response's URL, so a redirect to a refused URL would be
-    reported as the plugin's error instead of a refusal. Guessing also means replacing a response
-    from `fetch`, whose headers can't be changed, with a new `Response`,
-    which throws for some statuses and loses `redirected`.
-  - A flag on the plugin to turn guessing off was considered. Guessing on
-    by default would let a plugin that maps to an `http(s):` URL, like
-    `urn:`, guess from that URL. Making the plugin
-    decide removes the guessing from the `Hyperjump` instead.
-  - Only a plugin knows whether its scheme has media types, so a plugin
-    can also use the extension for a server that's known to send the wrong
-    `Content-Type`. That's what the `http(s):` plugin's
-    `mediaTypeByExtension` option does.
-- The `http(s):` plugin's `mediaTypeByExtension` option lists URLs whose
-  documents get their media type from their extension. It's for servers
-  that send the wrong `Content-Type`. GitHub sends `text/plain` for every
-  raw file. Replacing a type the server sent isn't standard, so it's only
-  done for the URLs the user lists. RFC 9110 §8.3 only lets a client work
-  out a missing type.
+- A response without a `Content-Type` can't be parsed. The media type by
+  extension layer of a session's stack (`media-type-by-extension.js`, see
+  [Layers](layers.md)) gives a response the media type of its URL's
+  extension when it's a `file:` response, because a file doesn't have a
+  media type, or when its URL is one of the `mediaTypeByExtension`
+  config's. Any other response keeps what it has, because a URL's extension
+  doesn't say what a server sends.
+  - Giving every response without a `Content-Type` its extension's media
+    type was rejected. A server that sends none would have its type
+    guessed, and a plugin for a scheme that maps to an `http(s):` URL, like
+    `urn:`, would guess from that URL.
+  - URL scheme plugins setting it, with an `options.mediaTypeByExtension`
+    from the session, was rejected because a plugin is a `Fetch`, which
+    takes only a request. A plugin's own option for it, like the
+    `http(s):` plugin's, couldn't know the media type plugins either.
+  - `file:` is always given its extension's media type, rather than being a
+    default entry in the config, so a config that lists other URLs doesn't
+    have to list it, and an application's own `file:` plugin gets it too.
+    An application's plugin for another scheme without media types lists
+    its URLs in the config.
+- The `mediaTypeByExtension` config lists URLs whose responses get their
+  media type from their extension. It's for servers that send the wrong
+  `Content-Type`. GitHub sends `text/plain` for every raw file. Replacing a
+  type the server sent isn't standard, so it's only done for the URLs the
+  user lists. RFC 9110 §8.3 only lets a client work out a missing type.
   - The extension replaces a wrong type as well as a missing one. Filling
     in only a missing type was rejected because GitHub's type isn't
-    missing. When no media type plugin defines the extension, the server's
-    type is kept because it's still the best there is.
-  - The option is a list like `allowRetrieval`. A record by URL like
-    `headers` was rejected because there's nothing to give each URL. Its
-    URLs are checked and matched the way `headers` URLs are. See
+    missing. When no media type plugin defines the extension, the
+    response's type is kept because it's still the best there is.
+  - It's `Hyperjump` config, not an option of the `http(s):` plugin,
+    because the layer needs the media type plugins. Its URLs can have any
+    scheme, and have to be absolute, because there's no context URL when a
+    `Hyperjump` is created.
+  - The list works like `allowRetrieval`. A record by URL like `headers`
+    was rejected because there's nothing to give each URL. Its URLs are
+    checked and matched the way `headers` URLs are (`url-entries.js`). See
     [Request headers](request-headers.md).
   - A response is matched by the URL it came from after any redirects
     because that's the server that sent the wrong type. `headers` is
     matched by the URL that's requested because headers are part of the
     request.
-  - The extension is the end of the URL's path. `options.mediaTypeByExtension`
-    matches the end of the whole URL, so a query such as the `?token=` on a
-    private GitHub raw URL would hide it.
-  - The media type is set on the response the plugin returns, not on the
-    cached response. The cache keeps what the server sent, so plugins with
-    different `mediaTypeByExtension` options can share a cache. A response
-    from `fetch` can't have its headers changed, so without a cache it's
-    replaced with a new `Response`. Its status is 200 or 203 by then, which
-    the constructor accepts. The new response doesn't keep `redirected`,
-    but nothing reads it.
+  - The extension is the end of the URL's path, without the query, such as
+    the `?token=` on a private GitHub raw URL, which would hide it.
+  - Only a success (200 or 203) gets it, so an error keeps its type, like a
+    refusal's Problem Details.
+  - The layer is above the HTTP cache, so the cache keeps the
+    `Content-Type` the server sent, and changing the config doesn't need
+    the cache cleared. A response from `fetch` can't have its headers
+    changed, so it's replaced with a new `Response`. The new response
+    doesn't keep `redirected`, but nothing reads it.
 - A response that no plugin can parse, for a missing, invalid or
   unsupported `Content-Type`, has its body cancelled, so its file or
   connection is released. The `file:` plugin opens a file before its media
@@ -88,10 +91,10 @@ fragments identify. JSON and JRef are built in.
 - URL scheme plugins don't get the `Hyperjump`. Constructing them with it
   was rejected. The `http(s):` plugin would only use it for the `Accept`
   header and the `file:` plugin for a file's media type, and the client and
-  its plugins would depend on each other. What they need are values
-  `retrieve` gives them: `options.accept` and
-  `options.mediaTypeByExtension`. A plugin for a scheme that maps to another
-  URL, like `urn:`, returns a redirect (see [Redirects](redirects.md)).
+  its plugins would depend on each other. The layers above them give the
+  request its `Accept` and the response its extension's media type. A
+  plugin for a scheme that maps to another URL, like `urn:`, returns a
+  redirect (see [Redirects](redirects.md)).
 - A file's media type is the plugin with the longest matching extension, so
   a plugin for `.schema.json` takes precedence over the JSON plugin, whatever
   order they were added in. Letting the first plugin with a matching

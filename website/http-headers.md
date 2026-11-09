@@ -32,7 +32,7 @@ plugin has no `cache` option, so it still uses the default
 
 When more than one URL matches a request, the plugin merges their headers and
 the longer URL's headers win. That way an API can have one token and a path
-under it can have another. You don't need to set `Accept`. The plugin always
+under it can have another. You don't need to set `Accept`. The session always
 sets it to the media types that the `Hyperjump` supports.
 
 ## Headers that change

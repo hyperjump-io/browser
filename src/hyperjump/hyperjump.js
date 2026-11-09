@@ -8,6 +8,8 @@ import { AllowedUrls, allowRetrievalLayer, configSource, resolveAllowRetrieval, 
 import { compose } from "./layers.js";
 import { redirectsLayer } from "./redirects.js";
 import { fileFromFileLayer } from "./file-from-file.js";
+import { mediaTypeByExtensionLayer, resolveExtensionUrls } from "./media-type-by-extension.js";
+import { acceptLayer } from "./accept.js";
 import { problemDetail } from "./problem-details.js";
 import { relativeFileUrl } from "./file-urls.js";
 import { withoutFragment } from "./url-parts.js";
@@ -20,10 +22,9 @@ import { urlSchemesFetch } from "./url-schemes/url-schemes-fetch.js";
  * @import { FollowedNode } from "./browsing.d.ts"
  * @import { Fetch } from "./layers.js"
  * @import * as API from "./hyperjump.d.ts"
- * @import { RetrieveOptions } from "./url-schemes/url-scheme-plugin.d.ts"
  */
 
-/** @typedef {Omit<RetrieveOptions, "accept" | "mediaTypeByExtension">} ParsedGetOptions */
+/** @typedef {{ referencedFrom?: string }} ParsedGetOptions */
 
 /** The statuses whose response is a representation the session can parse */
 const successStatuses = new Set([200, 203]);
@@ -60,10 +61,11 @@ export class Hyperjump {
    * @param {API.HyperjumpConfig} [config]
    */
   constructor(config = {}) {
-    // Each session resolves it, but an entry that isn't a URL throws here
+    // Each session resolves them, but an entry that isn't a URL throws here
     if (config.allowRetrieval !== undefined) {
       resolveAllowRetrieval(config.allowRetrieval, contextUrl(), configSource);
     }
+    resolveExtensionUrls(config.mediaTypeByExtension ?? []);
 
     // A frozen copy, so a change to the object it was given, after it was
     // checked, doesn't change what new sessions allow
@@ -71,7 +73,8 @@ export class Hyperjump {
       ...config,
       allowRetrieval: frozenCopy(config.allowRetrieval),
       urlSchemePlugins: frozenCopy(config.urlSchemePlugins),
-      mediaTypePlugins: frozenCopy(config.mediaTypePlugins)
+      mediaTypePlugins: frozenCopy(config.mediaTypePlugins),
+      mediaTypeByExtension: frozenCopy(config.mediaTypeByExtension)
     });
 
     // The config's plugins come after the defaults, and a later plugin for a
@@ -179,10 +182,14 @@ export class Session {
     const allowedUrls = new AllowedUrls(allowRetrieval === undefined ? undefined : resolveAllowRetrieval(allowRetrieval, this.#contextUrl, source), this.#contextUrl);
 
     const { mediaTypePlugins } = hyperjump;
-    this.#fetch = compose(
-      [redirectsLayer, allowRetrievalLayer((url) => allowedUrls.allows(url), source), fileFromFileLayer],
-      urlSchemesFetch(hyperjump.urlSchemePlugins, hyperjump.accept, (url) => mediaTypeByExtension(mediaTypePlugins, url))
-    );
+    const extensionUrls = resolveExtensionUrls(hyperjump.config.mediaTypeByExtension ?? []);
+    this.#fetch = compose([
+      redirectsLayer,
+      allowRetrievalLayer((url) => allowedUrls.allows(url), source),
+      fileFromFileLayer,
+      mediaTypeByExtensionLayer(extensionUrls, (url) => mediaTypeByExtension(mediaTypePlugins, url)),
+      acceptLayer(hyperjump.accept)
+    ], urlSchemesFetch(hyperjump.urlSchemePlugins));
   }
 
   get hyperjump() {

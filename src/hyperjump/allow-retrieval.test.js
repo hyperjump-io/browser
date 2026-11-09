@@ -282,7 +282,7 @@ const directoryUri = (path) => pathToFileURL(join(path, "/")).href;
  */
 const testScheme = (url) => ({
   schemes: ["test"],
-  retrieve: async (requested) => {
+  retrieve: async ({ url: requested }) => {
     const response = new Response(document, { headers: { "Content-Type": "application/json" } });
     Object.defineProperty(response, "url", { value: url ?? requested });
     return response;

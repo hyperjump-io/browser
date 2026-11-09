@@ -15,8 +15,8 @@
   for everything under it, and any other is only for itself. They're
   compared after they're parsed, and a key's fragment is ignored. It's the
   same rule in both places, and prefixes rather than globs for the same
-  reasons. The `mediaTypeByExtension` option's URLs are checked and matched
-  the same way (see [Media types](media-types.md)).
+  reasons. The `mediaTypeByExtension` config's URLs are matched the same
+  way (`url-entries.js`) (see [Media types](media-types.md)).
 - Keys have to be absolute `http:` or `https:` URLs, or the plugin throws
   when it's created. It doesn't have a context URL to resolve a relative
   one against, and a key with another scheme would never match.
@@ -33,8 +33,10 @@
   whoever used it would be back to writing the check.
   What a prefix can't say, such as any subdomain, could be done with
   `URLPattern` keys if it's needed.
-- `Accept` is always the one `retrieve` gives the plugin (`options.accept`),
-  because media type plugins depend on it.
+- `Accept` is always the request's, which the `Accept` layer sets, because
+  media type plugins depend on it.
+- The plugin sends only these and the request's `Accept`. A request's
+  `Referer` can be a file's URL, which a server shouldn't see.
 - The headers are in the request the HTTP cache sees, so a `Vary` on them is
   respected, and revalidating sends them too. The cache is private and
   shared by every session, so headers belong to the plugin, not a session.

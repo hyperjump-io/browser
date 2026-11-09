@@ -19,10 +19,10 @@
   the URL of the document with the reference, isn't a `file:` URL. A
   request without a `Referer`, like a URL an application passes to `get`,
   is allowed.
-- A file doesn't have a media type, so its response's `Content-Type` is
-  the media type of its extension, the longest one a media type plugin
-  matches (`options.mediaTypeByExtension`, see [Media types](media-types.md)).
-  Without one, the response doesn't have a `Content-Type`.
+- A file doesn't have a media type, so its response doesn't have a
+  `Content-Type`. The media type by extension layer gives a `file:`
+  response the media type of its extension, the longest one a media type
+  plugin matches (see [Media types](media-types.md)).
 - A missing file is a `FileNotFoundError` whose message is relative to the
   working directory, not Node.js's error (see [Local paths in
   errors](file-urls.md)).

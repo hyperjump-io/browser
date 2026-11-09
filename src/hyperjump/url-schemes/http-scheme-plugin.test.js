@@ -610,12 +610,13 @@ describe("JSON Browser", () => {
         });
       });
 
-      describe("mediaTypeByExtension", () => {
-        /** @type (options: import("./http-scheme-plugin.d.ts").HttpUrlSchemePluginOptions) => Hyperjump */
-        const withOptions = (options) => {
+      describe("the mediaTypeByExtension config", () => {
+        /** @type (cache: MemoryHttpCacheStore | false, mediaTypeByExtension: string[]) => Hyperjump */
+        const withOptions = (cache, mediaTypeByExtension) => {
           return new Hyperjump({
             allowRetrieval: ["https://example.com/", "https://other.example.com/"],
-            urlSchemePlugins: [new HttpUrlSchemePlugin(options)]
+            urlSchemePlugins: [new HttpUrlSchemePlugin({ cache })],
+            mediaTypeByExtension
           });
         };
 
@@ -638,7 +639,7 @@ describe("JSON Browser", () => {
               .intercept({ method: "GET", path: "/foo.json" })
               .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "text/plain" } });
 
-            const hyperjump = withOptions({ cache: cache(), mediaTypeByExtension: ["https://example.com/"] });
+            const hyperjump = withOptions(cache(), ["https://example.com/"]);
             const subject = await hyperjump.session().get(`${testDomain}/foo.json`);
 
             expect(toJson(subject)).to.eql(`{"foo":42}`);
@@ -649,7 +650,7 @@ describe("JSON Browser", () => {
               .intercept({ method: "GET", path: "/foo.json" })
               .reply(200, `{ "foo": 42 }`);
 
-            const hyperjump = withOptions({ cache: cache(), mediaTypeByExtension: ["https://example.com/"] });
+            const hyperjump = withOptions(cache(), ["https://example.com/"]);
             const subject = await hyperjump.session().get(`${testDomain}/foo.json`);
 
             expect(toJson(subject)).to.eql(`{"foo":42}`);
@@ -660,7 +661,7 @@ describe("JSON Browser", () => {
               .intercept({ method: "GET", path: "/foo.json" })
               .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "text/plain" } });
 
-            const hyperjump = withOptions({ cache: cache(), mediaTypeByExtension: ["https://other.example.com/"] });
+            const hyperjump = withOptions(cache(), ["https://other.example.com/"]);
 
             expect(await unsupportedMediaType(hyperjump, `${testDomain}/foo.json`)).to.equal("text/plain");
           });
@@ -670,7 +671,7 @@ describe("JSON Browser", () => {
               .intercept({ method: "GET", path: "/foo.txt" })
               .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "application/json" } });
 
-            const hyperjump = withOptions({ cache: cache(), mediaTypeByExtension: ["https://example.com/"] });
+            const hyperjump = withOptions(cache(), ["https://example.com/"]);
             const subject = await hyperjump.session().get(`${testDomain}/foo.txt`);
 
             expect(toJson(subject)).to.eql(`{"foo":42}`);
@@ -681,7 +682,7 @@ describe("JSON Browser", () => {
               .intercept({ method: "GET", path: "/foo.txt" })
               .reply(200, `{ "foo": 42 }`);
 
-            const hyperjump = withOptions({ cache: cache(), mediaTypeByExtension: ["https://example.com/"] });
+            const hyperjump = withOptions(cache(), ["https://example.com/"]);
 
             expect(await unsupportedMediaType(hyperjump, `${testDomain}/foo.txt`)).to.equal(undefined);
           });
@@ -694,7 +695,7 @@ describe("JSON Browser", () => {
               .intercept({ method: "GET", path: "/foo.json" })
               .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "text/plain" } });
 
-            const hyperjump = withOptions({ cache: cache(), mediaTypeByExtension: ["https://other.example.com/"] });
+            const hyperjump = withOptions(cache(), ["https://other.example.com/"]);
             const subject = await hyperjump.session().get(`${testDomain}/foo`);
 
             expect(toJson(subject)).to.eql(`{"foo":42}`);
@@ -705,7 +706,7 @@ describe("JSON Browser", () => {
               .intercept({ method: "GET", path: "/foo.json?token=abc" })
               .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "text/plain" } });
 
-            const hyperjump = withOptions({ cache: cache(), mediaTypeByExtension: ["https://example.com/"] });
+            const hyperjump = withOptions(cache(), ["https://example.com/"]);
             const subject = await hyperjump.session().get(`${testDomain}/foo.json?token=abc`);
 
             expect(toJson(subject)).to.eql(`{"foo":42}`);
@@ -718,19 +719,15 @@ describe("JSON Browser", () => {
             .reply(200, `{ "foo": 42 }`, { headers: { "content-type": "text/plain", "cache-control": "max-age=60" } });
 
           const cache = new MemoryHttpCacheStore();
-          const hyperjump = withOptions({ cache, mediaTypeByExtension: ["https://example.com/"] });
+          const hyperjump = withOptions(cache, ["https://example.com/"]);
           const subject = await hyperjump.session().get(`${testDomain}/foo.json`);
           expect(toJson(subject)).to.eql(`{"foo":42}`);
 
-          expect(await unsupportedMediaType(withOptions({ cache }), `${testDomain}/foo.json`)).to.equal("text/plain");
+          expect(await unsupportedMediaType(withOptions(cache, []), `${testDomain}/foo.json`)).to.equal("text/plain");
         });
 
         test("a relative URL throws", () => {
-          expect(() => new HttpUrlSchemePlugin({ mediaTypeByExtension: ["/foo/"] })).to.throw("'/foo/' in the 'mediaTypeByExtension' option isn't an absolute URL");
-        });
-
-        test("a URL that isn't http(s): throws", () => {
-          expect(() => new HttpUrlSchemePlugin({ mediaTypeByExtension: ["file:///foo/"] })).to.throw("isn't an 'http:' or 'https:' URL");
+          expect(() => new Hyperjump({ mediaTypeByExtension: ["/foo/"] })).to.throw("'/foo/' in the 'mediaTypeByExtension' config isn't an absolute URL");
         });
       });
     });

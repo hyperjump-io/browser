@@ -177,12 +177,16 @@ cache, so a cached response goes through them, and a header they add is
 part of what the cache matches a `Vary` against. A read-only cache answers
 before them, so a document the application has doesn't go through them.
 
-- A URL scheme plugin is a `Fetch` for its scheme, and doesn't get options
-  for `Accept` or the media type by extension, because the layers above
-  give those.
+- A URL scheme plugin's `retrieve` is a `Fetch` for its schemes, and
+  doesn't get options for `Accept` or the media type by extension, because
+  the layers above give those.
+  - `retrieve(url, options)` was rejected. Every layer would be a request
+    and options, and an option, like `referencedFrom`, would be a header
+    by another name.
 - A layer applied to a `Fetch` is a `Fetch`, so what has to be below the
   HTTP cache, like a proxy or logging what goes over the network, wraps a
-  URL scheme plugin: `urlSchemePlugins: [logged(httpPlugin)]`.
+  URL scheme plugin's `retrieve`:
+  `{ schemes: plugin.schemes, retrieve: logged((request) => plugin.retrieve(request)) }`.
   - A place to put layers below the cache was rejected, because wrapping a
     plugin already does it.
 - A session doesn't take layers of its own. Its stack has its read-only
