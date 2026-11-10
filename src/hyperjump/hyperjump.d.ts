@@ -167,7 +167,9 @@ export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {
 
   /**
    * The URL scheme plugins by scheme: the defaults, with the config's
-   * replacing them for the schemes they list.
+   * replacing them for the schemes they list. This, `mediaTypePlugins`,
+   * `accept`, and `httpCache` are what the `Hyperjump` resolved from its
+   * config, which its sessions retrieve and parse with.
    */
   readonly urlSchemePlugins: ReadonlyMap<string, UrlSchemePlugin>;
 

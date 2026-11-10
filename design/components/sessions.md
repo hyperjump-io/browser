@@ -148,14 +148,26 @@ State is separated by how long it lives.
     sessions share is state the `Hyperjump` resolves, like the HTTP cache's
     store, not a stack. A `Hyperjump` with a public stack for sessions to
     wrap was rejected: it's a way to retrieve that `allowRetrieval` doesn't
-    check, and it's public only because `Session` can't read it otherwise.
+    check, and it isn't configuration, so it would be public only because
+    `Session` can't read it otherwise.
     Passing the stack to `Session`'s constructor was rejected because the
     constructor is public, so the stack would be API anyway.
-  - The resolved plugins are public because `Session` is another class and
-    can't read a `Hyperjump`'s private fields. They're the instances the
-    config already has, so nothing more is exposed. They're `ReadonlyMap`s
-    in the types, but a `Map` can still be changed, like a plugin in the
-    config.
+  - They're public because they're the `Hyperjump`'s resolved
+    configuration, which is what a `Hyperjump` is, like `config`. They're
+    the instances the config already has, so nothing more is exposed: a
+    plugin from `urlSchemePlugins` can be called around `allowRetrieval`,
+    but so can the same plugin from the application's config. They're
+    `ReadonlyMap`s in the types, but a `Map` can still be changed, like a
+    plugin in the config.
+  - A session resolving its plugins and `Accept` from `config` itself, so
+    the `Hyperjump` didn't have them, was rejected. It would move the
+    resolving into `Session`, once for each session instead of once for
+    the `Hyperjump`. `fragmentPointer` would still need the media type
+    plugins, and the HTTP cache is state every session shares, so it would
+    still come from the `Hyperjump`.
+  - Private fields that `Session` reads through a module function a static
+    block sets was rejected. It's a hidden channel, for values that are
+    the `Hyperjump`'s configuration anyway.
   - Keeping retrieval and parsing as private methods of `Hyperjump` was
     rejected. `Session` would need a way to call them that isn't the
     API, like module functions set in a static block, and the functions of
