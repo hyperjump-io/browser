@@ -49,7 +49,9 @@ Rejected:
 
 ## Known limitations
 
-- `headers` go to every URL the session fetches, on every origin. A
-  credential in them goes everywhere.
+- `headers` go to every URL the session fetches, on every origin, including
+  where a redirect leads. A credential in them goes everywhere. Only
+  `Authorization` is dropped on a redirect to another origin, by the
+  `Redirects` layer.
 - Nothing limits what a session can fetch. An application that fetches URLs
   from documents it doesn't trust has to check them, in a layer of its own.

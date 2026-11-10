@@ -27,6 +27,7 @@ for users is in [`website/`](../website/README.md).
 - [Packaging](components/packaging.md): Node.js and browsers
 - [The registry](components/registry.md): documents the application has, answered first
 - [HTTP cache](components/http-cache.md): RFC 9111, with the Fetch standard's cache modes
+- [Redirects](components/redirects.md): followed one at a time, through the stack
 - [Partial content](components/partial-content.md): ranges, and storing 206s
 - [The file cache store](components/file-cache-store.md): the HTTP cache on disk
 - [The resource map](components/resource-map.md): resources found while loading, for one session

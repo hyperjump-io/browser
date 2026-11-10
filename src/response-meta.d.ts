@@ -27,6 +27,9 @@ export type ResponseMeta = {
    */
   value?: unknown;
 
+  /** Every URL the request went through, first to last, when the `Redirects` layer followed redirects */
+  redirects?: string[];
+
   /** The record of the {@link Session.fetch} that the response is for */
   record?: FetchRecord;
 };

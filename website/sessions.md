@@ -25,8 +25,9 @@ information about stacks, see [Layers](layers.md).
 | `baseURL` | The URL that relative URLs are resolved against, like a document's base URL |
 | `headers` | Headers that every request gets unless the request sets them itself |
 
-The session sends `headers` to every URL it fetches. Don't put credentials in
-`headers` if the session fetches URLs on more than one origin.
+The session sends `headers` to every URL it fetches, including where a redirect
+leads. Don't put credentials in `headers` if the session fetches URLs on more
+than one origin.
 
 ## Fetch options
 

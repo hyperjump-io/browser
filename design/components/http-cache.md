@@ -37,8 +37,10 @@ it's a private cache, like a browser's.
   9111 says.
 - A response the runtime reached by following a redirect itself isn't stored
   under the URL that was asked for. It's the response the redirect ended at,
-  so storing it would make a temporary redirect permanent. A redirect the stack
-  returns, rather than following it, is stored like any other response.
+  so storing it would make a temporary redirect permanent. With the
+  `Redirects` layer above the cache, each step is a response of its own,
+  and a redirect is stored like any other response (see
+  [Redirects](redirects.md)).
 - A store that fails, like a full disk, never fails a request. The cache goes
   on as if it had missed and tells `onStoreError`.
 - The store is a `CacheStore`: entries are data by URL, one for each `Vary`
@@ -51,8 +53,9 @@ it's a private cache, like a browser's.
 
 ## Where it goes
 
-Below the layers that should be answered first, like a registry. Above the
-layers that send requests, so a hit never sends one.
+Below `Redirects`, so each step is stored, and below dedupe, so requests that
+miss at the same time are one request. Above the layers that send requests,
+so a hit never sends one.
 
 Rejected:
 
