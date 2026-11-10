@@ -13,3 +13,4 @@ export * from "./content-type.js";
 export * from "./transports/file-scheme.js";
 export * from "./transports/node-transport.js";
 export * from "./layers/registry.js";
+export * from "./layers/resource-map.js";

@@ -13,6 +13,13 @@ export type ResponseMeta = {
    */
   source?: string;
 
+  /**
+   * A parsed form of the body that whatever made the response already had,
+   * like the object a resource map's resource was found in. Use it instead of
+   * parsing the body to keep the object's identity.
+   */
+  value?: unknown;
+
   /** The record of the {@link Session.fetch} that the response is for */
   record?: FetchRecord;
 };
