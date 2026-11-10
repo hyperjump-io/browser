@@ -288,6 +288,19 @@ export class Session<T extends JsonNode<{ type: string }> = JrefNode> {
    * ```
    */
   fetch(request: Request): Promise<Response>;
+
+  /**
+   * The document a reference to `url` is in, from its `referencedFrom`, for
+   * `getDocument` to look for an embedded document in when it isn't given
+   * `referencedIn`, like for a reference followed from a node with
+   * `jrefStep`. Both are parsed, without fragments. It's the document the
+   * session has at `referencedFrom`, which works for a media type whose
+   * embedded documents' nodes have locations in the document that contains
+   * them. A subclass whose media type gives them locations of their own,
+   * like JSON Schema's, overrides it with a way to find the document from
+   * such a location.
+   */
+  referencingDocument(referencedFrom: string, url: string): Promise<DocumentNode<T> | undefined>;
 }
 
 /**

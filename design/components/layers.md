@@ -134,6 +134,20 @@ any URL, so this keeps it from changing what a reference in another
 document finds. It's found above the stack, so it doesn't depend on
 `Referer`, which a browser drops.
 
+- A reference followed from a node, like with `jrefStep`, has only its
+  `referencedFrom`, because a node doesn't know its document. Then
+  `getDocument` asks `referencingDocument(referencedFrom, url)` for the
+  document, which by default is the one the session has at
+  `referencedFrom`. That finds
+  embedded documents whose nodes have locations in the document that
+  contains them. A subclass whose embedded documents' nodes have locations
+  of their own overrides it, like `@hyperjump/json-schema`, which finds a
+  document by any of its resources' URIs, because one URI identifies one
+  resource in a session. It's given the URL being looked up too, for a
+  rule like JSON Schema's that a resource in more than one document finds
+  the same thing from each.
+  - Giving the browsing functions the document was rejected. Every caller
+    would have to keep track of which document each node came from.
 - It's found by the document, not by a URL, so it doesn't depend on where
   an embedded document's nodes say they are. A plugin can give them
   locations in the document that contains them, or locations that start

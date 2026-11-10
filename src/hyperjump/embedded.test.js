@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { Hyperjump, RetrievalError } from "./index.js";
+import { Hyperjump, jrefStep, RetrievalError } from "./index.js";
 import { fromJref } from "../jref/jref-util.js";
 import { jsonPointerGet, toJson } from "../json/jsonast-util.js";
 
@@ -121,6 +121,25 @@ describe("embedded documents", () => {
     const session = withBundle({ "foo:/a": "/$defs/a" }).session();
     const bundle = await session.getDocument("foo:/bundle");
     const embedded = await session.getDocument("foo:/a", { referencedIn: bundle });
+
+    expect(embedded).to.equal(bundle.embedded?.["foo:/a"]);
+  });
+
+  test("browsing from a node into one finds it", async () => {
+    /** @type string[] */
+    const requested = [];
+    const session = withBundle({ "foo:/a": "/$defs/a" }, requested).session();
+    const bundle = await session.get("foo:/bundle");
+    const subject = await jrefStep(session, "foo", bundle);
+
+    expect(toJson(subject)).to.equal(`42`);
+    expect(requested).to.eql(["foo:/bundle"]);
+  });
+
+  test("getDocument with only referencedFrom finds one in the document at that URL", async () => {
+    const session = withBundle({ "foo:/a": "/$defs/a" }).session();
+    const bundle = await session.getDocument("foo:/bundle");
+    const embedded = await session.getDocument("foo:/a", { referencedFrom: "foo:/bundle" });
 
     expect(embedded).to.equal(bundle.embedded?.["foo:/a"]);
   });

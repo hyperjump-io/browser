@@ -27,7 +27,8 @@ State is separated by how long it lives.
   document. Parsing is what normalizes a URL, so nothing normalizes it
   again (see [Identifiers are URLs](../principles/identifiers-are-urls.md)).
   Errors say the URL parsed.
-- `getDocument` with a `referencedIn`, the document a reference is in,
+- `getDocument` with a `referencedIn`, the document a reference is in, or
+  with a `referencedFrom` that `referencingDocument` finds a document for,
   looks for an embedded document first, in that document's set, so it's
   found only from the document that contains it (see
   [Embedded documents](layers.md#embedded-documents)). It isn't cached

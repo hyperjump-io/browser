@@ -236,6 +236,16 @@ export class Session {
     return this.#hyperjump;
   }
 
+  /**
+   * The document the session has at `referencedFrom`. A document that failed
+   * to be retrieved isn't one.
+   *
+   * @type API.Session<JrefNode>["referencingDocument"]
+   */
+  async referencingDocument(referencedFrom) {
+    return this.#cache[referencedFrom]?.catch(() => undefined);
+  }
+
   /** @type API.Session<JrefNode>["fetch"] */
   async fetch(request) {
     return this.#fetch(request);
@@ -299,7 +309,11 @@ export class Session {
     const id = withoutFragment(this.#resolve(url));
     const parsedOptions = parseGetOptions(options);
 
-    const embedded = parsedOptions.referencedIn && this.#embedded(parsedOptions.referencedIn)[id];
+    // A reference followed from a node, like with `jrefStep`, only has its
+    // `referencedFrom`
+    const referencedIn = parsedOptions.referencedIn
+      ?? (parsedOptions.referencedFrom === undefined ? undefined : await this.referencingDocument(parsedOptions.referencedFrom, id));
+    const embedded = referencedIn && this.#embedded(referencedIn)[id];
     if (embedded) {
       return embedded;
     }
