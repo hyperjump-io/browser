@@ -85,6 +85,6 @@
     "content-type": "^3.1.1",
     "http-cache-semantics": "^4.3.0",
     "unified": "^11.0.5",
-    "vfile-message": "^4.0.3"
+    "vfile-message": "^4.0.4"
   }
 }
