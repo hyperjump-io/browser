@@ -102,8 +102,8 @@ State is separated by how long it lives.
     0.5 µs to create in Node.js, the same whether the HTTP plugin is
     replaced or not (measured 2026-10-31).
 - A scheme is case-insensitive, so the schemes a plugin lists are
-  lowercased. Parsing lowercases a URL's, so it finds its plugin as it
-  is.
+  lowercased. Parsing makes a URL's scheme lowercase too, so it finds its
+  plugin as it is.
 - Adding plugins after a `Hyperjump` is created (`addUrlSchemePlugin`,
   `addMediaTypePlugin`) was rejected. Adding one for a scheme or media type
   that's supported would replace it, so changing a plugin would mean
@@ -230,7 +230,7 @@ Applications build on `Hyperjump` and `Session` by subclassing them.
   that isn't a URL throws `new URL`'s `TypeError`, not a `RetrievalError`,
   because it's the caller's mistake and nothing was retrieved.
   `getDocument` parses a URL that `get` already parsed, which is cheap, so
-  there's no unparsed version for `get` to call.
+  there's no version that skips parsing for `get` to call.
 - A media type plugin's `parse` gets the session the document is being
   retrieved in, so a media type that needs other resources to parse a
   document retrieves them in the same session.
