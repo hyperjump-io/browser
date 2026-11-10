@@ -34,3 +34,4 @@ for users is in [`website/`](../website/README.md).
 - [Dedupe](components/dedupe.md): requests that are the same, in flight at once, are one
 - [Batching](components/batch.md): requests made at about the same time, sent together
 - [The scheduler](components/scheduler.md): connection limits and priorities, shared by every session
+- [The throttle](components/throttle.md): a page's low-priority requests wait for its important ones

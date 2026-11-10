@@ -1,19 +1,21 @@
 # Priorities
 
 A browser loads what a page needs most first, and limits how many requests it
-sends to a server at once. The `scheduler` layer does the same:
+sends to a server at once. The `scheduler` layer limits requests to each server,
+and the `throttle` layer holds back a page's low-priority requests while its
+important ones load:
 
 ```typescript
-import { Session, compose, httpCache, scheduler, defaultTransport } from "@hyperjump/browser";
+import { Session, compose, httpCache, throttle, scheduler, defaultTransport } from "@hyperjump/browser";
 
-const stack = compose(httpCache(), scheduler())(defaultTransport())
+const stack = compose(httpCache(), throttle(), scheduler())(defaultTransport());
 const session = new Session(stack);
 
 await session.fetch("https://example.com/hero.jpg", { priority: "high" });
 ```
 
-Put `scheduler` right above the transport, so a response from the cache never
-waits.
+Put `scheduler` right above the transport and `throttle` above it, both below
+`httpCache`, so a response from the cache never waits.
 
 ## Connection limits
 
@@ -66,3 +68,20 @@ A request that's already started keeps going as it is.
 
 When requests share one request, such as with [`dedupe`](sharing-requests.md),
 the shared request has the most urgent priority of the callers still waiting.
+
+## Hold back low-priority requests
+
+While a page has an important request loading, the `throttle` layer only lets
+one of its low-priority requests run at a time. When nothing important is
+loading, it lets 10 run. Requests with priority `"auto"` or `"high"` are
+important, and are never held back. That way, analytics and images below the
+fold don't compete with the stylesheet the page is waiting for.
+
+| Option | Description |
+| --- | --- |
+| `maxDelayable` | Low-priority requests in flight at once when nothing important is loading. The default is 10. |
+| `maxDelayableWhileBusy` | Low-priority requests in flight at once while something important is loading. The default is 1. |
+| `isDelayable` | Which requests can be held back. The default is requests with priority `"low"`. |
+| `scope` | `"root"`, the default, counts a session and its child sessions as one page, like a page and its frames. `"session"` counts each session by itself. |
+
+A held request whose priority you raise starts right away.
