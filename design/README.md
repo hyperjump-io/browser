@@ -18,3 +18,4 @@ for users is in [`website/`](../website/README.md).
 ## Components
 
 - [Response meta](components/response-meta.md): what's known about a response that isn't part of it
+- [Priorities](components/priorities.md): signals that can change while a request waits
