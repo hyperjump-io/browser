@@ -7,3 +7,4 @@ export * from "./transports/scheme-transport.js";
 export * from "./content-type.js";
 export * from "#file-scheme";
 export * from "#node-transport";
+export * from "./layers/registry.js";

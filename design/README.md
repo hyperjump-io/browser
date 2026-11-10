@@ -25,3 +25,4 @@ for users is in [`website/`](../website/README.md).
 - [The scheme transport](components/scheme-transport.md): the bottom of a stack
 - [The `file:` scheme](components/file-scheme.md): files on a server, like a browser reads them
 - [Packaging](components/packaging.md): Node.js and browsers
+- [The registry](components/registry.md): documents the application has, answered first

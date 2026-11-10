@@ -12,3 +12,4 @@ export * from "./transports/scheme-transport.js";
 export * from "./content-type.js";
 export * from "./transports/file-scheme.js";
 export * from "./transports/node-transport.js";
+export * from "./layers/registry.js";
