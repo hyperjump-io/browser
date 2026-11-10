@@ -5,9 +5,6 @@ sees only the request it's given and the response it gives back, so
 caching, security checks, and the rest stack without knowing about each
 other, and an application adds its own the same way.
 
-This is the design being built (see `TODO.md`). The documents for the
-parts it changes describe the code as it is until each part is built.
-
 ## The layer
 
 ```ts
@@ -34,7 +31,6 @@ From the session down:
 | Layer | Answers or changes | Scope |
 | --- | --- | --- |
 | A subclass's | whatever they're for, in the order they're added | session |
-| The application's | whatever they're for, in the order they're given | `Hyperjump` |
 | `allowRetrieval` | answers 403 for a URL that isn't allowed, and checks the response's URL too | session |
 | `file:` from `file:` | answers 403 for a `file:` URL whose `Referer` isn't a `file:` URL | session |
 | Media type by extension | gives a response without a `Content-Type` the media type of its URL's extension | `Hyperjump` |
@@ -113,7 +109,7 @@ layer that cares, like `file:` from `file:`, reads it.
   falls back to the page for a URL from another origin. So in a browser,
   no layer sees it. `file:` from `file:` doesn't need it there, because a
   browser has no `file:` plugin, and embedded documents are found above
-  the stack, from the session's `referencedFrom`. An application's layer
+  the stack, from the document a reference is in. An application's layer
   that reads `Referer` only sees it in Node.js.
 
 ## Above the stack
@@ -197,9 +193,6 @@ trusted like the rest of it.
 
   It's a method, so a subclass's layer can have the subclass's state, like
   a registry that needs the session.
-- An application adds layers with the `layers` config of its `Hyperjump`,
-  on top of the built-in ones, in the order they're given. A subclass's
-  are on top of those.
 - `fetch` doesn't follow redirects. A redirect is followed with a new
   request to `fetch`, so a layer sees each URL a redirect leads to, and a
   layer that answers a URL answers it when a redirect leads there too.
