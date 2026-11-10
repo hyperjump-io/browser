@@ -1,3 +1,6 @@
+import type { FetchRecord } from "./fetch-record.d.ts";
+import type { Session } from "./session.d.ts";
+
 /**
  * What's known about a response that isn't part of it, like what devtools
  * shows as "(from disk cache)". It's kept outside the response, so the
@@ -9,6 +12,9 @@ export type ResponseMeta = {
    * or `"http-cache"`
    */
   source?: string;
+
+  /** The record of the {@link Session.fetch} that the response is for */
+  record?: FetchRecord;
 };
 
 /** What's known about a response, or `{}` if nothing is */

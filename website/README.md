@@ -8,3 +8,5 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 ## Contents
 
 - [Install](install.md): install in Node.js and browsers
+- [Sessions](sessions.md): fetch through a session, close it, and nest sessions
+- [Layers](layers.md): build a stack and write your own layers

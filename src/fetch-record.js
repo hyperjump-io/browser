@@ -1,0 +1,186 @@
+import { responseMeta } from "./response-meta.js";
+
+/**
+ * @import * as API from "./fetch-record.d.ts"
+ * @import { Session } from "./session.d.ts"
+ */
+
+/**
+ * What a record says about its response, which the session writes and
+ * everyone else reads
+ *
+ * @typedef {{
+ *   responseTime?: number;
+ *   endTime?: number;
+ *   status?: number;
+ *   statusText?: string;
+ *   responseHeaders?: [string, string][];
+ *   finalUrl?: string;
+ *   source?: string;
+ *   bodySize?: number;
+ *   body?: Uint8Array;
+ *   error?: unknown;
+ * }} RecordState
+ */
+
+/** @type WeakMap<API.FetchRecord, { state: RecordState, notify: API.Observer, marks: API.Mark[] }> */
+const writers = new WeakMap();
+
+let nextId = 1;
+
+/** @implements API.FetchRecord */
+export class FetchRecord {
+  /** @type RecordState */
+  #state = {};
+
+  /** @type API.Mark[] */
+  #marks = [];
+
+  /** @type API.Observer */
+  #notify;
+
+  /**
+   * @param {Parameters<typeof API.startRecord>[0]} init
+   */
+  constructor(init) {
+    this.id = nextId++;
+    this.url = init.url;
+    this.method = init.method;
+    this.destination = init.destination;
+    this.initiator = init.initiator;
+    /** @type Session */
+    this.session = init.session;
+    this.priority = init.priority;
+    this.requestHeaders = init.requestHeaders;
+    this.startTime = performance.now();
+    this.#notify = init.notify;
+    writers.set(this, { state: this.#state, notify: init.notify, marks: this.#marks });
+  }
+
+  get marks() {
+    return this.#marks;
+  }
+
+  get responseTime() {
+    return this.#state.responseTime;
+  }
+
+  get endTime() {
+    return this.#state.endTime;
+  }
+
+  get status() {
+    return this.#state.status;
+  }
+
+  get statusText() {
+    return this.#state.statusText;
+  }
+
+  get responseHeaders() {
+    return this.#state.responseHeaders;
+  }
+
+  get finalUrl() {
+    return this.#state.finalUrl;
+  }
+
+  get source() {
+    return this.#state.source;
+  }
+
+  get bodySize() {
+    return this.#state.bodySize;
+  }
+
+  get body() {
+    return this.#state.body;
+  }
+
+  get error() {
+    return this.#state.error;
+  }
+
+  /** @type API.FetchRecord["mark"] */
+  mark(name, detail) {
+    /** @type API.Mark */
+    const mark = { name, time: performance.now(), detail };
+    this.#marks.push(mark);
+    this.#notify({ type: "mark", record: this, mark });
+  }
+
+  /** @type API.FetchRecord["toJSON"] */
+  toJSON() {
+    return {
+      id: this.id,
+      url: this.url,
+      method: this.method,
+      destination: this.destination,
+      initiator: this.initiator?.id,
+      startTime: this.startTime,
+      responseTime: this.responseTime,
+      endTime: this.endTime,
+      status: this.status,
+      finalUrl: this.finalUrl,
+      source: this.source,
+      error: this.error === undefined ? undefined : errorText(this.error),
+      marks: this.#marks.map((mark) => ({ name: mark.name, time: mark.time }))
+    };
+  }
+}
+
+/** @type typeof API.startRecord */
+export const startRecord = (init) => new FetchRecord(init);
+
+/** @type typeof API.recordResponse */
+export const recordResponse = (record, response) => {
+  const { state, notify } = writerOf(record);
+  state.responseTime = performance.now();
+  state.status = response.status;
+  state.statusText = response.statusText;
+  state.responseHeaders = [...response.headers];
+  state.finalUrl = response.url || record.url;
+  state.source = responseMeta(response).source;
+  notify({ type: "response", record });
+};
+
+/** @type typeof API.recordChunk */
+export const recordChunk = (record, chunk, keep) => {
+  const { state } = writerOf(record);
+  state.bodySize = (state.bodySize ?? 0) + chunk.byteLength;
+  if (keep) {
+    const joined = new Uint8Array((state.body?.byteLength ?? 0) + chunk.byteLength);
+    if (state.body) {
+      joined.set(state.body);
+    }
+    joined.set(chunk, state.body?.byteLength ?? 0);
+    state.body = joined;
+  }
+};
+
+/** @type typeof API.recordEnd */
+export const recordEnd = (record, error) => {
+  const { state, notify } = writerOf(record);
+  if (state.endTime !== undefined) {
+    return;
+  }
+  state.endTime = performance.now();
+  if (error !== undefined) {
+    state.error = error;
+  } else if (state.bodySize === undefined && state.responseTime !== undefined) {
+    state.bodySize = 0;
+  }
+  notify({ type: "end", record });
+};
+
+/** @type (error: unknown) => string */
+const errorText = (error) => error instanceof Error ? String(error) : JSON.stringify(error);
+
+/** @type (record: API.FetchRecord) => NonNullable<ReturnType<typeof writers.get>> */
+const writerOf = (record) => {
+  const writer = writers.get(record);
+  if (!writer) {
+    throw TypeError("A record can only be written by the session that started it");
+  }
+  return writer;
+};
