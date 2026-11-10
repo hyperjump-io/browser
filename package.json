@@ -1,0 +1,49 @@
+{
+  "name": "@hyperjump/browser",
+  "version": "2.0.0-dev",
+  "description": "A fetch inspired by web browsers: sessions, a stack of layers, an HTTP cache, and file: URLs on the server",
+  "keywords": [
+    "fetch",
+    "http-cache",
+    "browser",
+    "client",
+    "layers"
+  ],
+  "author": "Jason Desrosiers <jdesrosi@gmail.com>",
+  "license": "MIT",
+  "repository": "github:hyperjump-io/browser",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/hyperjump-io"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "src/",
+    "!**/*.test.js",
+    "!src/test-helpers/"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    }
+  },
+  "imports": {},
+  "scripts": {
+    "lint": "oxlint",
+    "test": "vitest run",
+    "type-check": "tsc --noEmit",
+    "version": "node scripts/version-docs.js && git add website"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "*",
+    "@types/node": "*",
+    "har-validator": "*",
+    "oxlint": "*",
+    "oxlint-tsgolint": "*",
+    "typescript": "*",
+    "vite": "*",
+    "vitest": "*"
+  }
+}
