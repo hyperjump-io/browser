@@ -31,3 +31,29 @@ Rejected:
   and joining its parts would mean parsing it.
 - Joining parts with a weak `ETag` or a `Last-Modified`. RFC 9111 doesn't
   allow it, and a file can change within the same second.
+
+## Filling gaps
+
+When stored parts have some of a range, only what's missing is fetched.
+
+- What's missing is fetched as one range, from the first gap to the last, so
+  a request for several ranges is never needed.
+- The request has `If-Range` with the parts' strong `ETag` (RFC 9110
+  §13.1.5). If the server still has that version, it sends only those bytes,
+  which are joined to the stored ones, and the answer's cache status is
+  `"filled"`. If the file changed, `If-Range` makes the server send all of
+  the new version, which is stored and answers the range, so old and new
+  bytes are never mixed.
+- `If-Range` checks the stored parts, so gaps are filled even when the parts
+  are stale, and with `force-cache`. With `only-if-cached`, nothing is
+  fetched.
+- Gaps are filled only when the parts have a strong `ETag` and something in
+  the range is stored. Otherwise, the whole range is fetched.
+- The answer is put together from the stored and the fetched bytes before
+  it's given, so it isn't streamed.
+
+Rejected:
+
+- Fetching each gap with its own request. A range with several gaps would
+  be several round trips, and the parts could come from different versions
+  between them.

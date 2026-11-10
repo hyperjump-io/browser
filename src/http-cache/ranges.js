@@ -150,6 +150,37 @@ export const sliceSegments = (stored, start, end) => {
 };
 
 /**
+ * The parts of an inclusive range that no segment has, in order
+ *
+ * @type (segments: Segments["segments"], start: number, end: number) => { start: number, end: number }[]
+ */
+export const missingRanges = (segments, start, end) => {
+  /** @type {{ start: number, end: number }[]} */
+  const gaps = [];
+  let cursor = start;
+  for (const segment of segments) {
+    const segmentEnd = segment.start + segment.length - 1;
+    if (segmentEnd < cursor) {
+      continue;
+    }
+    if (segment.start > end) {
+      break;
+    }
+    if (segment.start > cursor) {
+      gaps.push({ start: cursor, end: Math.min(end, segment.start - 1) });
+    }
+    cursor = Math.max(cursor, segmentEnd + 1);
+    if (cursor > end) {
+      break;
+    }
+  }
+  if (cursor <= end) {
+    gaps.push({ start: cursor, end });
+  }
+  return gaps;
+};
+
+/**
  * Whether the segments are the whole representation
  *
  * @type (stored: Segments, length: number | undefined) => boolean

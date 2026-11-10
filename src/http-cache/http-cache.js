@@ -3,7 +3,7 @@ import { parseCacheControl, varyMatches } from "./cache-control.js";
 import { networkError, responseMeta, setResponseMeta, withUrl } from "../response-meta.js";
 import { PrioritySignal } from "../priority.js";
 import { nullBodyStatuses } from "../statuses.js";
-import { addSegment, isComplete, parseContentRange, parseRange, resolveRange, sliceSegments } from "./ranges.js";
+import { addSegment, isComplete, missingRanges, parseContentRange, parseRange, resolveRange, sliceSegments } from "./ranges.js";
 
 /**
  * @import * as API from "./http-cache.d.ts"
@@ -286,6 +286,14 @@ export class HttpCache {
       throw networkError(`'${request.url}' (${request.headers.get("range")}) isn't in the cache`);
     }
 
+    // If-Range checks the stored parts, so they can be used even when stale
+    if (entry?.partial) {
+      const filled = await this.#fillGaps(request, ctx, entry, spec);
+      if (filled) {
+        return filled;
+      }
+    }
+
     const timed = await this.#fetchTimed(request, ctx);
     if (timed.response.status === 206) {
       return this.#storePartial(request, timed, entry);
@@ -413,6 +421,64 @@ export class HttpCache {
       responseTime,
       ...complete ? {} : { partial: { length, segments: merged.segments } }
     };
+  }
+
+  /**
+   * Stored parts have some of a range: only what's missing is fetched, as one
+   * range from the first gap to the last, with `If-Range` set to the parts'
+   * strong `ETag`. If the server still has that version, it sends only those
+   * bytes, and they're joined to the stored ones. If the file changed,
+   * `If-Range` makes the server send all of the new version, which is stored
+   * and answers the range. It's `undefined` when it doesn't apply, and the
+   * whole range is fetched.
+   *
+   * @type (request: Request, ctx: FetchContext, entry: API.CachedEntry, spec: RangeSpec) => Promise<Response | undefined>
+   */
+  async #fillGaps(request, ctx, entry, spec) {
+    const etag = header(entry, "etag");
+    if (!entry.partial || !etag || etag.startsWith("W/")) {
+      return undefined;
+    }
+    const range = resolveRange(spec, entry.partial.length);
+    if (range === undefined || range === "unsatisfiable") {
+      return undefined;
+    }
+    const gaps = missingRanges(entry.partial.segments, range.start, range.end);
+    const nothingStored = gaps.length === 1 && gaps[0].start === range.start && gaps[0].end === range.end;
+    if (gaps.length === 0 || nothingStored) {
+      return undefined;
+    }
+
+    const fetchRange = `bytes=${gaps[0].start}-${/** @type {{ end: number }} */ (gaps.at(-1)).end}`;
+    const narrowed = new Request(request);
+    narrowed.headers.set("range", fetchRange);
+    narrowed.headers.set("if-range", etag);
+    ctx.record.mark("cache:fill-gaps", { requested: request.headers.get("range"), fetched: fetchRange });
+
+    const timed = await this.#fetchTimed(narrowed, ctx);
+    const { response } = timed;
+    if (response.status === 206 && response.headers.get("etag") === etag) {
+      const merged = this.#mergePartial(request, timed, entry, new Uint8Array(await response.arrayBuffer()));
+      if (!merged) {
+        return undefined;
+      }
+      if (this.#isStorable(request, response, true)) {
+        await this.#storePut(merged);
+      }
+      const answer = this.#serveRange(merged, spec);
+      return answer && setResponseMeta(answer, { cache: "filled" });
+    } else if (response.status === 200) {
+      // The file changed, or the server sends all of it: this is the new version
+      const whole = this.#fullEntry(request, timed, new Uint8Array(await response.arrayBuffer()));
+      if (this.#isStorable(request, response)) {
+        await this.#storePut(whole);
+      }
+      const answer = this.#serveRange(whole, spec);
+      return answer && setResponseMeta(answer, { source: responseMeta(response).source ?? "network", cache: "miss" });
+    } else {
+      await response.body?.cancel();
+      return undefined;
+    }
   }
 
   /** @type (request: Request, response: Response, allowPartial?: boolean) => boolean */

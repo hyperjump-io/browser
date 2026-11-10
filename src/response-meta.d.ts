@@ -13,8 +13,12 @@ export type ResponseMeta = {
    */
   source?: string;
 
-  /** What the HTTP cache did, if the request went through one */
-  cache?: "hit" | "miss" | "revalidated" | "stale" | "bypass";
+  /**
+   * What the HTTP cache did, if the request went through one. `"filled"` is a
+   * range answered with stored bytes and the missing ones, fetched with
+   * `If-Range`.
+   */
+  cache?: "hit" | "miss" | "revalidated" | "stale" | "bypass" | "filled";
 
   /**
    * A parsed form of the body that whatever made the response already had,
