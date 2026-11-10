@@ -137,7 +137,18 @@ export type SessionOptions = {
 };
 
 export type GetOptions = {
+  /**
+   * The URL of the document with the reference that's being followed. It's
+   * the request's `Referer`.
+   */
   referencedFrom?: string;
+
+  /**
+   * The document the reference that's being followed is in. A document
+   * embedded in it, or embedded with it, is found before anything is
+   * retrieved (see {@link DocumentNode.embedded}).
+   */
+  referencedIn?: DocumentNode<any>;
 };
 
 export class Hyperjump<T extends JsonNode<{ type: string }> = JrefNode> {

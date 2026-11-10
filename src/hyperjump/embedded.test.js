@@ -11,28 +11,48 @@ const bundleType = "application/bundle+json";
 
 /**
  * A media type for JRef documents that embed others, at the pointers given
- * for their URLs. An embedded document's nodes are the bundle's, so their
- * locations are in the bundle.
+ * for their URLs. The bundle and the documents embedded in it share one set
+ * of embedded documents. With `ownLocations`, an embedded document is parsed
+ * on its own, so its nodes' locations start with its URL. Otherwise, they're
+ * the bundle's nodes, with locations in the bundle.
  *
- * @type (embedded: Record<string, string>) => MediaTypePlugin<DocumentNode>
+ * @type (embedded: Record<string, string>, ownLocations?: boolean) => MediaTypePlugin<DocumentNode>
  */
-const bundlePlugin = (embedded) => ({
+const bundlePlugin = (embedded, ownLocations = false) => ({
   mediaType: bundleType,
   extensions: [],
   parse: async (response) => {
-    const result = fromJref(await response.text(), response.url);
+    const text = await response.text();
+    const result = fromJref(text, response.url);
     if (result.status !== "success") {
       throw Error("Not JRef");
     }
 
+    /** @type Record<string, DocumentNode> */
+    const set = {};
     /** @type (url: string, node: import("../jref/jref-ast.d.ts").JrefNode) => DocumentNode */
-    const document = (url, node) => ({ type: "jref-document", children: [node], url, mediaType: "application/reference+json" });
-    return {
-      ...document(response.url, result.node),
-      embedded: Object.fromEntries(Object.entries(embedded).map(([url, pointer]) => [url, document(url, jsonPointerGet(pointer, result.node))]))
-    };
+    const document = (url, node) => ({ type: "jref-document", children: [node], url, mediaType: "application/reference+json", embedded: set });
+    for (const [url, pointer] of Object.entries(embedded)) {
+      const node = jsonPointerGet(pointer, result.node);
+      set[url] = document(url, ownLocations ? reparsed(text, node, url) : node);
+    }
+    return document(response.url, result.node);
   }
 });
+
+/**
+ * A node's text parsed on its own, as the document at `url`
+ *
+ * @type (text: string, node: import("../jref/jref-ast.d.ts").JrefNode, url: string) => import("../jref/jref-ast.d.ts").JrefNode
+ */
+const reparsed = (text, node, url) => {
+  const { start, end } = /** @type import("unist").Position */ (node.position);
+  const result = fromJref(text.slice(start.offset, end.offset), url);
+  if (result.status !== "success") {
+    throw Error("Not JRef");
+  }
+  return result.node;
+};
 
 /**
  * A `foo:` plugin that answers with these documents, and records what's
@@ -61,15 +81,15 @@ const bundle = `{
   }
 }`;
 
-/** @type (embedded: Record<string, string>, requested?: string[]) => Hyperjump */
-const withBundle = (embedded, requested = []) => new Hyperjump({
+/** @type (embedded: Record<string, string>, requested?: string[], ownLocations?: boolean) => Hyperjump */
+const withBundle = (embedded, requested = [], ownLocations = false) => new Hyperjump({
   allowRetrieval: ["foo:/bundle", "foo:/other"],
   urlSchemePlugins: [fooPlugin({
     "foo:/bundle": [bundleType, bundle],
     "foo:/other": ["application/reference+json", `{ "$ref": "foo:/a#/bar" }`],
     "foo:/a": ["application/reference+json", `{ "bar": 24 }`]
   }, requested)],
-  mediaTypePlugins: [bundlePlugin(embedded)]
+  mediaTypePlugins: [bundlePlugin(embedded, ownLocations)]
 });
 
 describe("embedded documents", () => {
@@ -88,6 +108,21 @@ describe("embedded documents", () => {
       .get("foo:/bundle#/baz");
 
     expect(toJson(subject)).to.equal(`"b"`);
+  });
+
+  test("an embedded document whose locations start with its own URL finds the others", async () => {
+    const subject = await withBundle({ "foo:/a": "/$defs/a", "foo:/b": "/$defs/b" }, [], true).session()
+      .get("foo:/bundle#/baz");
+
+    expect(toJson(subject)).to.equal(`"b"`);
+  });
+
+  test("getDocument finds one from the document a reference is in", async () => {
+    const session = withBundle({ "foo:/a": "/$defs/a" }).session();
+    const bundle = await session.getDocument("foo:/bundle");
+    const embedded = await session.getDocument("foo:/a", { referencedIn: bundle });
+
+    expect(embedded).to.equal(bundle.embedded?.["foo:/a"]);
   });
 
   test("a reference from another document doesn't find it", async () => {

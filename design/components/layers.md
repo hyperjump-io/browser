@@ -105,11 +105,8 @@ a 403, a file that isn't there is a 404, and a scheme without a plugin is a
 
 A request for a reference has a `Referer` header: the URL of the document
 the reference was found in, which is what `Referer` means on the web. It's
-the location of the node the reference is in, without its fragment. An
-embedded document's nodes are where they are in the document that contains
-it, so a reference in one has that document's URL (see
-[Embedded documents](#embedded-documents)). A layer that cares, like
-`file:` from `file:`, reads it.
+the location of the node the reference is in, without its fragment. A
+layer that cares, like `file:` from `file:`, reads it.
 
 - A browser drops a `Referer` header from a `Request` a script makes,
   because it's a forbidden request header, and a `Request`'s `referrer`
@@ -131,24 +128,29 @@ The session turns responses into documents and keeps them:
 ## Embedded documents
 
 A media type plugin gives a document the documents it contains, each by
-the URL it says it has (`DocumentNode.embedded`). An embedded document is
-found only from the document that contains it: `getDocument` looks for it
-in the embedded documents of the document at the reference's
-`referencedFrom` before the document cache or the stack. A document can say
-it contains a document with any URL, so this keeps it from changing what a
-reference in another document finds. It's found above the stack, so it
-doesn't depend on `Referer`, which a browser drops.
+the URL it says it has (`DocumentNode.embedded`), and gives each of them the
+same set. A reference is looked for first in the set of the document it's
+in, before the document cache or the stack: `get` has that document, and
+`getDocument` is given it (`GetOptions.referencedIn`). So an embedded
+document is found only from the document that contains it, or from the
+others embedded with it. A document can say it contains a document with
+any URL, so this keeps it from changing what a reference in another
+document finds. It's found above the stack, so it doesn't depend on
+`Referer`, which a browser drops.
 
-- An embedded document's `url` is the URL it says it has, but its nodes
-  are where they are in the document that contains it, so their locations
-  are in that document. A reference in an embedded document has that
-  document's URL as its `referencedFrom`, so it finds the other documents
-  embedded with it, and nothing else has to remember where an embedded
-  document came from.
-  - Locations that start with the embedded document's URL were rejected.
-    The session would have to remember which document each embedded
-    document was found in, to give a reference in it the container's
-    `referencedFrom` instead of its location's.
+- It's found by the document, not by a URL, so it doesn't depend on where
+  an embedded document's nodes say they are. A plugin can give them
+  locations in the document that contains them, or locations that start
+  with the embedded document's own URL, like `@hyperjump/json-schema`,
+  whose locations are a schema's canonical URIs.
+  - Finding it from the document cached at the reference's
+    `referencedFrom` was rejected. It needs the nodes of an embedded
+    document to have locations in the document that contains it, so a
+    reference in one has that document's URL. JSON Schema's output needs
+    locations that start with an embedded schema's own URI.
+  - Remembering which document each embedded document was found in, by
+    its URL, was rejected. A URL that's embedded in two documents, or also
+    retrieved by itself, would be ambiguous.
 - The URLs a plugin gives come from outside, so the session parses them,
   without the fragment, and one that isn't a URL fails the retrieval (see
   [Identifiers are URLs](../principles/identifiers-are-urls.md)). It keeps
@@ -164,9 +166,9 @@ doesn't depend on `Referer`, which a browser drops.
   is read from where it says it is. One that says it's a `file:` URL reads
   no file.
 - A document has one set of embedded documents. One that's also embedded
-  in another document, like a copy in a bundle, has that document's set
-  when it's found from there and its own when it's found by itself, so it
-  never looks in both.
+  in another document, like a copy in a bundle, is a different document
+  there, with that document's set, and has its own when it's found by
+  itself, so it never looks in both.
   - Finding an embedded document from any document that contains the one
     making the reference was rejected. A document that embeds a copy of
     another, with a document of its own under a URL the copy refers to,

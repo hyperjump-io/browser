@@ -104,24 +104,26 @@ plugin in the list has the same media type, the `Hyperjump` uses the later one.
 Some media types let a document contain other documents, each with a URL of its
 own, the way a bundle does. A plugin for such a media type gives the document it
 parses an `embedded` property that maps each of those URLs to the document at
-it:
+it. Each embedded document gets the same `embedded` object:
 
 ```typescript
+const embedded: Record<string, YrefDocument> = {};
+embedded["https://example.com/address"] = {
+  type: "jref-document",
+  status: result.status,
+  children: [addressNode],
+  comments: [],
+  url: "https://example.com/address",
+  embedded
+};
+
 return {
   type: "jref-document",
   status: result.status,
   children: [result.node],
   comments: [],
   url: response.url,
-  embedded: {
-    "https://example.com/address": {
-      type: "jref-document",
-      status: result.status,
-      children: [addressNode],
-      comments: [],
-      url: "https://example.com/address"
-    }
-  }
+  embedded
 };
 ```
 
@@ -129,10 +131,14 @@ A reference to `https://example.com/address` from the document that contains it
 finds the embedded document, so the session doesn't retrieve it and
 [`allowRetrieval`](allow-retrieval.md) doesn't apply. A reference from any
 other document doesn't find it, so a document can't change what another
-document's references find by claiming a URL. An embedded document's nodes are
-part of the document that contains it, so their locations are in that
-document, and a reference in an embedded document finds the other documents
-embedded with it.
+document's references find by claiming a URL. An embedded document has the same
+`embedded` object, so a reference in it finds the other documents embedded with
+it. Its nodes' locations can be in the document that contains it or start with
+its own URL, whichever your media type needs.
+
+When you follow a reference yourself with `getDocument`, pass the document the
+reference is in as `referencedIn` so that the session looks in its embedded
+documents first.
 
 ## Prefer a media type
 

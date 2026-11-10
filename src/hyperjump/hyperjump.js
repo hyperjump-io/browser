@@ -26,7 +26,7 @@ import { urlSchemesFetch } from "./url-schemes/url-schemes-fetch.js";
  * @import * as API from "./hyperjump.d.ts"
  */
 
-/** @typedef {{ referencedFrom?: string }} ParsedGetOptions */
+/** @typedef {{ referencedFrom?: string, referencedIn?: DocumentNode }} ParsedGetOptions */
 
 /** The statuses whose response is a representation the session can parse */
 const successStatuses = new Set([200, 203]);
@@ -174,11 +174,13 @@ export class Session {
   #cache;
 
   /**
-   * The embedded documents of each document the session parsed, by their
-   * parsed URLs. They're kept here, rather than replacing the plugin's
-   * `embedded`, so the plugin's document is as it made it.
+   * Each set of embedded documents a media type plugin gave, by their parsed
+   * URLs. A plugin gives a document and the documents embedded with it the
+   * same set, so it's kept by the set. They're kept here, rather than
+   * replacing the plugin's `embedded`, so the plugin's documents are as it
+   * made them.
    *
-   * @type WeakMap<DocumentNode, Record<string, DocumentNode>>
+   * @type WeakMap<Record<string, DocumentNode>, Record<string, DocumentNode>>
    */
   #embeddedDocuments;
 
@@ -265,7 +267,7 @@ export class Session {
     if (node.type === "reference") {
       // A media type plugin can be an application's, so what it gives a
       // reference is parsed, like anything else from outside
-      return this.#get(this.#resolve(node.href), parseGetOptions({ referencedFrom: withoutFragment(node.location) }), referenceChain);
+      return this.#get(this.#resolve(node.href), parseGetOptions({ referencedFrom: withoutFragment(node.location), referencedIn: document }), referenceChain);
     } else {
       return node;
     }
@@ -297,7 +299,7 @@ export class Session {
     const id = withoutFragment(this.#resolve(url));
     const parsedOptions = parseGetOptions(options);
 
-    const embedded = await this.#embedded(id, parsedOptions.referencedFrom);
+    const embedded = parsedOptions.referencedIn && this.#embedded(parsedOptions.referencedIn)[id];
     if (embedded) {
       return embedded;
     }
@@ -312,21 +314,26 @@ export class Session {
   }
 
   /**
-   * An embedded document is only found from the document that contains it,
-   * the one at `referencedFrom`, so a document can't change what a reference
-   * in another one finds. The nodes of an embedded document are where they
-   * are in the document that contains it, so a reference in one has that
-   * document's URL as its `referencedFrom`, and it's never looked for in a
-   * document of its own with the same URL.
+   * The documents embedded with a document, by their parsed URLs. A
+   * reference looks in the set of the document it's in, so an embedded
+   * document is only found from the document that contains it, or from the
+   * others embedded with it, and a document can't change what a reference
+   * in another one finds. It doesn't depend on where the nodes' locations
+   * say they are.
    *
-   * @type (id: string, referencedFrom: string | undefined) => Promise<DocumentNode | undefined>
+   * @type (document: DocumentNode) => Record<string, DocumentNode>
    */
-  async #embedded(id, referencedFrom) {
-    const container = referencedFrom === undefined ? undefined : this.#cache[referencedFrom];
-    // A container that failed is the failure of its own retrieval, not this
-    // one's
-    const document = await container?.catch(() => undefined);
-    return document && this.#embeddedDocuments.get(document)?.[id];
+  #embedded(document) {
+    if (document.embedded === undefined) {
+      return {};
+    }
+
+    let parsed = this.#embeddedDocuments.get(document.embedded);
+    if (!parsed) {
+      parsed = parseEmbedded(document.embedded, document.mediaType);
+      this.#embeddedDocuments.set(document.embedded, parsed);
+    }
+    return parsed;
   }
 
   /**
@@ -433,9 +440,9 @@ export class Session {
     // JSON document that turns out to be in a media type of its own
     const document = await plugin.parse(response, this);
     document.mediaType ??= pattern;
-    if (document.embedded !== undefined) {
-      this.#embeddedDocuments.set(document, parseEmbedded(document.embedded, document.mediaType));
-    }
+    // Its embedded documents' URLs are parsed now, so one that isn't a URL
+    // fails the retrieval
+    this.#embedded(document);
     return document;
   }
 }
@@ -447,7 +454,7 @@ export class Session {
  * document is in its container's media type unless its plugin said
  * otherwise.
  *
- * @type (embedded: Record<string, DocumentNode>, mediaType: string) => Record<string, DocumentNode>
+ * @type (embedded: Record<string, DocumentNode>, mediaType: string | undefined) => Record<string, DocumentNode>
  */
 const parseEmbedded = (embedded, mediaType) => {
   /** @type Record<string, DocumentNode> */
@@ -467,7 +474,15 @@ const parseEmbedded = (embedded, mediaType) => {
  * @type (options: API.GetOptions) => ParsedGetOptions
  */
 const parseGetOptions = (options) => {
-  return options.referencedFrom === undefined ? {} : { referencedFrom: withoutFragment(new URL(options.referencedFrom).href) };
+  /** @type ParsedGetOptions */
+  const parsed = {};
+  if (options.referencedFrom !== undefined) {
+    parsed.referencedFrom = withoutFragment(new URL(options.referencedFrom).href);
+  }
+  if (options.referencedIn !== undefined) {
+    parsed.referencedIn = options.referencedIn;
+  }
+  return parsed;
 };
 
 export class RetrievalError extends Error {
