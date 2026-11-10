@@ -30,3 +30,4 @@ for users is in [`website/`](../website/README.md).
 - [Partial content](components/partial-content.md): ranges, and storing 206s
 - [The file cache store](components/file-cache-store.md): the HTTP cache on disk
 - [The resource map](components/resource-map.md): resources found while loading, for one session
+- [Dedupe](components/dedupe.md): requests that are the same, in flight at once, are one
