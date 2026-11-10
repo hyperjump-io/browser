@@ -85,3 +85,28 @@ fold don't compete with the stylesheet the page is waiting for.
 | `scope` | `"root"`, the default, counts a session and its child sessions as one page, like a page and its frames. `"session"` counts each session by itself. |
 
 A held request whose priority you raise starts right away.
+
+## Priority by destination
+
+A browser loads stylesheets before images without being told. The
+`destinationPriority` layer does the same: a request whose priority is `"auto"`
+gets one from its `destination`:
+
+| Destination | Priority |
+| --- | --- |
+| `document`, `style`, `font` | `high` |
+| `image`, `audio`, `video`, `track` | `low` |
+| Anything else | `auto` |
+
+```typescript
+import { destinationPriority } from "@hyperjump/browser";
+
+const stack = compose(destinationPriority(), httpCache(), throttle(), scheduler())(defaultTransport());
+
+await session.fetch("https://example.com/main.css", { destination: "style" }); // high
+await session.fetch("https://example.com/photo.jpg", { destination: "image" }); // low
+```
+
+A priority you pass yourself wins. To use your own priorities, pass them:
+`destinationPriority({ schema: "high" })`. Put `destinationPriority` above
+the layers that use priorities.
