@@ -15,7 +15,8 @@ and RFC 9111.
   is in a browser: a missing file, an unsupported scheme, a refused
   redirect.
 - What a browser shows in devtools, like where a response came from or a
-  waterfall of a page load, is available too.
+  waterfall of a page load, is available too (see
+  [Tracing](../components/tracing.md)).
 - Where the browser and the server differ, the server can do what a browser
   can't, like follow redirects one at a time. Where a browser doesn't allow
   something, like reading a redirect's `Location`, the browser behavior is

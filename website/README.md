@@ -15,5 +15,6 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 - [HTTP caching](http-caching.md): cache responses by their caching headers
 - [Share requests](sharing-requests.md): dedupe and batch requests
 - [Priorities](priorities.md): connection limits, and what loads first
+- [Tracing](tracing.md): see what a session fetched, and why
 - [Registry](registry.md): answer requests with documents you already have
 - [Resource map](resource-map.md): answer requests with resources found while loading

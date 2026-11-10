@@ -19,3 +19,4 @@ export * from "./layers/redirects.js";
 export * from "./layers/scheduler.js";
 export * from "./layers/throttle.js";
 export * from "./layers/destination-priority.js";
+export * from "./trace.js";
