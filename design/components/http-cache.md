@@ -19,6 +19,8 @@ it's a private cache, like a browser's.
   waiting for it.
 - The request's `max-age`, `min-fresh`, `max-stale`, `no-cache`, and
   `no-store` are followed.
+- A range is answered from what's stored, and 206s are stored as parts (see
+  [Partial content](partial-content.md)).
 - The cache mode is the Fetch standard's, from `fetch(url, { cache })`,
   given to the stack as `ctx.cacheMode`. A runtime on a server ignores
   `Request.cache` or refuses some of its values, so it isn't on the request.

@@ -22,6 +22,20 @@ const session = new Session(stack);
 The cache belongs to the layer, so every session on the same stack shares it,
 the way a browser's tabs do.
 
+## Partial content
+
+The cache answers a request with a `Range` header from what it has:
+
+- It answers a range from a whole cached response, with a 206.
+- It stores a 206 as a part of the whole response, and joins parts that have
+  the same strong `ETag`, so the bytes of two versions are never mixed.
+- When the parts add up to the whole response, the cache answers requests for
+  all of it too.
+- It answers a range past the end with a 416.
+
+A request for several ranges at once, or one with `If-Range`, bypasses the
+cache.
+
 ## Cache modes
 
 Like `fetch`, `session.fetch` takes a `cache` option:

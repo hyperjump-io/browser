@@ -3,18 +3,20 @@ import { parseCacheControl, varyMatches } from "./cache-control.js";
 import { networkError, responseMeta, setResponseMeta, withUrl } from "../response-meta.js";
 import { PrioritySignal } from "../priority.js";
 import { nullBodyStatuses } from "../statuses.js";
+import { addSegment, isComplete, parseContentRange, parseRange, resolveRange, sliceSegments } from "./ranges.js";
 
 /**
  * @import * as API from "./http-cache.d.ts"
  * @import { FetchContext, Fetcher } from "../layers.d.ts"
  * @import { CacheMode } from "../session.d.ts"
  * @import { ResponseMeta } from "../response-meta.d.ts"
+ * @import { RangeSpec, Segments } from "./ranges.js"
  */
 
 /** @typedef {{ response: Response, requestTime: number, responseTime: number }} Timed */
 
 /** The statuses RFC 9111 lets a cache give a lifetime to when a response doesn't say one */
-const heuristicallyCacheable = new Set([200, 203, 204, 300, 301, 308, 404, 405, 410, 414, 501]);
+const heuristicallyCacheable = new Set([200, 203, 204, 206, 300, 301, 308, 404, 405, 410, 414, 501]);
 
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -93,7 +95,13 @@ export class HttpCache {
       mode = "no-cache";
     }
 
-    const entry = await this.#lookup(request);
+    if (method === "GET" && request.headers.has("range")) {
+      return this.#fetchRange(request, ctx, mode, requestCacheControl);
+    }
+
+    const found = await this.#lookup(request);
+    // Parts of a representation can't answer a request for all of it
+    const entry = found?.partial ? undefined : found;
     if (!entry) {
       if (mode === "only-if-cached") {
         throw networkError(`'${request.url}' isn't in the cache`);
@@ -244,14 +252,171 @@ export class HttpCache {
       statusText: response.statusText,
       headers: [...headers],
       body,
-      requestHeaders: [...request.headers],
+      requestHeaders: requestHeadersOf(request),
       requestTime,
       responseTime
     };
   }
 
-  /** @type (request: Request, response: Response) => boolean */
-  #isStorable(request, response) {
+  /**
+   * A `GET` with one byte range. It's answered from what's stored when that
+   * has the range, whether it's a whole copy or parts. Otherwise it's sent,
+   * and a 206 is stored and joined to the parts already stored.
+   *
+   * @type (request: Request, ctx: FetchContext, mode: CacheMode, requestCacheControl: Map<string, string>) => Promise<Response>
+   */
+  async #fetchRange(request, ctx, mode, requestCacheControl) {
+    const spec = parseRange(request.headers.get("range"));
+    if (!spec) {
+      // Several ranges, or one that doesn't parse
+      return markCache(await this.inner.fetch(request, ctx), "bypass");
+    }
+
+    const entry = mode === "reload" ? undefined : await this.#lookup(request);
+    if (entry) {
+      const forced = mode === "force-cache" || mode === "only-if-cached";
+      const responseCacheControl = parseCacheControl(header(entry, "cache-control"));
+      const usable = forced || (mode !== "no-cache" && !responseCacheControl.has("no-cache") && this.#freshness(entry, requestCacheControl).fresh);
+      const served = usable ? this.#serveRange(entry, spec) : undefined;
+      if (served) {
+        return served;
+      }
+    }
+    if (mode === "only-if-cached") {
+      throw networkError(`'${request.url}' (${request.headers.get("range")}) isn't in the cache`);
+    }
+
+    const timed = await this.#fetchTimed(request, ctx);
+    if (timed.response.status === 206) {
+      return this.#storePartial(request, timed, entry);
+    } else if (timed.response.status === 200) {
+      // The server sent all of it
+      return this.#storeAndReturn(request, timed);
+    } else {
+      return markCache(timed.response, "miss");
+    }
+  }
+
+  /**
+   * A 206, or a 416 for a range past the end, from what's stored, or
+   * `undefined` if it doesn't have the range
+   *
+   * @type (entry: API.CachedEntry, spec: RangeSpec) => Response | undefined
+   */
+  #serveRange(entry, spec) {
+    /** @type Segments */
+    const stored = entry.partial
+      ? { segments: entry.partial.segments, body: entry.body }
+      : { segments: [{ start: 0, length: entry.body.byteLength }], body: entry.body };
+    const length = entry.partial ? entry.partial.length : entry.body.byteLength;
+    const range = resolveRange(spec, length);
+    if (range === undefined) {
+      return undefined;
+    }
+
+    const headers = new Headers(entry.headers);
+    headers.set("age", String(Math.floor(Math.max(0, this.#freshness(entry, new Map()).age))));
+    let response;
+    if (range === "unsatisfiable") {
+      headers.set("content-range", `bytes */${length}`);
+      headers.set("content-length", "0");
+      response = new Response(null, { status: 416, statusText: "Range Not Satisfiable", headers });
+    } else {
+      const bytes = sliceSegments(stored, range.start, range.end);
+      if (!bytes) {
+        return undefined;
+      }
+      headers.set("content-range", `bytes ${range.start}-${range.end}/${length ?? "*"}`);
+      headers.set("content-length", String(bytes.byteLength));
+      response = new Response(bytes, { status: 206, statusText: "Partial Content", headers });
+    }
+    return setResponseMeta(withUrl(response, entry.url), { source: "http-cache", cache: "hit" });
+  }
+
+  /**
+   * Store a 206 while the caller reads it
+   *
+   * @type (request: Request, timed: Timed, existing: API.CachedEntry | undefined) => Response
+   */
+  #storePartial(request, timed, existing) {
+    const { response } = timed;
+    markCache(response, "miss");
+    if (!parseContentRange(response.headers.get("content-range")) || !this.#isStorable(request, response, true)) {
+      return response;
+    }
+
+    response.clone().arrayBuffer()
+      .then(async (buffer) => {
+        const merged = this.#mergePartial(request, timed, existing, new Uint8Array(buffer));
+        if (merged) {
+          await this.#storePut(merged);
+        }
+      }, () => {
+        // A body that failed or was aborted isn't stored
+      });
+    return response;
+  }
+
+  /**
+   * What's stored once a 206's bytes are added. RFC 9111 §3.4 only lets a
+   * cache join parts that have the same strong validator, so they're joined
+   * only when their strong `ETag`s and lengths match, and otherwise the new
+   * part replaces what's stored. It's `undefined` when the response can't be
+   * used, or what's stored is already whole.
+   *
+   * @type (request: Request, timed: Timed, existing: API.CachedEntry | undefined, bytes: Uint8Array) => API.CachedEntry | undefined
+   */
+  #mergePartial(request, { response, requestTime, responseTime }, existing, bytes) {
+    const range = parseContentRange(response.headers.get("content-range"));
+    if (!range || bytes.byteLength !== range.end - range.start + 1) {
+      return undefined;
+    }
+    const etag = response.headers.get("etag");
+    const strong = etag !== null && !etag.startsWith("W/");
+
+    /** @type Segments */
+    let base = { segments: [], body: new Uint8Array(0) };
+    let length = range.length;
+    const sameRepresentation = existing !== undefined
+      && strong
+      && header(existing, "etag") === etag
+      && (existing.partial?.length ?? existing.body.byteLength) === (length ?? existing.partial?.length);
+    if (existing && sameRepresentation) {
+      if (!existing.partial) {
+        return undefined;
+      }
+      base = { segments: existing.partial.segments, body: existing.body };
+      length ??= existing.partial.length;
+    }
+    const merged = addSegment(base, range.start, bytes);
+    if (this.#maxBodySize !== undefined && merged.body.byteLength > this.#maxBodySize) {
+      return undefined;
+    }
+
+    const headers = withoutHopByHop(response.headers);
+    headers.delete("content-range");
+    headers.delete("content-encoding");
+    const complete = isComplete(merged, length);
+    if (complete) {
+      headers.set("content-length", String(length));
+    } else {
+      headers.delete("content-length");
+    }
+    return {
+      url: cacheKey(request.url),
+      status: 200,
+      statusText: "OK",
+      headers: [...headers],
+      body: merged.body,
+      requestHeaders: requestHeadersOf(request),
+      requestTime,
+      responseTime,
+      ...complete ? {} : { partial: { length, segments: merged.segments } }
+    };
+  }
+
+  /** @type (request: Request, response: Response, allowPartial?: boolean) => boolean */
+  #isStorable(request, response, allowPartial = false) {
     const shared = this.shared;
     if (request.method !== "GET") {
       return false;
@@ -262,7 +427,7 @@ export class HttpCache {
     if (response.redirected || (response.url && cacheKey(response.url) !== cacheKey(request.url))) {
       return false;
     }
-    if (response.status < 200 || response.status === 206 || response.status === 304) {
+    if (response.status < 200 || response.status === 304 || (response.status === 206 && !allowPartial)) {
       return false;
     }
 
@@ -407,6 +572,14 @@ const cacheKey = (url) => {
   key.hash = "";
   return key.href;
 };
+
+/**
+ * The request headers an entry keeps for `Vary`. A range isn't part of what
+ * the entry is for.
+ *
+ * @type (request: Request) => [string, string][]
+ */
+const requestHeadersOf = (request) => [...request.headers].filter(([name]) => name !== "range" && name !== "if-range");
 
 /** @type (entry: API.CachedEntry, name: string) => string | undefined */
 const header = (entry, name) => entry.headers.find(([key]) => key.toLowerCase() === name)?.[1];
