@@ -19,3 +19,4 @@ export * from "./http-cache/memory-cache-store.js";
 export * from "./http-cache/cache-control.js";
 export * from "./http-cache/file-cache-store.js";
 export * from "./layers/dedupe.js";
+export * from "./layers/batch.js";
