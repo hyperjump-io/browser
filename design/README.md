@@ -33,3 +33,4 @@ for users is in [`website/`](../website/README.md).
 - [The resource map](components/resource-map.md): resources found while loading, for one session
 - [Dedupe](components/dedupe.md): requests that are the same, in flight at once, are one
 - [Batching](components/batch.md): requests made at about the same time, sent together
+- [The scheduler](components/scheduler.md): connection limits and priorities, shared by every session

@@ -21,3 +21,4 @@ export * from "./http-cache/file-cache-store.js";
 export * from "./layers/dedupe.js";
 export * from "./layers/batch.js";
 export * from "./layers/redirects.js";
+export * from "./layers/scheduler.js";
