@@ -1,4 +1,5 @@
 import { waitingUntil } from "./waiting.js";
+import { toHar } from "./har.js";
 
 /**
  * @import * as API from "./trace.d.ts"
@@ -115,6 +116,11 @@ export class Trace {
   /** @type API.Trace["toJSON"] */
   toJSON() {
     return this.#records.map((record) => record.toJSON());
+  }
+
+  /** @type API.Trace["toHar"] */
+  toHar(options) {
+    return toHar(this.#records, options);
   }
 }
 

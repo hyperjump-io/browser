@@ -1,5 +1,6 @@
 import type { Session } from "./session.d.ts";
 import type { FetchRecord, FetchRecordJson } from "./fetch-record.d.ts";
+import type { Har, HarOptions } from "./har.d.ts";
 
 export type TraceOptions = {
   /** Record the requests of the session's children too. Default `true`. */
@@ -34,4 +35,7 @@ export class Trace {
   waterfall(options?: { width?: number; urlWidth?: number }): string;
 
   toJSON(): FetchRecordJson[];
+
+  /** The trace as a HAR 1.2 log, which browser devtools open (see {@link toHar}) */
+  toHar(options?: HarOptions): Har;
 }

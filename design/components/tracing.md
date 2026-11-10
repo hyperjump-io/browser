@@ -19,7 +19,8 @@ panel in devtools, from the session's observers and the requests' records
   marks: from when it started to when it first reached the transport. Later
   steps of a redirect aren't waiting. Reading marks is what traces are for
   (see [How layers communicate](../principles/how-layers-communicate.md)).
-- `toJSON()` is the records as data.
+- `toJSON()` is the records as data, and `toHar()` is a HAR log (see
+  [HAR export](har.md)).
 
 Rejected:
 

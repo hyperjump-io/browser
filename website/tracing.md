@@ -67,6 +67,34 @@ Your own layers can add marks with `ctx.record.mark(name, detail)`.
 To stop recording, call `trace.stop()`. `trace.toJSON()` gives the records as
 plain data.
 
+## Open a trace in devtools
+
+`trace.toHar()` makes a HAR file, the format browser devtools import and
+export, so you can open a trace in Chrome's or Firefox's network panel:
+
+```typescript
+import { writeFile } from "node:fs/promises";
+
+const trace = new Trace(session, { bodies: true });
+// ...
+await writeFile("load.har", JSON.stringify(trace.toHar({ title: "Page load" })));
+```
+
+The HAR has every request's headers, status, and size, and its body if the
+trace keeps bodies. Each redirect is an entry of its own. A request's
+`blocked` time is how long it waited for the throttle or the scheduler. DNS,
+connection, and TLS times aren't known, so they're `-1`.
+
+Some fields start with `_`, which HAR allows for extra information:
+
+| Field | Description |
+| --- | --- |
+| `_initiator` | The request that caused this one |
+| `_priority`, `_resourceType` | The priority the request was given, and its destination, the way Chrome shows them |
+| `_source`, `_cache` | Where the response came from, and what the HTTP cache did |
+| `_marks` | What each layer did, in milliseconds from the request's start |
+| `_error` | Why the request failed |
+
 ## Watch a session
 
 To see requests as they happen, use `session.observe`. It tells you when each
