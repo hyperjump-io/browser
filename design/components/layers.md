@@ -21,6 +21,24 @@ request or the response, or passes the request to the layer below.
 - `layer(fn)` and `fetcher(fn)` make a layer or a fetcher from a function,
   for one that doesn't need a class.
 
+## The order
+
+A layer's place in a stack is what it sees on the way down and up, so some
+layers only work in some places. Each one's document says why. Together:
+
+| Layer | Goes | Because |
+| --- | --- | --- |
+| `Redirects` | at the top | it sends each step back down, so only the layers below see them |
+| `ResourceMap` | near the top | what a document says about itself is found first |
+| `DestinationPriority` | above dedupe, the throttle, and the scheduler | they act on the priority it gives |
+| `Dedupe` | above the HTTP cache | requests that miss at the same time are one |
+| `HttpCache` | above the throttle and the scheduler | a hit never waits |
+| `Throttle` | above the scheduler | what a page asks for first is what the scheduler gets first |
+| `Scheduler` | right above the transport | only requests that are sent use a connection |
+
+Nothing checks the order. A stack is a value an application builds, and an
+order that's wrong still works, only not as well.
+
 ## The context
 
 A request goes down the stack with its context (`FetchContext`): the
