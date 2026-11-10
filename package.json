@@ -29,7 +29,16 @@
       "default": "./src/index.js"
     }
   },
-  "imports": {},
+  "imports": {
+    "#file-scheme": {
+      "node": "./src/transports/file-scheme.js",
+      "default": "./src/transports/file-scheme.browser.js"
+    },
+    "#node-transport": {
+      "node": "./src/transports/node-transport.js",
+      "default": "./src/transports/node-transport.browser.js"
+    }
+  },
   "scripts": {
     "lint": "oxlint",
     "test": "vitest run",

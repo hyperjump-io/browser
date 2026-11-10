@@ -23,3 +23,5 @@ for users is in [`website/`](../website/README.md).
 - [Layers](components/layers.md): fetchers that wrap fetchers, and the context
 - [Fetch records](components/fetch-records.md): what happened to each request, and observing a session
 - [The scheme transport](components/scheme-transport.md): the bottom of a stack
+- [The `file:` scheme](components/file-scheme.md): files on a server, like a browser reads them
+- [Packaging](components/packaging.md): Node.js and browsers

@@ -12,3 +12,5 @@ The bottom of a stack gives a request to the fetcher for its URL's scheme.
   `network:start`, with the priority the request has by then, and
   `network:response`.
 - `defaultTransport()` is those three schemes, and works in browsers too.
+  `nodeTransport()` adds `file:`, on a server (see
+  [The `file:` scheme](file-scheme.md)).
