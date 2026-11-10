@@ -22,7 +22,7 @@ information about stacks, see [Layers](layers.md).
 
 | Option | Description |
 | --- | --- |
-| `baseURL` | The URL that relative URLs are resolved against, like a document's base URL |
+| `baseURL` | The URL to resolve relative URLs against, like a document's base URL |
 | `headers` | Headers that every request gets unless the request sets them itself |
 
 The session sends `headers` to every URL it fetches, including where a redirect
@@ -68,5 +68,5 @@ A child session has these properties:
 - It closes when its parent closes.
 
 Layers keep state for each session, such as the requests it has in flight.
-A child session has its own state, so its requests are kept apart from its
-parent's unless a layer is set up to share them.
+A child session has its own state, so layers keep its requests apart from its
+parent's unless you set them up to share.

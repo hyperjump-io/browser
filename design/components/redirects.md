@@ -16,7 +16,7 @@ It follows the Fetch standard:
 - A 301 or 302 makes a `POST` a `GET`, and a 303 makes anything but `GET` or
   `HEAD` a `GET`, without the body or the headers about it. A 307 or 308
   sends the method and body again, so a request with a body is cloned before
-  it's sent, in case.
+  each step, to have the body for the next.
 - `Authorization` isn't sent to another origin.
 - A URL a redirect leads to without a fragment gets the original's.
 - More than 20 redirects (`max`) is a network error.

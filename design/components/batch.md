@@ -14,8 +14,8 @@ request, and splits the answer into a response for each.
   caller aborting doesn't fail the others (see
   [State lives as long as what it's for](../principles/state-lifetimes.md)).
 - A caller that aborts before the batch is sent is taken out of it. If that
-  leaves the batch empty, nothing is sent. A caller that aborts after it's
-  sent stops waiting, and its response's body is cancelled when it comes.
+  leaves the batch empty, nothing is sent. A caller that aborts after the batch
+  is sent stops waiting, and its response's body is cancelled when it comes.
 - `execute` gets the most urgent priority of the batch's callers (see
   [Priorities](priorities.md)).
 - An `execute` that returns the wrong number of responses fails every

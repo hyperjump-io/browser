@@ -58,14 +58,14 @@ as it does in a browser.
 
 ## Responses without a lifetime
 
-A response that doesn't say how long it's fresh for can still be cached:
+The cache can still keep a response that doesn't say how long it's fresh for:
 
 - A 301 or 308 redirect is fresh for a day.
 - Another response with a `Last-Modified` header is fresh for a tenth of the
   time since it was last modified.
 
 To choose a lifetime yourself, use the `heuristic` option. It's asked first,
-and `undefined` leaves the response to the rules above:
+and `undefined` leaves the response to the rules in the previous list:
 
 ```typescript
 httpCache({
@@ -78,13 +78,13 @@ httpCache({
 
 | Option | Description |
 | --- | --- |
-| `store` | Where responses are kept. The default is a new `MemoryCacheStore`. |
+| `store` | Where the cache keeps responses. The default is a new `MemoryCacheStore`. |
 | `shared` | `true` for a shared cache, like a proxy's, which uses `s-maxage` and doesn't store `private` responses |
 | `heuristic` | A lifetime in seconds for a response that doesn't say one |
 | `permanentRedirectLifetime` | Seconds that a 301 or 308 without a lifetime is fresh for. The default is a day. `0` turns it off. |
 | `heuristicFraction` | The part of the time since `Last-Modified` that a response is fresh for. The default is 0.1. |
 | `maxBodySize` | Responses bigger than this many bytes aren't stored |
-| `onStoreError` | Called when the store fails. The request still succeeds, as if nothing was cached. |
+| `onStoreError` | Called when the store fails. The request still succeeds, as if the cache had nothing. |
 
 ## Where the cache keeps responses
 
@@ -112,7 +112,7 @@ httpCache({
 so processes that share the directory never see part of a file. With
 `maxSize`, in bytes, it removes the least recently used responses when the cache
 grows past it. When several processes write to the same directory, the limit is
-only approximate. A damaged file is treated as a miss and removed.
+only approximate. `FileCacheStore` treats a damaged file as a miss and removes it.
 `clear()` removes everything, and `size()` says how many bytes are on disk.
 
 To keep responses somewhere else, such as Redis, implement a `CacheStore`. The
@@ -140,5 +140,5 @@ await findLayer(stack, HttpCache)?.purge("https://example.com/app.css");
 ## Where a response came from
 
 `responseMeta(response).cache` says what the cache did: `"hit"`, `"miss"`,
-`"revalidated"`, `"stale"`, `"bypass"`, or `"filled"` for a range that was
+`"revalidated"`, `"stale"`, `"bypass"`, or `"filled"` for a range that the cache
 answered with cached bytes and the missing ones.

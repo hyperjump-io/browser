@@ -28,24 +28,24 @@ console.log(trace.waterfall());
 ```
 
 Each row is a request, under the request that caused it. `░` is time it waited
-for the throttle or the scheduler, and `█` is time it was loading. In this
-example, the stylesheet and the script went first. The images waited, the logo
-was redirected, and the second `main.css` joined the first request instead of
+for the throttle or the scheduler, and `█` is time it was loading. The style
+sheet and the script went first in this example. The images waited, the logo
+redirected, and the second `main.css` joined the first request instead of
 loading again.
 
 ## What caused a request
 
 Pass the response that caused a request as `initiator`, such as the page that
-refers to a stylesheet. The waterfall puts each request under its initiator.
+refers to a style sheet. The waterfall puts each request under its initiator.
 
 ## Records
 
-A response's record is `responseMeta(response).record`. It has what was asked
-for, what each layer did, and how it ended:
+A response's record is `responseMeta(response).record`. It has what the request
+asked for, what each layer did, and how it ended:
 
 | Property | Description |
 | --- | --- |
-| `url`, `method`, `destination` | What was asked for |
+| `url`, `method`, `destination` | What the request asked for |
 | `initiator` | The record of the request that caused it |
 | `marks` | What each layer did, and when, such as `"redirect"` or `"scheduler:queued"` |
 | `status`, `finalUrl`, `source`, `cache` | How it ended, and where its response came from |
@@ -90,15 +90,16 @@ Some fields start with `_`, which HAR allows for extra information:
 | Field | Description |
 | --- | --- |
 | `_initiator` | The request that caused this one |
-| `_priority`, `_resourceType` | The priority the request was given, and its destination, the way Chrome shows them |
+| `_priority`, `_resourceType` | The priority the layers gave the request, and its destination, the way Chrome names them |
 | `_source`, `_cache` | Where the response came from, and what the HTTP cache did |
 | `_marks` | What each layer did, in milliseconds from the request's start |
 | `_error` | Why the request failed |
 
 ## Watch a session
 
-To see requests as they happen, use `session.observe`. It tells you when each
-request starts, is marked by a layer, gets its response, and ends:
+To see requests as they happen, use `session.observe`. Your observer gets an
+event when each request starts, gets a mark from a layer, gets its response, and
+ends:
 
 ```typescript
 const stop = session.observe((event) => {

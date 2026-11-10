@@ -2,8 +2,8 @@
 
 Some documents contain other documents, each with a URL of its own, like a
 bundle. When your code parses one, it can register the documents it finds in a
-resource map. After that, requests in the same session for those URLs are
-answered from the map instead of fetched:
+resource map. After that, the map answers requests in the same session for
+those URLs instead of fetching them:
 
 ```typescript
 import { Session, compose, resourceMap, findLayer, ResourceMap, defaultTransport } from "@hyperjump/browser";
@@ -21,18 +21,18 @@ for (const [url, document] of Object.entries(bundle.documents)) {
 const response = await session.fetch("https://example.com/address.json");
 ```
 
-Put the resource map at the top of your stack, so what a document says it
-contains is found before anything else.
+Put the resource map at the top of your stack, so it finds what a document says
+it contains before anything else does.
 
-## What a session sees
+## What each session gets
 
 A resource map keeps what's registered for each session, and it's gone when the
 session is:
 
-- A child session sees what its parents registered, the way a frame can use
+- A child session gets what its parents registered, the way a frame can use
   what its page found.
-- A parent doesn't see what its children registered, and children don't see
-  each other's. To register something every frame sees, register it in
+- A parent doesn't get what its children registered, and children don't get
+  each other's. To register something for every frame, register it in
   `session.root`.
 
 To keep every session to what it registered itself, use
@@ -49,11 +49,11 @@ parsing the text again.
 Registering the same content for a URL again does nothing and returns `false`.
 Registering different content for a URL the session already has throws an
 error. A child session can register a URL its parent has, and then the child
-sees its own.
+gets its own.
 
 ## Documents you don't trust
 
 What a session registers answers every request in that session. A document can
-say it contains a document with any URL, including one that your application
+say it contains a document with any URL, including one that your app
 fetches for something else. If you load documents you don't trust, only
 register what's safe, or load untrusted documents in a separate session.

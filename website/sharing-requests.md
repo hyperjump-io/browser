@@ -22,7 +22,7 @@ const [a, b] = await Promise.all([
 ]);
 ```
 
-Put `dedupe` above `httpCache`, so requests that miss the cache at the same time
+Put `dedupe` before `httpCache`, so requests that miss the cache at the same time
 are still one request.
 
 ### What's the same
@@ -39,9 +39,9 @@ dedupe({
 
 ### Aborting
 
-Each caller can abort its own request. That only ends its own wait, and the
-others still get the response. When every caller has given up, the shared
-request is stopped.
+Each caller can cancel its own request with its `signal`. That only ends its
+own wait, and the others still get the response. When every caller has given
+up, the layer stops the shared request.
 
 ### Sessions and frames
 
@@ -76,12 +76,12 @@ one response for each, in the same order.
 
 | Option | Description |
 | --- | --- |
-| `match` | A key for requests that can be sent together, or `undefined` |
+| `match` | A key for requests that can go together, or `undefined` |
 | `execute` | Sends the requests and returns a response for each, in order |
 | `windowMs` | How long to wait for more requests. The default, `0`, sends the batch at the end of the current task. |
-| `maxSize` | Send a batch as soon as it has this many requests |
+| `maxSize` | The number of requests that sends a batch right away |
 | `scope` | `"session"`, the default, or `"root"` to batch a session's requests with its child sessions' |
 
-A caller that aborts before its batch is sent is taken out of it. One that
-aborts after that only stops waiting, and the rest of the batch still gets its
-responses.
+If a caller cancels its request before the layer sends its batch, the layer
+takes the request out of the batch. A caller that cancels later only stops
+waiting, and the rest of the batch still gets its responses.

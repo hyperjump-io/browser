@@ -24,7 +24,7 @@ That lets the other layers work with each step:
   });
   ```
 
-Put `redirects` at the top of the stack. A layer above it only sees the first
+Put `redirects` first in the stack. A layer before it only gets the first
 request.
 
 ## What it follows

@@ -30,5 +30,5 @@ Rejected:
 - `root` is checked against the path as it's written, and reading the file
   follows symlinks. A symlink inside `root` that points outside it can be
   read.
-- A file that's changed while it's read is read as it is, partly old and
-  partly new.
+- A file that changes during a read is read as it is, partly old and partly
+  new.

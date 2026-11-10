@@ -41,8 +41,8 @@ When stored parts have some of a range, only what's missing is fetched.
 - The request has `If-Range` with the parts' strong `ETag` (RFC 9110
   §13.1.5). If the server still has that version, it sends only those bytes,
   which are joined to the stored ones, and the answer's cache status is
-  `"filled"`. If the file changed, `If-Range` makes the server send all of
-  the new version, which is stored and answers the range, so old and new
+  `"filled"`. If the file changed, `If-Range` makes the server send the
+  whole new version, which is stored and answers the range, so old and new
   bytes are never mixed.
 - `If-Range` checks the stored parts, so gaps are filled even when the parts
   are stale, and with `force-cache`. With `only-if-cached`, nothing is

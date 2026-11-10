@@ -35,23 +35,23 @@ nodeTransport({ file: { contentTypes: { ts: "text/typescript" } } });
 
 ## Errors
 
-As in a browser, a file that can't be read is a network error, not a 404.
+As in a browser, a file the session can't read is a network error, not a 404.
 `session.fetch` rejects with a `TypeError` when the file doesn't exist, the URL
 is a directory, or the method isn't `GET` or `HEAD`.
 
-## Limit what can be read
+## Limit what a session can read
 
-A document can refer to any file on the machine. If your application fetches
+A document can refer to any file on the machine. If your app fetches
 URLs that come from documents, use the `root` option so only files in that
-directory can be read:
+directory are readable:
 
 ```typescript
 nodeTransport({ file: { root: "./site" } });
 ```
 
-A URL outside `root` is a network error. A symbolic link inside `root` that
-points outside it can still be read, so don't rely on `root` for a directory
-where someone you don't trust can make links.
+A URL outside `root` is a network error. A session can still read through a
+symbolic link inside `root` that points outside it, so don't rely on `root` for
+a directory where someone you don't trust can make links.
 
 ## Leave out file URLs
 

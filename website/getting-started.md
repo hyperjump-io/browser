@@ -2,7 +2,7 @@
 
 This tutorial builds a stack that loads a page the way a browser does: it
 follows redirects, shares requests that are the same, caches responses, and
-loads the stylesheet before the images. Then it shows you what happened.
+loads the style sheet before the images. Then it shows you what happened.
 
 ## Build a stack
 
@@ -27,11 +27,11 @@ const stack = compose(
 
 The order matters, the way it does in a browser:
 
-1. `redirects` is at the top, so every other layer sees each step of a
+1. `redirects` is at the top, so every other layer gets each step of a
    redirect.
 2. `destinationPriority` gives each request a priority from what it's for, so
    the layers below can use it.
-3. `dedupe` is above the cache, so requests that miss at the same time are one
+3. `dedupe` comes before the cache, so requests that miss at the same time are one
    request.
 4. `httpCache` answers what it has before anything waits for a connection.
 5. `throttle` holds back low-priority requests while important ones load.
@@ -67,11 +67,11 @@ await Promise.all([
 ].map(async (response) => (await response).arrayBuffer()));
 ```
 
-The stylesheet gets a high priority, and the images get a low one. While the
-stylesheet loads, the throttle lets only one image through.
+The style sheet gets a high priority, and the images get a low one. While the
+style sheet loads, the throttle lets only one image through.
 
-Read or cancel every body. A request keeps its connection until its body is
-done.
+Read or cancel every body. A request keeps its connection until you finish
+with its body.
 
 ## See what happened
 

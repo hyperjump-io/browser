@@ -1,7 +1,7 @@
 # Registry
 
 A registry answers requests with documents you already have, so they're never
-fetched. Use it for a copy of a document that's bundled with your application,
+fetched. Use it for a copy of a document that's bundled with your app,
 for test fixtures, or to work offline:
 
 ```typescript
@@ -42,11 +42,11 @@ A response without a `Content-Type` gets the type for its URL's extension.
 | Option | Description |
 | --- | --- |
 | `entries` | Documents by URL, as an object or as a list of `[url, entry]` pairs |
-| `base` | The URL that relative URLs in `entries` are resolved against |
+| `base` | The URL to resolve relative URLs in `entries` against |
 | `resolve` | A function that answers a URL that isn't in `entries`. Return `undefined` to pass the request on. |
 | `onMiss` | `"next"` to pass on a URL the registry doesn't have, which is the default, or `"error"` to fail it |
 
-With `onMiss: "error"`, only what's in the registry can be fetched. That's
+With `onMiss: "error"`, a session can only fetch what's in the registry. That's
 useful in tests, where nothing should reach the network.
 
 ## Look in a registry

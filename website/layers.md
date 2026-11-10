@@ -7,7 +7,7 @@ it. Each layer can answer the request itself, change it, or pass it on.
 ## Build a stack
 
 `compose` puts layers on a transport. The first layer is the top of the stack,
-so it sees each request first:
+so it gets each request first:
 
 ```typescript
 import { Session, compose, defaultTransport } from "@hyperjump/browser";
@@ -82,7 +82,7 @@ await findLayer(stack, HttpCache)?.purge("https://example.com/app.css");
 ## Where a response came from
 
 `responseMeta` says which part of the stack made a response, the way devtools
-shows "(from disk cache)":
+says "from disk cache":
 
 ```typescript
 import { responseMeta } from "@hyperjump/browser";
