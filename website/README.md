@@ -11,5 +11,6 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 - [Sessions](sessions.md): fetch through a session, close it, and nest sessions
 - [Layers](layers.md): build a stack and write your own layers
 - [File URLs](file-urls.md): fetch `file:` URLs on a server
+- [HTTP caching](http-caching.md): cache responses by their caching headers
 - [Registry](registry.md): answer requests with documents you already have
 - [Resource map](resource-map.md): answer requests with resources found while loading

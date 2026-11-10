@@ -10,8 +10,18 @@ export type SessionOptions = {
   headers?: HeadersInit;
 };
 
+/**
+ * The Fetch standard's cache modes, like `Request.cache`. A runtime on a
+ * server ignores `Request.cache` or refuses some of its values, so the
+ * session gives it to the stack.
+ */
+export type CacheMode = "default" | "no-store" | "reload" | "no-cache" | "force-cache" | "only-if-cached";
+
 /** `RequestInit`, with what the session gives the stack instead of the runtime */
-export type SessionFetchInit = Omit<RequestInit, "priority"> & {
+export type SessionFetchInit = Omit<RequestInit, "cache" | "priority"> & {
+  /** How the HTTP cache handles the request (see {@link CacheMode}) */
+  cache?: CacheMode;
+
   /**
    * Like `fetchpriority` in browsers. A {@link PrioritySignal}, from a
    * `PriorityController`, can change while the request waits.

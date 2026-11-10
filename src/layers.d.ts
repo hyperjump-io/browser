@@ -1,4 +1,4 @@
-import type { Session } from "./session.d.ts";
+import type { CacheMode, Session } from "./session.d.ts";
 import type { PrioritySignal } from "./priority.d.ts";
 import type { FetchRecord } from "./fetch-record.d.ts";
 
@@ -25,6 +25,9 @@ export type Decorator<Out extends Fetcher = Fetcher> = (inner: Fetcher) => Out;
  */
 export type FetchContext = {
   readonly session: Session;
+
+  /** How the HTTP cache handles the request, from `fetch(url, { cache })` */
+  readonly cacheMode: CacheMode;
 
   /** Aborts when the caller aborts, or the session or one of its parents closes */
   readonly signal: AbortSignal;

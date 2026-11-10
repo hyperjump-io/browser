@@ -1,4 +1,5 @@
 import type { Session } from "./session.d.ts";
+import type { ResponseMeta } from "./response-meta.d.ts";
 
 /** Something a layer did with a request, and when */
 export type Mark = {
@@ -60,6 +61,9 @@ export class FetchRecord {
   /** Where the response came from (`responseMeta(response).source`) */
   readonly source: string | undefined;
 
+  /** What the HTTP cache did (`responseMeta(response).cache`) */
+  readonly cache: ResponseMeta["cache"];
+
   /** The body's size in bytes, once it's done. It's known only while the session is observed. */
   readonly bodySize: number | undefined;
 
@@ -87,6 +91,7 @@ export type FetchRecordJson = {
   status: number | undefined;
   finalUrl: string | undefined;
   source: string | undefined;
+  cache: ResponseMeta["cache"];
   error: string | undefined;
   marks: { name: string; time: number }[];
 };

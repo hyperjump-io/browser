@@ -14,3 +14,6 @@ export * from "./transports/file-scheme.js";
 export * from "./transports/node-transport.js";
 export * from "./layers/registry.js";
 export * from "./layers/resource-map.js";
+export * from "./http-cache/http-cache.js";
+export * from "./http-cache/memory-cache-store.js";
+export * from "./http-cache/cache-control.js";

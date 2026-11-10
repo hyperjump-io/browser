@@ -1,0 +1,459 @@
+import { MemoryCacheStore } from "./memory-cache-store.js";
+import { parseCacheControl, varyMatches } from "./cache-control.js";
+import { networkError, responseMeta, setResponseMeta, withUrl } from "../response-meta.js";
+import { PrioritySignal } from "../priority.js";
+import { nullBodyStatuses } from "../statuses.js";
+
+/**
+ * @import * as API from "./http-cache.d.ts"
+ * @import { FetchContext, Fetcher } from "../layers.d.ts"
+ * @import { CacheMode } from "../session.d.ts"
+ * @import { ResponseMeta } from "../response-meta.d.ts"
+ */
+
+/** @typedef {{ response: Response, requestTime: number, responseTime: number }} Timed */
+
+/** The statuses RFC 9111 lets a cache give a lifetime to when a response doesn't say one */
+const heuristicallyCacheable = new Set([200, 203, 204, 300, 301, 308, 404, 405, 410, 414, 501]);
+
+const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+/** A request with one of these is already conditional, so the Fetch standard bypasses the cache */
+const conditionalHeaders = ["if-modified-since", "if-none-match", "if-unmodified-since", "if-match", "if-range"];
+
+/** Headers a 304 doesn't change in a stored response */
+const notUpdatedBy304 = new Set(["content-length", "content-encoding", "transfer-encoding", "content-range"]);
+
+/** Headers about one connection, not the response (RFC 9110 §7.6.1), which a cache doesn't store */
+const hopByHopHeaders = ["connection", "keep-alive", "proxy-connection", "te", "trailer", "transfer-encoding", "upgrade"];
+
+/** @implements API.HttpCache */
+export class HttpCache {
+  /** @type number */
+  #heuristicFraction;
+
+  /** @type number */
+  #permanentRedirectLifetime;
+
+  /** @type API.HttpCacheOptions["heuristic"] */
+  #heuristic;
+
+  /** @type number | undefined */
+  #maxBodySize;
+
+  /** @type () => number */
+  #now;
+
+  /** @type NonNullable<API.HttpCacheOptions["onStoreError"]> */
+  #onStoreError;
+
+  /**
+   * @param {Fetcher} inner
+   * @param {API.HttpCacheOptions} [options]
+   */
+  constructor(inner, options = {}) {
+    this.inner = inner;
+    /** @type API.CacheStore */
+    this.store = options.store ?? new MemoryCacheStore();
+    this.shared = options.shared ?? false;
+    this.#heuristicFraction = options.heuristicFraction ?? 0.1;
+    this.#permanentRedirectLifetime = options.permanentRedirectLifetime ?? 86_400;
+    this.#heuristic = options.heuristic;
+    this.#maxBodySize = options.maxBodySize;
+    this.#now = options.now ?? Date.now;
+    this.#onStoreError = options.onStoreError ?? (() => {});
+  }
+
+  /** @type API.HttpCache["purge"] */
+  async purge(url) {
+    await this.#storeDelete(cacheKey(String(url)));
+  }
+
+  /** @type API.HttpCache["fetch"] */
+  async fetch(request, ctx) {
+    const method = request.method;
+    if (method !== "GET" && method !== "HEAD") {
+      const response = await this.inner.fetch(request, ctx);
+      if (unsafeMethods.has(method) && response.status < 400) {
+        await this.#invalidate(request, response);
+      }
+      return response;
+    }
+
+    let mode = effectiveMode(request, ctx.cacheMode);
+    if (mode === "no-store") {
+      return markCache(await this.inner.fetch(request, ctx), "bypass");
+    }
+    if (mode === "reload") {
+      return this.#storeAndReturn(request, await this.#fetchTimed(request, ctx));
+    }
+
+    const requestCacheControl = parseCacheControl(request.headers.get("cache-control"));
+    if ((requestCacheControl.has("no-cache") || request.headers.get("pragma") === "no-cache") && mode === "default") {
+      mode = "no-cache";
+    }
+
+    const entry = await this.#lookup(request);
+    if (!entry) {
+      if (mode === "only-if-cached") {
+        throw networkError(`'${request.url}' isn't in the cache`);
+      }
+      if (method === "HEAD") {
+        return markCache(await this.inner.fetch(request, ctx), "miss");
+      }
+      return this.#storeAndReturn(request, await this.#fetchTimed(request, ctx));
+    }
+
+    if (mode === "force-cache" || mode === "only-if-cached") {
+      return this.#serve(entry, request, "hit");
+    }
+
+    const { fresh, staleBy, age, staleWhileRevalidate } = this.#freshness(entry, requestCacheControl);
+    const responseCacheControl = parseCacheControl(header(entry, "cache-control"));
+    const mustRevalidate = mode === "no-cache" || responseCacheControl.has("no-cache");
+
+    if (!mustRevalidate) {
+      if (fresh) {
+        return this.#serve(entry, request, "hit");
+      }
+
+      const staleAllowed = !responseCacheControl.has("must-revalidate") && !(this.shared && responseCacheControl.has("proxy-revalidate"));
+      const maxStale = requestCacheControl.get("max-stale");
+      if (staleAllowed && maxStale !== undefined && (maxStale === "" || staleBy <= Number(maxStale))) {
+        return this.#serve(entry, request, "stale");
+      }
+      if (staleAllowed && staleWhileRevalidate !== undefined && staleBy <= staleWhileRevalidate) {
+        // The refresh belongs to the session, not to this request, and nobody
+        // is waiting for it, so it's low priority
+        ctx.record.mark("cache:background-revalidate");
+        const backgroundCtx = { ...ctx, signal: ctx.session.signal, priority: PrioritySignal.of("low") };
+        this.#revalidate(entry, new Request(request, { signal: ctx.session.signal }), backgroundCtx)
+          .then((response) => response.body?.cancel(), () => {});
+        return this.#serve(entry, request, "stale", age);
+      }
+    }
+
+    return this.#revalidate(entry, request, ctx);
+  }
+
+  /** @type (request: Request) => Promise<API.CachedEntry | undefined> */
+  async #lookup(request) {
+    const url = cacheKey(request.url);
+    try {
+      const variants = await this.store.match(url);
+      return variants.find((variant) => varyMatches(variant, request.headers));
+    } catch (error) {
+      this.#onStoreError(error, "match", url);
+      return undefined;
+    }
+  }
+
+  /** @type (entry: API.CachedEntry) => Promise<void> */
+  async #storePut(entry) {
+    try {
+      await this.store.put(entry);
+    } catch (error) {
+      this.#onStoreError(error, "put", entry.url);
+    }
+  }
+
+  /** @type (url: string) => Promise<void> */
+  async #storeDelete(url) {
+    try {
+      await this.store.delete(url);
+    } catch (error) {
+      this.#onStoreError(error, "delete", url);
+    }
+  }
+
+  /** @type (request: Request, ctx: FetchContext) => Promise<Timed> */
+  async #fetchTimed(request, ctx) {
+    const requestTime = this.#now();
+    const response = await this.inner.fetch(request, ctx);
+    return { response, requestTime, responseTime: this.#now() };
+  }
+
+  /** @type (entry: API.CachedEntry, request: Request, ctx: FetchContext) => Promise<Response> */
+  async #revalidate(entry, request, ctx) {
+    if (request.method === "HEAD") {
+      // A HEAD can't refresh a stored response, so it's passed on
+      return markCache(await this.inner.fetch(request, ctx), "miss");
+    }
+
+    const etag = header(entry, "etag");
+    const lastModified = header(entry, "last-modified");
+    ctx.record.mark("cache:revalidate", { etag, lastModified });
+    const conditional = new Request(request);
+    if (etag) {
+      conditional.headers.set("if-none-match", etag);
+    } else if (lastModified) {
+      conditional.headers.set("if-modified-since", lastModified);
+    }
+
+    const timed = await this.#fetchTimed(conditional, ctx);
+    if (timed.response.status === 304 && (etag || lastModified)) {
+      const updated = mergeNotModified(entry, timed);
+      await this.#storePut(updated);
+      return this.#serve(updated, request, "revalidated");
+    }
+    return this.#storeAndReturn(request, timed);
+  }
+
+  /**
+   * Store a response if it can be, while the caller reads it. A clone is
+   * read for the store, so the caller's body streams.
+   *
+   * @type (request: Request, timed: Timed) => Promise<Response>
+   */
+  async #storeAndReturn(request, timed) {
+    const { response } = timed;
+    markCache(response, "miss");
+    if (!this.#isStorable(request, response)) {
+      return response;
+    }
+    const max = this.#maxBodySize;
+    if (max !== undefined && Number(response.headers.get("content-length") ?? NaN) > max) {
+      return response;
+    }
+
+    response.clone().arrayBuffer()
+      .then(async (buffer) => {
+        if (max === undefined || buffer.byteLength <= max) {
+          await this.#storePut(this.#fullEntry(request, timed, new Uint8Array(buffer)));
+        }
+      }, () => {
+        // A body that failed or was aborted isn't stored
+      });
+    return response;
+  }
+
+  /**
+   * A stored response, from a response and its body. Runtimes give a decoded
+   * body, so its `Content-Encoding` is dropped and its length is the decoded
+   * length.
+   *
+   * @type (request: Request, timed: Timed, body: Uint8Array) => API.CachedEntry
+   */
+  #fullEntry(request, { response, requestTime, responseTime }, body) {
+    const headers = withoutHopByHop(response.headers);
+    headers.delete("content-encoding");
+    headers.set("content-length", String(body.byteLength));
+    return {
+      url: cacheKey(request.url),
+      status: response.status,
+      statusText: response.statusText,
+      headers: [...headers],
+      body,
+      requestHeaders: [...request.headers],
+      requestTime,
+      responseTime
+    };
+  }
+
+  /** @type (request: Request, response: Response) => boolean */
+  #isStorable(request, response) {
+    const shared = this.shared;
+    if (request.method !== "GET") {
+      return false;
+    }
+    // The runtime followed a redirect, so this is the response it ended at,
+    // not the response for this URL. Storing it would make a temporary
+    // redirect permanent.
+    if (response.redirected || (response.url && cacheKey(response.url) !== cacheKey(request.url))) {
+      return false;
+    }
+    if (response.status < 200 || response.status === 206 || response.status === 304) {
+      return false;
+    }
+
+    const requestCacheControl = parseCacheControl(request.headers.get("cache-control"));
+    const cacheControl = parseCacheControl(response.headers.get("cache-control"));
+    if (requestCacheControl.has("no-store") || cacheControl.has("no-store")) {
+      return false;
+    }
+    if (shared && cacheControl.has("private")) {
+      return false;
+    }
+    if (shared && request.headers.has("authorization") && !(cacheControl.has("public") || cacheControl.has("s-maxage") || cacheControl.has("must-revalidate"))) {
+      return false;
+    }
+    if (response.headers.get("vary")?.trim() === "*") {
+      return false;
+    }
+    return cacheControl.has("max-age")
+      || (shared && cacheControl.has("s-maxage"))
+      || cacheControl.has("public")
+      || (!shared && cacheControl.has("private"))
+      || response.headers.has("expires")
+      || heuristicallyCacheable.has(response.status);
+  }
+
+  /**
+   * A stored response's lifetime and age, in seconds (RFC 9111 §4.2)
+   *
+   * @type (entry: API.CachedEntry, requestCacheControl: Map<string, string>) => { fresh: boolean, staleBy: number, age: number, staleWhileRevalidate: number | undefined }
+   */
+  #freshness(entry, requestCacheControl) {
+    const cacheControl = parseCacheControl(header(entry, "cache-control"));
+    const date = parseDate(header(entry, "date")) ?? entry.responseTime;
+    const sMaxAge = cacheControl.get("s-maxage");
+    const maxAge = cacheControl.get("max-age");
+    const expires = header(entry, "expires");
+
+    let lifetime = 0;
+    if (this.shared && sMaxAge !== undefined) {
+      lifetime = seconds(sMaxAge);
+    } else if (maxAge !== undefined) {
+      lifetime = seconds(maxAge);
+    } else if (expires !== undefined) {
+      lifetime = Math.max(0, ((parseDate(expires) ?? 0) - date) / 1000);
+    } else if (heuristicallyCacheable.has(entry.status)) {
+      lifetime = this.#heuristicLifetime(entry, date);
+    }
+
+    const apparentAge = Math.max(0, entry.responseTime - date) / 1000;
+    const responseDelay = (entry.responseTime - entry.requestTime) / 1000;
+    const correctedAge = seconds(header(entry, "age") ?? "0") + responseDelay;
+    const age = Math.max(apparentAge, correctedAge) + (this.#now() - entry.responseTime) / 1000;
+
+    let limit = lifetime;
+    const requestMaxAge = requestCacheControl.get("max-age");
+    if (requestMaxAge !== undefined) {
+      limit = Math.min(limit, seconds(requestMaxAge));
+    }
+    const minFresh = seconds(requestCacheControl.get("min-fresh") ?? "0");
+    const staleWhileRevalidate = cacheControl.get("stale-while-revalidate");
+
+    return {
+      fresh: age + minFresh < limit,
+      staleBy: age - limit,
+      age,
+      staleWhileRevalidate: staleWhileRevalidate === undefined ? undefined : seconds(staleWhileRevalidate)
+    };
+  }
+
+  /**
+   * A lifetime for a response that doesn't say one (RFC 9111 §4.2.2): the
+   * application's heuristic, then a permanent redirect's, then a part of the
+   * time since `Last-Modified`
+   *
+   * @type (entry: API.CachedEntry, date: number) => number
+   */
+  #heuristicLifetime(entry, date) {
+    const custom = this.#heuristic?.({ url: entry.url, status: entry.status, headers: new Headers(entry.headers) });
+    if (custom !== undefined) {
+      return Math.max(0, custom);
+    }
+    if ((entry.status === 301 || entry.status === 308) && this.#permanentRedirectLifetime > 0) {
+      return this.#permanentRedirectLifetime;
+    }
+    const lastModified = parseDate(header(entry, "last-modified"));
+    if (lastModified !== undefined) {
+      return Math.max(0, (date - lastModified) / 1000 * this.#heuristicFraction);
+    }
+    return 0;
+  }
+
+  /** @type (entry: API.CachedEntry, request: Request, status: "hit" | "stale" | "revalidated", age?: number) => Response */
+  #serve(entry, request, status, age) {
+    const headers = new Headers(entry.headers);
+    headers.set("age", String(Math.floor(Math.max(0, age ?? this.#freshness(entry, new Map()).age))));
+    const body = request.method === "HEAD" || nullBodyStatuses.has(entry.status) ? null : entry.body.slice();
+    const response = new Response(body, { status: entry.status, statusText: entry.statusText, headers });
+    return setResponseMeta(withUrl(response, entry.url), { source: "http-cache", cache: status });
+  }
+
+  /**
+   * A successful unsafe request makes what's stored for its URL stale, and
+   * for its `Location` and `Content-Location` on the same origin
+   *
+   * @type (request: Request, response: Response) => Promise<void>
+   */
+  async #invalidate(request, response) {
+    const base = new URL(request.url);
+    for (const target of [request.url, response.headers.get("location"), response.headers.get("content-location")]) {
+      if (target) {
+        const url = new URL(target, base);
+        if (url.origin === base.origin) {
+          await this.#storeDelete(cacheKey(url.href));
+        }
+      }
+    }
+  }
+}
+
+/** @type typeof API.httpCache */
+export const httpCache = (options) => (inner) => new HttpCache(inner, options);
+
+/**
+ * The cache mode a request is handled with. As in the Fetch standard, a
+ * request that's already conditional bypasses the cache.
+ *
+ * @type (request: Request, mode: CacheMode) => CacheMode
+ */
+const effectiveMode = (request, mode) => {
+  if (mode === "default" && conditionalHeaders.some((name) => request.headers.has(name))) {
+    return "no-store";
+  }
+  if (parseCacheControl(request.headers.get("cache-control")).has("no-store")) {
+    return "no-store";
+  }
+  return mode;
+};
+
+/** @type (url: string) => string */
+const cacheKey = (url) => {
+  const key = new URL(url);
+  key.hash = "";
+  return key.href;
+};
+
+/** @type (entry: API.CachedEntry, name: string) => string | undefined */
+const header = (entry, name) => entry.headers.find(([key]) => key.toLowerCase() === name)?.[1];
+
+/** @type (entry: API.CachedEntry, timed: Timed) => API.CachedEntry */
+const mergeNotModified = (entry, { response, requestTime, responseTime }) => {
+  const headers = new Headers(entry.headers);
+  for (const [name, value] of withoutHopByHop(response.headers)) {
+    if (!notUpdatedBy304.has(name)) {
+      headers.set(name, value);
+    }
+  }
+  response.body?.cancel().catch(() => {});
+  return { ...entry, headers: [...headers], requestTime, responseTime };
+};
+
+/** @type (source: Headers) => Headers */
+const withoutHopByHop = (source) => {
+  const headers = new Headers(source);
+  const listed = (source.get("connection") ?? "").split(",")
+    .map((name) => name.trim().toLowerCase())
+    .filter(Boolean);
+  for (const name of [...hopByHopHeaders, ...listed]) {
+    headers.delete(name);
+  }
+  return headers;
+};
+
+/** @type (value: string) => number */
+const seconds = (value) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+};
+
+/** @type (value: string | undefined) => number | undefined */
+const parseDate = (value) => {
+  if (!value) {
+    return undefined;
+  }
+  const time = Date.parse(value);
+  return Number.isNaN(time) ? undefined : time;
+};
+
+/** @type (response: Response, cache: NonNullable<ResponseMeta["cache"]>) => Response */
+const markCache = (response, cache) => {
+  if (!responseMeta(response).cache) {
+    setResponseMeta(response, { cache });
+  }
+  return response;
+};

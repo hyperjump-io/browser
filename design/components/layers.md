@@ -24,12 +24,15 @@ request or the response, or passes the request to the layer below.
 ## The context
 
 A request goes down the stack with its context (`FetchContext`): the
-session, the signal, the priority, the destination, and the record. A layer
+session, the cache mode, the signal, the priority, the destination, and the
+record. A layer
 can give the one below it a changed copy, like a shared request's signal,
 but these are the only fields (see
 [How layers communicate](../principles/how-layers-communicate.md)).
 
 - `session` is for a layer's per-session state, and its signal.
+- `cacheMode` is the Fetch standard's cache mode, for the HTTP cache (see
+  [HTTP cache](http-cache.md)).
 - `signal` aborts when the caller aborts or the session closes. A request's
   own signal is the same, but a layer that makes a new request can give it
   another, so the context has it too.

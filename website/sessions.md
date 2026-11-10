@@ -34,6 +34,7 @@ Besides the options of `fetch`, `session.fetch` takes these:
 
 | Option | Description |
 | --- | --- |
+| `cache` | A cache mode, as for `fetch`: `"default"`, `"no-store"`, `"reload"`, `"no-cache"`, `"force-cache"`, or `"only-if-cached"`. For more information, see [HTTP caching](http-caching.md). |
 | `priority` | `"high"`, `"auto"`, or `"low"`, like `fetchpriority` in a browser |
 | `destination` | What the resource is for, such as `"document"`, `"style"`, or `"image"`, like `Request.destination` in a browser |
 | `initiator` | The response of the request that caused this one, such as the document that referred to it |

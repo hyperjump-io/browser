@@ -53,6 +53,7 @@ Each request goes down the stack with a context:
 | Property | Description |
 | --- | --- |
 | `session` | The session the request is in |
+| `cacheMode` | The request's cache mode, from `fetch(url, { cache })` |
 | `signal` | Aborts when the caller aborts or the session closes |
 | `priority` | The request's priority, which can change while it waits. Read `priority.value`. |
 | `destination` | What the resource is for, or `""` |
@@ -73,9 +74,9 @@ const inFlight = ctx.session.state(this, () => new Map());
 `findLayer` finds a layer in a stack by its class, so you can call its methods:
 
 ```typescript
-import { findLayer } from "@hyperjump/browser";
+import { findLayer, HttpCache } from "@hyperjump/browser";
 
-findLayer(stack, MyLayer)?.reset();
+await findLayer(stack, HttpCache)?.purge("https://example.com/app.css");
 ```
 
 ## Where a response came from
@@ -88,4 +89,5 @@ import { responseMeta } from "@hyperjump/browser";
 
 const response = await session.fetch("https://example.com/");
 responseMeta(response).source; // "network"
+responseMeta(response).cache; // "miss"
 ```

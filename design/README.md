@@ -26,4 +26,5 @@ for users is in [`website/`](../website/README.md).
 - [The `file:` scheme](components/file-scheme.md): files on a server, like a browser reads them
 - [Packaging](components/packaging.md): Node.js and browsers
 - [The registry](components/registry.md): documents the application has, answered first
+- [HTTP cache](components/http-cache.md): RFC 9111, with the Fetch standard's cache modes
 - [The resource map](components/resource-map.md): resources found while loading, for one session

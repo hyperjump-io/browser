@@ -9,3 +9,6 @@ export * from "#file-scheme";
 export * from "#node-transport";
 export * from "./layers/registry.js";
 export * from "./layers/resource-map.js";
+export * from "./http-cache/http-cache.js";
+export * from "./http-cache/memory-cache-store.js";
+export * from "./http-cache/cache-control.js";

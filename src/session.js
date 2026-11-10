@@ -96,7 +96,7 @@ export class Session {
       throw this.signal.reason;
     }
 
-    const { priority, destination, initiator, ...requestInit } = init;
+    const { cache, priority, destination, initiator, ...requestInit } = init;
     const callerSignal = init.signal ?? (input instanceof Request ? input.signal : undefined);
     const signal = callerSignal ? AbortSignal.any([this.signal, callerSignal]) : this.signal;
 
@@ -123,6 +123,7 @@ export class Session {
     /** @type FetchContext */
     const ctx = {
       session: this,
+      cacheMode: cache ?? "default",
       signal,
       priority: priority instanceof PrioritySignal ? priority : PrioritySignal.of(priority ?? "auto"),
       destination: record.destination,

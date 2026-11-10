@@ -17,6 +17,7 @@ import { responseMeta } from "./response-meta.js";
  *   responseHeaders?: [string, string][];
  *   finalUrl?: string;
  *   source?: string;
+ *   cache?: import("./response-meta.d.ts").ResponseMeta["cache"];
  *   bodySize?: number;
  *   body?: Uint8Array;
  *   error?: unknown;
@@ -89,6 +90,10 @@ export class FetchRecord {
     return this.#state.source;
   }
 
+  get cache() {
+    return this.#state.cache;
+  }
+
   get bodySize() {
     return this.#state.bodySize;
   }
@@ -123,6 +128,7 @@ export class FetchRecord {
       status: this.status,
       finalUrl: this.finalUrl,
       source: this.source,
+      cache: this.cache,
       error: this.error === undefined ? undefined : errorText(this.error),
       marks: this.#marks.map((mark) => ({ name: mark.name, time: mark.time }))
     };
@@ -141,6 +147,7 @@ export const recordResponse = (record, response) => {
   state.responseHeaders = [...response.headers];
   state.finalUrl = response.url || record.url;
   state.source = responseMeta(response).source;
+  state.cache = responseMeta(response).cache;
   notify({ type: "response", record });
 };
 

@@ -13,6 +13,9 @@ export type ResponseMeta = {
    */
   source?: string;
 
+  /** What the HTTP cache did, if the request went through one */
+  cache?: "hit" | "miss" | "revalidated" | "stale" | "bypass";
+
   /**
    * A parsed form of the body that whatever made the response already had,
    * like the object a resource map's resource was found in. Use it instead of
