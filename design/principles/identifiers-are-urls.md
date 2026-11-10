@@ -24,8 +24,15 @@ identify, or both, so neither name says which.
   error, because parsing never fails (see
   [Parsing never fails](parsing-never-fails.md)). A node's location is its
   document's URL with a fragment.
-- What a scheme's URLs mean, and whether they can be retrieved, is its URI
+- What a scheme's URLs mean, and whether they can be retrieved, is its URL
   scheme plugin's. A `urn:` is parsed like any other.
+- A URL with an opaque path, like a `urn:`, is only a base for a fragment.
+  The URL Standard doesn't resolve any other relative reference against it,
+  not even `""`, which RFC 3986 resolves to the base. So in a JRef document
+  whose URL is a URN, a reference that isn't `#…` doesn't parse, which is a
+  syntax error. A media type plugin that resolves its references itself,
+  like `@hyperjump/json-schema`'s, which resolves them as IRIs, gives
+  Browser absolute URLs, so this doesn't apply to it.
 - An application that needs IRIs, like a JSON Schema registry, converts
   where it meets Browser, in front of the stack. An IRI that isn't a URL
   can't be requested, so it's found there or not at all.
