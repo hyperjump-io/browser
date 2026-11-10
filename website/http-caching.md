@@ -79,6 +79,24 @@ import { MemoryCacheStore } from "@hyperjump/browser";
 httpCache({ store: new MemoryCacheStore({ maxUrls: 5000 }) });
 ```
 
+On a server, `FileCacheStore` keeps responses on disk, so they outlive the
+process:
+
+```typescript
+import { FileCacheStore } from "@hyperjump/browser";
+
+httpCache({
+  store: new FileCacheStore({ directory: ".cache/http", maxSize: 200 * 1024 * 1024 })
+});
+```
+
+`FileCacheStore` writes each file under a temporary name and then renames it,
+so processes that share the directory never see part of a file. With
+`maxSize`, in bytes, it removes the least recently used responses when the cache
+grows past it. When several processes write to the same directory, the limit is
+only approximate. A damaged file is treated as a miss and removed.
+`clear()` removes everything, and `size()` says how many bytes are on disk.
+
 To keep responses somewhere else, such as Redis, implement a `CacheStore`. The
 cache does all the HTTP, so a store only keeps entries by URL:
 

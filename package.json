@@ -37,6 +37,10 @@
     "#node-transport": {
       "node": "./src/transports/node-transport.js",
       "default": "./src/transports/node-transport.browser.js"
+    },
+    "#file-cache-store": {
+      "node": "./src/http-cache/file-cache-store.js",
+      "default": "./src/http-cache/file-cache-store.browser.js"
     }
   },
   "scripts": {

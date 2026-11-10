@@ -12,3 +12,4 @@ export * from "./layers/resource-map.js";
 export * from "./http-cache/http-cache.js";
 export * from "./http-cache/memory-cache-store.js";
 export * from "./http-cache/cache-control.js";
+export * from "#file-cache-store";

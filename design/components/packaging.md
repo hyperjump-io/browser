@@ -1,7 +1,7 @@
 # Packaging
 
 - It's designed for Node.js and browsers. Subpath imports (`#file-scheme`,
-  `#node-transport`, …) give browser versions of the parts that need
+  `#node-transport`, `#file-cache-store`) give browser versions of the parts that need
   Node.js, which bundlers that support the `imports` field choose for a
   browser. A browser version throws when it's used, with a message that
   says it isn't supported there.
