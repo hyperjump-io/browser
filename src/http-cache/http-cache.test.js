@@ -65,6 +65,7 @@ const routes = {
   "/moved": (_request, response) => response.writeHead(301, { location: "/target" }).end(),
   "/moved-308": (_request, response) => response.writeHead(308, { location: "/target" }).end(),
   "/temporary": (_request, response) => response.writeHead(302, { location: "/target" }).end(),
+  "/temporary-to-fresh": (_request, response) => response.writeHead(302, { location: "/item" }).end(),
   "/moved-max-age-0": (_request, response) => response.writeHead(301, { "location": "/target", "cache-control": "max-age=0" }).end(),
   "/moved-old": (_request, response) => {
     // Last modified ~115 days ago, so ~11.5 days fresh by Last-Modified
@@ -305,9 +306,11 @@ describe("the HTTP cache", () => {
   test("a response the runtime reached by following a redirect isn't stored under the URL that was asked for", async () => {
     const { server, get, hits } = await setup();
     try {
-      expect((await get("/temporary")).body).to.equal("target");
-      await get("/temporary");
-      expect(hits("/temporary")).to.equal(2);
+      const first = await get("/temporary-to-fresh");
+      expect(first.body).to.equal("item");
+      expect(first.response.redirected, "the runtime followed it").to.equal(true);
+      await get("/temporary-to-fresh");
+      expect(hits("/temporary-to-fresh"), "the fresh response it ended at wasn't stored as the 302's").to.equal(2);
     } finally {
       await server.close();
     }
