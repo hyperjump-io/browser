@@ -5,7 +5,7 @@ import { networkError } from "./response-meta.js";
 /**
  * Resolve a session's `allowRetrieval` against its base. Without a list,
  * it's the runtime's default (`defaults`). The default is relative, so where
- * there's no base, such as in a worker without a `baseURL`, it's the error a
+ * there's no base, such as in a worker, it's the error a
  * check throws, so a session that never fetches doesn't need a list.
  *
  * @type (entries: string[] | undefined, base: URL | undefined, defaults: string[]) => string[] | TypeError

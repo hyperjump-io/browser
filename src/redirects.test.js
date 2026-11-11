@@ -12,8 +12,8 @@ describe("redirects", () => {
   test("are followed one at a time, through the stack", async () => {
     const server = await redirectServer();
     try {
-      const session = testSession(defaultTransport(), { baseURL: server.url });
-      const response = await session.fetch("/chain/1");
+      const session = testSession(defaultTransport(), { allow: [server.url] });
+      const response = await session.fetch(`${server.url}/chain/1`);
       expect(response.status).to.equal(200);
       expect(response.redirected).to.equal(true);
       expect(response.url).to.equal(`${server.url}/final`);
@@ -30,10 +30,10 @@ describe("redirects", () => {
   test("the HTTP cache stores the redirects themselves", async () => {
     const server = await redirectServer();
     try {
-      const session = testSession(httpCache()(defaultTransport()), { baseURL: server.url });
-      await (await session.fetch("/r/301/target?cache")).text();
+      const session = testSession(httpCache()(defaultTransport()), { allow: [server.url] });
+      await (await session.fetch(`${server.url}/r/301/target?cache`)).text();
       await settle();
-      const again = await session.fetch("/r/301/target?cache");
+      const again = await session.fetch(`${server.url}/r/301/target?cache`);
       expect((await again.json()).path).to.equal("/target");
       expect(server.hits.get("/r/301/target"), "the 301 came from the cache").to.equal(1);
       expect(server.hits.get("/target"), "the target isn't cacheable").to.equal(2);
@@ -55,16 +55,16 @@ describe("redirects", () => {
           }
         })
       )(defaultTransport());
-      const session = testSession(stack, { baseURL: server.url });
+      const session = testSession(stack, { allow: [server.url] });
 
-      const latest = await session.fetch("/latest.json");
+      const latest = await session.fetch(`${server.url}/latest.json`);
       expect(await latest.json()).to.eql({ version: 2 });
       expect(latest.url).to.equal(`${server.url}/v2.json`);
       expect(responseMeta(latest).source).to.equal("registry");
 
-      expect(await (await session.fetch("/r/302/v2.json")).json(), "a redirect from the network to a registered URL").to.eql({ version: 2 });
+      expect(await (await session.fetch(`${server.url}/r/302/v2.json`)).json(), "a redirect from the network to a registered URL").to.eql({ version: 2 });
       expect(server.hits.get("/v2.json")).to.equal(undefined);
-      expect((await (await session.fetch("/old-api")).json()).path).to.equal("/api");
+      expect((await (await session.fetch(`${server.url}/old-api`)).json()).path).to.equal("/api");
     } finally {
       await server.close();
     }
@@ -73,9 +73,9 @@ describe("redirects", () => {
   test("change the method and body as the Fetch standard says", async () => {
     const server = await redirectServer();
     try {
-      const session = testSession(defaultTransport(), { baseURL: server.url });
+      const session = testSession(defaultTransport(), { allow: [server.url] });
       /** @type (status: number) => Promise<unknown> */
-      const post = async (status) => (await session.fetch(`/r/${status}/echo`, { method: "POST", body: "payload", headers: { "content-type": "text/plain" } })).json();
+      const post = async (status) => (await session.fetch(`${server.url}/r/${status}/echo`, { method: "POST", body: "payload", headers: { "content-type": "text/plain" } })).json();
 
       for (const status of [301, 302, 303]) {
         expect(await post(status), `${status} makes a POST a GET without its body`).to.eql({ path: "/echo", method: "GET", body: "", contentType: null, authorization: null, apiKey: null });
@@ -83,8 +83,8 @@ describe("redirects", () => {
       for (const status of [307, 308]) {
         expect(await post(status), `${status} sends the method and body again`).to.eql({ path: "/echo", method: "POST", body: "payload", contentType: "text/plain", authorization: null, apiKey: null });
       }
-      expect((await (await session.fetch("/r/302/echo", { method: "PUT", body: "x" })).json()).method, "302 only changes POST").to.equal("PUT");
-      expect((await (await session.fetch("/r/303/echo", { method: "PUT", body: "x" })).json()).method, "303 changes anything but GET and HEAD").to.equal("GET");
+      expect((await (await session.fetch(`${server.url}/r/302/echo`, { method: "PUT", body: "x" })).json()).method, "302 only changes POST").to.equal("PUT");
+      expect((await (await session.fetch(`${server.url}/r/303/echo`, { method: "PUT", body: "x" })).json()).method, "303 changes anything but GET and HEAD").to.equal("GET");
     } finally {
       await server.close();
     }
@@ -94,10 +94,10 @@ describe("redirects", () => {
     const other = await redirectServer();
     const server = await redirectServer(() => other.url);
     try {
-      const session = testSession(defaultTransport(), { baseURL: server.url, allow: [other.url] });
+      const session = testSession(defaultTransport(), { allow: [server.url, other.url] });
       const headers = { authorization: "Bearer secret" };
-      expect((await (await session.fetch("/r/302/echo", { headers })).json()).authorization).to.equal("Bearer secret");
-      const crossed = await session.fetch("/to-other", { method: "POST", body: "b", headers });
+      expect((await (await session.fetch(`${server.url}/r/302/echo`, { headers })).json()).authorization).to.equal("Bearer secret");
+      const crossed = await session.fetch(`${server.url}/to-other`, { method: "POST", body: "b", headers });
       const json = await crossed.json();
       expect(json.authorization).to.equal(null);
       expect(json.body).to.equal("b");
@@ -113,18 +113,17 @@ describe("redirects", () => {
     const server = await redirectServer(() => other.url);
     try {
       const session = testSession(defaultTransport(), {
-        baseURL: server.url,
-        allow: [other.url],
+        allow: [server.url, other.url],
         headers: {
-          "/": { "x-api-key": "server" },
-          "/r/": { "x-api-key": "redirects" }
+          [`${server.url}/`]: { "x-api-key": "server" },
+          [`${server.url}/r/`]: { "x-api-key": "redirects" }
         }
       });
-      expect((await (await session.fetch("/to-other")).json()).apiKey, "a credential doesn't follow a redirect to another origin").to.equal(null);
-      expect((await (await session.fetch("/r/302/echo")).json()).apiKey, "a path's credential doesn't follow a redirect out of the path").to.equal("server");
+      expect((await (await session.fetch(`${server.url}/to-other`)).json()).apiKey, "a credential doesn't follow a redirect to another origin").to.equal(null);
+      expect((await (await session.fetch(`${server.url}/r/302/echo`)).json()).apiKey, "a path's credential doesn't follow a redirect out of the path").to.equal("server");
 
       const both = session.child({ headers: { [`${other.url}/`]: { "x-api-key": "other" } } });
-      expect((await (await both.fetch("/to-other")).json()).apiKey, "a redirect gets the credential for where it leads").to.equal("other");
+      expect((await (await both.fetch(`${server.url}/to-other`)).json()).apiKey, "a redirect gets the credential for where it leads").to.equal("other");
     } finally {
       await server.close();
       await other.close();
@@ -137,15 +136,15 @@ describe("redirects", () => {
       /** @type string[] */
       const urls = [];
       const session = testSession(defaultTransport(), {
-        baseURL: server.url,
+        allow: [server.url],
         headers: {
-          "/": async (url) => {
+          [`${server.url}/`]: async (url) => {
             urls.push(url.href);
             return { "x-api-key": `token ${urls.length}` };
           }
         }
       });
-      const response = await session.fetch("/chain/1#top");
+      const response = await session.fetch(`${server.url}/chain/1#top`);
       expect((await response.json()).apiKey).to.equal("token 3");
       expect(urls).to.eql([`${server.url}/chain/1`, `${server.url}/chain/2`, `${server.url}/final`]);
     } finally {
@@ -156,20 +155,20 @@ describe("redirects", () => {
   test("redirect: error, manual, loops, a missing Location, and fragments", async () => {
     const server = await redirectServer();
     try {
-      const session = testSession(defaultTransport(), { baseURL: server.url, maxRedirects: 5 });
-      await expect(session.fetch("/r/302/echo", { redirect: "error" })).rejects.toThrow(TypeError);
+      const session = testSession(defaultTransport(), { allow: [server.url], maxRedirects: 5 });
+      await expect(session.fetch(`${server.url}/r/302/echo`, { redirect: "error" })).rejects.toThrow(TypeError);
 
-      const manual = await session.fetch("/r/302/echo", { redirect: "manual" });
+      const manual = await session.fetch(`${server.url}/r/302/echo`, { redirect: "manual" });
       expect(manual.status).to.equal(302);
       expect(manual.headers.get("location")).to.equal("/echo");
 
-      await expect(session.fetch("/loop")).rejects.toThrow(/more than 5 times/);
+      await expect(session.fetch(`${server.url}/loop`)).rejects.toThrow(/more than 5 times/);
 
-      const noLocation = await session.fetch("/no-location");
+      const noLocation = await session.fetch(`${server.url}/no-location`);
       expect(noLocation.status).to.equal(302);
       expect(await noLocation.text()).to.equal("no location");
 
-      const withFragment = await session.fetch("/chain/1#section");
+      const withFragment = await session.fetch(`${server.url}/chain/1#section`);
       expect(responseMeta(withFragment).redirects?.at(-1)).to.equal(`${server.url}/final#section`);
       expect(withFragment.url, "a response's URL doesn't have a fragment").to.equal(`${server.url}/final`);
     } finally {
@@ -180,8 +179,8 @@ describe("redirects", () => {
   test("a server can't send a request to file:, even when the transport has it", async () => {
     const server = await redirectServer();
     try {
-      const session = testSession(nodeTransport(), { baseURL: server.url });
-      await expect(session.fetch("/to-file")).rejects.toThrow(/isn't allowed/);
+      const session = testSession(nodeTransport(), { allow: [server.url] });
+      await expect(session.fetch(`${server.url}/to-file`)).rejects.toThrow(/isn't allowed/);
     } finally {
       await server.close();
     }
@@ -190,11 +189,11 @@ describe("redirects", () => {
   test("a child session has its parent's redirect options unless it's given its own", async () => {
     const server = await redirectServer();
     try {
-      const parent = testSession(defaultTransport(), { baseURL: server.url, maxRedirects: 1, redirectSchemes: ["http:", "data:"] });
-      await expect(parent.child().fetch("/chain/1")).rejects.toThrow(/more than 1 times/);
-      expect(await (await parent.child().fetch("/to-data")).text()).to.equal("hi");
-      expect((await parent.child({ maxRedirects: 2 }).fetch("/chain/1")).status).to.equal(200);
-      await expect(parent.child({ redirectSchemes: ["http:"] }).fetch("/to-data")).rejects.toThrow(/isn't allowed/);
+      const parent = testSession(defaultTransport(), { allow: [server.url], maxRedirects: 1, redirectSchemes: ["http:", "data:"] });
+      await expect(parent.child().fetch(`${server.url}/chain/1`)).rejects.toThrow(/more than 1 times/);
+      expect(await (await parent.child().fetch(`${server.url}/to-data`)).text()).to.equal("hi");
+      expect((await parent.child({ maxRedirects: 2 }).fetch(`${server.url}/chain/1`)).status).to.equal(200);
+      await expect(parent.child({ redirectSchemes: ["http:"] }).fetch(`${server.url}/to-data`)).rejects.toThrow(/isn't allowed/);
     } finally {
       await server.close();
     }

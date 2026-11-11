@@ -7,7 +7,7 @@ way a browser's cache does:
 import { Session, compose, httpCache, defaultTransport } from "@hyperjump/browser";
 
 const stack = compose(httpCache())(defaultTransport());
-const session = new Session(stack, { baseURL: "https://example.com/" });
+const session = new Session(stack, { allowRetrieval: ["https://example.com/"] });
 ```
 
 - It uses a fresh response without making a request.

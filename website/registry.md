@@ -17,7 +17,7 @@ const stack = compose(
   })
 )(defaultTransport());
 
-const session = new Session(stack, { baseURL: "https://example.com/" });
+const session = new Session(stack, { allowRetrieval: ["https://example.com/"] });
 await session.fetch("https://example.com/schemas/person.json"); // from the registry
 ```
 

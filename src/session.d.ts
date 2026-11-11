@@ -3,13 +3,11 @@ import type { Priority, PrioritySignal } from "./priority.d.ts";
 import type { FetchRecord, Observer } from "./fetch-record.d.ts";
 
 export type SessionOptions = {
-  /** Relative URLs are resolved against it, like a document's base URL */
-  baseURL?: string | URL;
-
   /**
    * Headers by URL, like credentials. A key that ends with `/` is for every
    * URL under it, and any other key is only for itself. A relative key is
-   * resolved against `baseURL`. When several keys match, a longer key wins a
+   * resolved against the working directory in Node.js or the page in a
+   * browser. When several keys match, a longer key wins a
    * header both have, and a request's own headers win over all of them.
    * Each redirect gets the headers for the URL it leads to.
    */
@@ -18,12 +16,11 @@ export type SessionOptions = {
   /**
    * The URLs the session can fetch, so a document can't make it fetch
    * whatever it names. One that ends with `/` allows every URL under it, and
-   * any other allows only itself. A relative one is resolved against
-   * `baseURL`, or without one, the working directory in Node.js or the page
-   * in a browser. The default is what's local to the application: `["./"]`,
-   * the working directory, in Node.js, and `["/"]`, the page's origin, in a
-   * browser. A
-   * `file:` URL is compared by its real path. Fetching a URL it doesn't allow,
+   * any other allows only itself. A relative one is resolved against the
+   * working directory in Node.js or the page in a browser. The default is
+   * what's local to the application: `["./"]`, the working directory, in
+   * Node.js, and `["/"]`, the page's origin, in a browser. A `file:` URL is
+   * compared by its real path. Fetching a URL it doesn't allow,
    * a redirect to one, or a response from one, is a network error.
    */
   allowRetrieval?: string[];
@@ -79,8 +76,8 @@ export type SessionFetchInit = Omit<RequestInit, "cache" | "priority"> & {
 
 /**
  * The requests that belong together, like a page load's. A session sits on
- * a stack and gives it what the stack can't know: a base URL, default
- * headers, a signal that closing the session aborts, and state for layers
+ * a stack and gives it what the stack can't know: what it can fetch, the
+ * headers for each URL, a signal that closing the session aborts, and state for layers
  * that lives as long as the session. It follows redirects one at a time,
  * each as a new request down the stack, so every layer sees each URL, by
  * the Fetch standard's rules. A response that was redirected has its final
@@ -95,8 +92,6 @@ export class Session {
 
   /** The session this is a child of (see {@link Session.child}) */
   readonly parent: Session | undefined;
-
-  readonly baseURL: URL | undefined;
 
   /** Aborts when this session or one of its parents is closed */
   get signal(): AbortSignal;
@@ -116,12 +111,11 @@ export class Session {
    */
   state<T>(key: object, init: () => T): T;
 
-  /** Resolve a URL against the base URL */
-  resolve(url: string | URL): URL;
-
   /**
-   * Fetch through the stack. Like `fetch`, it rejects with a `TypeError` for
-   * a network error.
+   * Fetch through the stack. A relative URL is resolved against the working
+   * directory in Node.js or the page in a browser, which the session reads
+   * when it's created. Like `fetch`, it rejects with a `TypeError` for a
+   * network error.
    *
    * @throws The session's signal's reason if the session is closed.
    */
@@ -136,11 +130,10 @@ export class Session {
   observe(observer: Observer, options?: { bodies?: boolean }): () => void;
 
   /**
-   * A session nested in this one, like an iframe. It has the same stack. Its
-   * base URL is resolved against this one's, it has this one's redirect
-   * options and `allowRetrieval` unless it's given its own, and it has this
-   * one's headers, with a
-   * key it's given replacing the same key of this one's. Its state is its own,
+   * A session nested in this one, like an iframe. It has the same stack. It
+   * has this one's redirect options and `allowRetrieval` unless it's given
+   * its own, and it has this one's headers, with a key it's given replacing
+   * the same key of this one's. Its state is its own,
    * and closing this one closes it.
    */
   child(options?: SessionOptions): Session;

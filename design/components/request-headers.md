@@ -16,9 +16,10 @@ is the safe way.
   ignored, and a requested URL's fragment isn't part of the request. The
   rule is a pure function of the entries and a URL (`src/url-entries.js`),
   so anything else decided by URL can use the same one.
-- A relative key is resolved against `baseURL` when the session is created,
-  as a relative request URL is. A key that isn't a URL, or a relative key
-  in a session without a `baseURL`, throws a `TypeError` there.
+- A relative key is resolved against the context URL when the session is
+  created, as a relative request URL is (see [Sessions](sessions.md)). A
+  key that isn't a URL, or a relative key where there's no context URL,
+  like in a worker, throws a `TypeError` there.
 - A key can have any scheme. The session adds headers before the stack, and
   the transport decides what to send.
 - When several keys match, their headers are merged from the shortest key
@@ -58,7 +59,7 @@ Rejected:
   HTTP cache would have to be below it to respect a `Vary`. And they would
   be the stack's, which sessions share, so sessions with different
   credentials couldn't share a stack. Credentials are about who's fetching,
-  like the base URL.
+  like what a session can fetch.
 - Dropping more headers on a redirect to another origin, as `Authorization`
   is. A list of names misses the ones it doesn't have, like `X-API-Key`.
 

@@ -105,10 +105,10 @@ describe("partial content", () => {
     let body = data;
     const server = await startServer((request, response) => serveRanges(request, response, { etag, body }));
     try {
-      const session = testSession(new HttpCache(defaultTransport()), { baseURL: server.url });
+      const session = testSession(new HttpCache(defaultTransport()), { allow: [server.url] });
       /** @type (range: string, cache?: CacheMode) => Promise<string> */
       const get = async (range, cache) => {
-        const response = await session.fetch("/v", { headers: { range }, cache });
+        const response = await session.fetch(`${server.url}/v`, { headers: { range }, cache });
         const text = await response.text();
         await settle();
         return text;
@@ -135,10 +135,10 @@ describe("partial content", () => {
   test("without an ETag, only the latest part is kept", async () => {
     const server = await startServer((request, response) => serveRanges(request, response, { etag: undefined, body: data }));
     try {
-      const session = testSession(new HttpCache(defaultTransport()), { baseURL: server.url });
+      const session = testSession(new HttpCache(defaultTransport()), { allow: [server.url] });
       /** @type (range: string) => Promise<string | undefined> */
       const cacheOf = async (range) => {
-        const response = await session.fetch("/n", { headers: { range } });
+        const response = await session.fetch(`${server.url}/n`, { headers: { range } });
         await response.text();
         await settle();
         return responseMeta(response).cache;
@@ -235,11 +235,11 @@ const serveRanges = (request, response, { etag, body }) => {
 /** @param {CacheStore} [store] */
 const setup = async (store = new MemoryCacheStore()) => {
   const server = await startServer((request, response) => serveRanges(request, response, { etag: "\"v1\"", body: data }));
-  const session = testSession(new HttpCache(defaultTransport(), { store }), { baseURL: server.url });
+  const session = testSession(new HttpCache(defaultTransport(), { store }), { allow: [server.url] });
 
   /** @type (path: string, range?: string, init?: { headers?: Record<string, string>, cache?: CacheMode }) => Promise<{ status: number, body: string, range: string | null, cache: string | undefined }> */
   const get = async (path, range, init = {}) => {
-    const response = await session.fetch(path, { cache: init.cache, headers: { ...range ? { range } : {}, ...init.headers } });
+    const response = await session.fetch(`${server.url}${path}`, { cache: init.cache, headers: { ...range ? { range } : {}, ...init.headers } });
     const body = await response.text();
     await settle();
     return { status: response.status, body, range: response.headers.get("content-range"), cache: responseMeta(response).cache };

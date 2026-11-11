@@ -162,8 +162,8 @@ describe("the file cache store", () => {
     });
     try {
       const run = async () => {
-        const session = testSession(new HttpCache(defaultTransport(), { store: new FileCacheStore({ directory: dir }) }), { baseURL: server.url });
-        const response = await session.fetch("/doc");
+        const session = testSession(new HttpCache(defaultTransport(), { store: new FileCacheStore({ directory: dir }) }), { allow: [server.url] });
+        const response = await session.fetch(`${server.url}/doc`);
         const body = await response.text();
         await settle();
         return { body, cache: responseMeta(response).cache };

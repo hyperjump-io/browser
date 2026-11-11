@@ -157,11 +157,11 @@ const setup = async () => {
     response.end(body.slice(start, end + 1));
   });
   const store = new MemoryCacheStore();
-  const session = testSession(new HttpCache(defaultTransport(), { store }), { baseURL: server.url });
+  const session = testSession(new HttpCache(defaultTransport(), { store }), { allow: [server.url] });
 
   /** @type (range?: string, cache?: CacheMode) => Promise<{ status: number, body: string, range: string | null, cache: string | undefined, marks?: string[] }> */
   const get = async (range, cache) => {
-    const response = await session.fetch("/f", { headers: range ? { range } : {}, cache });
+    const response = await session.fetch(`${server.url}/f`, { headers: range ? { range } : {}, cache });
     const body = await response.text();
     await settle();
     const marks = responseMeta(response).record?.marks.map((mark) => mark.name)

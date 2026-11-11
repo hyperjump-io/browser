@@ -55,14 +55,14 @@ describe("traces", () => {
 
   test("the waterfall shows the tree, destinations, statuses, and waiting", async () => {
     const net = controlled();
-    const session = testSession(scheduler({ perKey: 1 })(net.transport), { baseURL: "https://site.test/" });
+    const session = testSession(scheduler({ perKey: 1 })(net.transport));
     const trace = new Trace(session);
-    const pagePending = session.fetch("index.html", { destination: "document" });
+    const pagePending = session.fetch("https://site.test/index.html", { destination: "document" });
     await tick();
     net.answer("site.test/index.html");
     const page = await pagePending;
     await page.text();
-    const subresources = ["a.css", "b.js"].map((url) => session.fetch(url, { initiator: page }));
+    const subresources = ["a.css", "b.js"].map((path) => session.fetch(`https://site.test/${path}`, { initiator: page }));
     await tick();
     net.answer("site.test/a.css");
     await (await subresources[0]).text();

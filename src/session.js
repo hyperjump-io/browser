@@ -23,6 +23,15 @@ export class Session {
   /** @type AbortSignal */
   #signal;
 
+  /**
+   * What relative URLs are resolved against: the working directory in
+   * Node.js, or the page in a browser. It's read once, so everything the
+   * session does sees the same one.
+   *
+   * @type URL | undefined
+   */
+  #contextUrl = contextUrl();
+
   /** @type UrlEntries<HeadersInit | API.HeadersFunction> */
   #headers;
 
@@ -66,13 +75,12 @@ export class Session {
     this.stack = stack;
     /** @type API.Session | undefined */
     this.parent = options.parent;
-    this.baseURL = options.baseURL === undefined ? undefined : new URL(options.baseURL);
-    this.#headers = urlEntries(options.headers ?? {}, this.baseURL);
+    this.#headers = urlEntries(options.headers ?? {}, this.#contextUrl);
     this.#redirects = {
       max: options.maxRedirects ?? 20,
       schemes: [...options.redirectSchemes ?? ["http:", "https:"]]
     };
-    this.#allowRetrieval = resolveAllowRetrieval(options.allowRetrieval, this.baseURL ?? contextUrl(), defaultAllowRetrieval);
+    this.#allowRetrieval = resolveAllowRetrieval(options.allowRetrieval, this.#contextUrl, defaultAllowRetrieval);
     this.#policy = {
       ...this.#redirects,
       headers: (url) => headersFor(this.#headers, url),
@@ -123,11 +131,6 @@ export class Session {
     return /** @type T */ (this.#state.get(key));
   }
 
-  /** @type API.Session["resolve"] */
-  resolve(url) {
-    return new URL(url, this.baseURL);
-  }
-
   /** @type API.Session["fetch"] */
   async fetch(input, init = {}) {
     if (this.closed) {
@@ -140,7 +143,7 @@ export class Session {
 
     const request = input instanceof Request
       ? new Request(input, { ...requestInit, signal })
-      : new Request(this.resolve(input), { ...requestInit, signal });
+      : new Request(new URL(input, this.#contextUrl), { ...requestInit, signal });
     // A refused URL gets none of the session's headers, but it's recorded, like
     // a request a browser blocks
     const allowed = await this.#allows(request.url);
@@ -201,10 +204,8 @@ export class Session {
 
   /** @type API.Session["child"] */
   child(options = {}) {
-    const baseURL = options.baseURL === undefined ? this.baseURL : new URL(options.baseURL, this.baseURL);
-    const headers = new Map([...this.#headers, ...urlEntries(options.headers ?? {}, baseURL)]);
+    const headers = new Map([...this.#headers, ...urlEntries(options.headers ?? {}, this.#contextUrl)]);
     return new Session(this.stack, {
-      baseURL,
       headers: Object.fromEntries(headers),
       maxRedirects: options.maxRedirects ?? this.#redirects.max,
       redirectSchemes: options.redirectSchemes ?? this.#redirects.schemes,

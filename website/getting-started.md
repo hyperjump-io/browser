@@ -46,24 +46,28 @@ A session is the requests that belong together, like a page load. Create one on
 the stack, and fetch the page:
 
 ```typescript
-const session = new Session(stack, { baseURL: "https://example.com/" });
+const session = new Session(stack, { allowRetrieval: ["https://example.com/"] });
 const trace = new Trace(session);
 
-const page = await session.fetch("index.html", { destination: "document" });
+const page = await session.fetch("https://example.com/index.html", { destination: "document" });
 const html = await page.text();
 ```
 
 `session.fetch` works like `fetch`. The `destination` says what the resource is
-for, which is how the stack knows a document is important.
+for, which is how the stack knows a document is important. A session fetches
+only what its `allowRetrieval` allows, so a page can't make it fetch whatever
+the page names. For more information, see
+[What a session can fetch](allow-retrieval.md).
 
-Now load what the page refers to. Pass the page's response as the `initiator`,
-so the trace knows what caused each request:
+Now load what the page refers to. A reference is relative to the page it's in, so
+resolve it against `page.url`. Pass the page's response as the `initiator`, so
+the trace knows what caused each request:
 
 ```typescript
 await Promise.all([
-  session.fetch("main.css", { destination: "style", initiator: page }),
-  session.fetch("hero.jpg", { destination: "image", initiator: page }),
-  session.fetch("footer.jpg", { destination: "image", initiator: page })
+  session.fetch(new URL("main.css", page.url), { destination: "style", initiator: page }),
+  session.fetch(new URL("hero.jpg", page.url), { destination: "image", initiator: page }),
+  session.fetch(new URL("footer.jpg", page.url), { destination: "image", initiator: page })
 ].map(async (response) => (await response).arrayBuffer()));
 ```
 
@@ -90,8 +94,8 @@ information, see [Tracing](tracing.md).
 Fetch the page again in a new session on the same stack:
 
 ```typescript
-const again = new Session(stack, { baseURL: "https://example.com/" });
-await (await again.fetch("index.html")).text();
+const again = new Session(stack, { allowRetrieval: ["https://example.com/"] });
+await (await again.fetch("https://example.com/index.html")).text();
 ```
 
 The HTTP cache belongs to the stack, so the new session gets the page from the

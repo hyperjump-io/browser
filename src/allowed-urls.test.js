@@ -180,18 +180,18 @@ describe("allowRetrieval", () => {
 
     test("a child has its parent's unless it's given its own, which replaces it", async () => {
       const echo = fetcher((request) => new Response(request.url));
-      const page = new Session(echo, { baseURL: "https://a.test/app/" });
-      const frame = page.child({ baseURL: "https://b.test/" });
-      expect(await (await frame.fetch("https://a.test/app/x")).text(), "the parent's default, from its base URL").to.equal("https://a.test/app/x");
+      const page = new Session(echo, { allowRetrieval: ["https://a.test/"] });
+      const frame = page.child();
+      expect(await (await frame.fetch("https://a.test/x")).text()).to.equal("https://a.test/x");
       await expect(frame.fetch("https://b.test/x")).rejects.toThrow(/isn't allowed/);
 
-      const own = page.child({ baseURL: "https://b.test/", allowRetrieval: ["./"] });
+      const own = page.child({ allowRetrieval: ["https://b.test/"] });
       expect(await (await own.fetch("https://b.test/x")).text()).to.equal("https://b.test/x");
-      await expect(own.fetch("https://a.test/app/x"), "a child can allow less than its parent").rejects.toThrow(/isn't allowed/);
+      await expect(own.fetch("https://a.test/x"), "a child can allow less than its parent").rejects.toThrow(/isn't allowed/);
     });
 
     test("an entry that isn't a URL throws when the session is created", () => {
-      expect(() => new Session(undefined, { baseURL: "https://a.test/", allowRetrieval: ["http://["] })).to.throw(TypeError, /isn't a URL/);
+      expect(() => new Session(undefined, { allowRetrieval: ["http://["] })).to.throw(TypeError, /isn't a URL/);
     });
   });
 });

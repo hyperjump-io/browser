@@ -24,17 +24,14 @@ it's the URL of the origin's root, `https://example.com/`. An empty list allows
 nothing. The session compares URLs after it parses them, so a different case or
 a `..` in a path doesn't get around the list.
 
-The session resolves a relative URL in the list against its `baseURL`. Without a
-`baseURL`, it resolves it against the working directory in Node.js or the page
-in a browser. A worker has no page, so give a session in a worker a `baseURL` or
-use absolute URLs there.
+The session resolves a relative URL in the list against the working directory in
+Node.js or the page in a browser. A worker has no page, so use absolute URLs
+there.
 
 The default allows what's local to your app. The Node.js default is `["./"]`,
 which allows the files in the working directory. The browser default is
-`["/"]`, which allows the page's origin. With a `baseURL`, it allows what's under the
-`baseURL`'s directory in Node.js and the `baseURL`'s origin in a browser. Your
-own list replaces the default, so include `"./"` or `"/"` if you still want to
-allow those.
+`["/"]`, which allows the page's origin. Your own list replaces the default, so
+include `"./"` or `"/"` if you still want to allow those.
 
 A `data:` URL is always allowed because its content is in the URL, so nothing is
 fetched.

@@ -36,7 +36,7 @@ a request to a `file:` URL. To allow other schemes, use the session's
 
 ```typescript
 const session = new Session(stack, {
-  baseURL: "https://example.com/",
+  allowRetrieval: ["https://example.com/"],
   redirectSchemes: ["http:", "https:", "data:"]
 });
 ```

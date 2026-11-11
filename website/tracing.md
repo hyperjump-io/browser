@@ -9,8 +9,8 @@ import { Session, Trace } from "@hyperjump/browser";
 
 const trace = new Trace(session);
 
-const page = await session.fetch("index.html", { destination: "document" });
-await session.fetch("main.css", { destination: "style", initiator: page });
+const page = await session.fetch("https://example.com/index.html", { destination: "document" });
+await session.fetch(new URL("main.css", page.url), { destination: "style", initiator: page });
 // ...
 
 console.log(trace.waterfall());

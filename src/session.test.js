@@ -1,4 +1,7 @@
 import { describe, test, expect } from "vitest";
+import { join } from "node:path";
+import { cwd } from "node:process";
+import { pathToFileURL } from "node:url";
 import { fetcher } from "./layers.js";
 import { PriorityController } from "./priority.js";
 import { responseMeta } from "./response-meta.js";
@@ -10,16 +13,11 @@ import { testSession } from "./test-helpers/session.js";
  */
 
 describe("sessions", () => {
-  test("relative URLs are resolved against the base URL, and so are headers' keys", async () => {
-    const server = await startServer((request, response) => response.end(`${request.url} ${request.headers["user-agent"]}`));
-    try {
-      const session = testSession(undefined, { baseURL: `${server.url}/app/`, headers: { "./": { "user-agent": "browser-test" } } });
-      const response = await session.fetch("page.html");
-      expect(await response.text()).to.equal("/app/page.html browser-test");
-      expect(responseMeta(response).source).to.equal("network");
-    } finally {
-      await server.close();
-    }
+  test("relative URLs are resolved against the working directory, and so are headers' keys", async () => {
+    const echo = fetcher((request) => new Response(`${request.url} ${request.headers.get("x-a")}`));
+    const session = testSession(echo, { allow: ["./"], headers: { "./": { "x-a": "local" } } });
+    const response = await session.fetch("page.html");
+    expect(await response.text()).to.equal(`${pathToFileURL(join(cwd(), "page.html")).href} local`);
   });
 
   test("headers go only to the URLs they're for, and a longer key wins", async () => {
@@ -44,9 +42,8 @@ describe("sessions", () => {
     expect(responseMeta(response).record?.requestHeaders, "the record has the headers that were sent").to.eql([["x-a", "mine"]]);
   });
 
-  test("a headers key that isn't a URL, or is relative without a base URL, throws", () => {
-    expect(() => testSession(undefined, { headers: { "/api/": {} } })).to.throw(TypeError, /no base URL/);
-    expect(() => testSession(undefined, { baseURL: "https://a.test/", headers: { "http://[": {} } })).to.throw(TypeError, /isn't a URL/);
+  test("a headers key that isn't a URL throws", () => {
+    expect(() => testSession(undefined, { headers: { "http://[": {} } })).to.throw(TypeError, /isn't a URL/);
   });
 
   test("closing a session aborts what's in flight and refuses new requests", async () => {
@@ -100,13 +97,13 @@ describe("sessions", () => {
   describe("child sessions", () => {
     test("are like iframes", async () => {
       const echo = fetcher((request) => new Response(`${request.url} ${request.headers.get("accept-language")} ${request.headers.get("x-frame")}`));
-      const page = testSession(echo, { baseURL: "https://site.test/docs/", headers: { "/": { "accept-language": "en" } } });
-      const frame = page.child({ baseURL: "widgets/", headers: { "./": { "x-frame": "1" } } });
+      const page = testSession(echo, { headers: { "https://site.test/": { "accept-language": "en" } } });
+      const frame = page.child({ headers: { "https://site.test/widgets/": { "x-frame": "1" } } });
 
       expect(frame.stack).to.equal(page.stack);
       expect(frame.parent).to.equal(page);
-      expect(await (await frame.fetch("a.json")).text()).to.equal("https://site.test/docs/widgets/a.json en 1");
-      expect(await (await page.fetch("a.json")).text()).to.equal("https://site.test/docs/a.json en null");
+      expect(await (await frame.fetch("https://site.test/widgets/a.json")).text()).to.equal("https://site.test/widgets/a.json en 1");
+      expect(await (await page.fetch("https://site.test/widgets/a.json")).text()).to.equal("https://site.test/widgets/a.json en null");
     });
 
     test("a headers key replaces the same key of their parent's", async () => {
@@ -148,9 +145,9 @@ describe("sessions", () => {
 
   describe("records", () => {
     test("every response has its record", async () => {
-      const session = testSession(fetcher(() => new Response("")), { baseURL: "https://site.test/" });
-      const page = await session.fetch("index.html", { destination: "document" });
-      const css = await session.fetch("main.css", { destination: "style", initiator: page });
+      const session = testSession(fetcher(() => new Response("")));
+      const page = await session.fetch("https://site.test/index.html", { destination: "document" });
+      const css = await session.fetch("https://site.test/main.css", { destination: "style", initiator: page });
 
       const pageRecord = responseMeta(page).record;
       const cssRecord = responseMeta(css).record;

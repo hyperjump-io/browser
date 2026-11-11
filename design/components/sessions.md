@@ -6,7 +6,12 @@ on a stack it's given and gives the stack what the stack can't know.
 - `new Session(stack, options)` takes the stack as a `Fetcher`, so any stack,
   or any part of one, can be a session's. Without one, it's
   `defaultTransport()`.
-- A relative URL is resolved against `baseURL`, like a document's base URL.
+- A relative URL is resolved against the context URL, as it is in a
+  browser: the working directory in Node.js and the page in a browser
+  (`#context-url`). The session reads it once, when it's created, so
+  everything the session does sees the same one, and a new session sees a
+  change, like a new working directory. Where there's none, like in a
+  worker, a relative URL throws `new URL`'s `TypeError`.
 - It fetches only what `allowRetrieval` allows, and by default only what's
   local to the application, so a document can't make it fetch whatever it
   names (see [What a session can fetch](allow-retrieval.md)).
@@ -32,8 +37,8 @@ on a stack it's given and gives the stack what the stack can't know.
 `child(options)` is a session nested in this one, like an iframe.
 
 - It has the same stack.
-- Its base URL is resolved against its parent's, and it has its parent's
-  redirect options and `allowRetrieval` unless it's given its own.
+- It has its parent's redirect options and `allowRetrieval` unless it's
+  given its own.
 - It has its parent's headers, and a key it's given replaces the same key
   of its parent's.
 - Its state is its own. A layer that shares state with its parent uses
@@ -46,6 +51,14 @@ on a stack it's given and gives the stack what the stack can't know.
 
 Rejected:
 
+- A `baseURL` option, for relative URLs and relative `headers` keys and
+  `allowRetrieval` entries. The references that matter are a document's,
+  and they resolve against the document's URL, which is its response's.
+  A caller with a base of its own resolves against it (`new URL(path,
+  base)`). And a base held by the session would decide what's local, so
+  `allowRetrieval`'s default would be something other than the working
+  directory or the page. An application that fetches from somewhere else,
+  like a language server for a workspace, lists it in `allowRetrieval`.
 - A stack the session builds from configuration, one for each session, with
   per-session state in the layers' closures. The stack couldn't be shared or
   walked, and state that outlives a session would have to be passed to every

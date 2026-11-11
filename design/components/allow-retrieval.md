@@ -16,13 +16,14 @@ application.
 - Entries and the URLs checked against them are compared as parsed URLs,
   without fragments, so case, dot segments, and default ports can't get
   around an entry.
-- A relative entry is resolved against `baseURL`, or without one against
-  the context URL: the working directory in Node.js and the page in a
-  browser (`#context-url`). The session reads the context URL once, when
-  it's created, and `allowed-urls.js` is given the base rather than reading
-  it, so its tests give it one instead of changing the working directory.
+- A relative entry is resolved against the context URL: the working
+  directory in Node.js and the page in a browser (see
+  [Sessions](sessions.md)). `allowed-urls.js` is given it rather than
+  reading it, so its tests give it one instead of changing the working
+  directory.
 - Entries are resolved when the session is created, so one that isn't a
-  URL, or is relative where there's no base, throws a `TypeError` there.
+  URL, or is relative where there's no context URL, throws a `TypeError`
+  there.
 - The default is what's local to the application, which is different in
   each runtime (`#context-url`, beside the context URL):
   - In Node.js it's `["./"]`, the working directory. Its files are the
@@ -31,17 +32,14 @@ application.
     on its origin, but not always in its directory, and an origin is
     what a browser trusts as one site. Browsers can't read `file:` URLs
     anyway.
-  - With a `baseURL`, it's resolved against that: its directory in
-    Node.js and its origin in a browser.
-  - `allowed-urls.js` is given the default with the base, so its tests
-    give it either one.
+  - `allowed-urls.js` is given the default with the context URL, so its
+    tests give it either one.
+  - Where there's no context URL, like in a worker, the default can't be
+    resolved. The session keeps the error and throws it when it checks a
+    URL, so a session that never fetches doesn't need a list.
   - One default for every runtime, like `["./"]`, was rejected. In a
     browser, an application's documents elsewhere on its origin would be
     refused, and `["/"]` in Node.js is the whole filesystem.
-
-  Where there's no base, like in a worker without a `baseURL`, the
-  default can't be resolved. The session keeps the error and throws it
-  when it checks a URL, so a session that never fetches doesn't need a list.
   - Following references across origins is what a client like this is for,
     so an application that fetches from the web lists its origins.
     Allowing everything by default, with applications that need it opting
@@ -55,8 +53,7 @@ application.
 - A child session has its parent's list unless it's given its own, which
   replaces its parent's instead of adding to it, so a child can allow less.
   A child that allows more is still the application's choice, since only
-  the application makes sessions. A parent's default is its own base's
-  directory, so a child with another `baseURL` still has it.
+  the application makes sessions.
 
 Rejected:
 

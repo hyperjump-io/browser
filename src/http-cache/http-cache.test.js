@@ -100,11 +100,11 @@ const setup = async (options = {}) => {
   });
   const store = options.store ?? new MemoryCacheStore();
   const cache = new HttpCache(defaultTransport(), { ...options, store, now: () => now });
-  const session = testSession(options.runtimeFollows ? runtimeFollows(cache) : cache, { baseURL: server.url });
+  const session = testSession(options.runtimeFollows ? runtimeFollows(cache) : cache, { allow: [server.url] });
 
   /** @type (path: string, init?: SessionFetchInit) => Promise<{ response: Response, body: string, cache: string | undefined }> */
   const get = async (path, init) => {
-    const response = await session.fetch(path, { redirect: options.manual ? "manual" : "follow", ...init });
+    const response = await session.fetch(`${server.url}${path}`, { redirect: options.manual ? "manual" : "follow", ...init });
     const body = await response.text();
     await settle();
     return { response, body, cache: responseMeta(response).cache };
@@ -287,8 +287,8 @@ describe("the HTTP cache", () => {
     const { server, session, get, hits } = await setup();
     try {
       await get("/max-age");
-      const tab = testSession(session.stack, { baseURL: server.url });
-      expect(responseMeta(await tab.fetch("/max-age")).cache).to.equal("hit");
+      const tab = testSession(session.stack, { allow: [server.url] });
+      expect(responseMeta(await tab.fetch(`${server.url}/max-age`)).cache).to.equal("hit");
       expect(hits("/max-age")).to.equal(1);
     } finally {
       await server.close();
@@ -454,10 +454,10 @@ describe("the HTTP cache", () => {
   test("can be composed into a stack", async () => {
     const server = await startServer((request, response) => routes["/max-age"](request, response));
     try {
-      const session = testSession(compose(httpCache())(defaultTransport()), { baseURL: server.url });
-      await (await session.fetch("/a")).text();
+      const session = testSession(compose(httpCache())(defaultTransport()), { allow: [server.url] });
+      await (await session.fetch(`${server.url}/a`)).text();
       await settle();
-      expect(responseMeta(await session.fetch("/a")).cache).to.equal("hit");
+      expect(responseMeta(await session.fetch(`${server.url}/a`)).cache).to.equal("hit");
     } finally {
       await server.close();
     }

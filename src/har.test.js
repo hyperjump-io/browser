@@ -29,12 +29,12 @@ describe("HAR", () => {
       response.end(css ? "body{}" : Buffer.from([0x89, 0x50, 0x4e, 0x47]));
     });
     try {
-      const session = testSession(destinationPriority()(defaultTransport()), { baseURL: server.url, headers: { "/": { "user-agent": "browser-test" } } });
+      const session = testSession(destinationPriority()(defaultTransport()), { allow: [server.url], headers: { [`${server.url}/`]: { "user-agent": "browser-test" } } });
       const trace = new Trace(session, { bodies: true });
-      const page = await session.fetch("/index.html", { destination: "document" });
+      const page = await session.fetch(`${server.url}/index.html`, { destination: "document" });
       await page.text();
-      await (await session.fetch("/main.css?v=2", { destination: "style", initiator: page })).text();
-      await (await session.fetch("/logo.png", { destination: "image", initiator: page })).arrayBuffer();
+      await (await session.fetch(`${server.url}/main.css?v=2`, { destination: "style", initiator: page })).text();
+      await (await session.fetch(`${server.url}/logo.png`, { destination: "image", initiator: page })).arrayBuffer();
 
       const har = trace.toHar();
       await valid(har);
@@ -162,11 +162,11 @@ describe("HAR", () => {
     });
     try {
       const stack = compose(registry({ entries: { "https://pinned.test/a.json": "{}" } }), httpCache())(defaultTransport());
-      const session = testSession(stack, { baseURL: server.url, allow: ["nope://x"] });
+      const session = testSession(stack, { allow: [server.url, "nope://x"] });
       const trace = new Trace(session);
-      await (await session.fetch("/x")).text();
+      await (await session.fetch(`${server.url}/x`)).text();
       await settle();
-      await (await session.fetch("/x")).text();
+      await (await session.fetch(`${server.url}/x`)).text();
       await (await session.fetch("https://pinned.test/a.json")).text();
       await expect(session.fetch("nope://x")).rejects.toThrow(TypeError);
 

@@ -5,17 +5,16 @@ On a server, a session can fetch `file:` URLs the way a browser opens files. Use
 
 ```typescript
 import { Session, nodeTransport } from "@hyperjump/browser";
-import { pathToFileURL } from "node:url";
 
-const session = new Session(nodeTransport({ file: { root: "./site" } }), {
-  baseURL: pathToFileURL("./site/")
-});
+const session = new Session(nodeTransport({ file: { root: "./site" } }));
 
-const page = await session.fetch("index.html");
+const page = await session.fetch("site/index.html");
 page.headers.get("Content-Type"); // "text/html; charset=utf-8"
 ```
 
-`nodeTransport()` fetches `http:`, `https:`, and `data:` URLs too.
+A relative URL is relative to the working directory, and by default a session
+can fetch only the files in it. `nodeTransport()` fetches `http:`, `https:`, and
+`data:` URLs too.
 
 ## Responses
 

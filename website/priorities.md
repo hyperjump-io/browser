@@ -9,7 +9,7 @@ important ones load:
 import { Session, compose, httpCache, throttle, scheduler, defaultTransport } from "@hyperjump/browser";
 
 const stack = compose(httpCache(), throttle(), scheduler())(defaultTransport());
-const session = new Session(stack, { baseURL: "https://example.com/" });
+const session = new Session(stack, { allowRetrieval: ["https://example.com/"] });
 
 await session.fetch("https://example.com/hero.jpg", { priority: "high" });
 ```

@@ -7,21 +7,26 @@ load do. You create a session on a stack and fetch through it:
 import { Session } from "@hyperjump/browser";
 
 const session = new Session(stack, {
-  baseURL: "https://example.com/docs/"
+  allowRetrieval: ["https://example.com/docs/"]
 });
 
-const page = await session.fetch("index.html");
+const page = await session.fetch("https://example.com/docs/index.html");
 ```
 
 `session.fetch` takes the same arguments as `fetch`. Without a stack, a session
 fetches `http:`, `https:`, and `data:` URLs with the runtime's `fetch`. For more
 information about stacks, see [Layers](layers.md).
 
+A session resolves a relative URL the way a browser does. In a browser, that's
+against the page. In Node.js, it's against the working directory, so
+`session.fetch("docs/index.html")` fetches a file. To resolve a URL that a
+document refers to, resolve it against the document's URL yourself, such as
+`new URL("main.css", page.url)`.
+
 ## Options
 
 | Option | Description |
 | --- | --- |
-| `baseURL` | The URL to resolve relative URLs against, like a document's base URL |
 | `allowRetrieval` | The URLs the session can fetch. By default, it allows the working directory in Node.js and the page's origin in a browser. For more information, see [What a session can fetch](allow-retrieval.md). |
 | `headers` | Headers for the requests to some URLs, such as credentials. For more information, see [Headers](#headers). |
 | `maxRedirects` | How many redirects a request can follow before it's a network error. The default is 20. |
@@ -44,8 +49,8 @@ const session = new Session(stack, {
 A key that ends with `/` is for every URL under it, and any other key is only
 for that URL. A key that's just an origin, like `https://example.com`, is for
 the whole origin. The session compares keys as URLs, so a different case or a `..`
-in a path doesn't get around them. It resolves a relative key against
-`baseURL`.
+in a path doesn't get around them. It resolves a relative key the way it
+resolves a relative URL.
 
 When more than one key matches a URL, a longer key wins a header they both
 have. A header that a request sets itself wins over all of them.
@@ -101,13 +106,12 @@ A request's own `signal` still works too. Aborting it only aborts that request.
 A child session is a session nested in another one, like an iframe in a page:
 
 ```typescript
-const frame = session.child({ baseURL: "widgets/" });
+const frame = session.child({ allowRetrieval: ["https://example.com/widgets/"] });
 ```
 
 A child session has these properties:
 
 - It uses the same stack as its parent.
-- It resolves its base URL against its parent's base URL.
 - It gets its parent's redirect options and `allowRetrieval` unless you give it
   its own.
 - It gets its parent's headers. A key you give it replaces the same key of its
