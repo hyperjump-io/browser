@@ -18,4 +18,4 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 - [Priorities](priorities.md): connection limits, and what loads first
 - [Tracing](tracing.md): see what a session fetched, and why
 - [Registry](registry.md): answer requests with documents you already have
-- [Resource map](resource-map.md): answer requests with resources found while loading
+- [Resource map](resource-map.md): answer a document's requests with the resources it contains

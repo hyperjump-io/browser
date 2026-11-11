@@ -30,7 +30,7 @@ for users is in [`website/`](../website/README.md).
 - [Redirects](components/redirects.md): followed one at a time, through the stack
 - [Partial content](components/partial-content.md): ranges, and storing 206s
 - [The file cache store](components/file-cache-store.md): the HTTP cache on disk
-- [The resource map](components/resource-map.md): resources found while loading, for one session
+- [The resource map](components/resource-map.md): resources found in a document, for the requests it causes, like a web bundle
 - [Dedupe](components/dedupe.md): requests that are the same, in flight at once, are one
 - [Batching](components/batch.md): requests made at about the same time, sent together
 - [The scheduler](components/scheduler.md): connection limits and priorities, shared by every session

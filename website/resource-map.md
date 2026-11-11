@@ -1,9 +1,9 @@
 # Resource map
 
-Some documents contain other documents, each with a URL of its own, like a
-bundle. When your code parses one, it can register the documents it finds in a
-resource map. After that, the map answers requests in the same session for
-those URLs instead of fetching them:
+Some documents contain other documents, each with a URL of its own, like a web
+bundle. When your code parses one, it can register the documents it finds in
+it. After that, requests that the document causes for those URLs are answered
+from the map instead of fetched:
 
 ```typescript
 import { Session, compose, resourceMap, findLayer, ResourceMap, defaultTransport } from "@hyperjump/browser";
@@ -12,31 +12,41 @@ const stack = compose(resourceMap())(defaultTransport());
 const session = new Session(stack);
 const map = findLayer(stack, ResourceMap);
 
-const bundle = await (await session.fetch("https://example.com/bundle.json")).json();
+const response = await session.fetch("https://example.com/bundle.json");
+const bundle = await response.json();
 for (const [url, document] of Object.entries(bundle.documents)) {
-  map?.register(session, url, JSON.stringify(document), { value: document });
+  map?.register(response, url, JSON.stringify(document), { value: document });
 }
 
-// Answered from the map
-const response = await session.fetch("https://example.com/address.json");
+// Answered from the map, because the bundle caused the request
+const address = await session.fetch("https://example.com/address.json", {
+  initiator: response
+});
 ```
 
 Put the resource map at the top of your stack, so it finds what a document says
 it contains before anything else does.
 
-## What each session gets
+## Who gets a document's resources
 
-A resource map keeps what's registered for each session, and it's gone when the
-session is:
+A resource answers only requests that the document containing it causes. Say
+what caused a request with the `initiator` option: the response of the
+document that has the reference, or its record.
 
-- A child session gets what its parents registered, the way a frame can use
-  what its page found.
-- A parent doesn't get what its children registered, and children don't get
-  each other's. To register something for every frame, register it in
-  `session.root`.
+- A request without an `initiator` is fetched as usual.
+- A request from a resource the map answered gets the other resources in the
+  same document. Register resources nested in one in its response, and they're
+  in the same document too.
+- A request from a document that was fetched, even one the bundle refers to,
+  doesn't get the bundle's resources.
+- Each response is a document of its own. If you fetch the same URL twice, each
+  response has its own resources.
 
-To keep every session to what it registered itself, use
-`resourceMap({ inherit: false })`.
+So a document can say it contains a document with any URL without changing
+what any other document gets. That's how a web bundle works too: what it
+contains answers only for the page that loaded it.
+
+The resources are gone when the session that fetched the document is.
 
 ## The parsed value
 
@@ -47,13 +57,11 @@ parsing the text again.
 ## Conflicts
 
 Registering the same content for a URL again does nothing and returns `false`.
-Registering different content for a URL the session already has throws an
-error. A child session can register a URL its parent has, and then the child
-gets its own.
+Registering different content for a URL the document already has throws an
+error. Two documents can each have a resource with the same URL and different
+content.
 
-## Documents you don't trust
+## Resources for every request
 
-What a session registers answers every request in that session. A document can
-say it contains a document with any URL, including one that your app
-fetches for something else. If you load documents you don't trust, only
-register what's safe, or load untrusted documents in a separate session.
+To answer every request in a session with a document, no matter what caused it,
+put it in the [registry](registry.md) when you build the stack.

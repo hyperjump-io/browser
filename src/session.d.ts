@@ -37,7 +37,8 @@ export type SessionFetchInit = Omit<RequestInit, "cache" | "priority"> & {
 
   /**
    * What caused the request: an earlier request's record, or its response,
-   * like the document that referred to this one
+   * like the document that referred to this one. Traces show requests under
+   * it, and a resource map answers with the resources it contains.
    */
   initiator?: FetchRecord | Response;
 };

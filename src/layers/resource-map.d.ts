@@ -1,15 +1,6 @@
 import type { Decorator, FetchContext, Fetcher, Layer } from "../layers.d.ts";
-import type { Session } from "../session.d.ts";
+import type { FetchRecord } from "../fetch-record.d.ts";
 import type { RegistryEntry } from "./registry.d.ts";
-
-export type ResourceMapOptions = {
-  /**
-   * Whether a session sees what's registered in its parents. Default `true`:
-   * a child session, like a frame, sees what its page found, but not the
-   * other way around.
-   */
-  inherit?: boolean;
-};
 
 export type RegisterOptions = {
   /** A parsed form of the resource, which responses have as `responseMeta(response).value` */
@@ -20,38 +11,44 @@ export type FoundResource = {
   url: string;
   entry: RegistryEntry;
   value: unknown;
-
-  /** The session it was registered in: the one that asked, or one of its parents */
-  session: Session;
 };
 
 /**
- * Resources found while loading, for one session. When a document turns out
- * to contain others with URLs of their own, whatever parses it registers
- * them, and the session's requests for those URLs are answered from the
- * map instead of fetched.
+ * Resources found in documents, like the resources in a web bundle. When a
+ * document turns out to contain others with URLs of their own, whatever
+ * parses it registers them in the document, and requests the document causes
+ * for those URLs are answered from the map instead of fetched. A request
+ * caused by anything else is fetched as usual, so a document can't change
+ * what another one gets.
  */
 export class ResourceMap implements Layer {
-  constructor(inner: Fetcher, options?: ResourceMapOptions);
+  constructor(inner: Fetcher);
 
   readonly inner: Fetcher;
 
   /**
-   * Register a resource in a session. Returns `false` if the same resource is
-   * already there.
+   * Register a resource in the document that contains it: a response from a
+   * session, or its record. A resource registered in a response from the map
+   * is in the same set as the others its document contains. Returns `false`
+   * if the same resource is already there.
    *
-   * @throws An `Error` if the session has different content for the URL. A
-   * child can register a URL its parent has.
+   * @throws A `TypeError` if `container` is a response that isn't from a
+   * session.
+   * @throws An `Error` if the document has different content for the URL.
    */
-  register(session: Session, url: string | URL, entry: RegistryEntry, options?: RegisterOptions): boolean;
+  register(container: Response | FetchRecord, url: string | URL, entry: RegistryEntry, options?: RegisterOptions): boolean;
 
-  /** A registered resource, looked for in the session and, with `inherit`, its parents */
-  lookup(session: Session, url: string | URL): FoundResource | undefined;
+  /**
+   * The resource a request for `url` caused by `initiator` is answered with:
+   * one registered in the initiator, or in the document the initiator was
+   * found in
+   */
+  lookup(initiator: Response | FetchRecord, url: string | URL): FoundResource | undefined;
 
-  /** The URLs registered in a session, not its parents */
-  urls(session: Session): IterableIterator<string>;
+  /** The URLs registered in a document, and in the others found with it */
+  urls(container: Response | FetchRecord): IterableIterator<string>;
 
   fetch(request: Request, ctx: FetchContext): Promise<Response>;
 }
 
-export const resourceMap: (options?: ResourceMapOptions) => Decorator<ResourceMap>;
+export const resourceMap: () => Decorator<ResourceMap>;

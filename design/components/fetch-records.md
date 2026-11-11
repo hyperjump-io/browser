@@ -17,7 +17,9 @@ what each layer did with it, and how it ended. A response has it as
   `recordChunk`, and `recordEnd`. To everyone else, a record is read-only.
 - `initiator` is the record of the request that caused this one. The caller
   gives the earlier request's response or record, and the records make a
-  tree.
+  tree. It's what caused a request, not only for watching: the
+  resource map answers a request with what its initiator contains (see
+  [The resource map](resource-map.md)).
 - `session.observe(observer)` sees each request of the session and its
   children start, be marked, get its response, and end. An observer that
   throws doesn't stop the request or the other observers. Its error is

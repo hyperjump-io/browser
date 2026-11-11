@@ -1,61 +1,63 @@
 import { entryResponse, withoutFragment } from "./entry-response.js";
-import { setResponseMeta, withUrl } from "../response-meta.js";
+import { responseMeta, setResponseMeta, withUrl } from "../response-meta.js";
 import { nullBodyStatuses } from "../statuses.js";
 
 /**
  * @import * as API from "./resource-map.d.ts"
  * @import { RegistryEntry } from "./registry.d.ts"
  * @import { Fetcher } from "../layers.d.ts"
- * @import { Session } from "../session.d.ts"
+ * @import { FetchRecord } from "../fetch-record.d.ts"
  */
 
 /** @typedef {{ entry: RegistryEntry, value: unknown, fingerprint: string | undefined }} Stored */
 
+/**
+ * The resources a document contains. A document and the resources the map
+ * answered from it have the same one.
+ *
+ * @typedef {Map<string, Stored>} ResourceSet
+ */
+
 /** @implements API.ResourceMap */
 export class ResourceMap {
-  /** @type boolean */
-  #inherit;
-
-  /**
-   * @param {Fetcher} inner
-   * @param {API.ResourceMapOptions} [options]
-   */
-  constructor(inner, options = {}) {
+  /** @param {Fetcher} inner */
+  constructor(inner) {
     this.inner = inner;
-    this.#inherit = options.inherit ?? true;
   }
 
   /** @type API.ResourceMap["register"] */
-  register(session, url, entry, options = {}) {
+  register(container, url, entry, options = {}) {
+    const record = recordOf(container);
+    if (!record) {
+      throw TypeError("A resource can only be registered in a response from a session, or its record");
+    }
+
+    const resources = this.#setOf(record) ?? new Map();
+    this.#sets(record).set(record, resources);
+
     const key = withoutFragment(url);
-    const table = this.#table(session);
     const fingerprint = fingerprintOf(entry);
-    const existing = table.get(key);
+    const existing = resources.get(key);
     if (existing) {
       if (fingerprint !== undefined && existing.fingerprint === fingerprint) {
         return false;
       }
-      throw Error(`'${key}' is already registered in this session with different content`);
+      throw Error(`'${key}' is already registered in this document with different content`);
     }
-    table.set(key, { entry, value: options.value, fingerprint });
+    resources.set(key, { entry, value: options.value, fingerprint });
     return true;
   }
 
   /** @type API.ResourceMap["lookup"] */
-  lookup(session, url) {
+  lookup(initiator, url) {
     const key = withoutFragment(url);
-    for (const scope of this.#inherit ? session.lineage() : [session]) {
-      const stored = this.#table(scope).get(key);
-      if (stored) {
-        return { url: key, entry: stored.entry, value: stored.value, session: scope };
-      }
-    }
-    return undefined;
+    const stored = this.#setOf(recordOf(initiator))?.get(key);
+    return stored && { url: key, entry: stored.entry, value: stored.value };
   }
 
   /** @type API.ResourceMap["urls"] */
-  urls(session) {
-    return this.#table(session).keys();
+  urls(container) {
+    return (this.#setOf(recordOf(container)) ?? new Map()).keys();
   }
 
   /** @type API.ResourceMap["fetch"] */
@@ -63,10 +65,16 @@ export class ResourceMap {
     if (request.method !== "GET" && request.method !== "HEAD") {
       return this.inner.fetch(request, ctx);
     }
-    const found = this.lookup(ctx.session, request.url);
-    if (!found) {
+    const key = withoutFragment(request.url);
+    const resources = this.#setOf(ctx.record.initiator);
+    const found = resources?.get(key);
+    if (!resources || !found) {
       return this.inner.fetch(request, ctx);
     }
+
+    // What this request gets was found in the initiator's document, so what
+    // it causes is too
+    this.#sets(ctx.record).set(ctx.record, resources);
 
     let response = await entryResponse(found.entry, request, ctx);
     if (response.body && (request.method === "HEAD" || nullBodyStatuses.has(response.status))) {
@@ -74,19 +82,32 @@ export class ResourceMap {
       response = new Response(null, response);
     }
     if (!response.url) {
-      withUrl(response, found.url);
+      withUrl(response, key);
     }
     return setResponseMeta(response, { source: "resource-map", value: found.value });
   }
 
-  /** @type (session: Session) => Map<string, Stored> */
-  #table(session) {
-    return session.state(this, () => new Map());
+  /** @type (record: FetchRecord | undefined) => ResourceSet | undefined */
+  #setOf(record) {
+    return record && this.#sets(record).get(record);
+  }
+
+  /**
+   * Each record's set, kept in the record's session, so it lives as long as
+   * the session does
+   *
+   * @type (record: FetchRecord) => WeakMap<FetchRecord, ResourceSet>
+   */
+  #sets(record) {
+    return record.session.state(this, () => new WeakMap());
   }
 }
 
 /** @type typeof API.resourceMap */
-export const resourceMap = (options) => (inner) => new ResourceMap(inner, options);
+export const resourceMap = () => (inner) => new ResourceMap(inner);
+
+/** @type (from: Response | FetchRecord) => FetchRecord | undefined */
+const recordOf = (from) => from instanceof Response ? responseMeta(from).record : from;
 
 /**
  * Enough to tell the same text or bytes registered again from something else
