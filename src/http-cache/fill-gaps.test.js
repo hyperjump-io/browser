@@ -1,11 +1,11 @@
 import { describe, test, expect } from "vitest";
-import { Session } from "../session.js";
 import { defaultTransport } from "../transports/scheme-transport.js";
 import { responseMeta } from "../response-meta.js";
 import { HttpCache } from "./http-cache.js";
 import { MemoryCacheStore } from "./memory-cache-store.js";
 import { missingRanges } from "./ranges.js";
 import { settle, startServer } from "../test-helpers/server.js";
+import { testSession } from "../test-helpers/session.js";
 
 /**
  * @import { CacheMode } from "../session.d.ts"
@@ -157,7 +157,7 @@ const setup = async () => {
     response.end(body.slice(start, end + 1));
   });
   const store = new MemoryCacheStore();
-  const session = new Session(new HttpCache(defaultTransport(), { store }), { baseURL: server.url });
+  const session = testSession(new HttpCache(defaultTransport(), { store }), { baseURL: server.url });
 
   /** @type (range?: string, cache?: CacheMode) => Promise<{ status: number, body: string, range: string | null, cache: string | undefined, marks?: string[] }> */
   const get = async (range, cache) => {

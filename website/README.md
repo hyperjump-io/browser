@@ -10,6 +10,7 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 - [Install](install.md): install in Node.js and browsers
 - [Get started](getting-started.md): build a stack and load a page like a browser does
 - [Sessions](sessions.md): fetch through a session, close it, and nest sessions
+- [What a session can fetch](allow-retrieval.md): allow only the URLs your app should fetch
 - [Layers](layers.md): build a stack and write your own layers
 - [File URLs](file-urls.md): fetch `file:` URLs on a server
 - [Redirects](redirects.md): how a session follows redirects through the stack

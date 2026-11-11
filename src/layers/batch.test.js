@@ -1,10 +1,10 @@
 import { describe, test, expect } from "vitest";
-import { Session } from "../session.js";
 import { fetcher } from "../layers.js";
 import { defaultTransport } from "../transports/scheme-transport.js";
 import { batch } from "./batch.js";
 import { startServer } from "../test-helpers/server.js";
 import { tick } from "../test-helpers/controlled.js";
+import { testSession } from "../test-helpers/session.js";
 
 describe("batch", () => {
   test("combines requests made in the same task", async () => {
@@ -23,7 +23,7 @@ describe("batch", () => {
           return ids.map((id) => Response.json(byId[/** @type string */ (id)]));
         }
       });
-      const session = new Session(users(defaultTransport()));
+      const session = testSession(users(defaultTransport()), { allow: [server.url] });
       const [a, b, c] = await Promise.all(["1", "2", "3"].map((id) => session.fetch(`${server.url}/users/${id}`)));
       expect(await b.json()).to.eql({ id: "2", name: "user 2" });
       expect(a.ok && c.ok).to.equal(true);
@@ -36,7 +36,7 @@ describe("batch", () => {
   test("execute gets the most urgent priority of the batch", async () => {
     /** @type string | undefined */
     let seen;
-    const session = new Session(batch({
+    const session = testSession(batch({
       match: () => "all",
       execute: async (requests, _inner, ctx) => {
         seen = ctx.priority.value;
@@ -54,7 +54,7 @@ describe("batch", () => {
   test("maxSize sends a batch as soon as it's full", async () => {
     /** @type number[] */
     const sizes = [];
-    const session = new Session(batch({
+    const session = testSession(batch({
       match: () => "all",
       maxSize: 2,
       windowMs: 1000,
@@ -68,14 +68,14 @@ describe("batch", () => {
   });
 
   test("an execute that returns the wrong number of responses fails every request", async () => {
-    const session = new Session(batch({ match: () => "all", execute: async () => [] })(fetcher(() => new Response(""))));
+    const session = testSession(batch({ match: () => "all", execute: async () => [] })(fetcher(() => new Response(""))));
     await expect(session.fetch("https://a.test/1")).rejects.toThrow(/returned 0 responses for 1 requests/);
   });
 
   describe("scope and aborting", () => {
     test("root puts the requests of a page and its frames in one batch, and session keeps them apart", async () => {
       const shared = usersApi("root");
-      const page = new Session(shared.layer);
+      const page = testSession(shared.layer);
       const results = [page.fetch("https://a.test/users/1"), page.child().fetch("https://a.test/users/2")];
       await tick();
       shared.release();
@@ -83,7 +83,7 @@ describe("batch", () => {
       expect(shared.calls.map((call) => call.ids)).to.eql([["1", "2"]]);
 
       const separate = usersApi("session");
-      const page2 = new Session(separate.layer);
+      const page2 = testSession(separate.layer);
       const results2 = [page2.fetch("https://a.test/users/1"), page2.child().fetch("https://a.test/users/2")];
       await tick();
       separate.release();
@@ -93,7 +93,7 @@ describe("batch", () => {
 
     test("a caller that aborts before the batch is sent is taken out of it", async () => {
       const api = usersApi();
-      const session = new Session(api.layer);
+      const session = testSession(api.layer);
       const controller = new AbortController();
       const a = session.fetch("https://a.test/users/1", { signal: controller.signal });
       const b = session.fetch("https://a.test/users/2");
@@ -107,7 +107,7 @@ describe("batch", () => {
 
     test("the first caller aborting after the batch is sent doesn't fail the others", async () => {
       const api = usersApi();
-      const session = new Session(api.layer);
+      const session = testSession(api.layer);
       const controller = new AbortController();
       const a = session.fetch("https://a.test/users/1", { signal: controller.signal });
       const b = session.fetch("https://a.test/users/2");
@@ -121,7 +121,7 @@ describe("batch", () => {
 
     test("if every caller aborts before it's sent, nothing is sent", async () => {
       const api = usersApi();
-      const session = new Session(api.layer);
+      const session = testSession(api.layer);
       const controller = new AbortController();
       const a = session.fetch("https://a.test/users/1", { signal: controller.signal });
       controller.abort();

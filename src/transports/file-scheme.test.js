@@ -3,11 +3,15 @@ import { mkdir, mkdtemp, realpath, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { Session } from "../session.js";
 import { responseMeta } from "../response-meta.js";
 import { nodeTransport } from "./node-transport.js";
 import { fileScheme as browserFileScheme } from "./file-scheme.browser.js";
 import { nodeTransport as browserNodeTransport } from "./node-transport.browser.js";
+import { testSession } from "../test-helpers/session.js";
+
+/**
+ * @import { Session } from "../session.d.ts"
+ */
 
 describe("the file: scheme", () => {
   /** @type string */
@@ -23,8 +27,10 @@ describe("the file: scheme", () => {
     await writeFile(join(directory, "secret.txt"), "nope");
     await symlink(join(directory, "secret.txt"), join(directory, "site", "escape.txt"));
     await symlink(join(directory, "site", "index.html"), join(directory, "site", "alias.html"));
-    session = new Session(nodeTransport({ file: { root: join(directory, "site"), contentTypes: { ts: "text/typescript" } } }), {
-      baseURL: pathToFileURL(join(directory, "site") + "/")
+    session = testSession(nodeTransport({ file: { root: join(directory, "site"), contentTypes: { ts: "text/typescript" } } }), {
+      baseURL: pathToFileURL(join(directory, "site") + "/"),
+      // What `root` refuses, so these tests are about `root`
+      allow: [pathToFileURL(directory + "/").href]
     });
   });
 
@@ -54,7 +60,7 @@ describe("the file: scheme", () => {
   });
 
   test("a directory is a network error", async () => {
-    await expect(new Session(nodeTransport()).fetch(pathToFileURL(directory).href)).rejects.toThrow(/isn't a file/);
+    await expect(testSession(nodeTransport(), { allow: [pathToFileURL(directory).href] }).fetch(pathToFileURL(directory).href)).rejects.toThrow(/isn't a file/);
   });
 
   test("a file outside the root is a network error", async () => {
@@ -76,7 +82,7 @@ describe("the file: scheme", () => {
   });
 
   test("the Node.js transport can leave file: out", async () => {
-    await expect(new Session(nodeTransport({ file: false })).fetch(pathToFileURL(join(directory, "secret.txt")))).rejects.toThrow(/isn't supported/);
+    await expect(testSession(nodeTransport({ file: false }), { allow: [pathToFileURL(directory + "/").href] }).fetch(pathToFileURL(join(directory, "secret.txt")))).rejects.toThrow(/isn't supported/);
   });
 
   test("in a browser, file: and the Node.js transport throw", () => {

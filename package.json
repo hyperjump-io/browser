@@ -30,6 +30,14 @@
     }
   },
   "imports": {
+    "#context-url": {
+      "node": "./src/context-url.js",
+      "default": "./src/context-url.browser.js"
+    },
+    "#real-url": {
+      "node": "./src/real-url.js",
+      "default": "./src/real-url.browser.js"
+    },
     "#file-scheme": {
       "node": "./src/transports/file-scheme.js",
       "default": "./src/transports/file-scheme.browser.js"

@@ -14,8 +14,9 @@
   aborts.
 - The query and fragment aren't part of the path.
 - `root` limits what can be read to a directory. A path outside it is a
-  network error. A document can name any file, so an application that
-  fetches what documents refer to sets it.
+  network error. It's the transport's, so it's for every session on the
+  stack, before a session's `allowRetrieval`, which allows only the working
+  directory by default (see [What a session can fetch](allow-retrieval.md)).
 - Symlinks are followed before `root` is checked, so a symlink inside `root`
   that points outside it is a network error. The path as it's written is
   checked first too, so whether a file outside `root` exists can't be told

@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { compose, fetcher, findLayer, layer, layersOf } from "./layers.js";
-import { Session } from "./session.js";
+import { testSession } from "./test-helpers/session.js";
 
 /**
  * @import { Fetcher, Layer } from "./layers.d.ts"
@@ -22,7 +22,7 @@ describe("layers", () => {
     });
     const echo = fetcher((request) => new Response(request.headers.get("x-from-a")));
 
-    const response = await new Session(compose(addHeader, log)(echo)).fetch("https://a.test/");
+    const response = await testSession(compose(addHeader, log)(echo)).fetch("https://a.test/");
     expect(await response.text()).to.equal("1");
     expect(order).to.eql(["a", "b"]);
   });
@@ -30,8 +30,8 @@ describe("layers", () => {
   test("compose is the same as wrapping by hand", async () => {
     const shout = layer(async (request, ctx, inner) => new Response((await (await inner.fetch(request, ctx)).text()).toUpperCase()));
     const echo = fetcher(() => new Response("hi"));
-    expect(await (await new Session(shout(echo)).fetch("https://a.test/")).text()).to.equal("HI");
-    expect(await (await new Session(compose(shout)(echo)).fetch("https://a.test/")).text()).to.equal("HI");
+    expect(await (await testSession(shout(echo)).fetch("https://a.test/")).text()).to.equal("HI");
+    expect(await (await testSession(compose(shout)(echo)).fetch("https://a.test/")).text()).to.equal("HI");
   });
 
   test("a stack can be walked, and its layers found by class", () => {

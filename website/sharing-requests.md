@@ -13,7 +13,7 @@ share one request, and each caller gets its own copy of the response:
 import { Session, compose, dedupe, httpCache, defaultTransport } from "@hyperjump/browser";
 
 const stack = compose(dedupe(), httpCache())(defaultTransport());
-const session = new Session(stack);
+const session = new Session(stack, { baseURL: "https://example.com/" });
 
 // One request
 const [a, b] = await Promise.all([

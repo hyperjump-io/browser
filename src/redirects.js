@@ -1,4 +1,5 @@
 import { networkError, setResponseMeta, withUrl } from "./response-meta.js";
+import { refusedResponse } from "./allowed-urls.js";
 
 /**
  * @import { FetchContext, Fetcher } from "./layers.d.ts"
@@ -6,9 +7,15 @@ import { networkError, setResponseMeta, withUrl } from "./response-meta.js";
 
 /**
  * What the session decides for each URL it fetches: how many redirects it
- * follows, the schemes they can lead to, and the headers each URL gets
+ * follows, the schemes they can lead to, whether it can fetch a URL, and the
+ * headers each URL gets
  *
- * @typedef {{ max: number, schemes: string[], headers: (url: string) => Promise<Headers> }} FollowPolicy
+ * @typedef {{
+ *   max: number,
+ *   schemes: string[],
+ *   allows: (url: string) => Promise<boolean>,
+ *   headers: (url: string) => Promise<Headers>
+ * }} FollowPolicy
  */
 
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
@@ -20,7 +27,10 @@ const bodyHeaders = ["content-encoding", "content-language", "content-location",
  * Follow redirects one at a time, each as a new request down the stack, so
  * every layer sees each URL. Each step gets the session's headers for its own
  * URL, not the ones the step before it got. The first step's are given, so
- * the session can record them.
+ * the session can record them, and the session has checked that it can fetch
+ * the first URL. Where a redirect leads is checked before it's followed, and
+ * so is a response's URL that isn't the URL that was asked for, like a
+ * symlink's real path, or where a redirect a browser followed led.
  *
  * @type (stack: Fetcher, request: Request, ctx: FetchContext, policy: FollowPolicy, added: Headers) => Promise<Response>
  */
@@ -32,12 +42,12 @@ export const follow = async (stack, request, ctx, policy, added) => {
   for (let hops = 0; ; hops++) {
     // A copy of the body, in case a 307 or 308 sends it again
     const spare = current.body ? current.clone() : undefined;
-    const response = await stack.fetch(withHeaders(current, added, "manual"), ctx);
+    const response = await checked(stack.fetch(withHeaders(current, added, "manual"), ctx), current.url, policy);
 
     if (response.type === "opaqueredirect") {
       // A browser doesn't say where a redirect leads, so it follows it
       void spare?.body?.cancel().catch(() => {});
-      return stack.fetch(withHeaders(spare ?? current, added, mode), ctx);
+      return checked(stack.fetch(withHeaders(spare ?? current, added, mode), ctx), current.url, policy);
     }
 
     const location = response.headers.get("location");
@@ -60,6 +70,9 @@ export const follow = async (stack, request, ctx, policy, added) => {
     if (!target.hash) {
       target.hash = new URL(current.url).hash;
     }
+    if (!await policy.allows(target.href)) {
+      throw refusedResponse(current.url, target.href);
+    }
 
     ctx.record.mark("redirect", { status: response.status, from: current.url, to: target.href });
     current = nextHop(spare ?? current, target, response.status, ctx);
@@ -67,6 +80,23 @@ export const follow = async (stack, request, ctx, policy, added) => {
     added = await policy.headers(target.href);
     ctx.signal.throwIfAborted();
   }
+};
+
+/**
+ * A response whose URL isn't the one that was asked for is checked too. One
+ * from a URL the session can't fetch isn't used.
+ *
+ * @type (pending: Promise<Response>, url: string, policy: FollowPolicy) => Promise<Response>
+ */
+const checked = async (pending, url, policy) => {
+  const response = await pending;
+  const asked = new URL(url);
+  asked.hash = "";
+  if (response.url && response.url !== asked.href && !await policy.allows(response.url)) {
+    await response.body?.cancel();
+    throw refusedResponse(url, response.url);
+  }
+  return response;
 };
 
 /**

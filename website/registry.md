@@ -17,12 +17,14 @@ const stack = compose(
   })
 )(defaultTransport());
 
-const session = new Session(stack);
+const session = new Session(stack, { baseURL: "https://example.com/" });
 await session.fetch("https://example.com/schemas/person.json"); // from the registry
 ```
 
 The registry answers `GET` and `HEAD` requests for the URLs it has, and passes
-every other request to the layer below it. It never adds what it passes on, so
+every other request to the layer below it. A session checks a URL before the
+registry answers it, so the session's `allowRetrieval` has to allow the URL.
+For more information, see [What a session can fetch](allow-retrieval.md). It never adds what it passes on, so
 what it has doesn't change.
 
 ## Entries

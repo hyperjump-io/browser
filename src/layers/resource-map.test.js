@@ -1,8 +1,8 @@
 import { describe, test, expect } from "vitest";
-import { Session } from "../session.js";
 import { fetcher } from "../layers.js";
 import { responseMeta } from "../response-meta.js";
 import { ResourceMap } from "./resource-map.js";
+import { testSession } from "../test-helpers/session.js";
 
 describe("the resource map", () => {
   test("answers a URL registered in the document that caused the request, with its value", async () => {
@@ -102,5 +102,5 @@ const setup = () => {
     fetched.push(request.url);
     return new Response(`from ${request.url}`);
   }));
-  return { map, session: new Session(map), fetched: () => fetched };
+  return { map, session: testSession(map), fetched: () => fetched };
 };

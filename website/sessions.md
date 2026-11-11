@@ -22,6 +22,7 @@ information about stacks, see [Layers](layers.md).
 | Option | Description |
 | --- | --- |
 | `baseURL` | The URL to resolve relative URLs against, like a document's base URL |
+| `allowRetrieval` | The URLs the session can fetch. By default, it allows the working directory in Node.js and the page's origin in a browser. For more information, see [What a session can fetch](allow-retrieval.md). |
 | `headers` | Headers for the requests to some URLs, such as credentials. For more information, see [Headers](#headers). |
 | `maxRedirects` | How many redirects a request can follow before it's a network error. The default is 20. |
 | `redirectSchemes` | The schemes a redirect can lead to. The default is `["http:", "https:"]`. For more information, see [Redirects](redirects.md). |
@@ -107,7 +108,8 @@ A child session has these properties:
 
 - It uses the same stack as its parent.
 - It resolves its base URL against its parent's base URL.
-- It gets its parent's redirect options unless you give it its own.
+- It gets its parent's redirect options and `allowRetrieval` unless you give it
+  its own.
 - It gets its parent's headers. A key you give it replaces the same key of its
   parent's, so `{ "https://example.com/": {} }` takes that URL's headers away.
 - It closes when its parent closes.

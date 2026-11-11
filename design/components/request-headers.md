@@ -28,6 +28,9 @@ is the safe way.
   async, so a token can be refreshed. It's called for each request and each
   redirect, with the URL without its fragment.
 - A header the request has itself isn't replaced.
+- A URL the session doesn't allow gets none of its headers, and a headers
+  function isn't called for it (see
+  [What a session can fetch](allow-retrieval.md)).
 - The session adds them before the request goes down the stack, so every
   layer sees them. The HTTP cache respects a `Vary` on them and sends them
   when it revalidates.

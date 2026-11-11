@@ -15,6 +15,19 @@ export type SessionOptions = {
    */
   headers?: Record<string, HeadersInit | HeadersFunction>;
 
+  /**
+   * The URLs the session can fetch, so a document can't make it fetch
+   * whatever it names. One that ends with `/` allows every URL under it, and
+   * any other allows only itself. A relative one is resolved against
+   * `baseURL`, or without one, the working directory in Node.js or the page
+   * in a browser. The default is what's local to the application: `["./"]`,
+   * the working directory, in Node.js, and `["/"]`, the page's origin, in a
+   * browser. A
+   * `file:` URL is compared by its real path. Fetching a URL it doesn't allow,
+   * a redirect to one, or a response from one, is a network error.
+   */
+  allowRetrieval?: string[];
+
   /** More redirects than this is a network error. Default 20, the Fetch standard's. */
   maxRedirects?: number;
 
@@ -125,7 +138,8 @@ export class Session {
   /**
    * A session nested in this one, like an iframe. It has the same stack. Its
    * base URL is resolved against this one's, it has this one's redirect
-   * options unless it's given its own, and it has this one's headers, with a
+   * options and `allowRetrieval` unless it's given its own, and it has this
+   * one's headers, with a
    * key it's given replacing the same key of this one's. Its state is its own,
    * and closing this one closes it.
    */

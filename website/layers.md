@@ -13,7 +13,7 @@ so it gets each request first:
 import { Session, compose, defaultTransport } from "@hyperjump/browser";
 
 const stack = compose(first(), second())(defaultTransport());
-const session = new Session(stack);
+const session = new Session(stack, { baseURL: "https://example.com/" });
 ```
 
 That's the same as wrapping each layer by hand:

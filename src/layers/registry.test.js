@@ -1,10 +1,10 @@
 import { describe, test, expect } from "vitest";
-import { Session } from "../session.js";
 import { compose, findLayer } from "../layers.js";
 import { defaultTransport } from "../transports/scheme-transport.js";
 import { responseMeta } from "../response-meta.js";
 import { Registry, registry } from "./registry.js";
 import { startServer } from "../test-helpers/server.js";
+import { testSession } from "../test-helpers/session.js";
 
 describe("the registry", () => {
   test("answers first, passes on what it doesn't have, and is never written to", async () => {
@@ -18,7 +18,7 @@ describe("the registry", () => {
         },
         resolve: (url) => url.pathname.startsWith("/virtual/") ? `virtual ${url.pathname}` : undefined
       })(defaultTransport());
-      const session = new Session(stack);
+      const session = testSession(stack, { allow: [server.url] });
 
       const hit = await session.fetch(`${server.url}/schema.json#fragment`);
       expect(hit.headers.get("content-type")).to.equal("application/json");
@@ -40,18 +40,18 @@ describe("the registry", () => {
   });
 
   test("onMiss: error lets only what's registered be fetched", async () => {
-    const session = new Session(registry({ entries: { "https://a.test/x": "x" }, onMiss: "error" })(defaultTransport()));
+    const session = testSession(registry({ entries: { "https://a.test/x": "x" }, onMiss: "error" })(defaultTransport()));
     expect(await (await session.fetch("https://a.test/x")).text()).to.equal("x");
     await expect(session.fetch("https://a.test/y")).rejects.toThrow(/isn't in the registry/);
   });
 
   test("HEAD has no body", async () => {
-    const session = new Session(registry({ entries: { "https://a.test/x": "x" } })(defaultTransport()));
+    const session = testSession(registry({ entries: { "https://a.test/x": "x" } })(defaultTransport()));
     expect((await session.fetch("https://a.test/x", { method: "HEAD" })).body).to.equal(null);
   });
 
   test("an entry can be a function of the request", async () => {
-    const session = new Session(registry({ entries: [["https://a.test/x", (request) => new Response(request.headers.get("x-a"))]] })(defaultTransport()));
+    const session = testSession(registry({ entries: [["https://a.test/x", (request) => new Response(request.headers.get("x-a"))]] })(defaultTransport()));
     expect(await (await session.fetch("https://a.test/x", { headers: { "x-a": "1" } })).text()).to.equal("1");
   });
 

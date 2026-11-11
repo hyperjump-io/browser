@@ -1,6 +1,5 @@
 import { describe, test, expect } from "vitest";
 import validator from "har-validator";
-import { Session } from "./session.js";
 import { compose, fetcher } from "./layers.js";
 import { defaultTransport } from "./transports/scheme-transport.js";
 import { Trace } from "./trace.js";
@@ -11,6 +10,7 @@ import { scheduler } from "./layers/scheduler.js";
 import { httpCache } from "./http-cache/http-cache.js";
 import { controlled, tick } from "./test-helpers/controlled.js";
 import { settle, startServer } from "./test-helpers/server.js";
+import { testSession } from "./test-helpers/session.js";
 
 /**
  * @import { Har } from "./har.d.ts"
@@ -29,7 +29,7 @@ describe("HAR", () => {
       response.end(css ? "body{}" : Buffer.from([0x89, 0x50, 0x4e, 0x47]));
     });
     try {
-      const session = new Session(destinationPriority()(defaultTransport()), { baseURL: server.url, headers: { "/": { "user-agent": "browser-test" } } });
+      const session = testSession(destinationPriority()(defaultTransport()), { baseURL: server.url, headers: { "/": { "user-agent": "browser-test" } } });
       const trace = new Trace(session, { bodies: true });
       const page = await session.fetch("/index.html", { destination: "document" });
       await page.text();
@@ -68,7 +68,7 @@ describe("HAR", () => {
   });
 
   test("bodies are left out unless the trace keeps them", async () => {
-    const session = new Session(fetcher(() => new Response("secret", { headers: { "content-type": "text/plain" } })));
+    const session = testSession(fetcher(() => new Response("secret", { headers: { "content-type": "text/plain" } })));
     const trace = new Trace(session);
     await (await session.fetch("https://a.test/x")).text();
     const har = trace.toHar();
@@ -88,7 +88,7 @@ describe("HAR", () => {
         return new Response("done", { headers: { "content-type": "text/plain" } });
       }
     });
-    const session = new Session(steps);
+    const session = testSession(steps);
     const trace = new Trace(session);
     await (await session.fetch("https://a.test/a")).text();
     const har = trace.toHar();
@@ -102,7 +102,7 @@ describe("HAR", () => {
 
   test("waiting in the scheduler is blocked", async () => {
     const net = controlled();
-    const session = new Session(scheduler({ perKey: 1 })(net.transport));
+    const session = testSession(scheduler({ perKey: 1 })(net.transport));
     const trace = new Trace(session);
     const first = session.fetch("https://a.test/1");
     const second = session.fetch("https://a.test/2");
@@ -126,7 +126,7 @@ describe("HAR", () => {
     const steps = fetcher((request, ctx) => new URL(request.url).pathname === "/old"
       ? new Response(null, { status: 301, headers: { location: "/new" } })
       : net.transport.fetch(request, ctx));
-    const session = new Session(compose(destinationPriority(), dedupe(), scheduler({ perKey: 1 }))(steps));
+    const session = testSession(compose(destinationPriority(), dedupe(), scheduler({ perKey: 1 }))(steps));
     const trace = new Trace(session);
     const blocker = session.fetch("https://a.test/blocker");
     const moved = session.fetch("https://a.test/old");
@@ -162,7 +162,7 @@ describe("HAR", () => {
     });
     try {
       const stack = compose(registry({ entries: { "https://pinned.test/a.json": "{}" } }), httpCache())(defaultTransport());
-      const session = new Session(stack, { baseURL: server.url });
+      const session = testSession(stack, { baseURL: server.url, allow: ["nope://x"] });
       const trace = new Trace(session);
       await (await session.fetch("/x")).text();
       await settle();
@@ -184,7 +184,7 @@ describe("HAR", () => {
   });
 
   test("an empty trace is a valid HAR", async () => {
-    const har = new Trace(new Session()).toHar({ title: "nothing" });
+    const har = new Trace(testSession()).toHar({ title: "nothing" });
     await valid(har);
     expect(har.log.entries).to.eql([]);
   });

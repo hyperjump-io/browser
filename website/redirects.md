@@ -35,8 +35,14 @@ a request to a `file:` URL. To allow other schemes, use the session's
 `redirectSchemes` option:
 
 ```typescript
-const session = new Session(stack, { redirectSchemes: ["http:", "https:", "data:"] });
+const session = new Session(stack, {
+  baseURL: "https://example.com/",
+  redirectSchemes: ["http:", "https:", "data:"]
+});
 ```
+
+A redirect can only lead to a URL that the session's `allowRetrieval` allows.
+For more information, see [What a session can fetch](allow-retrieval.md).
 
 A child session has its parent's redirect options unless you give it its own.
 

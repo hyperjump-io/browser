@@ -1,16 +1,16 @@
 import { describe, test, expect } from "vitest";
-import { Session } from "./session.js";
 import { fetcher } from "./layers.js";
 import { Trace } from "./trace.js";
 import { scheduler } from "./layers/scheduler.js";
 import { dedupe } from "./layers/dedupe.js";
 import { controlled, tick } from "./test-helpers/controlled.js";
+import { testSession } from "./test-helpers/session.js";
 
 const ok = fetcher(() => new Response(""));
 
 describe("traces", () => {
   test("record a session's requests and, by default, its children's", async () => {
-    const page = new Session(ok);
+    const page = testSession(ok);
     const frame = page.child();
     const all = new Trace(page);
     const pageOnly = new Trace(page, { children: false });
@@ -21,7 +21,7 @@ describe("traces", () => {
   });
 
   test("stop records nothing new", async () => {
-    const session = new Session(ok);
+    const session = testSession(ok);
     const trace = new Trace(session);
     trace.stop();
     await session.fetch("https://a.test/");
@@ -29,14 +29,14 @@ describe("traces", () => {
   });
 
   test("keep bodies when asked", async () => {
-    const session = new Session(fetcher(() => new Response("body")));
+    const session = testSession(fetcher(() => new Response("body")));
     const trace = new Trace(session, { bodies: true });
     await (await session.fetch("https://a.test/")).text();
     expect(new TextDecoder().decode(trace.records[0].body)).to.equal("body");
   });
 
   test("a failure is in the waterfall", async () => {
-    const session = new Session(fetcher(() => Promise.reject(new TypeError("offline"))));
+    const session = testSession(fetcher(() => Promise.reject(new TypeError("offline"))));
     const trace = new Trace(session);
     await expect(session.fetch("https://a.test/x")).rejects.toThrow(/offline/);
     expect(trace.records[0].endTime).not.to.equal(undefined);
@@ -44,7 +44,7 @@ describe("traces", () => {
   });
 
   test("tree puts each request under the one that initiated it", async () => {
-    const session = new Session(ok);
+    const session = testSession(ok);
     const trace = new Trace(session);
     const page = await session.fetch("https://a.test/");
     const css = await session.fetch("https://a.test/a.css", { initiator: page });
@@ -55,7 +55,7 @@ describe("traces", () => {
 
   test("the waterfall shows the tree, destinations, statuses, and waiting", async () => {
     const net = controlled();
-    const session = new Session(scheduler({ perKey: 1 })(net.transport), { baseURL: "https://site.test/" });
+    const session = testSession(scheduler({ perKey: 1 })(net.transport), { baseURL: "https://site.test/" });
     const trace = new Trace(session);
     const pagePending = session.fetch("index.html", { destination: "document" });
     await tick();
@@ -82,7 +82,7 @@ describe("traces", () => {
 
   test("a request that joined another says which", async () => {
     const net = controlled();
-    const session = new Session(dedupe()(net.transport));
+    const session = testSession(dedupe()(net.transport));
     const trace = new Trace(session);
     const a = session.fetch("https://a.test/x");
     const b = session.fetch("https://a.test/x");
@@ -93,6 +93,6 @@ describe("traces", () => {
   });
 
   test("an empty trace says so", () => {
-    expect(new Trace(new Session()).waterfall()).to.equal("(no requests)");
+    expect(new Trace(testSession()).waterfall()).to.equal("(no requests)");
   });
 });

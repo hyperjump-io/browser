@@ -5,6 +5,8 @@ import { defaultTransport } from "./transports/scheme-transport.js";
 import { follow, sentHeaders } from "./redirects.js";
 import { urlEntries } from "./url-entries.js";
 import { headersFor } from "./request-headers.js";
+import { allows, realEntries, refused, resolveAllowRetrieval } from "./allowed-urls.js";
+import { contextUrl, defaultAllowRetrieval } from "#context-url";
 
 /**
  * @import * as API from "./session.d.ts"
@@ -26,6 +28,22 @@ export class Session {
 
   /** @type {{ max: number, schemes: string[] }} */
   #redirects;
+
+  /**
+   * The URLs it can fetch, resolved, or the error a check throws when the
+   * default has nothing to resolve against
+   *
+   * @type string[] | TypeError
+   */
+  #allowRetrieval;
+
+  /**
+   * The entries by their real paths, found the first time a URL is checked
+   * and kept for the session
+   *
+   * @type Promise<string[]> | undefined
+   */
+  #realEntries;
 
   /** @type import("./redirects.js").FollowPolicy */
   #policy;
@@ -54,7 +72,12 @@ export class Session {
       max: options.maxRedirects ?? 20,
       schemes: [...options.redirectSchemes ?? ["http:", "https:"]]
     };
-    this.#policy = { ...this.#redirects, headers: (url) => headersFor(this.#headers, url) };
+    this.#allowRetrieval = resolveAllowRetrieval(options.allowRetrieval, this.baseURL ?? contextUrl(), defaultAllowRetrieval);
+    this.#policy = {
+      ...this.#redirects,
+      headers: (url) => headersFor(this.#headers, url),
+      allows: (url) => this.#allows(url)
+    };
     this.#signal = this.parent
       ? AbortSignal.any([this.#controller.signal, this.parent.signal])
       : this.#controller.signal;
@@ -118,7 +141,10 @@ export class Session {
     const request = input instanceof Request
       ? new Request(input, { ...requestInit, signal })
       : new Request(this.resolve(input), { ...requestInit, signal });
-    const added = await this.#policy.headers(request.url);
+    // A refused URL gets none of the session's headers, but it's recorded, like
+    // a request a browser blocks
+    const allowed = await this.#allows(request.url);
+    const added = allowed ? await this.#policy.headers(request.url) : new Headers();
     signal.throwIfAborted();
 
     const record = startRecord({
@@ -145,6 +171,9 @@ export class Session {
     this.#notify({ type: "start", record });
     let response;
     try {
+      if (!allowed) {
+        throw refused(request.url);
+      }
       response = await follow(this.stack, request, ctx, this.#policy, added);
     } catch (error) {
       recordEnd(record, error);
@@ -179,6 +208,7 @@ export class Session {
       headers: Object.fromEntries(headers),
       maxRedirects: options.maxRedirects ?? this.#redirects.max,
       redirectSchemes: options.redirectSchemes ?? this.#redirects.schemes,
+      allowRetrieval: options.allowRetrieval ?? (this.#allowRetrieval instanceof TypeError ? undefined : this.#allowRetrieval),
       parent: this
     });
   }
@@ -186,6 +216,19 @@ export class Session {
   /** @type API.Session["close"] */
   close(reason = new DOMException("The session was closed", "AbortError")) {
     this.#controller.abort(reason);
+  }
+
+  /**
+   * Whether `allowRetrieval` allows a URL
+   *
+   * @type (url: string) => Promise<boolean>
+   */
+  async #allows(url) {
+    if (this.#allowRetrieval instanceof TypeError) {
+      throw this.#allowRetrieval;
+    }
+    this.#realEntries ??= realEntries(this.#allowRetrieval);
+    return allows(await this.#realEntries, url);
   }
 
   /** Whether anyone is watching this session or a parent, and whether any of them want bodies */

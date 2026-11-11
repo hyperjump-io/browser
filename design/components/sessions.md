@@ -7,6 +7,9 @@ on a stack it's given and gives the stack what the stack can't know.
   or any part of one, can be a session's. Without one, it's
   `defaultTransport()`.
 - A relative URL is resolved against `baseURL`, like a document's base URL.
+- It fetches only what `allowRetrieval` allows, and by default only what's
+  local to the application, so a document can't make it fetch whatever it
+  names (see [What a session can fetch](allow-retrieval.md)).
 - `headers` are by URL, so only the URLs they're for get them, including
   where a redirect leads. A request's own headers win (see
   [Request headers](request-headers.md)).
@@ -30,7 +33,7 @@ on a stack it's given and gives the stack what the stack can't know.
 
 - It has the same stack.
 - Its base URL is resolved against its parent's, and it has its parent's
-  redirect options unless it's given its own.
+  redirect options and `allowRetrieval` unless it's given its own.
 - It has its parent's headers, and a key it's given replaces the same key
   of its parent's.
 - Its state is its own. A layer that shares state with its parent uses
@@ -51,8 +54,3 @@ Rejected:
 - `fork()`, a sibling with the same options. A sibling is
   `new Session(session.stack, options)`, and `fork` couldn't say which
   options to change without being `new Session` again.
-
-## Known limitations
-
-- Nothing limits what a session can fetch. An application that fetches URLs
-  from documents it doesn't trust has to check them, in a layer of its own.

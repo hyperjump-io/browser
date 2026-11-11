@@ -2,13 +2,13 @@ import { describe, test, expect } from "vitest";
 import { mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Session } from "../session.js";
 import { defaultTransport } from "../transports/scheme-transport.js";
 import { responseMeta } from "../response-meta.js";
 import { HttpCache } from "./http-cache.js";
 import { FileCacheStore } from "./file-cache-store.js";
 import { FileCacheStore as BrowserFileCacheStore } from "./file-cache-store.browser.js";
 import { settle, startServer } from "../test-helpers/server.js";
+import { testSession } from "../test-helpers/session.js";
 
 /**
  * @import { CachedEntry } from "./http-cache.d.ts"
@@ -162,7 +162,7 @@ describe("the file cache store", () => {
     });
     try {
       const run = async () => {
-        const session = new Session(new HttpCache(defaultTransport(), { store: new FileCacheStore({ directory: dir }) }), { baseURL: server.url });
+        const session = testSession(new HttpCache(defaultTransport(), { store: new FileCacheStore({ directory: dir }) }), { baseURL: server.url });
         const response = await session.fetch("/doc");
         const body = await response.text();
         await settle();

@@ -1,5 +1,4 @@
 import { describe, test, expect } from "vitest";
-import { Session } from "../session.js";
 import { compose, fetcher } from "../layers.js";
 import { PriorityController } from "../priority.js";
 import { responseMeta } from "../response-meta.js";
@@ -7,6 +6,7 @@ import { HttpCache } from "../http-cache/http-cache.js";
 import { Scheduler, scheduler } from "./scheduler.js";
 import { dedupe } from "./dedupe.js";
 import { controlled, tick } from "../test-helpers/controlled.js";
+import { testSession } from "../test-helpers/session.js";
 
 /**
  * @import { SessionFetchInit } from "../session.d.ts"
@@ -16,7 +16,7 @@ describe("the scheduler", () => {
   test("limits requests in flight for each origin, without holding up other origins", async () => {
     const net = controlled();
     const layer = new Scheduler(net.transport, { perKey: 2 });
-    const session = new Session(layer);
+    const session = testSession(layer);
 
     const a = [1, 2, 3, 4].map((n) => session.fetch(`https://a.test/${n}`));
     const b = session.fetch("https://b.test/1");
@@ -42,7 +42,7 @@ describe("the scheduler", () => {
 
   test("waiting requests start by priority, then in the order they came", async () => {
     const net = controlled();
-    const session = new Session(scheduler({ perKey: 1 })(net.transport));
+    const session = testSession(scheduler({ perKey: 1 })(net.transport));
     const blocker = session.fetch("https://a.test/blocker");
     await tick();
     /** @type Record<string, Promise<Response>> */
@@ -62,7 +62,7 @@ describe("the scheduler", () => {
 
   test("a slot is held until the body is read, cancelled, or fails, or until headers with releaseOn: headers", async () => {
     const net = controlled();
-    const session = new Session(scheduler({ perKey: 1 })(net.transport));
+    const session = testSession(scheduler({ perKey: 1 })(net.transport));
     const first = session.fetch("https://a.test/1");
     const second = session.fetch("https://a.test/2");
     await tick();
@@ -77,7 +77,7 @@ describe("the scheduler", () => {
     await (await second).text();
 
     const eagerNet = controlled();
-    const eager = new Session(scheduler({ perKey: 1, releaseOn: "headers" })(eagerNet.transport));
+    const eager = testSession(scheduler({ perKey: 1, releaseOn: "headers" })(eagerNet.transport));
     const x = eager.fetch("https://a.test/x");
     const y = eager.fetch("https://a.test/y");
     await tick();
@@ -91,7 +91,7 @@ describe("the scheduler", () => {
 
   test("the wrapped response keeps its status and headers", async () => {
     const net = controlled();
-    const session = new Session(scheduler()(net.transport));
+    const session = testSession(scheduler()(net.transport));
     const pending = session.fetch("https://a.test/thing");
     await tick();
     net.answer("a.test/thing", "hello", { status: 201, headers: { "x-test": "1" } });
@@ -104,7 +104,7 @@ describe("the scheduler", () => {
   test("an error frees its slot, and aborting a waiting request takes it out of the queue", async () => {
     const net = controlled();
     const layer = new Scheduler(net.transport, { perKey: 1 });
-    const session = new Session(layer);
+    const session = testSession(layer);
     const failing = session.fetch("https://a.test/fails");
     const controller = new AbortController();
     const abandoned = session.fetch("https://a.test/abandoned", { signal: controller.signal });
@@ -126,7 +126,7 @@ describe("the scheduler", () => {
 
   test("the total limit is for every origin, and other schemes aren't limited", async () => {
     const net = controlled();
-    const session = new Session(scheduler({ perKey: 6, total: 2 })(net.transport));
+    const session = testSession(scheduler({ perKey: 6, total: 2 })(net.transport));
     const requests = ["https://a.test/1", "https://b.test/1", "https://c.test/1"].map((url) => session.fetch(url));
     const data = session.fetch("data:text/plain,hi");
     await tick();
@@ -144,8 +144,8 @@ describe("the scheduler", () => {
   test("limits are shared by every session on the stack, like tabs", async () => {
     const net = controlled();
     const stack = scheduler({ perKey: 1 })(net.transport);
-    const a = new Session(stack).fetch("https://a.test/1");
-    const b = new Session(stack).fetch("https://a.test/2");
+    const a = testSession(stack).fetch("https://a.test/1");
+    const b = testSession(stack).fetch("https://a.test/2");
     await tick();
     expect(net.started).to.eql(["a.test/1"]);
     await finish(net, "a.test/1", a);
@@ -154,7 +154,7 @@ describe("the scheduler", () => {
 
   test("a cache hit doesn't use a slot", async () => {
     const net = controlled();
-    const session = new Session(compose((inner) => new HttpCache(inner))(scheduler({ perKey: 1 })(net.transport)));
+    const session = testSession(compose((inner) => new HttpCache(inner))(scheduler({ perKey: 1 })(net.transport)));
     const first = session.fetch("https://a.test/cached");
     await tick();
     net.answer("a.test/cached", "body", { headers: { "cache-control": "max-age=60" } });
@@ -179,7 +179,7 @@ describe("the scheduler", () => {
         headers: { "cache-control": "max-age=1, stale-while-revalidate=60", "date": new Date(now).toUTCString() }
       });
     });
-    const session = new Session(new HttpCache(transport, { now: () => now }));
+    const session = testSession(new HttpCache(transport, { now: () => now }));
     await (await session.fetch("https://a.test/x", { priority: "high" })).text();
     await tick();
     now += 5000;
@@ -193,7 +193,7 @@ describe("the scheduler", () => {
   describe("reprioritizing", () => {
     test("a waiting request can change priority, and keeps its arrival order among its new peers", async () => {
       const net = controlled();
-      const session = new Session(scheduler({ perKey: 1 })(net.transport));
+      const session = testSession(scheduler({ perKey: 1 })(net.transport));
       /** @type Record<string, Promise<Response>> */
       const responses = {};
       /** @type (name: string, priority?: SessionFetchInit["priority"]) => void */
@@ -220,7 +220,7 @@ describe("the scheduler", () => {
 
     test("lowering a waiting request's priority moves it back, and changing it after it started does nothing", async () => {
       const net = controlled();
-      const session = new Session(scheduler({ perKey: 1 })(net.transport));
+      const session = testSession(scheduler({ perKey: 1 })(net.transport));
       const blocker = session.fetch("https://a.test/blocker");
       await tick();
       const prefetch = new PriorityController("high");
@@ -236,7 +236,7 @@ describe("the scheduler", () => {
 
     test("dedupe gives a shared request the most urgent priority of the callers waiting", async () => {
       const net = controlled();
-      const session = new Session(dedupe()(scheduler({ perKey: 1 })(net.transport)));
+      const session = testSession(dedupe()(scheduler({ perKey: 1 })(net.transport)));
       const blocker = session.fetch("https://a.test/blocker");
       await tick();
       const low = session.fetch("https://a.test/shared", { priority: "low" });
@@ -254,7 +254,7 @@ describe("the scheduler", () => {
 
     test("when the urgent caller gives up, the shared request goes back down", async () => {
       const net = controlled();
-      const session = new Session(dedupe()(scheduler({ perKey: 1 })(net.transport)));
+      const session = testSession(dedupe()(scheduler({ perKey: 1 })(net.transport)));
       const blocker = session.fetch("https://a.test/blocker");
       await tick();
       const low = session.fetch("https://a.test/shared", { priority: "low" });

@@ -21,9 +21,11 @@ It follows the Fetch standard:
 - A URL a redirect leads to without a fragment gets the original's.
 - More than 20 redirects (`maxRedirects`) is a network error.
 
-And it's stricter than `fetch` in one way: a redirect can only lead to
+And it's stricter than `fetch` in two ways: a redirect can only lead to
 `http:` or `https:` (`redirectSchemes`), so a server can't send a request to
-`file:`, even when the transport has it.
+`file:`, even when the transport has it, and only to a URL the session's
+`allowRetrieval` allows (see [What a session can fetch](allow-retrieval.md)).
+Both are checked before the redirect is followed.
 
 The session's headers are for the URL each step leads to, not the ones the
 step before it got (see [Request headers](request-headers.md)). The
@@ -57,4 +59,6 @@ Rejected:
 ## Known limitations
 
 - In a browser, the browser follows redirects, so the layers see only the
-  first request, and its rules apply instead of `redirectSchemes`.
+  first request, and its rules apply instead of `redirectSchemes`. Only the
+  URL it led to is checked against `allowRetrieval`, after the request was
+  sent.

@@ -2,7 +2,6 @@ import { describe, test, expect } from "vitest";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Session } from "../session.js";
 import { fetcher } from "../layers.js";
 import { defaultTransport } from "../transports/scheme-transport.js";
 import { responseMeta } from "../response-meta.js";
@@ -11,6 +10,7 @@ import { MemoryCacheStore } from "./memory-cache-store.js";
 import { FileCacheStore } from "./file-cache-store.js";
 import { addSegment, parseContentRange, parseRange, resolveRange, sliceSegments } from "./ranges.js";
 import { settle, startServer } from "../test-helpers/server.js";
+import { testSession } from "../test-helpers/session.js";
 
 /**
  * @import { IncomingMessage, ServerResponse } from "node:http"
@@ -105,7 +105,7 @@ describe("partial content", () => {
     let body = data;
     const server = await startServer((request, response) => serveRanges(request, response, { etag, body }));
     try {
-      const session = new Session(new HttpCache(defaultTransport()), { baseURL: server.url });
+      const session = testSession(new HttpCache(defaultTransport()), { baseURL: server.url });
       /** @type (range: string, cache?: CacheMode) => Promise<string> */
       const get = async (range, cache) => {
         const response = await session.fetch("/v", { headers: { range }, cache });
@@ -135,7 +135,7 @@ describe("partial content", () => {
   test("without an ETag, only the latest part is kept", async () => {
     const server = await startServer((request, response) => serveRanges(request, response, { etag: undefined, body: data }));
     try {
-      const session = new Session(new HttpCache(defaultTransport()), { baseURL: server.url });
+      const session = testSession(new HttpCache(defaultTransport()), { baseURL: server.url });
       /** @type (range: string) => Promise<string | undefined> */
       const cacheOf = async (range) => {
         const response = await session.fetch("/n", { headers: { range } });
@@ -196,7 +196,7 @@ describe("partial content", () => {
     expect(stored.partial).to.eql({ length: 20, segments: [{ start: 0, length: 5 }, { start: 10, length: 5 }] });
 
     // A new process, without a network
-    const offline = new Session(new HttpCache(fetcher(() => Promise.reject(new TypeError("offline"))), { store: new FileCacheStore({ directory }) }));
+    const offline = testSession(new HttpCache(fetcher(() => Promise.reject(new TypeError("offline"))), { store: new FileCacheStore({ directory }) }), { allow: [url] });
     const response = await offline.fetch(url, { headers: { range: "bytes=11-13" } });
     expect(response.status).to.equal(206);
     expect(await response.text()).to.equal("bcd");
@@ -235,7 +235,7 @@ const serveRanges = (request, response, { etag, body }) => {
 /** @param {CacheStore} [store] */
 const setup = async (store = new MemoryCacheStore()) => {
   const server = await startServer((request, response) => serveRanges(request, response, { etag: "\"v1\"", body: data }));
-  const session = new Session(new HttpCache(defaultTransport(), { store }), { baseURL: server.url });
+  const session = testSession(new HttpCache(defaultTransport(), { store }), { baseURL: server.url });
 
   /** @type (path: string, range?: string, init?: { headers?: Record<string, string>, cache?: CacheMode }) => Promise<{ status: number, body: string, range: string | null, cache: string | undefined }> */
   const get = async (path, range, init = {}) => {

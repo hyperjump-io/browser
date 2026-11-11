@@ -9,7 +9,7 @@ from the map instead of fetched:
 import { Session, compose, resourceMap, findLayer, ResourceMap, defaultTransport } from "@hyperjump/browser";
 
 const stack = compose(resourceMap())(defaultTransport());
-const session = new Session(stack);
+const session = new Session(stack, { baseURL: "https://example.com/" });
 const map = findLayer(stack, ResourceMap);
 
 const response = await session.fetch("https://example.com/bundle.json");

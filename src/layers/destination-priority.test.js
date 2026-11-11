@@ -1,16 +1,16 @@
 import { describe, test, expect } from "vitest";
-import { Session } from "../session.js";
 import { compose, fetcher } from "../layers.js";
 import { PriorityController } from "../priority.js";
 import { destinationPriority } from "./destination-priority.js";
 import { throttle } from "./throttle.js";
 import { controlled, tick } from "../test-helpers/controlled.js";
+import { testSession } from "../test-helpers/session.js";
 
 describe("destination priority", () => {
   test("gives images low and styles high priority, unless the caller chose", async () => {
     /** @type Record<string, string> */
     const seen = {};
-    const session = new Session(destinationPriority()(fetcher((request, ctx) => {
+    const session = testSession(destinationPriority()(fetcher((request, ctx) => {
       seen[new URL(request.url).pathname] = ctx.priority.value;
       return new Response("");
     })));
@@ -26,7 +26,7 @@ describe("destination priority", () => {
     const net = controlled();
     /** @type import("../priority.d.ts").PrioritySignal | undefined */
     let seen;
-    const session = new Session(destinationPriority()(fetcher((request, ctx) => {
+    const session = testSession(destinationPriority()(fetcher((request, ctx) => {
       seen = ctx.priority;
       return net.transport.fetch(request, ctx);
     })));
@@ -45,7 +45,7 @@ describe("destination priority", () => {
   test("can be given its own priorities", async () => {
     /** @type string | undefined */
     let seen;
-    const session = new Session(destinationPriority({ json: "high" })(fetcher((_request, ctx) => {
+    const session = testSession(destinationPriority({ json: "high" })(fetcher((_request, ctx) => {
       seen = ctx.priority.value;
       return new Response("");
     })));
@@ -55,7 +55,7 @@ describe("destination priority", () => {
 
   test("with the throttle, images wait while the stylesheet loads", async () => {
     const net = controlled();
-    const session = new Session(compose(destinationPriority(), throttle())(net.transport));
+    const session = testSession(compose(destinationPriority(), throttle())(net.transport));
     const css = session.fetch("https://a.test/main.css", { destination: "style" });
     const images = [1, 2, 3].map((n) => session.fetch(`https://a.test/img-${n}.png`, { destination: "image" }));
     await tick();

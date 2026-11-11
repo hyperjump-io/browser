@@ -52,6 +52,10 @@ nodeTransport({ file: { root: "./site" } });
 A URL outside `root` is a network error, and so is a symbolic link inside
 `root` that points outside it.
 
+`root` limits every session on the stack. A session's `allowRetrieval` limits
+that session, and by default it allows only the files in the working directory.
+For more information, see [What a session can fetch](allow-retrieval.md).
+
 ## Symbolic links
 
 A session follows a symbolic link, and the response's URL is the URL of the file it

@@ -1,14 +1,14 @@
 import { describe, test, expect } from "vitest";
-import { Session } from "../session.js";
 import { compose } from "../layers.js";
 import { PriorityController } from "../priority.js";
 import { responseMeta } from "../response-meta.js";
 import { Throttle, throttle } from "./throttle.js";
 import { scheduler } from "./scheduler.js";
 import { controlled, tick } from "../test-helpers/controlled.js";
+import { testSession } from "../test-helpers/session.js";
 
 /**
- * @import { SessionFetchInit } from "../session.d.ts"
+ * @import { Session, SessionFetchInit } from "../session.d.ts"
  * @import { ThrottleOptions } from "./throttle.d.ts"
  */
 
@@ -103,7 +103,7 @@ describe("the throttle", () => {
 
   test("works with the scheduler, and marks what it did", async () => {
     const net = controlled();
-    const session = new Session(compose(throttle(), scheduler({ perKey: 2 }))(net.transport));
+    const session = testSession(compose(throttle(), scheduler({ perKey: 2 }))(net.transport));
     const css = session.fetch("https://a.test/css", { priority: "high" });
     const low1 = session.fetch("https://a.test/low-1", { priority: "low" });
     const low2 = session.fetch("https://a.test/low-2", { priority: "low" });
@@ -137,7 +137,7 @@ describe("the throttle", () => {
 const page = (options = {}) => {
   const net = controlled();
   const layer = new Throttle(net.transport, options);
-  const session = new Session(layer);
+  const session = testSession(layer);
   /** @type Map<string, Promise<Response>> */
   const responses = new Map();
   /** @type (name: string, priority?: SessionFetchInit["priority"], from?: Session) => void */

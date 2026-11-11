@@ -1,17 +1,17 @@
 import { describe, test, expect } from "vitest";
-import { Session } from "../session.js";
 import { fetcher } from "../layers.js";
 import { defaultTransport } from "../transports/scheme-transport.js";
 import { responseMeta } from "../response-meta.js";
 import { Dedupe, dedupe } from "./dedupe.js";
 import { startServer } from "../test-helpers/server.js";
 import { controlled, tick } from "../test-helpers/controlled.js";
+import { testSession } from "../test-helpers/session.js";
 
 describe("dedupe", () => {
   test("requests that are the same, made at the same time, are one request", async () => {
     const server = await startServer((_request, response) => setTimeout(() => response.end("shared body"), 30));
     try {
-      const session = new Session(dedupe()(defaultTransport()));
+      const session = testSession(dedupe()(defaultTransport()), { allow: [server.url] });
       const responses = await Promise.all([1, 2, 3].map(() => session.fetch(`${server.url}/img.png`)));
       expect(await Promise.all(responses.map((response) => response.text()))).to.eql(["shared body", "shared body", "shared body"]);
       expect(server.hits.get("/img.png")).to.equal(1);
@@ -28,7 +28,7 @@ describe("dedupe", () => {
     const server = await startServer((_request, response) => setTimeout(() => response.end("ok"), 30));
     try {
       const stack = dedupe()(defaultTransport());
-      await Promise.all([new Session(stack).fetch(`${server.url}/b`), new Session(stack).fetch(`${server.url}/b`)]);
+      await Promise.all([testSession(stack, { allow: [server.url] }).fetch(`${server.url}/b`), testSession(stack, { allow: [server.url] }).fetch(`${server.url}/b`)]);
       expect(server.hits.get("/b")).to.equal(2);
     } finally {
       await server.close();
@@ -38,7 +38,7 @@ describe("dedupe", () => {
   test("one caller aborting doesn't stop the others", async () => {
     const server = await startServer((_request, response) => setTimeout(() => response.end("ok"), 40));
     try {
-      const session = new Session(dedupe()(defaultTransport()));
+      const session = testSession(dedupe()(defaultTransport()), { allow: [server.url] });
       const controller = new AbortController();
       const a = session.fetch(`${server.url}/x`, { signal: controller.signal });
       const b = session.fetch(`${server.url}/x`);
@@ -54,7 +54,7 @@ describe("dedupe", () => {
     /** @type AbortSignal[] */
     const signals = [];
     const net = controlled();
-    const session = new Session(dedupe()(fetcher((request, ctx) => {
+    const session = testSession(dedupe()(fetcher((request, ctx) => {
       signals.push(request.signal);
       return net.transport.fetch(request, ctx);
     })));
@@ -85,7 +85,7 @@ describe("dedupe", () => {
         await tick();
         return new Response("ok");
       });
-      const page = new Session(dedupe()(slow));
+      const page = testSession(dedupe()(slow));
       await Promise.all([page.fetch("https://a.test/x"), page.child().fetch("https://a.test/x")].map(async (response) => (await response).text()));
       expect(calls).to.equal(2);
     });
@@ -93,7 +93,7 @@ describe("dedupe", () => {
     test("root shares requests between a page and its frames", async () => {
       const net = controlled();
       const layer = new Dedupe(net.transport, { scope: "root" });
-      const page = new Session(layer);
+      const page = testSession(layer);
       const frame = page.child();
       const a = page.fetch("https://a.test/x");
       const b = frame.fetch("https://a.test/x");
@@ -107,7 +107,7 @@ describe("dedupe", () => {
 
     test("root: a frame that started a request can close without stopping it for the page", async () => {
       const net = controlled();
-      const page = new Session(dedupe({ scope: "root" })(net.transport));
+      const page = testSession(dedupe({ scope: "root" })(net.transport));
       const frame = page.child();
       const fromFrame = frame.fetch("https://a.test/x");
       const fromPage = page.fetch("https://a.test/x");
@@ -122,7 +122,7 @@ describe("dedupe", () => {
       /** @type AbortSignal | undefined */
       let seen;
       const net = controlled();
-      const page = new Session(dedupe({ scope: "root" })(fetcher((request, ctx) => {
+      const page = testSession(dedupe({ scope: "root" })(fetcher((request, ctx) => {
         seen = request.signal;
         return net.transport.fetch(request, ctx);
       })));
