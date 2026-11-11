@@ -1,5 +1,6 @@
 import { networkError, setResponseMeta, withUrl } from "./response-meta.js";
 import { refusedResponse } from "./allowed-urls.js";
+import { canRefer, referrerOf, refusedReferenceResponse } from "./file-references.js";
 
 /**
  * @import { FetchContext, Fetcher } from "./layers.d.ts"
@@ -42,12 +43,12 @@ export const follow = async (stack, request, ctx, policy, added) => {
   for (let hops = 0; ; hops++) {
     // A copy of the body, in case a 307 or 308 sends it again
     const spare = current.body ? current.clone() : undefined;
-    const response = await checked(stack.fetch(withHeaders(current, added, "manual"), ctx), current.url, policy);
+    const response = await checked(stack.fetch(withHeaders(current, added, "manual"), ctx), current.url, ctx, policy);
 
     if (response.type === "opaqueredirect") {
       // A browser doesn't say where a redirect leads, so it follows it
       void spare?.body?.cancel().catch(() => {});
-      return checked(stack.fetch(withHeaders(spare ?? current, added, mode), ctx), current.url, policy);
+      return checked(stack.fetch(withHeaders(spare ?? current, added, mode), ctx), current.url, ctx, policy);
     }
 
     const location = response.headers.get("location");
@@ -70,9 +71,7 @@ export const follow = async (stack, request, ctx, policy, added) => {
     if (!target.hash) {
       target.hash = new URL(current.url).hash;
     }
-    if (!await policy.allows(target.href)) {
-      throw refusedResponse(current.url, target.href);
-    }
+    await check(current.url, target.href, ctx, policy);
 
     ctx.record.mark("redirect", { status: response.status, from: current.url, to: target.href });
     current = nextHop(spare ?? current, target, response.status, ctx);
@@ -86,17 +85,38 @@ export const follow = async (stack, request, ctx, policy, added) => {
  * A response whose URL isn't the one that was asked for is checked too. One
  * from a URL the session can't fetch isn't used.
  *
- * @type (pending: Promise<Response>, url: string, policy: FollowPolicy) => Promise<Response>
+ * @type (pending: Promise<Response>, url: string, ctx: FetchContext, policy: FollowPolicy) => Promise<Response>
  */
-const checked = async (pending, url, policy) => {
+const checked = async (pending, url, ctx, policy) => {
   const response = await pending;
   const asked = new URL(url);
   asked.hash = "";
-  if (response.url && response.url !== asked.href && !await policy.allows(response.url)) {
-    await response.body?.cancel();
-    throw refusedResponse(url, response.url);
+  if (response.url && response.url !== asked.href) {
+    try {
+      await check(url, response.url, ctx, policy);
+    } catch (error) {
+      await response.body?.cancel();
+      throw error;
+    }
   }
   return response;
+};
+
+/**
+ * Check a URL that fetching `url` led to, like where a redirect leads: the
+ * document the request comes from has to be able to refer to it, and the
+ * session has to allow it
+ *
+ * @type (url: string, to: string, ctx: FetchContext, policy: FollowPolicy) => Promise<void>
+ */
+const check = async (url, to, ctx, policy) => {
+  const referrer = referrerOf(ctx.record.initiator);
+  if (!canRefer(to, referrer)) {
+    throw refusedReferenceResponse(url, to, /** @type string */ (referrer));
+  }
+  if (!await policy.allows(to)) {
+    throw refusedResponse(url, to);
+  }
 };
 
 /**

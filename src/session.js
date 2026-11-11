@@ -6,6 +6,7 @@ import { follow, sentHeaders } from "./redirects.js";
 import { urlEntries } from "./url-entries.js";
 import { headersFor } from "./request-headers.js";
 import { allows, realEntries, refused, resolveAllowRetrieval } from "./allowed-urls.js";
+import { canRefer, referrerOf, refusedReference } from "./file-references.js";
 import { contextUrl, defaultAllowRetrieval } from "#context-url";
 
 /**
@@ -144,17 +145,18 @@ export class Session {
     const request = input instanceof Request
       ? new Request(input, { ...requestInit, signal })
       : new Request(new URL(input, this.#contextUrl), { ...requestInit, signal });
+    const initiatorRecord = initiator instanceof Response ? responseMeta(initiator).record : initiator;
     // A refused URL gets none of the session's headers, but it's recorded, like
     // a request a browser blocks
-    const allowed = await this.#allows(request.url);
-    const added = allowed ? await this.#policy.headers(request.url) : new Headers();
+    const refusal = await this.#refusal(request.url, referrerOf(initiatorRecord));
+    const added = refusal ? new Headers() : await this.#policy.headers(request.url);
     signal.throwIfAborted();
 
     const record = startRecord({
       url: request.url,
       method: request.method,
       destination: destination ?? "",
-      initiator: initiator instanceof Response ? responseMeta(initiator).record : initiator,
+      initiator: initiatorRecord,
       session: this,
       priority: priority instanceof PrioritySignal ? priority.value : priority ?? "auto",
       requestHeaders: [...sentHeaders(request.headers, added)],
@@ -174,8 +176,8 @@ export class Session {
     this.#notify({ type: "start", record });
     let response;
     try {
-      if (!allowed) {
-        throw refused(request.url);
+      if (refusal) {
+        throw refusal;
       }
       response = await follow(this.stack, request, ctx, this.#policy, added);
     } catch (error) {
@@ -217,6 +219,20 @@ export class Session {
   /** @type API.Session["close"] */
   close(reason = new DOMException("The session was closed", "AbortError")) {
     this.#controller.abort(reason);
+  }
+
+  /**
+   * Why a URL can't be fetched from a document at `referrer`, if it can't: a
+   * `file:` URL from a document that isn't a file, or a URL `allowRetrieval`
+   * doesn't allow
+   *
+   * @type (url: string, referrer: string | undefined) => Promise<TypeError | undefined>
+   */
+  async #refusal(url, referrer) {
+    if (!canRefer(url, referrer)) {
+      return refusedReference(url, /** @type string */ (referrer));
+    }
+    return await this.#allows(url) ? undefined : refused(url);
   }
 
   /**

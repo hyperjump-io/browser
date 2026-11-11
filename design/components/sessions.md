@@ -14,7 +14,9 @@ on a stack it's given and gives the stack what the stack can't know.
   worker, a relative URL throws `new URL`'s `TypeError`.
 - It fetches only what `allowRetrieval` allows, and by default only what's
   local to the application, so a document can't make it fetch whatever it
-  names (see [What a session can fetch](allow-retrieval.md)).
+  names (see [What a session can fetch](allow-retrieval.md)). Only a
+  `file:` document can refer to a `file:` URL (see
+  [`file:` from `file:`](file-references.md)).
 - `headers` are by URL, so only the URLs they're for get them, including
   where a redirect leads. A request's own headers win (see
   [Request headers](request-headers.md)).

@@ -56,6 +56,9 @@ that contains it causes.
   found before anything that's pinned, cached, or fetched. Each step of a
   redirect has the request's context, so a redirect to a URL the document
   contains is answered from the map too.
+- A document from the web can say it contains a `file:` URL, but the
+  session refuses that request before the map could answer it (see
+  [`file:` from `file:`](file-references.md)).
 - Calling `register` is a caller using the layer's methods, not another
   layer. Parsers aren't layers (see
   [How layers communicate](../principles/how-layers-communicate.md)).

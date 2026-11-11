@@ -55,6 +55,27 @@ A URL outside `root` is a network error, and so is a symbolic link inside
 that session, and by default it allows only the files in the working directory.
 For more information, see [What a session can fetch](allow-retrieval.md).
 
+## Documents from the web
+
+*Coming soon*
+
+Only a document from a file can refer to a `file:` URL, so a document from the
+web can't read your files. The session finds the document a request comes from
+by its `initiator`, and refuses a `file:` URL for one that isn't a file with a
+network error. Adding the URL to `allowRetrieval` doesn't change that. A
+redirect can't take a document from the web to a file either.
+
+```typescript
+const page = await session.fetch("https://example.com/page.json");
+
+// Rejects with a TypeError
+await session.fetch("file:///home/me/project/secret.json", { initiator: page });
+```
+
+A request without an `initiator` is your app's own, so it can fetch any file
+`allowRetrieval` allows. When you follow a reference, pass the document it's in
+as the `initiator`.
+
 ## Symbolic links
 
 A session follows a symbolic link, and the response's URL is the URL of the file it

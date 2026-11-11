@@ -17,6 +17,9 @@
   network error. It's the transport's, so it's for every session on the
   stack, before a session's `allowRetrieval`, which allows only the working
   directory by default (see [What a session can fetch](allow-retrieval.md)).
+- Only a `file:` document can refer to a `file:` URL. It's the session's
+  rule, not the transport's, so it's checked before anything in the stack
+  answers (see [`file:` from `file:`](file-references.md)).
 - Symlinks are followed before `root` is checked, so a symlink inside `root`
   that points outside it is a network error. The path as it's written is
   checked first too, so whether a file outside `root` exists can't be told

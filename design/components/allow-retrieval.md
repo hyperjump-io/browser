@@ -94,6 +94,10 @@ with it, the way it adds `headers`:
   that follows a redirect itself gives where it led. A response from a URL
   that isn't allowed isn't used, and its body is cancelled.
 
+Each of these is also where the session checks that the document a request
+comes from can refer to a `file:` URL (see
+[`file:` from `file:`](file-references.md)).
+
 A refused URL is a network error, the `TypeError` `fetch` rejects with (see
 [Like a web browser](../principles/like-a-web-browser.md)). Its message
 names the URL and says to add it to the session's `allowRetrieval`.

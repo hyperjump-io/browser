@@ -72,6 +72,10 @@ too:
 - **The cache.** A cached response from a URL the session doesn't allow isn't a
   way around the list.
 
+Separately from the list, only a document from a file can refer to a `file:`
+URL. For more information, see
+[File URLs](file-urls.md#documents-from-the-web).
+
 `allowRetrieval` checks URLs, not the addresses they connect to. A host whose
 DNS points at an internal address gets through if the list allows its URL.
 
