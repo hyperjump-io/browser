@@ -29,7 +29,7 @@ describe("HAR", () => {
       response.end(css ? "body{}" : Buffer.from([0x89, 0x50, 0x4e, 0x47]));
     });
     try {
-      const session = new Session(destinationPriority()(defaultTransport()), { baseURL: server.url, headers: { "user-agent": "browser-test" } });
+      const session = new Session(destinationPriority()(defaultTransport()), { baseURL: server.url, headers: { "/": { "user-agent": "browser-test" } } });
       const trace = new Trace(session, { bodies: true });
       const page = await session.fetch("/index.html", { destination: "document" });
       await page.text();

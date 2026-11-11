@@ -2,12 +2,15 @@ import { responseMeta, setResponseMeta, trackBody } from "./response-meta.js";
 import { PrioritySignal } from "./priority.js";
 import { recordChunk, recordEnd, recordResponse, startRecord } from "./fetch-record.js";
 import { defaultTransport } from "./transports/scheme-transport.js";
-import { follow } from "./redirects.js";
+import { follow, sentHeaders } from "./redirects.js";
+import { urlEntries } from "./url-entries.js";
+import { headersFor } from "./request-headers.js";
 
 /**
  * @import * as API from "./session.d.ts"
  * @import { FetchContext, Fetcher } from "./layers.d.ts"
  * @import { Observer, TraceEvent } from "./fetch-record.d.ts"
+ * @import { UrlEntries } from "./url-entries.js"
  */
 
 /** @implements API.Session */
@@ -18,11 +21,14 @@ export class Session {
   /** @type AbortSignal */
   #signal;
 
-  /** @type Headers */
+  /** @type UrlEntries<HeadersInit | API.HeadersFunction> */
   #headers;
 
   /** @type {{ max: number, schemes: string[] }} */
   #redirects;
+
+  /** @type import("./redirects.js").FollowPolicy */
+  #policy;
 
   /** @type Map<object, unknown> */
   #state = new Map();
@@ -43,11 +49,12 @@ export class Session {
     /** @type API.Session | undefined */
     this.parent = options.parent;
     this.baseURL = options.baseURL === undefined ? undefined : new URL(options.baseURL);
-    this.#headers = new Headers(options.headers);
+    this.#headers = urlEntries(options.headers ?? {}, this.baseURL);
     this.#redirects = {
       max: options.maxRedirects ?? 20,
       schemes: [...options.redirectSchemes ?? ["http:", "https:"]]
     };
+    this.#policy = { ...this.#redirects, headers: (url) => headersFor(this.#headers, url) };
     this.#signal = this.parent
       ? AbortSignal.any([this.#controller.signal, this.parent.signal])
       : this.#controller.signal;
@@ -111,11 +118,8 @@ export class Session {
     const request = input instanceof Request
       ? new Request(input, { ...requestInit, signal })
       : new Request(this.resolve(input), { ...requestInit, signal });
-    for (const [name, value] of this.#headers) {
-      if (!request.headers.has(name)) {
-        request.headers.set(name, value);
-      }
-    }
+    const added = await this.#policy.headers(request.url);
+    signal.throwIfAborted();
 
     const record = startRecord({
       url: request.url,
@@ -124,7 +128,7 @@ export class Session {
       initiator: initiator instanceof Response ? responseMeta(initiator).record : initiator,
       session: this,
       priority: priority instanceof PrioritySignal ? priority.value : priority ?? "auto",
-      requestHeaders: [...request.headers],
+      requestHeaders: [...sentHeaders(request.headers, added)],
       notify: (event) => this.#notify(event)
     });
 
@@ -141,7 +145,7 @@ export class Session {
     this.#notify({ type: "start", record });
     let response;
     try {
-      response = await follow(this.stack, request, ctx, this.#redirects);
+      response = await follow(this.stack, request, ctx, this.#policy, added);
     } catch (error) {
       recordEnd(record, error);
       throw error;
@@ -168,13 +172,11 @@ export class Session {
 
   /** @type API.Session["child"] */
   child(options = {}) {
-    const headers = new Headers(this.#headers);
-    for (const [name, value] of new Headers(options.headers)) {
-      headers.set(name, value);
-    }
+    const baseURL = options.baseURL === undefined ? this.baseURL : new URL(options.baseURL, this.baseURL);
+    const headers = new Map([...this.#headers, ...urlEntries(options.headers ?? {}, baseURL)]);
     return new Session(this.stack, {
-      baseURL: options.baseURL === undefined ? this.baseURL : new URL(options.baseURL, this.baseURL),
-      headers,
+      baseURL,
+      headers: Object.fromEntries(headers),
       maxRedirects: options.maxRedirects ?? this.#redirects.max,
       redirectSchemes: options.redirectSchemes ?? this.#redirects.schemes,
       parent: this

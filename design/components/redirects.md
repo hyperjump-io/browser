@@ -25,6 +25,10 @@ And it's stricter than `fetch` in one way: a redirect can only lead to
 `http:` or `https:` (`redirectSchemes`), so a server can't send a request to
 `file:`, even when the transport has it.
 
+The session's headers are for the URL each step leads to, not the ones the
+step before it got (see [Request headers](request-headers.md)). The
+request's own headers go to each step, as in `fetch`.
+
 - The response has its final `url`, `redirected`, and the URLs it went
   through as `responseMeta(response).redirects`. Each redirect marks
   `redirect` on the request's record, with its status and where it went

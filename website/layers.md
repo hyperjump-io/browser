@@ -33,14 +33,18 @@ context, and the fetcher below it. This one adds a header to every request:
 ```typescript
 import { layer } from "@hyperjump/browser";
 
-const auth = layer(async (request, ctx, inner) => {
+const userAgent = layer((request, ctx, inner) => {
   const headers = new Headers(request.headers);
-  headers.set("Authorization", `Bearer ${await getToken()}`);
+  headers.set("User-Agent", "my-tool/1.0");
   return inner.fetch(new Request(request, { headers }), ctx);
 });
 
-const stack = compose(auth)(defaultTransport());
+const stack = compose(userAgent)(defaultTransport());
 ```
+
+A header like this goes to every URL the stack fetches, so don't add
+credentials this way. A session's `headers` option sends them only to the URLs
+they're for. For more information, see [Sessions](sessions.md#headers).
 
 A layer that needs methods or state of its own is a class with an `inner`
 property and a `fetch` method. The built-in layers are classes, and each one

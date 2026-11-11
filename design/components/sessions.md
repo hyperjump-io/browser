@@ -7,8 +7,9 @@ on a stack it's given and gives the stack what the stack can't know.
   or any part of one, can be a session's. Without one, it's
   `defaultTransport()`.
 - A relative URL is resolved against `baseURL`, like a document's base URL.
-- `headers` are added to every request that doesn't have them, so a
-  request's own headers win.
+- `headers` are by URL, so only the URLs they're for get them, including
+  where a redirect leads. A request's own headers win (see
+  [Request headers](request-headers.md)).
 - It follows redirects, each step as a new request down the stack, so every
   layer sees each URL (see [Redirects](redirects.md)).
 - Every request's signal is the session's and the caller's together
@@ -29,7 +30,9 @@ on a stack it's given and gives the stack what the stack can't know.
 
 - It has the same stack.
 - Its base URL is resolved against its parent's, and it has its parent's
-  headers and redirect options unless it's given its own.
+  redirect options unless it's given its own.
+- It has its parent's headers, and a key it's given replaces the same key
+  of its parent's.
 - Its state is its own. A layer that shares state with its parent uses
   `root`, the top of the chain, or `lineage()`, the session and its parents
   in order.
@@ -51,8 +54,5 @@ Rejected:
 
 ## Known limitations
 
-- `headers` go to every URL the session fetches, on every origin, including
-  where a redirect leads. A credential in them goes everywhere. Only
-  `Authorization` is dropped on a redirect to another origin.
 - Nothing limits what a session can fetch. An application that fetches URLs
   from documents it doesn't trust has to check them, in a layer of its own.

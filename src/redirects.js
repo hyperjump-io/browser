@@ -5,7 +5,10 @@ import { networkError, setResponseMeta, withUrl } from "./response-meta.js";
  */
 
 /**
- * @typedef {{ max: number, schemes: string[] }} RedirectPolicy
+ * What the session decides for each URL it fetches: how many redirects it
+ * follows, the schemes they can lead to, and the headers each URL gets
+ *
+ * @typedef {{ max: number, schemes: string[], headers: (url: string) => Promise<Headers> }} FollowPolicy
  */
 
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
@@ -15,11 +18,13 @@ const bodyHeaders = ["content-encoding", "content-language", "content-location",
 
 /**
  * Follow redirects one at a time, each as a new request down the stack, so
- * every layer sees each URL
+ * every layer sees each URL. Each step gets the session's headers for its own
+ * URL, not the ones the step before it got. The first step's are given, so
+ * the session can record them.
  *
- * @type (stack: Fetcher, request: Request, ctx: FetchContext, policy: RedirectPolicy) => Promise<Response>
+ * @type (stack: Fetcher, request: Request, ctx: FetchContext, policy: FollowPolicy, added: Headers) => Promise<Response>
  */
-export const follow = async (stack, request, ctx, policy) => {
+export const follow = async (stack, request, ctx, policy, added) => {
   const mode = request.redirect;
   const urls = [request.url];
   let current = request;
@@ -27,12 +32,12 @@ export const follow = async (stack, request, ctx, policy) => {
   for (let hops = 0; ; hops++) {
     // A copy of the body, in case a 307 or 308 sends it again
     const spare = current.body ? current.clone() : undefined;
-    const response = await stack.fetch(withRedirectMode(current, "manual"), ctx);
+    const response = await stack.fetch(withHeaders(current, added, "manual"), ctx);
 
     if (response.type === "opaqueredirect") {
       // A browser doesn't say where a redirect leads, so it follows it
       void spare?.body?.cancel().catch(() => {});
-      return stack.fetch(withRedirectMode(spare ?? current, mode), ctx);
+      return stack.fetch(withHeaders(spare ?? current, added, mode), ctx);
     }
 
     const location = response.headers.get("location");
@@ -59,11 +64,31 @@ export const follow = async (stack, request, ctx, policy) => {
     ctx.record.mark("redirect", { status: response.status, from: current.url, to: target.href });
     current = nextHop(spare ?? current, target, response.status, ctx);
     urls.push(target.href);
+    added = await policy.headers(target.href);
+    ctx.signal.throwIfAborted();
   }
 };
 
-/** @type (request: Request, redirect: RequestRedirect) => Request */
-const withRedirectMode = (request, redirect) => request.redirect === redirect ? request : new Request(request, { redirect });
+/**
+ * The request as it's sent down the stack, with the session's headers for its
+ * URL
+ *
+ * @type (request: Request, added: Headers, redirect: RequestRedirect) => Request
+ */
+const withHeaders = (request, added, redirect) => new Request(request, { headers: sentHeaders(request.headers, added), redirect });
+
+/**
+ * A request's own headers with the session's, which don't replace its own
+ *
+ * @type (own: Headers, added: Headers) => Headers
+ */
+export const sentHeaders = (own, added) => {
+  const headers = new Headers(added);
+  for (const [name, value] of own) {
+    headers.set(name, value);
+  }
+  return headers;
+};
 
 /**
  * The request a redirect leads to, by the Fetch standard: a 301 or 302 makes

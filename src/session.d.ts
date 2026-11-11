@@ -6,8 +6,14 @@ export type SessionOptions = {
   /** Relative URLs are resolved against it, like a document's base URL */
   baseURL?: string | URL;
 
-  /** Headers every request gets unless it has them, like `User-Agent` */
-  headers?: HeadersInit;
+  /**
+   * Headers by URL, like credentials. A key that ends with `/` is for every
+   * URL under it, and any other key is only for itself. A relative key is
+   * resolved against `baseURL`. When several keys match, a longer key wins a
+   * header both have, and a request's own headers win over all of them.
+   * Each redirect gets the headers for the URL it leads to.
+   */
+  headers?: Record<string, HeadersInit | HeadersFunction>;
 
   /** More redirects than this is a network error. Default 20, the Fetch standard's. */
   maxRedirects?: number;
@@ -18,6 +24,12 @@ export type SessionOptions = {
    */
   redirectSchemes?: string[];
 };
+
+/**
+ * Headers for a URL, which can be async, so a token can be refreshed. It's
+ * given the URL without its fragment.
+ */
+export type HeadersFunction = (url: URL) => HeadersInit | undefined | Promise<HeadersInit | undefined>;
 
 /**
  * The Fetch standard's cache modes, like `Request.cache`. A runtime on a
@@ -112,8 +124,10 @@ export class Session {
 
   /**
    * A session nested in this one, like an iframe. It has the same stack. Its
-   * base URL is resolved against this one's, it has this one's headers and
-   * redirect options unless it's given its own, its state is its own, and closing this one closes it.
+   * base URL is resolved against this one's, it has this one's redirect
+   * options unless it's given its own, and it has this one's headers, with a
+   * key it's given replacing the same key of this one's. Its state is its own,
+   * and closing this one closes it.
    */
   child(options?: SessionOptions): Session;
 

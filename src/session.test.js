@@ -10,10 +10,10 @@ import { startServer } from "./test-helpers/server.js";
  */
 
 describe("sessions", () => {
-  test("relative URLs are resolved against the base URL, and requests get the default headers", async () => {
+  test("relative URLs are resolved against the base URL, and so are headers' keys", async () => {
     const server = await startServer((request, response) => response.end(`${request.url} ${request.headers["user-agent"]}`));
     try {
-      const session = new Session(undefined, { baseURL: `${server.url}/app/`, headers: { "user-agent": "browser-test" } });
+      const session = new Session(undefined, { baseURL: `${server.url}/app/`, headers: { "./": { "user-agent": "browser-test" } } });
       const response = await session.fetch("page.html");
       expect(await response.text()).to.equal("/app/page.html browser-test");
       expect(responseMeta(response).source).to.equal("network");
@@ -22,10 +22,31 @@ describe("sessions", () => {
     }
   });
 
-  test("a request's own headers win over the defaults", async () => {
-    const session = new Session(fetcher((request) => new Response(request.headers.get("x-a"))), { headers: { "x-a": "default" } });
+  test("headers go only to the URLs they're for, and a longer key wins", async () => {
+    const session = new Session(fetcher((request) => new Response(`${request.headers.get("x-a")} ${request.headers.get("x-b")}`)), {
+      headers: {
+        "https://a.test": { "x-a": "origin", "x-b": "origin" },
+        "https://a.test/api/": { "x-b": "api" },
+        "https://a.test/one": { "x-a": "one" }
+      }
+    });
+    expect(await (await session.fetch("https://a.test/page")).text()).to.equal("origin origin");
+    expect(await (await session.fetch("https://a.test/api/x")).text()).to.equal("origin api");
+    expect(await (await session.fetch("https://a.test/one")).text()).to.equal("one origin");
+    expect(await (await session.fetch("https://a.test/one/two")).text(), "a key without / is only for itself").to.equal("origin origin");
+    expect(await (await session.fetch("https://b.test/api/x")).text()).to.equal("null null");
+  });
+
+  test("a request's own headers win over the session's", async () => {
+    const session = new Session(fetcher((request) => new Response(request.headers.get("x-a"))), { headers: { "https://a.test/": { "x-a": "default" } } });
     const response = await session.fetch("https://a.test/", { headers: { "x-a": "mine" } });
     expect(await response.text()).to.equal("mine");
+    expect(responseMeta(response).record?.requestHeaders, "the record has the headers that were sent").to.eql([["x-a", "mine"]]);
+  });
+
+  test("a headers key that isn't a URL, or is relative without a base URL, throws", () => {
+    expect(() => new Session(undefined, { headers: { "/api/": {} } })).to.throw(TypeError, /no base URL/);
+    expect(() => new Session(undefined, { baseURL: "https://a.test/", headers: { "http://[": {} } })).to.throw(TypeError, /isn't a URL/);
   });
 
   test("closing a session aborts what's in flight and refuses new requests", async () => {
@@ -79,13 +100,20 @@ describe("sessions", () => {
   describe("child sessions", () => {
     test("are like iframes", async () => {
       const echo = fetcher((request) => new Response(`${request.url} ${request.headers.get("accept-language")} ${request.headers.get("x-frame")}`));
-      const page = new Session(echo, { baseURL: "https://site.test/docs/", headers: { "accept-language": "en" } });
-      const frame = page.child({ baseURL: "widgets/", headers: { "x-frame": "1" } });
+      const page = new Session(echo, { baseURL: "https://site.test/docs/", headers: { "/": { "accept-language": "en" } } });
+      const frame = page.child({ baseURL: "widgets/", headers: { "./": { "x-frame": "1" } } });
 
       expect(frame.stack).to.equal(page.stack);
       expect(frame.parent).to.equal(page);
       expect(await (await frame.fetch("a.json")).text()).to.equal("https://site.test/docs/widgets/a.json en 1");
       expect(await (await page.fetch("a.json")).text()).to.equal("https://site.test/docs/a.json en null");
+    });
+
+    test("a headers key replaces the same key of their parent's", async () => {
+      const echo = fetcher((request) => new Response(`${request.headers.get("x-a")} ${request.headers.get("x-b")}`));
+      const page = new Session(echo, { headers: { "https://a.test/": { "x-a": "page", "x-b": "page" } } });
+      expect(await (await page.child({ headers: { "https://a.test": { "x-a": "frame" } } }).fetch("https://a.test/")).text()).to.equal("frame null");
+      expect(await (await page.child({ headers: { "https://a.test/": {} } }).fetch("https://a.test/")).text(), "a child can take a URL's headers away").to.equal("null null");
     });
 
     test("have their own state", () => {

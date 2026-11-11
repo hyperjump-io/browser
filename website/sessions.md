@@ -7,8 +7,7 @@ load do. You create a session on a stack and fetch through it:
 import { Session } from "@hyperjump/browser";
 
 const session = new Session(stack, {
-  baseURL: "https://example.com/docs/",
-  headers: { "User-Agent": "my-tool/1.0" }
+  baseURL: "https://example.com/docs/"
 });
 
 const page = await session.fetch("index.html");
@@ -23,13 +22,55 @@ information about stacks, see [Layers](layers.md).
 | Option | Description |
 | --- | --- |
 | `baseURL` | The URL to resolve relative URLs against, like a document's base URL |
-| `headers` | Headers that every request gets unless the request sets them itself |
+| `headers` | Headers for the requests to some URLs, such as credentials. For more information, see [Headers](#headers). |
 | `maxRedirects` | How many redirects a request can follow before it's a network error. The default is 20. |
 | `redirectSchemes` | The schemes a redirect can lead to. The default is `["http:", "https:"]`. For more information, see [Redirects](redirects.md). |
 
-The session sends `headers` to every URL it fetches, including where a redirect
-leads. Don't put credentials in `headers` if the session fetches URLs on more
-than one origin.
+## Headers
+
+A session's `headers` are by URL, so a credential goes only to the URLs it's
+for, even when a document refers to URLs on other origins:
+
+```typescript
+const session = new Session(stack, {
+  headers: {
+    "https://api.example.com/": { "Authorization": `Bearer ${token}` },
+    "https://example.com/private/": { "X-API-Key": key }
+  }
+});
+```
+
+A key that ends with `/` is for every URL under it, and any other key is only
+for that URL. A key that's just an origin, like `https://example.com`, is for
+the whole origin. The session compares keys as URLs, so a different case or a `..`
+in a path doesn't get around them. It resolves a relative key against
+`baseURL`.
+
+When more than one key matches a URL, a longer key wins a header they both
+have. A header that a request sets itself wins over all of them.
+
+A value can be a function of the URL, and the function can be async, so it can
+refresh a token. The session calls it for each request:
+
+```typescript
+const session = new Session(stack, {
+  headers: {
+    "https://api.example.com/": async () => ({ "Authorization": `Bearer ${await getToken()}` })
+  }
+});
+```
+
+Each redirect gets the headers for the URL it leads to, not the ones for the URL
+before it. A credential doesn't follow a redirect to another origin, or out of
+the path it's for. Headers that a request sets itself follow redirects, as they
+do with `fetch`, except `Authorization` to another origin.
+
+To send a header to every URL, such as `User-Agent`, write a layer. For more
+information, see [Layers](layers.md#write-a-layer).
+
+Sessions on one stack share its HTTP cache. If they send different credentials
+to the same URL, give each one a stack with its own cache store, unless the
+server's responses have a `Vary` header for them.
 
 ## Fetch options
 
@@ -66,7 +107,9 @@ A child session has these properties:
 
 - It uses the same stack as its parent.
 - It resolves its base URL against its parent's base URL.
-- It gets its parent's headers and redirect options unless you give it its own.
+- It gets its parent's redirect options unless you give it its own.
+- It gets its parent's headers. A key you give it replaces the same key of its
+  parent's, so `{ "https://example.com/": {} }` takes that URL's headers away.
 - It closes when its parent closes.
 
 Layers keep state for each session, such as the requests it has in flight.

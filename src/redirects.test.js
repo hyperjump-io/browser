@@ -78,10 +78,10 @@ describe("redirects", () => {
       const post = async (status) => (await session.fetch(`/r/${status}/echo`, { method: "POST", body: "payload", headers: { "content-type": "text/plain" } })).json();
 
       for (const status of [301, 302, 303]) {
-        expect(await post(status), `${status} makes a POST a GET without its body`).to.eql({ path: "/echo", method: "GET", body: "", contentType: null, authorization: null });
+        expect(await post(status), `${status} makes a POST a GET without its body`).to.eql({ path: "/echo", method: "GET", body: "", contentType: null, authorization: null, apiKey: null });
       }
       for (const status of [307, 308]) {
-        expect(await post(status), `${status} sends the method and body again`).to.eql({ path: "/echo", method: "POST", body: "payload", contentType: "text/plain", authorization: null });
+        expect(await post(status), `${status} sends the method and body again`).to.eql({ path: "/echo", method: "POST", body: "payload", contentType: "text/plain", authorization: null, apiKey: null });
       }
       expect((await (await session.fetch("/r/302/echo", { method: "PUT", body: "x" })).json()).method, "302 only changes POST").to.equal("PUT");
       expect((await (await session.fetch("/r/303/echo", { method: "PUT", body: "x" })).json()).method, "303 changes anything but GET and HEAD").to.equal("GET");
@@ -105,6 +105,50 @@ describe("redirects", () => {
     } finally {
       await server.close();
       await other.close();
+    }
+  });
+
+  test("each step gets the session's headers for its own URL", async () => {
+    const other = await redirectServer();
+    const server = await redirectServer(() => other.url);
+    try {
+      const session = new Session(defaultTransport(), {
+        baseURL: server.url,
+        headers: {
+          "/": { "x-api-key": "server" },
+          "/r/": { "x-api-key": "redirects" }
+        }
+      });
+      expect((await (await session.fetch("/to-other")).json()).apiKey, "a credential doesn't follow a redirect to another origin").to.equal(null);
+      expect((await (await session.fetch("/r/302/echo")).json()).apiKey, "a path's credential doesn't follow a redirect out of the path").to.equal("server");
+
+      const both = session.child({ headers: { [`${other.url}/`]: { "x-api-key": "other" } } });
+      expect((await (await both.fetch("/to-other")).json()).apiKey, "a redirect gets the credential for where it leads").to.equal("other");
+    } finally {
+      await server.close();
+      await other.close();
+    }
+  });
+
+  test("a headers function is called for each step, with its URL without the fragment", async () => {
+    const server = await redirectServer();
+    try {
+      /** @type string[] */
+      const urls = [];
+      const session = new Session(defaultTransport(), {
+        baseURL: server.url,
+        headers: {
+          "/": async (url) => {
+            urls.push(url.href);
+            return { "x-api-key": `token ${urls.length}` };
+          }
+        }
+      });
+      const response = await session.fetch("/chain/1#top");
+      expect((await response.json()).apiKey).to.equal("token 3");
+      expect(urls).to.eql([`${server.url}/chain/1`, `${server.url}/chain/2`, `${server.url}/final`]);
+    } finally {
+      await server.close();
     }
   });
 
@@ -197,6 +241,7 @@ const redirectServer = async (otherOrigin) => startServer(async (request, respon
     method: request.method,
     body,
     contentType: request.headers["content-type"] ?? null,
-    authorization: request.headers.authorization ?? null
+    authorization: request.headers.authorization ?? null,
+    apiKey: request.headers["x-api-key"] ?? null
   }));
 });

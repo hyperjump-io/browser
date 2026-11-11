@@ -25,6 +25,8 @@ It follows redirects the way `fetch` does:
   and `HEAD` to a `GET`. Either way, the body isn't sent again.
 - A 307 or 308 sends the same method and body again.
 - It doesn't send `Authorization` to another origin.
+- Each step gets the session's headers for the URL it leads to. For more
+  information, see [Sessions](sessions.md#headers).
 - More than 20 redirects is a network error. To change that, use the session's
   `maxRedirects` option.
 
