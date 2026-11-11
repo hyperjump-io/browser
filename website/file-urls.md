@@ -49,9 +49,14 @@ directory are readable:
 nodeTransport({ file: { root: "./site" } });
 ```
 
-A URL outside `root` is a network error. A session can still read through a
-symbolic link inside `root` that points outside it, so don't rely on `root` for
-a directory where someone you don't trust can make links.
+A URL outside `root` is a network error, and so is a symbolic link inside
+`root` that points outside it.
+
+## Symbolic links
+
+A session follows a symbolic link, and the response's URL is the URL of the file it
+points to. Relative references in the file resolve against where the file is,
+not where the link is.
 
 ## Leave out file URLs
 

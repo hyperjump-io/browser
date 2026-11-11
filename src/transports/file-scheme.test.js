@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll } from "vitest";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -16,11 +16,13 @@ describe("the file: scheme", () => {
   let session;
 
   beforeAll(async () => {
-    directory = await mkdtemp(join(tmpdir(), "browser-file-"));
+    directory = await realpath(await mkdtemp(join(tmpdir(), "browser-file-")));
     await mkdir(join(directory, "site"));
     await writeFile(join(directory, "site", "index.html"), "<h1>hi</h1>");
     await writeFile(join(directory, "site", "data.ts"), "export {}");
     await writeFile(join(directory, "secret.txt"), "nope");
+    await symlink(join(directory, "secret.txt"), join(directory, "site", "escape.txt"));
+    await symlink(join(directory, "site", "index.html"), join(directory, "site", "alias.html"));
     session = new Session(nodeTransport({ file: { root: join(directory, "site"), contentTypes: { ts: "text/typescript" } } }), {
       baseURL: pathToFileURL(join(directory, "site") + "/")
     });
@@ -57,6 +59,16 @@ describe("the file: scheme", () => {
 
   test("a file outside the root is a network error", async () => {
     await expect(session.fetch("../secret.txt")).rejects.toThrow(/outside the allowed root/);
+  });
+
+  test("a symlink in the root that points outside it is a network error", async () => {
+    await expect(session.fetch("escape.txt")).rejects.toThrow(/outside the allowed root/);
+  });
+
+  test("a symlink's response has the URL of the file it points to", async () => {
+    const response = await session.fetch("alias.html?x=1");
+    expect(response.url).to.equal(pathToFileURL(join(directory, "site", "index.html")).href + "?x=1");
+    expect(await response.text()).to.equal("<h1>hi</h1>");
   });
 
   test("a method other than GET or HEAD is a network error", async () => {

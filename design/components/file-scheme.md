@@ -16,10 +16,19 @@
 - `root` limits what can be read to a directory. A path outside it is a
   network error. A document can name any file, so an application that
   fetches what documents refer to sets it.
-- The response's URL is the URL that was asked for.
+- Symlinks are followed before `root` is checked, so a symlink inside `root`
+  that points outside it is a network error. The path as it's written is
+  checked first too, so whether a file outside `root` exists can't be told
+  from the error.
+- The response's URL is the file's real path, with the query of the URL
+  that was asked for. A file reached through a symlink is where it is, so
+  references in it resolve against its own directory.
 
 Rejected:
 
+- The URL that was asked for as the response's URL, for a symlink. A
+  document's relative references would resolve against the link's
+  directory, and two URLs for one file would be two documents.
 - A 404 for a missing file. That's a server's answer, and a browser gives a
   network error.
 - `file:` in `defaultTransport()`. It needs Node.js, and a stack for a
@@ -27,8 +36,8 @@ Rejected:
 
 ## Known limitations
 
-- `root` is checked against the path as it's written, and reading the file
-  follows symlinks. A symlink inside `root` that points outside it can be
-  read.
+- The real path is found, then the file is opened, so a symlink that's
+  changed between the two can still lead outside `root`. Someone who can
+  change links in `root` while it's read can get around it.
 - A file that changes during a read is read as it is, partly old and partly
   new.

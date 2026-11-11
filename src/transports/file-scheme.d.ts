@@ -3,7 +3,8 @@ import type { Fetcher } from "../layers.d.ts";
 export type FileSchemeOptions = {
   /**
    * Only files in this directory can be fetched. Anything else is a network
-   * error. Use it whenever URLs can come from documents you didn't write.
+   * error, and so is a symlink in it that points outside it. Use it whenever
+   * URLs can come from documents you didn't write.
    */
   root?: string;
 
