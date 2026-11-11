@@ -66,6 +66,13 @@ Rejected:
   walked, and state that outlives a session would have to be passed to every
   session (see
   [State lives as long as what it's for](../principles/state-lifetimes.md)).
+- A stack that's private to the session and can't be passed in, because
+  calling a stack directly is a way to fetch that `allowRetrieval` doesn't
+  check. `allowRetrieval` keeps documents from choosing what's fetched,
+  and a document can't call code. Whatever has the stack is the
+  application or one of its layers, which could call the runtime's `fetch`
+  anyway, so hiding the stack wouldn't take anything away from them (see
+  [What a session can fetch](allow-retrieval.md)).
 - `fork()`, a sibling with the same options. A sibling is
   `new Session(session.stack, options)`, and `fork` couldn't say which
   options to change without being `new Session` again.

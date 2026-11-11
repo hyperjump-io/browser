@@ -98,6 +98,13 @@ Each of these is also where the session checks that the document a request
 comes from can refer to a `file:` URL (see
 [`file:` from `file:`](file-references.md)).
 
+Only the session checks. A request that goes to the stack directly, like
+`session.stack.fetch()` or a layer's own request, isn't checked. Code is
+trusted and documents aren't, and only code can call the stack. A layer
+that fetches for a document goes through the session, the way redirects
+do. A layer's own work, like the HTTP cache revalidating a response, is
+for a URL that was allowed when it was fetched.
+
 A refused URL is a network error, the `TypeError` `fetch` rejects with (see
 [Like a web browser](../principles/like-a-web-browser.md)). Its message
 names the URL and says to add it to the session's `allowRetrieval`.
