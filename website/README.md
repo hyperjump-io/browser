@@ -12,7 +12,7 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 - [Sessions](sessions.md): fetch through a session, close it, and nest sessions
 - [Layers](layers.md): build a stack and write your own layers
 - [File URLs](file-urls.md): fetch `file:` URLs on a server
-- [Redirects](redirects.md): follow redirects through the stack
+- [Redirects](redirects.md): how a session follows redirects through the stack
 - [HTTP caching](http-caching.md): cache responses by their caching headers
 - [Share requests](sharing-requests.md): dedupe and batch requests
 - [Priorities](priorities.md): connection limits, and what loads first

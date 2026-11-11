@@ -8,6 +8,15 @@ export type SessionOptions = {
 
   /** Headers every request gets unless it has them, like `User-Agent` */
   headers?: HeadersInit;
+
+  /** More redirects than this is a network error. Default 20, the Fetch standard's. */
+  maxRedirects?: number;
+
+  /**
+   * The schemes a redirect can lead to. Default `["http:", "https:"]`, as in
+   * browsers, so a server can't send a request to `file:` or `data:`.
+   */
+  redirectSchemes?: string[];
 };
 
 /**
@@ -47,7 +56,11 @@ export type SessionFetchInit = Omit<RequestInit, "cache" | "priority"> & {
  * The requests that belong together, like a page load's. A session sits on
  * a stack and gives it what the stack can't know: a base URL, default
  * headers, a signal that closing the session aborts, and state for layers
- * that lives as long as the session.
+ * that lives as long as the session. It follows redirects one at a time,
+ * each as a new request down the stack, so every layer sees each URL, by
+ * the Fetch standard's rules. A response that was redirected has its final
+ * `url`, `redirected`, and the URLs it went through as
+ * `responseMeta(response).redirects`.
  */
 export class Session {
   /** Without a stack, it's `defaultTransport()` */
@@ -99,8 +112,8 @@ export class Session {
 
   /**
    * A session nested in this one, like an iframe. It has the same stack. Its
-   * base URL is resolved against this one's, it has this one's headers unless
-   * it's given its own, its state is its own, and closing this one closes it.
+   * base URL is resolved against this one's, it has this one's headers and
+   * redirect options unless it's given its own, its state is its own, and closing this one closes it.
    */
   child(options?: SessionOptions): Session;
 

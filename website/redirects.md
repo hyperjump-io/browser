@@ -1,17 +1,8 @@
 # Redirects
 
-Without the `redirects` layer, the runtime follows redirects inside the
-transport, and the other layers only see the first request. With it at the top
-of your stack, each redirect is a new request down the stack:
-
-```typescript
-import { Session, compose, redirects, httpCache, defaultTransport } from "@hyperjump/browser";
-
-const stack = compose(redirects(), httpCache())(defaultTransport());
-const session = new Session(stack);
-```
-
-That lets the other layers work with each step:
+A session follows redirects itself, instead of letting the runtime follow them
+inside the transport. Each redirect is a new request down the stack, so every
+layer works with each step:
 
 - The HTTP cache stores the redirects themselves, so a cached 301 saves a round
   trip.
@@ -24,9 +15,6 @@ That lets the other layers work with each step:
   });
   ```
 
-Put `redirects` first in the stack. A layer before it only gets the first
-request.
-
 ## What it follows
 
 It follows redirects the way `fetch` does:
@@ -37,11 +25,18 @@ It follows redirects the way `fetch` does:
   and `HEAD` to a `GET`. Either way, the body isn't sent again.
 - A 307 or 308 sends the same method and body again.
 - It doesn't send `Authorization` to another origin.
-- More than 20 redirects is a network error. To change that, use the `max`
-  option.
+- More than 20 redirects is a network error. To change that, use the session's
+  `maxRedirects` option.
 
 A redirect can only lead to an `http:` or `https:` URL, so a server can't send
-a request to a `file:` URL. To allow other schemes, use the `schemes` option.
+a request to a `file:` URL. To allow other schemes, use the session's
+`redirectSchemes` option:
+
+```typescript
+const session = new Session(stack, { redirectSchemes: ["http:", "https:", "data:"] });
+```
+
+A child session has its parent's redirect options unless you give it its own.
 
 ## Where a response went
 
@@ -59,4 +54,4 @@ responseMeta(response).redirects; // ["https://example.com/old", "https://exampl
 ## In a browser
 
 A browser doesn't let a script see where a redirect leads, so in a browser, the
-browser follows redirects, and the layers below only see the first request.
+browser follows redirects, and the layers only see the first request.

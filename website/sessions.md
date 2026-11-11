@@ -24,6 +24,8 @@ information about stacks, see [Layers](layers.md).
 | --- | --- |
 | `baseURL` | The URL to resolve relative URLs against, like a document's base URL |
 | `headers` | Headers that every request gets unless the request sets them itself |
+| `maxRedirects` | How many redirects a request can follow before it's a network error. The default is 20. |
+| `redirectSchemes` | The schemes a redirect can lead to. The default is `["http:", "https:"]`. For more information, see [Redirects](redirects.md). |
 
 The session sends `headers` to every URL it fetches, including where a redirect
 leads. Don't put credentials in `headers` if the session fetches URLs on more
@@ -64,7 +66,7 @@ A child session has these properties:
 
 - It uses the same stack as its parent.
 - It resolves its base URL against its parent's base URL.
-- It gets its parent's headers unless you give it its own.
+- It gets its parent's headers and redirect options unless you give it its own.
 - It closes when its parent closes.
 
 Layers keep state for each session, such as the requests it has in flight.

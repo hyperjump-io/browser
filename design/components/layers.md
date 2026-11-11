@@ -28,8 +28,7 @@ layers only work in some places. Each one's document says why. Together:
 
 | Layer | Goes | Because |
 | --- | --- | --- |
-| `Redirects` | at the top | it sends each step back down, so only the layers below see them |
-| `ResourceMap` | near the top | what a document says about itself is found first |
+| `ResourceMap` | at the top | what a document says about itself is found first |
 | `DestinationPriority` | above dedupe, the throttle, and the scheduler | they act on the priority it gives |
 | `Dedupe` | above the HTTP cache | requests that miss at the same time are one |
 | `HttpCache` | above the throttle and the scheduler | a hit never waits |

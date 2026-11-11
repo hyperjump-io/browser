@@ -9,6 +9,8 @@ on a stack it's given and gives the stack what the stack can't know.
 - A relative URL is resolved against `baseURL`, like a document's base URL.
 - `headers` are added to every request that doesn't have them, so a
   request's own headers win.
+- It follows redirects, each step as a new request down the stack, so every
+  layer sees each URL (see [Redirects](redirects.md)).
 - Every request's signal is the session's and the caller's together
   (`AbortSignal.any`), so closing the session aborts what it started, like
   navigating away, and a closed session refuses new requests with its
@@ -27,7 +29,7 @@ on a stack it's given and gives the stack what the stack can't know.
 
 - It has the same stack.
 - Its base URL is resolved against its parent's, and it has its parent's
-  headers unless it's given its own.
+  headers and redirect options unless it's given its own.
 - Its state is its own. A layer that shares state with its parent uses
   `root`, the top of the chain, or `lineage()`, the session and its parents
   in order.
@@ -51,7 +53,6 @@ Rejected:
 
 - `headers` go to every URL the session fetches, on every origin, including
   where a redirect leads. A credential in them goes everywhere. Only
-  `Authorization` is dropped on a redirect to another origin, by the
-  `Redirects` layer.
+  `Authorization` is dropped on a redirect to another origin.
 - Nothing limits what a session can fetch. An application that fetches URLs
   from documents it doesn't trust has to check them, in a layer of its own.

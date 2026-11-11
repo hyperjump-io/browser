@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { Session } from "../session.js";
-import { compose } from "../layers.js";
+import { compose, layer } from "../layers.js";
 import { defaultTransport } from "../transports/scheme-transport.js";
 import { responseMeta } from "../response-meta.js";
 import { HttpCache, httpCache } from "./http-cache.js";
@@ -82,7 +82,15 @@ const routes = {
   }
 };
 
-/** @param {Omit<HttpCacheOptions, "now"> & { manual?: boolean }} [options] */
+/** Asks the layer below with `redirect: "follow"`, so the runtime follows redirects */
+const runtimeFollows = layer((request, ctx, inner) => inner.fetch(new Request(request, { redirect: "follow" }), ctx));
+
+/**
+ * `runtimeFollows` asks the cache with `redirect: "follow"`, as the session
+ * does in a browser, so the runtime follows redirects below it
+ *
+ * @param {Omit<HttpCacheOptions, "now"> & { manual?: boolean, runtimeFollows?: boolean }} [options]
+ */
 const setup = async (options = {}) => {
   let now = Date.now();
   // The server's Date follows the same fake clock, as if both agreed on the time
@@ -92,7 +100,7 @@ const setup = async (options = {}) => {
   });
   const store = options.store ?? new MemoryCacheStore();
   const cache = new HttpCache(defaultTransport(), { ...options, store, now: () => now });
-  const session = new Session(cache, { baseURL: server.url });
+  const session = new Session(options.runtimeFollows ? runtimeFollows(cache) : cache, { baseURL: server.url });
 
   /** @type (path: string, init?: SessionFetchInit) => Promise<{ response: Response, body: string, cache: string | undefined }> */
   const get = async (path, init) => {
@@ -304,7 +312,7 @@ describe("the HTTP cache", () => {
   });
 
   test("a response the runtime reached by following a redirect isn't stored under the URL that was asked for", async () => {
-    const { server, get, hits } = await setup();
+    const { server, get, hits } = await setup({ runtimeFollows: true });
     try {
       const first = await get("/temporary-to-fresh");
       expect(first.body).to.equal("item");

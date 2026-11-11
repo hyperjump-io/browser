@@ -7,9 +7,10 @@ and RFC 9111.
 - A session is the requests that belong together, like a page load. Closing
   it cancels what it started, like navigating away. A child session is like
   an iframe.
-- The layers are in the order a browser checks things: redirects, what a
-  document says about itself, preloaded resources, requests already in
-  flight, the HTTP cache, and the network. Cache hits never wait for a
+- The session follows redirects, so every layer sees each step, as a
+  browser's HTTP cache does. The layers are in the order a browser checks
+  things: what a document says about itself, preloaded resources, requests
+  already in flight, the HTTP cache, and the network. Cache hits never wait for a
   connection.
 - A failure is a network error, the `TypeError` `fetch` rejects with, as it
   is in a browser: a missing file, an unsupported scheme, a refused

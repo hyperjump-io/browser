@@ -5,7 +5,7 @@ export, so a trace can be opened in Chrome's or Firefox's network panel.
 
 - Every entry is in one page. Its title is the first `"document"` request's
   URL, or the first request's.
-- Each redirect the `Redirects` layer followed is an entry of its own, with
+- Each redirect the session followed is an entry of its own, with
   its 3xx status and `redirectURL`, as browsers record them. They're made
   from the `redirect` marks, so only the last step has its headers.
 - `blocked` is the time a request waited in the throttle or the scheduler

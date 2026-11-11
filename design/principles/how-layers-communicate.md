@@ -3,8 +3,9 @@
 Layers are decorators, and they stay independent because only three things
 pass between them:
 
-1. The `Request` and the `Response`. A layer that needs the one below to do
-   something says so in the request, like `redirect: "manual"`.
+1. The `Request` and the `Response`. What needs the layer below to do
+   something says so in the request, like the session's
+   `redirect: "manual"`.
 2. The context fields the session defines: `session`, `signal`,
    `cacheMode`, `priority`, `destination`, and `record`. Each has one typed
    meaning. A layer can give the one below it a changed copy, like a lower

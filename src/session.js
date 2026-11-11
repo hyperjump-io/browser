@@ -2,6 +2,7 @@ import { responseMeta, setResponseMeta, trackBody } from "./response-meta.js";
 import { PrioritySignal } from "./priority.js";
 import { recordChunk, recordEnd, recordResponse, startRecord } from "./fetch-record.js";
 import { defaultTransport } from "./transports/scheme-transport.js";
+import { follow } from "./redirects.js";
 
 /**
  * @import * as API from "./session.d.ts"
@@ -19,6 +20,9 @@ export class Session {
 
   /** @type Headers */
   #headers;
+
+  /** @type {{ max: number, schemes: string[] }} */
+  #redirects;
 
   /** @type Map<object, unknown> */
   #state = new Map();
@@ -40,6 +44,10 @@ export class Session {
     this.parent = options.parent;
     this.baseURL = options.baseURL === undefined ? undefined : new URL(options.baseURL);
     this.#headers = new Headers(options.headers);
+    this.#redirects = {
+      max: options.maxRedirects ?? 20,
+      schemes: [...options.redirectSchemes ?? ["http:", "https:"]]
+    };
     this.#signal = this.parent
       ? AbortSignal.any([this.#controller.signal, this.parent.signal])
       : this.#controller.signal;
@@ -133,7 +141,7 @@ export class Session {
     this.#notify({ type: "start", record });
     let response;
     try {
-      response = await this.stack.fetch(request, ctx);
+      response = await follow(this.stack, request, ctx, this.#redirects);
     } catch (error) {
       recordEnd(record, error);
       throw error;
@@ -167,6 +175,8 @@ export class Session {
     return new Session(this.stack, {
       baseURL: options.baseURL === undefined ? this.baseURL : new URL(options.baseURL, this.baseURL),
       headers,
+      maxRedirects: options.maxRedirects ?? this.#redirects.max,
+      redirectSchemes: options.redirectSchemes ?? this.#redirects.schemes,
       parent: this
     });
   }

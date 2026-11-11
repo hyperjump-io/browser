@@ -6,7 +6,6 @@ import { defaultTransport } from "./transports/scheme-transport.js";
 import { Trace } from "./trace.js";
 import { destinationPriority } from "./layers/destination-priority.js";
 import { dedupe } from "./layers/dedupe.js";
-import { redirects } from "./layers/redirects.js";
 import { registry } from "./layers/registry.js";
 import { scheduler } from "./layers/scheduler.js";
 import { httpCache } from "./http-cache/http-cache.js";
@@ -89,7 +88,7 @@ describe("HAR", () => {
         return new Response("done", { headers: { "content-type": "text/plain" } });
       }
     });
-    const session = new Session(redirects()(steps));
+    const session = new Session(steps);
     const trace = new Trace(session);
     await (await session.fetch("https://a.test/a")).text();
     const har = trace.toHar();
@@ -127,7 +126,7 @@ describe("HAR", () => {
     const steps = fetcher((request, ctx) => new URL(request.url).pathname === "/old"
       ? new Response(null, { status: 301, headers: { location: "/new" } })
       : net.transport.fetch(request, ctx));
-    const session = new Session(compose(redirects(), destinationPriority(), dedupe(), scheduler({ perKey: 1 }))(steps));
+    const session = new Session(compose(destinationPriority(), dedupe(), scheduler({ perKey: 1 }))(steps));
     const trace = new Trace(session);
     const blocker = session.fetch("https://a.test/blocker");
     const moved = session.fetch("https://a.test/old");

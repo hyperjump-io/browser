@@ -12,11 +12,10 @@ A stack is layers on top of a transport. Each layer wraps the one below it, and
 ```typescript
 import {
   Session, Trace, compose, nodeTransport,
-  redirects, destinationPriority, dedupe, httpCache, throttle, scheduler
+  destinationPriority, dedupe, httpCache, throttle, scheduler
 } from "@hyperjump/browser";
 
 const stack = compose(
-  redirects(),
   destinationPriority(),
   dedupe(),
   httpCache(),
@@ -27,18 +26,19 @@ const stack = compose(
 
 The order matters, the way it does in a browser:
 
-1. `redirects` is at the top, so every other layer gets each step of a
-   redirect.
-2. `destinationPriority` gives each request a priority from what it's for, so
+1. `destinationPriority` gives each request a priority from what it's for, so
    the layers below can use it.
-3. `dedupe` comes before the cache, so requests that miss at the same time are one
+2. `dedupe` comes before the cache, so requests that miss at the same time are one
    request.
-4. `httpCache` answers what it has before anything waits for a connection.
-5. `throttle` holds back low-priority requests while important ones load.
-6. `scheduler` limits how many requests go to each server at once.
+3. `httpCache` answers what it has before anything waits for a connection.
+4. `throttle` holds back low-priority requests while important ones load.
+5. `scheduler` limits how many requests go to each server at once.
 
 `nodeTransport()` fetches `http:`, `https:`, `data:`, and `file:` URLs. In a
 browser, use `defaultTransport()`, which doesn't have `file:`.
+
+There's no layer for redirects. The session follows them, and each step goes
+down the whole stack. For more information, see [Redirects](redirects.md).
 
 ## Load a page
 

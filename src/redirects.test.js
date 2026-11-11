@@ -1,19 +1,18 @@
 import { describe, test, expect } from "vitest";
-import { Session } from "../session.js";
-import { compose } from "../layers.js";
-import { defaultTransport } from "../transports/scheme-transport.js";
-import { nodeTransport } from "../transports/node-transport.js";
-import { responseMeta } from "../response-meta.js";
-import { httpCache } from "../http-cache/http-cache.js";
-import { redirects } from "./redirects.js";
-import { registry } from "./registry.js";
-import { readBody, settle, startServer } from "../test-helpers/server.js";
+import { Session } from "./session.js";
+import { compose } from "./layers.js";
+import { defaultTransport } from "./transports/scheme-transport.js";
+import { nodeTransport } from "./transports/node-transport.js";
+import { responseMeta } from "./response-meta.js";
+import { httpCache } from "./http-cache/http-cache.js";
+import { registry } from "./layers/registry.js";
+import { readBody, settle, startServer } from "./test-helpers/server.js";
 
 describe("redirects", () => {
   test("are followed one at a time, through the stack", async () => {
     const server = await redirectServer();
     try {
-      const session = new Session(redirects()(defaultTransport()), { baseURL: server.url });
+      const session = new Session(defaultTransport(), { baseURL: server.url });
       const response = await session.fetch("/chain/1");
       expect(response.status).to.equal(200);
       expect(response.redirected).to.equal(true);
@@ -31,7 +30,7 @@ describe("redirects", () => {
   test("the HTTP cache stores the redirects themselves", async () => {
     const server = await redirectServer();
     try {
-      const session = new Session(compose(redirects(), httpCache())(defaultTransport()), { baseURL: server.url });
+      const session = new Session(httpCache()(defaultTransport()), { baseURL: server.url });
       await (await session.fetch("/r/301/target?cache")).text();
       await settle();
       const again = await session.fetch("/r/301/target?cache");
@@ -47,7 +46,6 @@ describe("redirects", () => {
     const server = await redirectServer();
     try {
       const stack = compose(
-        redirects(),
         registry({
           base: server.url,
           entries: {
@@ -75,7 +73,7 @@ describe("redirects", () => {
   test("change the method and body as the Fetch standard says", async () => {
     const server = await redirectServer();
     try {
-      const session = new Session(redirects()(defaultTransport()), { baseURL: server.url });
+      const session = new Session(defaultTransport(), { baseURL: server.url });
       /** @type (status: number) => Promise<unknown> */
       const post = async (status) => (await session.fetch(`/r/${status}/echo`, { method: "POST", body: "payload", headers: { "content-type": "text/plain" } })).json();
 
@@ -96,7 +94,7 @@ describe("redirects", () => {
     const other = await redirectServer();
     const server = await redirectServer(() => other.url);
     try {
-      const session = new Session(redirects()(defaultTransport()), { baseURL: server.url });
+      const session = new Session(defaultTransport(), { baseURL: server.url });
       const headers = { authorization: "Bearer secret" };
       expect((await (await session.fetch("/r/302/echo", { headers })).json()).authorization).to.equal("Bearer secret");
       const crossed = await session.fetch("/to-other", { method: "POST", body: "b", headers });
@@ -113,7 +111,7 @@ describe("redirects", () => {
   test("redirect: error, manual, loops, a missing Location, and fragments", async () => {
     const server = await redirectServer();
     try {
-      const session = new Session(redirects({ max: 5 })(defaultTransport()), { baseURL: server.url });
+      const session = new Session(defaultTransport(), { baseURL: server.url, maxRedirects: 5 });
       await expect(session.fetch("/r/302/echo", { redirect: "error" })).rejects.toThrow(TypeError);
 
       const manual = await session.fetch("/r/302/echo", { redirect: "manual" });
@@ -137,20 +135,21 @@ describe("redirects", () => {
   test("a server can't send a request to file:, even when the transport has it", async () => {
     const server = await redirectServer();
     try {
-      const session = new Session(redirects()(nodeTransport()), { baseURL: server.url });
+      const session = new Session(nodeTransport(), { baseURL: server.url });
       await expect(session.fetch("/to-file")).rejects.toThrow(/isn't allowed/);
     } finally {
       await server.close();
     }
   });
 
-  test("without the layer, the runtime follows them", async () => {
+  test("a child session has its parent's redirect options unless it's given its own", async () => {
     const server = await redirectServer();
     try {
-      const response = await new Session(defaultTransport(), { baseURL: server.url }).fetch("/chain/1");
-      expect(response.redirected).to.equal(true);
-      expect(response.url).to.equal(`${server.url}/final`);
-      expect(responseMeta(response).redirects).to.equal(undefined);
+      const parent = new Session(defaultTransport(), { baseURL: server.url, maxRedirects: 1, redirectSchemes: ["http:", "data:"] });
+      await expect(parent.child().fetch("/chain/1")).rejects.toThrow(/more than 1 times/);
+      expect(await (await parent.child().fetch("/to-data")).text()).to.equal("hi");
+      expect((await parent.child({ maxRedirects: 2 }).fetch("/chain/1")).status).to.equal(200);
+      await expect(parent.child({ redirectSchemes: ["http:"] }).fetch("/to-data")).rejects.toThrow(/isn't allowed/);
     } finally {
       await server.close();
     }
@@ -177,7 +176,8 @@ const redirectServer = async (otherOrigin) => startServer(async (request, respon
     "/chain/1": "/chain/2",
     "/chain/2": "../final",
     "/loop": "/loop",
-    "/to-file": "file:///etc/hostname"
+    "/to-file": "file:///etc/hostname",
+    "/to-data": "data:text/plain,hi"
   };
   if (url.pathname in locations) {
     response.writeHead(302, { location: locations[url.pathname] }).end();
