@@ -1,7 +1,5 @@
 # Errors
 
-*Coming soon*
-
 When a request fails, `session.fetch` rejects with a network error, the
 `TypeError` that `fetch` rejects with. A browser gives a network error for a
 file that doesn't exist, a scheme it doesn't support, and a redirect it won't

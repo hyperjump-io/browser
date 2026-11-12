@@ -55,8 +55,6 @@ For more information, see [What a session can fetch](allow-retrieval.md).
 
 ## Documents from the web
 
-*Coming soon*
-
 Only a document from a file can refer to a `file:` URL, so a document from the
 web can't read your files. The session finds the document a request comes from
 by its `initiator`, and refuses a `file:` URL for one that isn't a file with a

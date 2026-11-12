@@ -1,7 +1,5 @@
 # What a session can fetch
 
-*Coming soon*
-
 Documents refer to other documents by URL, and following a reference fetches
 whatever that URL identifies. That's fine when you control the documents. When
 you don't, a document could refer to `http://169.254.169.254/` or
