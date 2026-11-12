@@ -6,12 +6,12 @@ cache and a scheduler, and end at a transport that picks a handler by URL
 scheme, including `file:` on the server.
 
 ```typescript
-import { Session, compose, dedupe, httpCache, nodeTransport } from "@hyperjump/browser";
+import { Session, compose, httpCache, scheduler, nodeTransport } from "@hyperjump/browser";
 
-const stack = compose(dedupe(), httpCache())(nodeTransport());
-const session = new Session(stack, { baseURL: "https://example.com/docs/" });
+const stack = compose(httpCache(), scheduler())(nodeTransport());
+const session = new Session(stack, { allowRetrieval: ["https://example.com/"] });
 
-const response = await session.fetch("index.html");
+const response = await session.fetch("https://example.com/docs/index.html");
 ```
 
 - **Layers you compose.** Each layer wraps the one below it, so you build

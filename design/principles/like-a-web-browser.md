@@ -9,8 +9,7 @@ and RFC 9111.
   an iframe.
 - The session follows redirects, so every layer sees each step, as a
   browser's HTTP cache does. The layers are in the order a browser checks
-  things: what a document says about itself, preloaded resources, requests
-  already in flight, the HTTP cache, and the network. Cache hits never wait for a
+  things: the HTTP cache, then the network. Cache hits never wait for a
   connection.
 - A failure is a network error, the `TypeError` `fetch` rejects with, as it
   is in a browser: a missing file, an unsupported scheme, a refused
