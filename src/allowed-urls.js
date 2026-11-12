@@ -1,5 +1,5 @@
 import { realUrl } from "#real-url";
-import { isFor, urlKey } from "./url-entries.js";
+import { isPrefix, urlKey } from "./url-entries.js";
 import { networkError } from "./response-meta.js";
 
 /**
@@ -23,32 +23,45 @@ export const resolveAllowRetrieval = (entries, base, defaults) => {
 };
 
 /**
+ * Entries as they're compared. The ones that allow only themselves are a
+ * set, so a long list of them costs a check nothing.
+ *
+ * @typedef {{ exact: Set<string>, prefixes: string[] }} RealEntries
+ */
+
+/**
  * Entries as they're compared: a `file:` entry by its real path, like the
  * URLs checked against it. A real path doesn't end with `/`, so a
  * directory's entry gets it back.
  *
- * @type (entries: string[]) => Promise<string[]>
+ * @type (entries: string[]) => Promise<RealEntries>
  */
-export const realEntries = (entries) => Promise.all(entries.map(async (entry) => {
-  const { href } = await realUrl(new URL(entry));
-  return entry.endsWith("/") && !href.endsWith("/") ? `${href}/` : href;
-}));
+export const realEntries = async (entries) => {
+  const real = await Promise.all(entries.map(async (entry) => {
+    const { href } = await realUrl(new URL(entry));
+    return entry.endsWith("/") && !href.endsWith("/") ? `${href}/` : href;
+  }));
+  return {
+    exact: new Set(real.filter((entry) => !isPrefix(entry))),
+    prefixes: real.filter(isPrefix)
+  };
+};
 
 /**
  * Whether real entries allow a URL. A `file:` URL is compared by its real
  * path. A `data:` URL is its content, so it's always allowed: nothing is
  * fetched, and a path can't be a prefix of it.
  *
- * @type (entries: string[], url: string) => Promise<boolean>
+ * @type (entries: RealEntries, url: string) => Promise<boolean>
  */
-export const allows = async (entries, url) => {
+export const allows = async ({ exact, prefixes }, url) => {
   const target = new URL(url);
   if (target.protocol === "data:") {
     return true;
   }
   target.hash = "";
   const { href } = await realUrl(target);
-  return entries.some((entry) => isFor(entry, href));
+  return exact.has(href) || prefixes.some((prefix) => href.startsWith(prefix));
 };
 
 /** @type (url: string) => TypeError */

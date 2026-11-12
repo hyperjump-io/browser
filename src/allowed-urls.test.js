@@ -37,6 +37,14 @@ describe("allowRetrieval", () => {
       expect(resolveAllowRetrieval(["https://a.test/page#top"], undefined, [])).to.eql(["https://a.test/page"]);
     });
 
+    test("exact entries are kept apart from prefixes", async () => {
+      const entries = await realEntries(["https://a.test/docs/", "https://a.test/page", "https://a.test/search/?q=1"]);
+      expect([...entries.exact]).to.eql(["https://a.test/page", "https://a.test/search/?q=1"]);
+      expect(entries.prefixes).to.eql(["https://a.test/docs/"]);
+      expect(await allows(entries, "https://a.test/search/?q=1"), "an entry with a query allows only itself").to.equal(true);
+      expect(await allows(entries, "https://a.test/search/?q=1&x")).to.equal(false);
+    });
+
     test("an empty list allows nothing", async () => {
       expect(await allowed([], "https://a.test/")).to.equal(false);
     });

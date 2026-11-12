@@ -66,4 +66,4 @@ export const isFor = (key, url) => {
 };
 
 /** A key is for everything under it when its path ends with `/` and it has no query */
-const isPrefix = (/** @type string */ key) => key.endsWith("/") && !key.includes("?");
+export const isPrefix = (/** @type string */ key) => key.endsWith("/") && !key.includes("?");

@@ -45,7 +45,7 @@ export class Hyperjump {
    * The entries by their real paths, found the first time a URL is checked
    * and kept for the session
    *
-   * @type Promise<string[]> | undefined
+   * @type Promise<import("./allowed-urls.js").RealEntries> | undefined
    */
   #realEntries;
 

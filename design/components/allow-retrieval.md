@@ -16,6 +16,9 @@ application.
 - Entries and the URLs checked against them are compared as parsed URLs,
   without fragments, so case, dot segments, and default ports can't get
   around an entry.
+- A URL is parsed once for a check. Entries that allow only themselves are
+  kept in a `Set`, and only the prefixes are tried one at a time, so a
+  long list of exact URLs costs a check nothing.
 - A relative entry is resolved against the context URL: the working
   directory in Node.js and the page in a browser (see
   [Sessions](sessions.md)). `allowed-urls.js` is given it rather than
