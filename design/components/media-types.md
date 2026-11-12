@@ -42,7 +42,8 @@ fragments identify. JSON and JRef are built in.
   Pointers. A media type without it, like JSON, identifies the whole
   document.
 - Nothing in the stack knows media types. They're for what reads a
-  response, not for what fetches it.
+  response, not for what fetches it: `getDocument` chooses the plugin and
+  sets `Accept` (see [Documents](documents.md)).
 
 Rejected:
 

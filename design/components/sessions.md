@@ -8,7 +8,11 @@ on a stack it's given and gives the stack what the stack can't know.
 - `new Hyperjump(config)` takes one configuration object, with the stack in
   it as a `Fetcher`, so any stack, or any part of one, can be a session's.
   The configuration is a value an application keeps, so another session is
-  `new Hyperjump(config)`.
+  `new Hyperjump(config)`. The session has it as `config`, as it was given,
+  for what's built on a session to read its own keys from, like the
+  `mediaTypes` documents are parsed with (see [Documents](documents.md)).
+- `contextUrl` is the context URL the session read, so what's built on a
+  session resolves a relative URL the way the session does.
 - Without a stack, a session has a default stack of its own
   (`#default-stack`), which is different in each runtime:
   - In Node.js it's `scheduler()` over `nodeTransport()`. Node.js opens a

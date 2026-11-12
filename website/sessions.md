@@ -44,6 +44,7 @@ document refers to, resolve it against the document's URL yourself, such as
 | --- | --- |
 | `stack` | What the session fetches through: a transport, or layers on one. The default is a stack of the session's own. |
 | `allowRetrieval` | The URLs the session can fetch. By default, it allows the working directory in Node.js and the page's origin in a browser. For more information, see [What a session can fetch](allow-retrieval.md). |
+| `mediaTypes` | The media types documents can be in. The default is JRef and JSON. For more information, see [Media types](media-types.md). |
 | `headers` | Headers for the requests to some URLs, such as credentials. For more information, see [Headers](#headers). |
 | `maxRedirects` | How many redirects a request can follow before it's a network error. The default is 20. |
 | `redirectSchemes` | The schemes a redirect can lead to. The default is `["http:", "https:"]`. For more information, see [Redirects](redirects.md). |

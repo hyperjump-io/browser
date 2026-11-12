@@ -1,0 +1,93 @@
+# Documents (`src/documents/`)
+
+`getDocument` retrieves a document through a session and parses it, and
+`get` returns the node a URL identifies in it, following references. They're
+what makes this a hypermedia browser, and the stack is how they retrieve.
+
+- They're functions of a session, `get(session, url)`, not methods of one.
+  A session is retrieval, and retrieval never imports document code (see
+  [Packaging](packaging.md)). What they need of a session is its `fetch`,
+  its `state`, its `contextUrl`, and its `config`.
+- The media types are the session's configuration, `mediaTypes`, which
+  defaults to `defaultMediaTypes` (see [Media types](media-types.md)). The
+  session keeps the configuration it was given as a value and doesn't read
+  what isn't its own. `documents.d.ts` adds `mediaTypes` to the
+  `HyperjumpConfig` interface, so it's checked where a session is created
+  without the session's declaration knowing documents.
+- A session keeps each document it retrieves, in its state, by the
+  document's URL without a fragment. The cache holds promises, so a
+  document that's asked for again while it's being fetched or parsed is
+  the same one, and a document referred to twice is fetched once. To see
+  changes, an application uses a new session (see
+  [State lives as long as what it's for](../principles/state-lifetimes.md)).
+- A document is also kept under the URL its response came from, like where
+  a redirect led or the file a symlink points to. A document that's
+  reached at a URL the session already has a document for is that
+  document, so there's one for a URL however it was reached.
+- A document that fails isn't kept, so it can be asked for again.
+- An entry keeps the plugin that parsed it, which says what its fragments
+  identify, and its response's fetch record. A document carries neither.
+- A URL is parsed where it comes in, against the session's context URL,
+  and the document's URL is its response's (see
+  [Identifiers are URLs](../principles/identifiers-are-urls.md)). A
+  response a layer made without a URL has the URL that was asked for.
+- A request has the `Accept` header for the session's media types
+  (`acceptHeader`), as a request header, which wins over the session's
+  `headers`. It's worked out once for a session, when it first gets a
+  document, so a quality that isn't one throws there.
+- The plugin is the one for the response's `Content-Type`. A `file:`
+  response has none, so it's the one for its URL's extension (see
+  [The `file:` scheme](file-scheme.md)).
+- `get` follows the reference its URL ends at, and any that leads to,
+  until there's a value. A request a reference causes has the record of
+  the document the reference is in as its `initiator`, so a trace shows it
+  under that document, and a document from the web can't refer to a file
+  (see [`file:` from `file:`](file-references.md)).
+- Following a reference that leads back to one already followed is an
+  error, with the chain of URLs.
+
+## Errors
+
+A network error is the session's, and a syntax error is the plugin's. What
+else keeps a document from being used is an `Error` whose `cause.code`
+says why, with the exact URL as its `url`, like a network error (see
+[Network errors](network-errors.md)):
+
+| Code | Failure |
+| --- | --- |
+| `ERR_HTTP_STATUS` | A response that isn't a success. The cause has its `status`. |
+| `ERR_UNSUPPORTED_MEDIA_TYPE` | A response no media type plugin parses |
+| `ERR_REFERENCE_CYCLE` | References that lead back to one already followed. The cause has the `chain`. |
+
+They're `Error`s, not the `TypeError` of a network error, because a server
+answered. A response that can't be used has its body cancelled, so its
+file or connection is released.
+
+Rejected:
+
+- `get` and `getDocument` as methods of `Hyperjump`. The class would import
+  the media types and the parsers, so retrieval would depend on documents.
+- Methods, with the stack's code depending on a narrower type than
+  `Hyperjump` for `ctx.session`. The session's own code, like
+  `allowRetrieval` and redirects, would still be in a class that imports
+  document code.
+- A retrieval class that `Hyperjump` extends with `get` and `getDocument`.
+  It's a second class for what two functions do.
+- A `Hyperjump` that's generic over its configuration, so document code's
+  keys are allowed in it. TypeScript infers the configuration's type from
+  an object literal only when it shares a property with the session's, so
+  `new Hyperjump({ mediaTypes })` was an error.
+- The media types as an option of `get`. Every call would pass them, and
+  the documents a session keeps were parsed with one list.
+- One error that wraps whatever kept a document from being retrieved, like
+  a `RetrievalError` with a cause. Code would look in the cause for every
+  reason, and a network error would stop being what `fetch` rejects with.
+- Error classes. A code is a value (see
+  [Network errors](network-errors.md)).
+
+## Known limitations
+
+- A document inside another document isn't found (embedded documents).
+- A document that names a file by an absolute `file:` URL isn't rejected.
+- `get` takes the nodes of a document to be a JSON AST, with references
+  as `reference` nodes that have an `href`.

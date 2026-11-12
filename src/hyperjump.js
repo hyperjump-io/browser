@@ -64,8 +64,10 @@ export class Hyperjump {
 
   /** @param {API.HyperjumpConfig} [config] */
   constructor(config = {}) {
+    this.config = config;
     /** @type Fetcher */
     this.stack = config.stack ?? defaultStack();
+    this.contextUrl = this.#contextUrl?.href;
     this.#headers = urlEntries(config.headers ?? {}, this.#contextUrl);
     this.#allowRetrieval = resolveAllowRetrieval(config.allowRetrieval, this.#contextUrl, defaultAllowRetrieval);
     this.#policy = {

@@ -2,7 +2,11 @@ import type { Fetcher } from "./layers.d.ts";
 import type { Priority, PrioritySignal } from "./priority.d.ts";
 import type { FetchRecord, Observer } from "./fetch-record.d.ts";
 
-export type HyperjumpConfig = {
+/**
+ * A session's configuration. It's an interface so what's built on a session
+ * can add to it, like the `mediaTypes` that `get` parses documents with.
+ */
+export interface HyperjumpConfig {
   /**
    * What the session fetches through: a transport, or layers on one. Without
    * one, the session has a stack of its own: in Node.js, a `scheduler()` on
@@ -40,7 +44,7 @@ export type HyperjumpConfig = {
    * browsers, so a server can't send a request to `file:` or `data:`.
    */
   redirectSchemes?: string[];
-};
+}
 
 /**
  * Headers for a URL, which can be async, so a token can be refreshed. It's
@@ -92,7 +96,21 @@ export class Hyperjump {
    */
   constructor(config?: HyperjumpConfig);
 
+  /**
+   * The configuration it was created with. It can have more than the session
+   * reads, for what's built on a session, like the `mediaTypes` that `get`
+   * parses documents with.
+   */
+  readonly config: Readonly<HyperjumpConfig>;
+
   readonly stack: Fetcher;
+
+  /**
+   * What relative URLs are resolved against: the working directory in
+   * Node.js, or the page in a browser, as it was when the session was
+   * created. There's none where there's neither, such as in a worker.
+   */
+  readonly contextUrl: string | undefined;
 
   /** Aborts when the session is closed */
   get signal(): AbortSignal;
