@@ -29,7 +29,8 @@ The order matters, the way it does in a browser:
 3. `scheduler` limits how many requests go to each server at once.
 
 `nodeTransport()` fetches `http:`, `https:`, `data:`, and `file:` URLs. In a
-browser, use `defaultTransport()`, which doesn't have `file:`.
+browser, use `defaultTransport()`, which doesn't have `file:`, and leave out
+`httpCache`, because a browser caches responses itself.
 
 There's no layer for redirects. The session follows them, and each step goes
 down the whole stack. For more information, see [Redirects](redirects.md).

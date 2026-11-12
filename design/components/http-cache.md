@@ -37,12 +37,15 @@ it's a private cache, like a browser's.
 - Headers about one connection (`Connection`, `Keep-Alive`,
   `Transfer-Encoding`, and what `Connection` lists) aren't stored, as RFC
   9111 says.
-- A response the runtime reached by following a redirect itself isn't stored
-  under the URL that was asked for. It's the response the redirect ended at,
-  so storing it would make a temporary redirect permanent. That's only in a
-  browser. Elsewhere the session follows redirects, so each step is a
-  response of its own, and a redirect is stored like any other response (see
+- The session follows redirects, so each step is a response of its own, and
+  a redirect is stored like any other response (see
   [Redirects](redirects.md)).
+- Only `http:` and `https:` URLs go through the cache. Anything else, like
+  a `file:` URL, is passed on, and its cache status is `"bypass"`. Only
+  HTTP has caching, and a file is read each time, so it's always current.
+- In a browser, it throws (`#http-cache`). A browser caches responses
+  already, below anything a page can add, so a second cache would only
+  keep copies of what the first has.
 - A store that fails, like a full disk, never fails a request. The cache goes
   on as if it had missed and tells `onStoreError`.
 - The store is a `CacheStore`: entries are data by URL, one for each `Vary`
@@ -68,9 +71,6 @@ Rejected:
   decoded, and the `ETag` of the compressed form is another one or weak.
 - A store that does the HTTP. Every store would have to, so writing one, like
   for Redis, would mean writing a cache.
-- Caching a redirect the runtime followed under the URL that was asked for,
-  so a browser still saved the round trip. A 302
-  would be served as if it were permanent.
 
 ## Known limitations
 

@@ -1,8 +1,9 @@
 import { describe, test, expect } from "vitest";
-import { compose, layer } from "../layers.js";
+import { compose, fetcher } from "../layers.js";
 import { defaultTransport } from "../transports/scheme-transport.js";
 import { responseMeta } from "../response-meta.js";
 import { HttpCache, httpCache } from "./http-cache.js";
+import { HttpCache as BrowserHttpCache, httpCache as browserHttpCache } from "./http-cache.browser.js";
 import { MemoryCacheStore } from "./memory-cache-store.js";
 import { settle, startServer } from "../test-helpers/server.js";
 import { testHyperjump } from "../test-helpers/hyperjump.js";
@@ -65,7 +66,6 @@ const routes = {
   "/moved": (_request, response) => response.writeHead(301, { location: "/target" }).end(),
   "/moved-308": (_request, response) => response.writeHead(308, { location: "/target" }).end(),
   "/temporary": (_request, response) => response.writeHead(302, { location: "/target" }).end(),
-  "/temporary-to-fresh": (_request, response) => response.writeHead(302, { location: "/item" }).end(),
   "/moved-max-age-0": (_request, response) => response.writeHead(301, { "location": "/target", "cache-control": "max-age=0" }).end(),
   "/moved-old": (_request, response) => {
     // Last modified ~115 days ago, so ~11.5 days fresh by Last-Modified
@@ -90,15 +90,7 @@ const routes = {
   }
 };
 
-/** Asks the layer below with `redirect: "follow"`, so the runtime follows redirects */
-const runtimeFollows = layer((request, ctx, inner) => inner.fetch(new Request(request, { redirect: "follow" }), ctx));
-
-/**
- * `runtimeFollows` asks the cache with `redirect: "follow"`, as the session
- * does in a browser, so the runtime follows redirects below it
- *
- * @param {Omit<HttpCacheOptions, "now"> & { manual?: boolean, runtimeFollows?: boolean }} [options]
- */
+/** @param {Omit<HttpCacheOptions, "now"> & { manual?: boolean }} [options] */
 const setup = async (options = {}) => {
   let now = Date.now();
   // The server's Date follows the same fake clock, as if both agreed on the time
@@ -108,7 +100,7 @@ const setup = async (options = {}) => {
   });
   const store = options.store ?? new MemoryCacheStore();
   const cache = new HttpCache(defaultTransport(), { ...options, store, now: () => now });
-  const session = testHyperjump(options.runtimeFollows ? runtimeFollows(cache) : cache, { allow: [server.url] });
+  const session = testHyperjump(cache, { allow: [server.url] });
 
   /** @type (path: string, init?: HyperjumpFetchInit) => Promise<{ response: Response, body: string, cache: string | undefined }> */
   const get = async (path, init) => {
@@ -336,17 +328,22 @@ describe("the HTTP cache", () => {
     }
   });
 
-  test("a response the runtime reached by following a redirect isn't stored under the URL that was asked for", async () => {
-    const { server, get, hits } = await setup({ runtimeFollows: true });
-    try {
-      const first = await get("/temporary-to-fresh");
-      expect(first.body).to.equal("item");
-      expect(first.response.redirected, "the runtime followed it").to.equal(true);
-      await get("/temporary-to-fresh");
-      expect(hits("/temporary-to-fresh"), "the fresh response it ended at wasn't stored as the 302's").to.equal(2);
-    } finally {
-      await server.close();
+  test("only http: and https: URLs are cached", async () => {
+    const cache = new HttpCache(fetcher((request) => new Response(request.url, { headers: { "cache-control": "max-age=60" } })));
+    const session = testHyperjump(cache, { allow: ["file:///project/", "urn:example:a"] });
+    const urls = ["file:///project/a.json", "urn:example:a", "data:text/plain,hi"];
+    for (const url of [...urls, ...urls]) {
+      const response = await session.fetch(url);
+      await response.text();
+      await settle();
+      expect(responseMeta(response).cache, url).to.equal("bypass");
     }
+    expect(await cache.store.match("file:///project/a.json"), "nothing was stored").to.eql([]);
+  });
+
+  test("in a browser, it throws", () => {
+    expect(() => browserHttpCache()).to.throw(/isn't supported in a browser/);
+    expect(() => new BrowserHttpCache(defaultTransport())).to.throw(/isn't supported in a browser/);
   });
 
   test("a store that fails never fails a request", async () => {

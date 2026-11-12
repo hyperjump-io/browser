@@ -16,6 +16,8 @@ import { nullBodyStatuses } from "../statuses.js";
 /** The statuses RFC 9111 lets a cache give a lifetime to when a response doesn't say one */
 const heuristicallyCacheable = new Set([200, 203, 204, 206, 300, 301, 308, 404, 405, 410, 414, 501]);
 
+const httpSchemes = new Set(["http:", "https:"]);
+
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 /** A request with one of these is already conditional, so the Fetch standard bypasses the cache */
@@ -71,6 +73,12 @@ export class HttpCache {
 
   /** @type API.HttpCache["fetch"] */
   async fetch(request, ctx) {
+    // Only HTTP has caching. A file is read each time, and it's always
+    // current.
+    if (!httpSchemes.has(new URL(request.url).protocol)) {
+      return markCache(await this.inner.fetch(request, ctx), "bypass");
+    }
+
     const method = request.method;
     if (method !== "GET" && method !== "HEAD") {
       const response = await this.inner.fetch(request, ctx);
@@ -254,12 +262,6 @@ export class HttpCache {
   #isStorable(request, response) {
     const shared = this.shared;
     if (request.method !== "GET") {
-      return false;
-    }
-    // The runtime followed a redirect, so this is the response it ended at,
-    // not the response for this URL. Storing it would make a temporary
-    // redirect permanent.
-    if (response.redirected || (response.url && cacheKey(response.url) !== cacheKey(request.url))) {
       return false;
     }
     // A 206 is part of a representation, and the cache only stores whole ones

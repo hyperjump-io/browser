@@ -4,11 +4,15 @@ The `httpCache` layer caches responses according to their caching headers the
 way a browser's cache does:
 
 ```typescript
-import { Hyperjump, compose, httpCache, defaultTransport } from "@hyperjump/browser";
+import { Hyperjump, compose, httpCache, nodeTransport } from "@hyperjump/browser";
 
-const stack = compose(httpCache())(defaultTransport());
+const stack = compose(httpCache())(nodeTransport());
 const session = new Hyperjump({ stack, allowRetrieval: ["https://example.com/"] });
 ```
+
+The cache is for a server. A browser caches responses itself, so in a browser,
+`httpCache` throws an error. It caches only `http:` and `https:` URLs, so a
+`file:` URL is read every time.
 
 - It uses a fresh response without making a request.
 - It revalidates a stale response that has an `ETag` or `Last-Modified`

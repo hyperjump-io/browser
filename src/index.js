@@ -6,7 +6,7 @@ export * from "./response-meta.js";
 export * from "./transports/scheme-transport.js";
 export * from "#file-scheme";
 export * from "#node-transport";
-export * from "./http-cache/http-cache.js";
+export * from "#http-cache";
 export * from "./http-cache/memory-cache-store.js";
 export * from "./http-cache/cache-control.js";
 export * from "#file-cache-store";

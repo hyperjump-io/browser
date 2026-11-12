@@ -77,7 +77,10 @@ export type HttpCacheOptions = {
 /**
  * An HTTP cache, by RFC 9111 and the Fetch standard's cache modes:
  * freshness, revalidation, `Vary`, `stale-while-revalidate`, request
- * directives, and invalidation by unsafe methods.
+ * directives, and invalidation by unsafe methods. Only `http:` and `https:`
+ * URLs go through it.
+ *
+ * In a browser, it throws. A browser caches responses itself.
  */
 export class HttpCache implements Layer {
   constructor(inner: Fetcher, options?: HttpCacheOptions);

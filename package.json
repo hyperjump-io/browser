@@ -50,6 +50,10 @@
       "node": "./src/transports/node-transport.js",
       "default": "./src/transports/node-transport.browser.js"
     },
+    "#http-cache": {
+      "node": "./src/http-cache/http-cache.js",
+      "default": "./src/http-cache/http-cache.browser.js"
+    },
     "#file-cache-store": {
       "node": "./src/http-cache/file-cache-store.js",
       "default": "./src/http-cache/file-cache-store.browser.js"

@@ -2,8 +2,9 @@
 
 - It's designed for Node.js and browsers. Subpath imports (`#file-scheme`,
   `#node-transport`, `#file-cache-store`) give browser versions of the
-  parts that need Node.js, which bundlers that support the `imports` field
-  choose for a browser. A browser version throws when it's used, with a
+  parts that need Node.js, and of the HTTP cache (`#http-cache`), which a
+  browser has already. Bundlers that support the `imports` field choose
+  them for a browser. A browser version throws when it's used, with a
   message that says it isn't supported there.
 - What's different in each runtime without being unsupported in one has a
   version for each too: the context URL (`#context-url`), a `file:` URL's

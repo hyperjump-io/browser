@@ -6,9 +6,9 @@ and the `throttle` layer holds back a page's low-priority requests while its
 important ones load:
 
 ```typescript
-import { Hyperjump, compose, httpCache, throttle, scheduler, defaultTransport } from "@hyperjump/browser";
+import { Hyperjump, compose, httpCache, throttle, scheduler, nodeTransport } from "@hyperjump/browser";
 
-const stack = compose(httpCache(), throttle(), scheduler())(defaultTransport());
+const stack = compose(httpCache(), throttle(), scheduler())(nodeTransport());
 const session = new Hyperjump({ stack, allowRetrieval: ["https://example.com/"] });
 
 await session.fetch("https://example.com/hero.jpg", { priority: "high" });
