@@ -32,7 +32,14 @@ Rejected:
   channel with no types and no owner, so two layers that used it would
   depend on each other's order and keys without saying so.
 - Context fields as standard headers, like `Cache-Control` for the cache
-  mode, `Priority` for priority, and `Sec-Fetch-Dest` for the destination,
-  so a layer sees only the request. A priority can change while a request
-  waits, which a header can't, and a browser doesn't let a script set
-  `Sec-` headers.
+  mode, `Priority` for priority, `Sec-Fetch-Dest` for the destination, and
+  `Referer` for the initiator, so a layer sees only the request.
+  - A priority can change while a request waits, which a header can't.
+  - A browser doesn't let a script set `Sec-` headers or `Referer`. It
+    drops them without an error, so a stack in a browser would see no
+    destination, and act differently than it does in Node.js.
+  - A header that's for layers goes to the server unless something below
+    takes it out, so every transport would have to know which headers are
+    the layers'. That's a side channel.
+  - The session and the record aren't about the request, so no header
+    could say them.
