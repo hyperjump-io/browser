@@ -1,10 +1,13 @@
 # Packaging
 
 - It's designed for Node.js and browsers. Subpath imports (`#file-scheme`,
-  `#node-transport`, `#file-cache-store`) give browser versions of the parts that need
-  Node.js, which bundlers that support the `imports` field choose for a
-  browser. A browser version throws when it's used, with a message that
-  says it isn't supported there.
+  `#node-transport`, `#file-cache-store`) give browser versions of the
+  parts that need Node.js, which bundlers that support the `imports` field
+  choose for a browser. A browser version throws when it's used, with a
+  message that says it isn't supported there.
+- What's different in each runtime without being unsupported in one has a
+  version for each too: the context URL (`#context-url`), a `file:` URL's
+  real path (`#real-url`), and the default stack (`#default-stack`).
 - There's one entry point, `@hyperjump/browser`. The package has no side
   effects, so a bundler drops what isn't imported.
 - `index.js` imports the parts with versions through their subpath imports,

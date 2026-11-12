@@ -7,8 +7,19 @@ on a stack it's given and gives the stack what the stack can't know.
   has it as `ctx.session`.
 - `new Hyperjump(config)` takes one configuration object, with the stack in
   it as a `Fetcher`, so any stack, or any part of one, can be a session's.
-  Without one, it's `defaultTransport()`. The configuration is a value an
-  application keeps, so another session is `new Hyperjump(config)`.
+  The configuration is a value an application keeps, so another session is
+  `new Hyperjump(config)`.
+- Without a stack, a session has a default stack of its own
+  (`#default-stack`), which is different in each runtime:
+  - In Node.js it's `scheduler()` over `nodeTransport()`. Node.js opens a
+    connection for every `fetch`, so 50 requests to one origin would open
+    50 connections there. `nodeTransport()` has `file:`, which the default
+    `allowRetrieval` is for.
+  - In a browser it's `defaultTransport()`. A browser limits connections
+    itself.
+  - It has no HTTP cache. A default stack lives as long as its session, so
+    a cache in it would be gone with the session, and a browser caches
+    already.
 - A relative URL is resolved against the context URL, as it is in a
   browser: the working directory in Node.js and the page in a browser
   (`#context-url`). The session reads it once, when it's created, so
@@ -67,5 +78,9 @@ Rejected:
   change something.
 - The stack as an argument of its own, `new Hyperjump(stack, options)`. An
   application would have two values to keep for one configuration.
+- One default stack for every session without one. Sessions that never
+  said they belong together would share the scheduler's limits and
+  whatever else the stack keeps. Sessions share a stack by being given the
+  same one.
 - A class that holds the configuration and makes sessions. A plain object
   holds it already.

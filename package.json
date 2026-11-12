@@ -34,6 +34,10 @@
       "node": "./src/context-url.js",
       "default": "./src/context-url.browser.js"
     },
+    "#default-stack": {
+      "node": "./src/default-stack.js",
+      "default": "./src/default-stack.browser.js"
+    },
     "#real-url": {
       "node": "./src/real-url.js",
       "default": "./src/real-url.browser.js"

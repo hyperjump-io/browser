@@ -5,7 +5,8 @@ import type { FetchRecord, Observer } from "./fetch-record.d.ts";
 export type HyperjumpConfig = {
   /**
    * What the session fetches through: a transport, or layers on one. Without
-   * one, it's `defaultTransport()`.
+   * one, the session has a stack of its own: in Node.js, a `scheduler()` on
+   * `nodeTransport()`, and in a browser, `defaultTransport()`.
    */
   stack?: Fetcher;
 

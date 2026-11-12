@@ -1,13 +1,13 @@
 import { responseMeta, setResponseMeta, trackBody } from "./response-meta.js";
 import { PrioritySignal } from "./priority.js";
 import { recordChunk, recordEnd, recordResponse, startRecord } from "./fetch-record.js";
-import { defaultTransport } from "./transports/scheme-transport.js";
 import { follow, sentHeaders } from "./redirects.js";
 import { urlEntries } from "./url-entries.js";
 import { headersFor } from "./request-headers.js";
 import { allows, realEntries, refused, resolveAllowRetrieval } from "./allowed-urls.js";
 import { canRefer, referrerOf, refusedReference } from "./file-references.js";
 import { contextUrl, defaultAllowRetrieval } from "#context-url";
+import { defaultStack } from "#default-stack";
 
 /**
  * @import * as API from "./hyperjump.d.ts"
@@ -65,7 +65,7 @@ export class Hyperjump {
   /** @param {API.HyperjumpConfig} [config] */
   constructor(config = {}) {
     /** @type Fetcher */
-    this.stack = config.stack ?? defaultTransport();
+    this.stack = config.stack ?? defaultStack();
     this.#headers = urlEntries(config.headers ?? {}, this.#contextUrl);
     this.#allowRetrieval = resolveAllowRetrieval(config.allowRetrieval, this.#contextUrl, defaultAllowRetrieval);
     this.#policy = {

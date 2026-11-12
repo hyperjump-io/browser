@@ -83,8 +83,9 @@ describe("sessions", () => {
     await expect(second.fetch("https://a.test/x")).rejects.toThrow(/isn't allowed/);
   });
 
-  test("without a stack, it's the default transport", async () => {
-    expect(await (await new Hyperjump().fetch("data:text/plain,hi")).text()).to.equal("hi");
+  test("without a stack, it has the default stack, which reads files in Node.js", async () => {
+    const response = await new Hyperjump().fetch("package.json");
+    expect((await response.json()).name).to.equal("@hyperjump/browser");
   });
 
   test("state is made once per key and session", () => {

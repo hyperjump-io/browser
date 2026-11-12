@@ -14,9 +14,19 @@ const session = new Hyperjump({
 const page = await session.fetch("https://example.com/docs/index.html");
 ```
 
-`session.fetch` takes the same arguments as `fetch`. Without a stack, a session
-fetches `http:`, `https:`, and `data:` URLs with the runtime's `fetch`. For more
-information about stacks, see [Layers](layers.md).
+`session.fetch` takes the same arguments as `fetch`. For more information about
+stacks, see [Layers](layers.md).
+
+Without a stack, a session gets a default stack of its own:
+
+- In Node.js, it's `scheduler()` on `nodeTransport()`. It fetches `http:`,
+  `https:`, `data:`, and `file:` URLs, and limits how many requests go to each
+  server at once. For more information, see [Priorities](priorities.md).
+- In a browser, it's `defaultTransport()`, which fetches `http:`, `https:`, and
+  `data:` URLs with the browser's `fetch`.
+
+The default stack has no HTTP cache. To cache responses, or to share a stack
+between sessions, build your own.
 
 The configuration is a plain object, so you can keep it and create another
 session from it with `new Hyperjump(config)`. Sessions with the same stack
@@ -32,7 +42,7 @@ document refers to, resolve it against the document's URL yourself, such as
 
 | Option | Description |
 | --- | --- |
-| `stack` | What the session fetches through: a transport, or layers on one. The default is `defaultTransport()`. |
+| `stack` | What the session fetches through: a transport, or layers on one. The default is a stack of the session's own. |
 | `allowRetrieval` | The URLs the session can fetch. By default, it allows the working directory in Node.js and the page's origin in a browser. For more information, see [What a session can fetch](allow-retrieval.md). |
 | `headers` | Headers for the requests to some URLs, such as credentials. For more information, see [Headers](#headers). |
 | `maxRedirects` | How many redirects a request can follow before it's a network error. The default is 20. |
