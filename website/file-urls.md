@@ -35,8 +35,11 @@ nodeTransport({ file: { contentTypes: { ts: "text/typescript" } } });
 ## Errors
 
 As in a browser, a file the session can't read is a network error, not a 404.
-`session.fetch` rejects with a `TypeError` when the file doesn't exist, the URL
-is a directory, or the method isn't `GET` or `HEAD`.
+`session.fetch` rejects with a `TypeError` when the file doesn't exist or can't
+be read, the URL is a directory, or the method isn't `GET` or `HEAD`. The
+message says which, and the error's `cause` is the error from the filesystem,
+so a file that doesn't exist has a `cause.code` of `ENOENT`. For more
+information, see [Errors](errors.md).
 
 ## Limit what a session can read
 

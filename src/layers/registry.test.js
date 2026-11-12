@@ -42,7 +42,7 @@ describe("the registry", () => {
   test("onMiss: error lets only what's registered be fetched", async () => {
     const session = testSession(registry({ entries: { "https://a.test/x": "x" }, onMiss: "error" })(defaultTransport()));
     expect(await (await session.fetch("https://a.test/x")).text()).to.equal("x");
-    await expect(session.fetch("https://a.test/y")).rejects.toThrow(/isn't in the registry/);
+    await expect(session.fetch("https://a.test/y")).rejects.toMatchObject({ cause: { code: "ERR_NOT_IN_REGISTRY" } });
   });
 
   test("HEAD has no body", async () => {

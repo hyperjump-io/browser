@@ -18,7 +18,7 @@ export class SchemeTransport {
     const scheme = new URL(request.url).protocol;
     const handler = this.schemes[scheme];
     if (!handler) {
-      throw networkError(`The '${scheme}' scheme isn't supported, so '${request.url}' can't be fetched`);
+      throw networkError(`The '${scheme}' scheme isn't supported, so '${request.url}' can't be fetched`, { code: "ERR_UNKNOWN_URL_SCHEME" });
     }
     return handler.fetch(request, ctx);
   }
@@ -32,10 +32,32 @@ export class SchemeTransport {
 /** @type typeof API.networkFetcher */
 export const networkFetcher = fetcher(async (request, ctx) => {
   ctx.record.mark("network:start", { priority: ctx.priority.value });
-  const response = await globalThis.fetch(request);
+  let response;
+  try {
+    response = await globalThis.fetch(request);
+  } catch (error) {
+    throw fetchFailed(request, error);
+  }
   ctx.record.mark("network:response", { status: response.status });
   return setResponseMeta(response, { source: "network" });
 });
+
+/**
+ * A runtime's network error says only that the fetch failed, like Node.js's
+ * "fetch failed", so it's given the URL and its cause's message. Its cause
+ * is the runtime's, with its `code`, like `ENOTFOUND`. An abort is given on
+ * as it is.
+ *
+ * @type (request: Request, error: unknown) => unknown
+ */
+const fetchFailed = (request, error) => {
+  if (request.signal.aborted || !(error instanceof TypeError)) {
+    return error;
+  }
+  const cause = error.cause ?? error;
+  const reason = error.cause instanceof Error ? `: ${error.cause.message}` : "";
+  return networkError(`Failed to fetch '${request.url}'${reason}`, cause);
+};
 
 /** @type typeof API.defaultTransport */
 export const defaultTransport = (extra = {}) => new SchemeTransport({

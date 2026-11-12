@@ -52,7 +52,7 @@ export const allows = async (entries, url) => {
 };
 
 /** @type (url: string) => TypeError */
-export const refused = (url) => networkError(`Fetching '${url}' isn't allowed. Add it to the session's 'allowRetrieval' to allow it.`);
+export const refused = (url) => networkError(`Fetching '${url}' isn't allowed. Add it to the session's 'allowRetrieval' to allow it.`, { code: "ERR_RETRIEVAL_NOT_ALLOWED" });
 
 /** @type (url: string, responseUrl: string) => TypeError */
-export const refusedResponse = (url, responseUrl) => networkError(`Fetching '${url}' led to '${responseUrl}', which isn't allowed. Add it to the session's 'allowRetrieval' to allow it.`);
+export const refusedResponse = (url, responseUrl) => networkError(`Fetching '${url}' led to '${responseUrl}', which isn't allowed. Add it to the session's 'allowRetrieval' to allow it.`, { code: "ERR_RETRIEVAL_NOT_ALLOWED" });

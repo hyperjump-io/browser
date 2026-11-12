@@ -29,7 +29,9 @@ describe("file: references", () => {
     test("a document from the web can't refer to a file, even one allowRetrieval allows", async () => {
       const { session, fetched } = setup();
       const page = await session.fetch("https://a.test/page.json");
-      await expect(session.fetch("file:///project/a.json", { initiator: page })).rejects.toThrow("Fetching 'file:///project/a.json' isn't allowed from 'https://a.test/page.json'. Only a file: document can refer to a file: URL.");
+      const fetching = session.fetch("file:///project/a.json", { initiator: page });
+      await expect(fetching).rejects.toThrow("Fetching 'file:///project/a.json' isn't allowed from 'https://a.test/page.json'. Only a file: document can refer to a file: URL.");
+      await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
       expect(fetched()).to.eql(["https://a.test/page.json"]);
     });
 
@@ -79,7 +81,9 @@ describe("file: references", () => {
       const web = await session.fetch("https://a.test/page.json", { redirect: "manual" });
       fetched.length = 0;
 
-      await expect(session.fetch("https://a.test/start", { initiator: web })).rejects.toThrow("Fetching 'https://a.test/start' led to 'file:///project/a.json', which isn't allowed from 'https://a.test/page.json'. Only a file: document can refer to a file: URL.");
+      const fetching = session.fetch("https://a.test/start", { initiator: web });
+      await expect(fetching).rejects.toThrow("Fetching 'https://a.test/start' led to 'file:///project/a.json', which isn't allowed from 'https://a.test/page.json'. Only a file: document can refer to a file: URL.");
+      await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
       expect(fetched).to.eql(["https://a.test/start"]);
 
       expect(await (await session.fetch("https://a.test/start", { initiator: page })).text(), "from a file").to.equal("from file:///project/a.json");

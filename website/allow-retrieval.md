@@ -45,6 +45,9 @@ Fetching a URL the list doesn't allow is a network error, the `TypeError` that
 Fetching 'https://example.com/other' isn't allowed. Add it to the session's 'allowRetrieval' to allow it.
 ```
 
+Its `cause.code` is `ERR_RETRIEVAL_NOT_ALLOWED`, so your app can tell a refused
+URL from one that failed. For more information, see [Errors](errors.md).
+
 A refused request doesn't get the session's [headers](sessions.md#headers), and
 a trace shows it as a request that failed. For more information, see
 [Tracing](tracing.md).

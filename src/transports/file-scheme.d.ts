@@ -14,7 +14,9 @@ export type FileSchemeOptions = {
 
 /**
  * `file:` URLs, on a server. As in a browser, a missing file, a directory, or
- * a method other than `GET` or `HEAD` is a network error, not a 404. A
+ * a method other than `GET` or `HEAD` is a network error, not a 404. A file
+ * is opened before it's answered, so one that can't be read is a network
+ * error too, whose cause is the filesystem's error, like `ENOENT`. A
  * response has the file's `Content-Type` by its extension, its
  * `Content-Length`, and its `Last-Modified`, and its body is streamed.
  *

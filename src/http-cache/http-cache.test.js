@@ -184,7 +184,7 @@ describe("the HTTP cache", () => {
   test("has the cache modes of Request.cache", async () => {
     const { server, get, advance, hits } = await setup();
     try {
-      await expect(get("/max-age", { cache: "only-if-cached" })).rejects.toThrow(/isn't in the cache/);
+      await expect(get("/max-age", { cache: "only-if-cached" })).rejects.toMatchObject({ cause: { code: "ERR_CACHE_MISS" } });
       await get("/max-age");
 
       expect((await get("/max-age", { cache: "no-store" })).cache).to.equal("bypass");

@@ -5,7 +5,13 @@
 
 - A missing file, a directory, or a method other than `GET` or `HEAD` is a
   network error, as in a browser, not a 404 (see
-  [Like a web browser](../principles/like-a-web-browser.md)).
+  [Like a web browser](../principles/like-a-web-browser.md)). Its cause is
+  the error from the filesystem, like `ENOENT`, and its message says what
+  that means for the URL, like "doesn't exist" (see
+  [Network errors](network-errors.md)).
+- The file is opened before it's answered, so one that can't be read is a
+  network error, not a body that fails partway. Its size and modified time
+  are from the open file.
 - A response is a 200 with the file's `Content-Length`, `Last-Modified`,
   and, if its extension has one, `Content-Type`
   (`contentTypeByExtension`). A file doesn't have a media type, so its
@@ -14,7 +20,8 @@
   aborts.
 - The query and fragment aren't part of the path.
 - `root` limits what can be read to a directory. A path outside it is a
-  network error. It's the transport's, so it's for every session on the
+  network error. A `root` that can't be read is one too, and its message
+  names `root`, so it isn't mistaken for a missing file. It's the transport's, so it's for every session on the
   stack, before a session's `allowRetrieval`, which allows only the working
   directory by default (see [What a session can fetch](allow-retrieval.md)).
 - Only a `file:` document can refer to a `file:` URL. It's the session's

@@ -64,5 +64,10 @@ export const replaceBody: (response: Response, body: ReadableStream<Uint8Array> 
  */
 export const trackBody: (response: Response, done: () => void, onChunk?: (chunk: Uint8Array) => void) => Response;
 
-/** A network error, the `TypeError` `fetch` rejects with */
+/**
+ * A network error, the `TypeError` `fetch` rejects with. Its message says
+ * what went wrong, and its `cause` has a `code` that says it to code: the
+ * error it comes from, like the filesystem's (`ENOENT`), or `{ code }` for
+ * one a layer makes itself, like `{ code: "ERR_NOT_IN_REGISTRY" }`.
+ */
 export const networkError: (message: string, cause?: unknown) => TypeError;

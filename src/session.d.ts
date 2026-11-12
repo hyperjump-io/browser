@@ -117,7 +117,8 @@ export class Session {
    * Fetch through the stack. A relative URL is resolved against the working
    * directory in Node.js or the page in a browser, which the session reads
    * when it's created. Like `fetch`, it rejects with a `TypeError` for a
-   * network error.
+   * network error. Its message says what went wrong, and its `cause.code`
+   * says it to code, like `ENOENT` or `ERR_RETRIEVAL_NOT_ALLOWED`.
    *
    * @throws The session's signal's reason if the session is closed.
    */

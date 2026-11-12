@@ -50,7 +50,7 @@ export class Registry {
     const entry = this.#entries.get(withoutFragment(url)) ?? await this.#options.resolve?.(url, request);
     if (entry === undefined) {
       if (this.#options.onMiss === "error") {
-        throw networkError(`'${request.url}' isn't in the registry`);
+        throw networkError(`'${request.url}' isn't in the registry, and its onMiss is "error"`, { code: "ERR_NOT_IN_REGISTRY" });
       }
       return this.inner.fetch(request, ctx);
     }

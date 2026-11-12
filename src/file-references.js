@@ -26,7 +26,7 @@ export const canRefer = (url, referrer) => referrer === undefined
 const onlyFiles = "Only a file: document can refer to a file: URL.";
 
 /** @type (url: string, referrer: string) => TypeError */
-export const refusedReference = (url, referrer) => networkError(`Fetching '${url}' isn't allowed from '${referrer}'. ${onlyFiles}`);
+export const refusedReference = (url, referrer) => networkError(`Fetching '${url}' isn't allowed from '${referrer}'. ${onlyFiles}`, { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" });
 
 /** @type (url: string, responseUrl: string, referrer: string) => TypeError */
-export const refusedReferenceResponse = (url, responseUrl, referrer) => networkError(`Fetching '${url}' led to '${responseUrl}', which isn't allowed from '${referrer}'. ${onlyFiles}`);
+export const refusedReferenceResponse = (url, responseUrl, referrer) => networkError(`Fetching '${url}' led to '${responseUrl}', which isn't allowed from '${referrer}'. ${onlyFiles}`, { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" });

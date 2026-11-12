@@ -123,7 +123,7 @@ describe("filling gaps in partial content", () => {
     try {
       await get("bytes=0-9");
       const before = file.seen.length;
-      await expect(get("bytes=0-14", "only-if-cached")).rejects.toThrow(/isn't in the cache/);
+      await expect(get("bytes=0-14", "only-if-cached")).rejects.toMatchObject({ cause: { code: "ERR_CACHE_MISS" } });
       expect(file.seen.length, "only-if-cached doesn't fetch").to.equal(before);
       const forced = await get("bytes=0-14", "force-cache");
       expect(file.seen.at(-1)).to.eql({ range: "bytes=10-14", ifRange: "\"v1\"" });

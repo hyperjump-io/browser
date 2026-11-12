@@ -14,7 +14,7 @@ and RFC 9111.
   connection.
 - A failure is a network error, the `TypeError` `fetch` rejects with, as it
   is in a browser: a missing file, an unsupported scheme, a refused
-  redirect.
+  redirect (see [Network errors](../components/network-errors.md)).
 - What a browser shows in devtools, like where a response came from or a
   waterfall of a page load, is available too (see
   [Tracing](../components/tracing.md)).
@@ -26,5 +26,12 @@ and RFC 9111.
 Rejected:
 
 - Answering failures with error responses (a 403 for a refusal, a 404 for a
-  missing file). That's what a proxy does, not what `fetch` does, and code
-  written for `fetch` expects a rejected promise.
+  missing file). A status is what a server says, and for these no server
+  answered. A browser that can't find a `file:` URL gives a network error,
+  not a 404, and so does Deno's `fetch`. A server that serves files answers
+  404 because the server chose to. Code written for `fetch` expects a
+  rejected promise too.
+  - A layer above a failure could see an error response like any other.
+    Here a refusal is the session's, above every layer, so no layer is
+    above it. A layer can catch what fails below it, and its `cause.code`
+    says why.

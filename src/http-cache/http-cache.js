@@ -104,7 +104,7 @@ export class HttpCache {
     const entry = found?.partial ? undefined : found;
     if (!entry) {
       if (mode === "only-if-cached") {
-        throw networkError(`'${request.url}' isn't in the cache`);
+        throw networkError(`'${request.url}' isn't in the cache, and its cache mode is "only-if-cached"`, { code: "ERR_CACHE_MISS" });
       }
       if (method === "HEAD") {
         return markCache(await this.inner.fetch(request, ctx), "miss");
@@ -283,7 +283,7 @@ export class HttpCache {
       }
     }
     if (mode === "only-if-cached") {
-      throw networkError(`'${request.url}' (${request.headers.get("range")}) isn't in the cache`);
+      throw networkError(`'${request.url}' (${request.headers.get("range")}) isn't in the cache, and its cache mode is "only-if-cached"`, { code: "ERR_CACHE_MISS" });
     }
 
     // If-Range checks the stored parts, so they can be used even when stale

@@ -156,13 +156,15 @@ describe("redirects", () => {
     const server = await redirectServer();
     try {
       const session = testSession(defaultTransport(), { allow: [server.url], maxRedirects: 5 });
-      await expect(session.fetch(`${server.url}/r/302/echo`, { redirect: "error" })).rejects.toThrow(TypeError);
+      await expect(session.fetch(`${server.url}/r/302/echo`, { redirect: "error" })).rejects.toMatchObject({ cause: { code: "ERR_UNEXPECTED_REDIRECT" } });
 
       const manual = await session.fetch(`${server.url}/r/302/echo`, { redirect: "manual" });
       expect(manual.status).to.equal(302);
       expect(manual.headers.get("location")).to.equal("/echo");
 
-      await expect(session.fetch(`${server.url}/loop`)).rejects.toThrow(/more than 5 times/);
+      const looping = session.fetch(`${server.url}/loop`);
+      await expect(looping).rejects.toThrow(/more than 5 times, the session's 'maxRedirects'/);
+      await expect(looping).rejects.toMatchObject({ cause: { code: "ERR_TOO_MANY_REDIRECTS" } });
 
       const noLocation = await session.fetch(`${server.url}/no-location`);
       expect(noLocation.status).to.equal(302);
@@ -193,7 +195,9 @@ describe("redirects", () => {
       await expect(parent.child().fetch(`${server.url}/chain/1`)).rejects.toThrow(/more than 1 times/);
       expect(await (await parent.child().fetch(`${server.url}/to-data`)).text()).to.equal("hi");
       expect((await parent.child({ maxRedirects: 2 }).fetch(`${server.url}/chain/1`)).status).to.equal(200);
-      await expect(parent.child({ redirectSchemes: ["http:"] }).fetch(`${server.url}/to-data`)).rejects.toThrow(/isn't allowed/);
+      const toData = parent.child({ redirectSchemes: ["http:"] }).fetch(`${server.url}/to-data`);
+      await expect(toData).rejects.toThrow(/Add the scheme to the session's 'redirectSchemes'/);
+      await expect(toData).rejects.toMatchObject({ cause: { code: "ERR_UNSAFE_REDIRECT" } });
     } finally {
       await server.close();
     }

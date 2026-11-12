@@ -99,7 +99,9 @@ describe("allowRetrieval", () => {
 
     test("the default doesn't allow the network", async () => {
       const session = new Session(fetcher(() => new Response("fetched")));
-      await expect(session.fetch("https://a.test/")).rejects.toThrow("Fetching 'https://a.test/' isn't allowed. Add it to the session's 'allowRetrieval' to allow it.");
+      const fetching = session.fetch("https://a.test/");
+      await expect(fetching).rejects.toThrow("Fetching 'https://a.test/' isn't allowed. Add it to the session's 'allowRetrieval' to allow it.");
+      await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_RETRIEVAL_NOT_ALLOWED" } });
     });
 
     test("a symlink to a file outside an allowed directory is refused", async () => {
@@ -117,7 +119,7 @@ describe("allowRetrieval", () => {
 
     test("a missing file in an allowed directory is missing, not refused", async () => {
       const session = new Session(nodeTransport(), { allowRetrieval: [directoryUrl(inside)] });
-      await expect(session.fetch(fileUrl(inside, "missing.json"))).rejects.toThrow(/Failed to fetch/);
+      await expect(session.fetch(fileUrl(inside, "missing.json"))).rejects.toMatchObject({ cause: { code: "ENOENT" } });
     });
 
     test("a file: entry with a host is compared as it is", async () => {
@@ -135,7 +137,9 @@ describe("allowRetrieval", () => {
         fetched.push(request.url);
         return new Response(null, { status: 302, headers: { location: "https://internal.test/secret" } });
       }), { allowRetrieval: ["https://a.test/"] });
-      await expect(session.fetch("https://a.test/start")).rejects.toThrow("Fetching 'https://a.test/start' led to 'https://internal.test/secret', which isn't allowed. Add it to the session's 'allowRetrieval' to allow it.");
+      const fetching = session.fetch("https://a.test/start");
+      await expect(fetching).rejects.toThrow("Fetching 'https://a.test/start' led to 'https://internal.test/secret', which isn't allowed. Add it to the session's 'allowRetrieval' to allow it.");
+      await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_RETRIEVAL_NOT_ALLOWED" } });
       expect(fetched).to.eql(["https://a.test/start"]);
     });
 
