@@ -9,7 +9,6 @@ import { Session, nodeTransport } from "@hyperjump/browser";
 const session = new Session(nodeTransport({ file: { root: "./site" } }));
 
 const page = await session.fetch("site/index.html");
-page.headers.get("Content-Type"); // "text/html; charset=utf-8"
 ```
 
 A relative URL is relative to the working directory, and by default a session
@@ -22,15 +21,11 @@ A file's response is a 200 with these headers:
 
 | Header | Value |
 | --- | --- |
-| `Content-Type` | The type for the file's extension, if there is one |
 | `Content-Length` | The file's size |
 | `Last-Modified` | When the file last changed |
 
-To add types for more extensions, or change one, use the `contentTypes` option:
-
-```typescript
-nodeTransport({ file: { contentTypes: { ts: "text/typescript" } } });
-```
+A file's response has no `Content-Type` header, because a file doesn't have a
+media type.
 
 ## Errors
 

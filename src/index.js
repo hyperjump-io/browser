@@ -4,7 +4,6 @@ export * from "./priority.js";
 export { FetchRecord } from "./fetch-record.js";
 export * from "./response-meta.js";
 export * from "./transports/scheme-transport.js";
-export * from "./content-type.js";
 export * from "#file-scheme";
 export * from "#node-transport";
 export * from "./http-cache/http-cache.js";

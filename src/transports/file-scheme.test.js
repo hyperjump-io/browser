@@ -25,7 +25,6 @@ describe("the file: scheme", () => {
     directory = await realpath(await mkdtemp(join(tmpdir(), "browser-file-")));
     await mkdir(join(directory, "site"));
     await writeFile(join(directory, "site", "index.html"), "<h1>hi</h1>");
-    await writeFile(join(directory, "site", "data.ts"), "export {}");
     await writeFile(join(directory, "secret.txt"), "nope");
     await writeFile(join(directory, "site", "unreadable.txt"), "nope");
     await chmod(join(directory, "site", "unreadable.txt"), 0o000);
@@ -33,27 +32,21 @@ describe("the file: scheme", () => {
     await symlink(join(directory, "site", "index.html"), join(directory, "site", "alias.html"));
     const siteUrl = pathToFileURL(join(directory, "site") + "/");
     site = (path) => new URL(path, siteUrl);
-    session = testSession(nodeTransport({ file: { root: join(directory, "site"), contentTypes: { ts: "text/typescript" } } }), {
+    session = testSession(nodeTransport({ file: { root: join(directory, "site") } }), {
       // What `root` refuses, so these tests are about `root`
       allow: [pathToFileURL(directory + "/").href]
     });
   });
 
-  test("a file's response has its content type, length, and URL", async () => {
+  test("a file's response has its length and URL, and no content type", async () => {
     const response = await session.fetch(site("index.html"));
     expect(response.status).to.equal(200);
-    expect(response.headers.get("content-type")).to.equal("text/html; charset=utf-8");
+    expect(response.headers.get("content-type")).to.equal(null);
     expect(response.headers.get("content-length")).to.equal("11");
     expect(response.headers.get("last-modified")).to.be.a("string");
     expect(response.url).to.equal(pathToFileURL(join(directory, "site", "index.html")).href);
     expect(responseMeta(response).source).to.equal("file");
     expect(await response.text()).to.equal("<h1>hi</h1>");
-  });
-
-  test("more content types can be given", async () => {
-    const response = await session.fetch(site("data.ts"));
-    expect(response.headers.get("content-type")).to.equal("text/typescript");
-    await response.body?.cancel();
   });
 
   test("HEAD has no body", async () => {

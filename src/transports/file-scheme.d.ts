@@ -7,9 +7,6 @@ export type FileSchemeOptions = {
    * URLs can come from documents you didn't write.
    */
   root?: string;
-
-  /** More extensions' content types, without the dot, like `{ ts: "text/typescript" }` */
-  contentTypes?: Record<string, string>;
 };
 
 /**
@@ -17,8 +14,8 @@ export type FileSchemeOptions = {
  * a method other than `GET` or `HEAD` is a network error, not a 404. A file
  * is opened before it's answered, so one that can't be read is a network
  * error too, whose cause is the filesystem's error, like `ENOENT`. A
- * response has the file's `Content-Type` by its extension, its
- * `Content-Length`, and its `Last-Modified`, and its body is streamed.
+ * response has the file's `Content-Length` and `Last-Modified`, and no
+ * `Content-Type`, because a file doesn't have one. Its body is streamed.
  *
  * In a browser, it throws.
  */

@@ -3,7 +3,6 @@ import { isAbsolute, relative, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { fetcher } from "../layers.js";
-import { contentTypeByExtension } from "../content-type.js";
 import { networkError, setResponseMeta, withUrl } from "../response-meta.js";
 
 /**
@@ -73,10 +72,6 @@ export const fileScheme = (options = {}) => fetcher(async (request, ctx) => {
     "content-length": String(stats.size),
     "last-modified": stats.mtime.toUTCString()
   });
-  const contentType = contentTypeByExtension(path, options.contentTypes);
-  if (contentType) {
-    headers.set("content-type", contentType);
-  }
 
   let body = null;
   if (request.method === "HEAD") {

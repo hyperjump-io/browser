@@ -12,10 +12,10 @@
 - The file is opened before it's answered, so one that can't be read is a
   network error, not a body that fails partway. Its size and modified time
   are from the open file.
-- A response is a 200 with the file's `Content-Length`, `Last-Modified`,
-  and, if its extension has one, `Content-Type`
-  (`contentTypeByExtension`). A file doesn't have a media type, so its
-  extension is all there is. `contentTypes` adds or replaces extensions.
+- A response is a 200 with the file's `Content-Length` and
+  `Last-Modified`. It has no `Content-Type`, because a file doesn't have a
+  media type. What a file is, by its extension, is for whoever reads the
+  response to say.
 - The body is streamed, and the stream is closed when the request's signal
   aborts.
 - The query and fragment aren't part of the path.
@@ -42,6 +42,9 @@ Rejected:
   directory, and two URLs for one file would be two documents.
 - A 404 for a missing file. That's a server's answer, and a browser gives a
   network error.
+- A `Content-Type` from a fixed table of extensions, with an option for
+  more. The transport would decide what files are, and a table can't know
+  an application's types.
 - `file:` in `defaultTransport()`. It needs Node.js, and a stack for a
   browser would have to leave it out.
 
