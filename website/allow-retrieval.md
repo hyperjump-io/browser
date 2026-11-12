@@ -10,7 +10,8 @@ it. That's why a session fetches only the URLs its `allowRetrieval` option
 allows:
 
 ```typescript
-const session = new Session(stack, {
+const session = new Hyperjump({
+  stack,
   allowRetrieval: ["./", "https://api.example.com/"]
 });
 ```

@@ -1,4 +1,4 @@
-import type { Session } from "./session.d.ts";
+import type { Hyperjump } from "./hyperjump.d.ts";
 import type { ResponseMeta } from "./response-meta.d.ts";
 
 /** Something a layer did with a request, and when */
@@ -11,13 +11,13 @@ export type Mark = {
   detail?: unknown;
 };
 
-/** What a session tells its observers (see {@link Session.observe}) */
+/** What a session tells its observers (see {@link Hyperjump.observe}) */
 export type TraceEvent = { type: "start" | "response" | "end"; record: FetchRecord } | { type: "mark"; record: FetchRecord; mark: Mark };
 
 export type Observer = (event: TraceEvent) => void;
 
 /**
- * Everything known about one {@link Session.fetch}: what was asked for, what
+ * Everything known about one {@link Hyperjump.fetch}: what was asked for, what
  * caused it, what each layer did with it, and how it ended. A response has
  * its record as `responseMeta(response).record`, and a layer has it as
  * `ctx.record`. A record is made by the session.
@@ -30,7 +30,7 @@ export class FetchRecord {
 
   /** The request that caused this one, like the document that referred to it */
   readonly initiator: FetchRecord | undefined;
-  readonly session: Session;
+  readonly session: Hyperjump;
 
   /** Milliseconds, from `performance.now()` */
   readonly startTime: number;
@@ -95,7 +95,7 @@ export type FetchRecordJson = {
 };
 
 /**
- * Start a record. It's for {@link Session.fetch}, which tells observers
+ * Start a record. It's for {@link Hyperjump.fetch}, which tells observers
  * through `notify`.
  *
  * @internal
@@ -104,7 +104,7 @@ export const startRecord: (init: {
   url: string;
   method: string;
   initiator: FetchRecord | undefined;
-  session: Session;
+  session: Hyperjump;
   priority: string;
   requestHeaders: [string, string][];
   notify: Observer;

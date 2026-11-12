@@ -11,7 +11,7 @@ A stack is layers on top of a transport. Each layer wraps the one below it, and
 
 ```typescript
 import {
-  Session, Trace, compose, nodeTransport,
+  Hyperjump, Trace, compose, nodeTransport,
   httpCache, throttle, scheduler
 } from "@hyperjump/browser";
 
@@ -36,11 +36,12 @@ down the whole stack. For more information, see [Redirects](redirects.md).
 
 ## Load a page
 
-A session is the requests that belong together, like a page load. Create one on
-the stack, and fetch the page:
+A session is the requests that belong together, like a page load. Create one
+from a configuration that has the stack, and fetch the page:
 
 ```typescript
-const session = new Session(stack, { allowRetrieval: ["https://example.com/"] });
+const config = { stack, allowRetrieval: ["https://example.com/"] };
+const session = new Hyperjump(config);
 const trace = new Trace(session);
 
 const page = await session.fetch("https://example.com/index.html");
@@ -82,10 +83,10 @@ information, see [Tracing](tracing.md).
 
 ## Load it again
 
-Fetch the page again in a new session on the same stack:
+Fetch the page again in a new session with the same configuration:
 
 ```typescript
-const again = new Session(stack, { allowRetrieval: ["https://example.com/"] });
+const again = new Hyperjump(config);
 await (await again.fetch("https://example.com/index.html")).text();
 ```
 

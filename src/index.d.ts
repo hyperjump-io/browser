@@ -2,7 +2,7 @@
  * @module browser
  */
 
-export * from "./session.js";
+export * from "./hyperjump.js";
 export * from "./layers.js";
 export * from "./priority.js";
 export { FetchRecord } from "./fetch-record.js";

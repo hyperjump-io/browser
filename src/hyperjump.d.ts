@@ -2,7 +2,13 @@ import type { Fetcher } from "./layers.d.ts";
 import type { Priority, PrioritySignal } from "./priority.d.ts";
 import type { FetchRecord, Observer } from "./fetch-record.d.ts";
 
-export type SessionOptions = {
+export type HyperjumpConfig = {
+  /**
+   * What the session fetches through: a transport, or layers on one. Without
+   * one, it's `defaultTransport()`.
+   */
+  stack?: Fetcher;
+
   /**
    * Headers by URL, like credentials. A key that ends with `/` is for every
    * URL under it, and any other key is only for itself. A relative key is
@@ -49,7 +55,7 @@ export type HeadersFunction = (url: URL) => HeadersInit | undefined | Promise<He
 export type CacheMode = "default" | "no-store" | "reload" | "no-cache" | "force-cache" | "only-if-cached";
 
 /** `RequestInit`, with what the session gives the stack instead of the runtime */
-export type SessionFetchInit = Omit<RequestInit, "cache" | "priority"> & {
+export type HyperjumpFetchInit = Omit<RequestInit, "cache" | "priority"> & {
   /** How the HTTP cache handles the request (see {@link CacheMode}) */
   cache?: CacheMode;
 
@@ -78,9 +84,12 @@ export type SessionFetchInit = Omit<RequestInit, "cache" | "priority"> & {
  * `url`, `redirected`, and the URLs it went through as
  * `responseMeta(response).redirects`.
  */
-export class Session {
-  /** Without a stack, it's `defaultTransport()` */
-  constructor(stack?: Fetcher, options?: SessionOptions);
+export class Hyperjump {
+  /**
+   * The configuration is a plain value, so another session with the same one
+   * is `new Hyperjump(config)`
+   */
+  constructor(config?: HyperjumpConfig);
 
   readonly stack: Fetcher;
 
@@ -105,7 +114,7 @@ export class Session {
    *
    * @throws The session's signal's reason if the session is closed.
    */
-  fetch(input: string | URL | Request, init?: SessionFetchInit): Promise<Response>;
+  fetch(input: string | URL | Request, init?: HyperjumpFetchInit): Promise<Response>;
 
   /**
    * Watch the session's requests: when each starts,

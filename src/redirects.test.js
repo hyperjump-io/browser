@@ -5,18 +5,18 @@ import { nodeTransport } from "./transports/node-transport.js";
 import { responseMeta } from "./response-meta.js";
 import { httpCache } from "./http-cache/http-cache.js";
 import { readBody, settle, startServer } from "./test-helpers/server.js";
-import { testSession } from "./test-helpers/session.js";
+import { testHyperjump } from "./test-helpers/hyperjump.js";
 
 /**
- * @import { Session } from "./session.js"
- * @import { SessionOptions } from "./session.d.ts"
+ * @import { Hyperjump } from "./hyperjump.js"
+ * @import { HyperjumpConfig } from "./hyperjump.d.ts"
  */
 
 describe("redirects", () => {
   test("are followed one at a time, through the stack", async () => {
     const server = await redirectServer();
     try {
-      const session = testSession(defaultTransport(), { allow: [server.url] });
+      const session = testHyperjump(defaultTransport(), { allow: [server.url] });
       const response = await session.fetch(`${server.url}/chain/1`);
       expect(response.status).to.equal(200);
       expect(response.redirected).to.equal(true);
@@ -34,7 +34,7 @@ describe("redirects", () => {
   test("the HTTP cache stores the redirects themselves", async () => {
     const server = await redirectServer();
     try {
-      const session = testSession(httpCache()(defaultTransport()), { allow: [server.url] });
+      const session = testHyperjump(httpCache()(defaultTransport()), { allow: [server.url] });
       await (await session.fetch(`${server.url}/r/301/target?cache`)).text();
       await settle();
       const again = await session.fetch(`${server.url}/r/301/target?cache`);
@@ -61,7 +61,7 @@ describe("redirects", () => {
             return inner.fetch(request, ctx);
         }
       });
-      const session = testSession(answers(defaultTransport()), { allow: [server.url] });
+      const session = testHyperjump(answers(defaultTransport()), { allow: [server.url] });
 
       const latest = await session.fetch(`${server.url}/latest.json`);
       expect(await latest.json()).to.eql({ version: 2 });
@@ -78,7 +78,7 @@ describe("redirects", () => {
   test("change the method and body as the Fetch standard says", async () => {
     const server = await redirectServer();
     try {
-      const session = testSession(defaultTransport(), { allow: [server.url] });
+      const session = testHyperjump(defaultTransport(), { allow: [server.url] });
       /** @type (status: number) => Promise<unknown> */
       const post = async (status) => (await session.fetch(`${server.url}/r/${status}/echo`, { method: "POST", body: "payload", headers: { "content-type": "text/plain" } })).json();
 
@@ -99,7 +99,7 @@ describe("redirects", () => {
     const other = await redirectServer();
     const server = await redirectServer(() => other.url);
     try {
-      const session = testSession(defaultTransport(), { allow: [server.url, other.url] });
+      const session = testHyperjump(defaultTransport(), { allow: [server.url, other.url] });
       const headers = { authorization: "Bearer secret" };
       expect((await (await session.fetch(`${server.url}/r/302/echo`, { headers })).json()).authorization).to.equal("Bearer secret");
       const crossed = await session.fetch(`${server.url}/to-other`, { method: "POST", body: "b", headers });
@@ -117,7 +117,7 @@ describe("redirects", () => {
     const other = await redirectServer();
     const server = await redirectServer(() => other.url);
     try {
-      const session = testSession(defaultTransport(), {
+      const session = testHyperjump(defaultTransport(), {
         allow: [server.url, other.url],
         headers: {
           [`${server.url}/`]: { "x-api-key": "server" },
@@ -127,7 +127,7 @@ describe("redirects", () => {
       expect((await (await session.fetch(`${server.url}/to-other`)).json()).apiKey, "a credential doesn't follow a redirect to another origin").to.equal(null);
       expect((await (await session.fetch(`${server.url}/r/302/echo`)).json()).apiKey, "a path's credential doesn't follow a redirect out of the path").to.equal("server");
 
-      const both = testSession(defaultTransport(), {
+      const both = testHyperjump(defaultTransport(), {
         allow: [server.url, other.url],
         headers: { [`${other.url}/`]: { "x-api-key": "other" } }
       });
@@ -143,7 +143,7 @@ describe("redirects", () => {
     try {
       /** @type string[] */
       const urls = [];
-      const session = testSession(defaultTransport(), {
+      const session = testHyperjump(defaultTransport(), {
         allow: [server.url],
         headers: {
           [`${server.url}/`]: async (url) => {
@@ -163,7 +163,7 @@ describe("redirects", () => {
   test("redirect: error, manual, loops, a missing Location, and fragments", async () => {
     const server = await redirectServer();
     try {
-      const session = testSession(defaultTransport(), { allow: [server.url], maxRedirects: 5 });
+      const session = testHyperjump(defaultTransport(), { allow: [server.url], maxRedirects: 5 });
       await expect(session.fetch(`${server.url}/r/302/echo`, { redirect: "error" })).rejects.toMatchObject({ cause: { code: "ERR_UNEXPECTED_REDIRECT" } });
 
       const manual = await session.fetch(`${server.url}/r/302/echo`, { redirect: "manual" });
@@ -189,7 +189,7 @@ describe("redirects", () => {
   test("a server can't send a request to file:, even when the transport has it", async () => {
     const server = await redirectServer();
     try {
-      const session = testSession(nodeTransport(), { allow: [server.url] });
+      const session = testHyperjump(nodeTransport(), { allow: [server.url] });
       await expect(session.fetch(`${server.url}/to-file`)).rejects.toThrow(/isn't allowed/);
     } finally {
       await server.close();
@@ -199,8 +199,8 @@ describe("redirects", () => {
   test("maxRedirects and redirectSchemes are the session's", async () => {
     const server = await redirectServer();
     try {
-      /** @type (options: SessionOptions) => Session */
-      const session = (options) => testSession(defaultTransport(), { allow: [server.url], ...options });
+      /** @type (options: HyperjumpConfig) => Hyperjump */
+      const session = (options) => testHyperjump(defaultTransport(), { allow: [server.url], ...options });
       await expect(session({ maxRedirects: 1 }).fetch(`${server.url}/chain/1`)).rejects.toThrow(/more than 1 times/);
       expect((await session({ maxRedirects: 2 }).fetch(`${server.url}/chain/1`)).status).to.equal(200);
       expect(await (await session({ redirectSchemes: ["http:", "data:"] }).fetch(`${server.url}/to-data`)).text()).to.equal("hi");

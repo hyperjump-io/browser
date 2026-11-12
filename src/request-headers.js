@@ -2,7 +2,7 @@ import { valuesFor } from "./url-entries.js";
 
 /**
  * @import { UrlEntries } from "./url-entries.js"
- * @import { HeadersFunction } from "./session.d.ts"
+ * @import { HeadersFunction } from "./hyperjump.d.ts"
  */
 
 /**

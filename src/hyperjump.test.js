@@ -6,7 +6,8 @@ import { fetcher } from "./layers.js";
 import { PriorityController } from "./priority.js";
 import { responseMeta } from "./response-meta.js";
 import { startServer } from "./test-helpers/server.js";
-import { testSession } from "./test-helpers/session.js";
+import { Hyperjump } from "./hyperjump.js";
+import { testHyperjump } from "./test-helpers/hyperjump.js";
 
 /**
  * @import { TraceEvent } from "./fetch-record.d.ts"
@@ -15,13 +16,13 @@ import { testSession } from "./test-helpers/session.js";
 describe("sessions", () => {
   test("relative URLs are resolved against the working directory, and so are headers' keys", async () => {
     const echo = fetcher((request) => new Response(`${request.url} ${request.headers.get("x-a")}`));
-    const session = testSession(echo, { allow: ["./"], headers: { "./": { "x-a": "local" } } });
+    const session = testHyperjump(echo, { allow: ["./"], headers: { "./": { "x-a": "local" } } });
     const response = await session.fetch("page.html");
     expect(await response.text()).to.equal(`${pathToFileURL(join(cwd(), "page.html")).href} local`);
   });
 
   test("headers go only to the URLs they're for, and a longer key wins", async () => {
-    const session = testSession(fetcher((request) => new Response(`${request.headers.get("x-a")} ${request.headers.get("x-b")}`)), {
+    const session = testHyperjump(fetcher((request) => new Response(`${request.headers.get("x-a")} ${request.headers.get("x-b")}`)), {
       headers: {
         "https://a.test": { "x-a": "origin", "x-b": "origin" },
         "https://a.test/api/": { "x-b": "api" },
@@ -36,14 +37,14 @@ describe("sessions", () => {
   });
 
   test("a request's own headers win over the session's", async () => {
-    const session = testSession(fetcher((request) => new Response(request.headers.get("x-a"))), { headers: { "https://a.test/": { "x-a": "default" } } });
+    const session = testHyperjump(fetcher((request) => new Response(request.headers.get("x-a"))), { headers: { "https://a.test/": { "x-a": "default" } } });
     const response = await session.fetch("https://a.test/", { headers: { "x-a": "mine" } });
     expect(await response.text()).to.equal("mine");
     expect(responseMeta(response).record?.requestHeaders, "the record has the headers that were sent").to.eql([["x-a", "mine"]]);
   });
 
   test("a headers key that isn't a URL throws", () => {
-    expect(() => testSession(undefined, { headers: { "http://[": {} } })).to.throw(TypeError, /isn't a URL/);
+    expect(() => testHyperjump(undefined, { headers: { "http://[": {} } })).to.throw(TypeError, /isn't a URL/);
   });
 
   test("closing a session aborts what's in flight and refuses new requests", async () => {
@@ -51,7 +52,7 @@ describe("sessions", () => {
       // Never responds
     });
     try {
-      const session = testSession(undefined, { allow: [server.url] });
+      const session = testHyperjump(undefined, { allow: [server.url] });
       const pending = session.fetch(server.url);
       setTimeout(() => session.close(), 20);
       await expect(pending).rejects.toMatchObject({ name: "AbortError" });
@@ -62,7 +63,7 @@ describe("sessions", () => {
   });
 
   test("the caller's signal aborts its request", async () => {
-    const session = testSession(fetcher((request) => new Promise((_resolve, reject) => {
+    const session = testHyperjump(fetcher((request) => new Promise((_resolve, reject) => {
       request.signal.addEventListener("abort", () => reject(request.signal.reason));
     })));
     const controller = new AbortController();
@@ -71,19 +72,34 @@ describe("sessions", () => {
     await expect(pending).rejects.toMatchObject({ name: "AbortError" });
   });
 
+  test("a configuration is a value that makes any number of sessions", async () => {
+    const config = { stack: fetcher((request) => new Response(request.url)), allowRetrieval: ["https://a.test/"] };
+    const first = new Hyperjump(config);
+    const second = new Hyperjump({ ...config, allowRetrieval: ["https://b.test/"] });
+    expect(second.stack).to.equal(first.stack);
+    first.close();
+    expect(second.closed).to.equal(false);
+    expect(await (await second.fetch("https://b.test/x")).text()).to.equal("https://b.test/x");
+    await expect(second.fetch("https://a.test/x")).rejects.toThrow(/isn't allowed/);
+  });
+
+  test("without a stack, it's the default transport", async () => {
+    expect(await (await new Hyperjump().fetch("data:text/plain,hi")).text()).to.equal("hi");
+  });
+
   test("state is made once per key and session", () => {
-    const session = testSession();
+    const session = testHyperjump();
     const key = {};
     let made = 0;
     session.state(key, () => ++made);
     expect(session.state(key, () => ++made)).to.equal(1);
-    expect(testSession().state(key, () => "other")).to.equal("other");
+    expect(testHyperjump().state(key, () => "other")).to.equal("other");
   });
 
   test("layers get the priority", async () => {
     /** @type string[] */
     const seen = [];
-    const session = testSession(fetcher((_request, ctx) => {
+    const session = testHyperjump(fetcher((_request, ctx) => {
       seen.push(ctx.priority.value);
       return new Response("");
     }));
@@ -96,7 +112,7 @@ describe("sessions", () => {
 
   describe("records", () => {
     test("every response has its record", async () => {
-      const session = testSession(fetcher(() => new Response("")));
+      const session = testHyperjump(fetcher(() => new Response("")));
       const page = await session.fetch("https://site.test/index.html");
       const css = await session.fetch("https://site.test/main.css", { initiator: page });
 
@@ -109,7 +125,7 @@ describe("sessions", () => {
     });
 
     test("observers see the start, marks, response, and end, which waits for the body", async () => {
-      const session = testSession(fetcher((_request, ctx) => {
+      const session = testHyperjump(fetcher((_request, ctx) => {
         ctx.record.mark("test:mark");
         return new Response("body");
       }));
@@ -131,7 +147,7 @@ describe("sessions", () => {
     });
 
     test("bodies are kept only when an observer asks for them", async () => {
-      const session = testSession(fetcher(() => new Response("body")));
+      const session = testHyperjump(fetcher(() => new Response("body")));
       session.observe(() => {});
       const plain = await session.fetch("https://a.test/");
       await plain.text();
@@ -144,7 +160,7 @@ describe("sessions", () => {
     });
 
     test("a failure is recorded with its error", async () => {
-      const session = testSession(fetcher(() => Promise.reject(new TypeError("offline"))));
+      const session = testHyperjump(fetcher(() => Promise.reject(new TypeError("offline"))));
       /** @type TraceEvent[] */
       const events = [];
       session.observe((event) => events.push(event));

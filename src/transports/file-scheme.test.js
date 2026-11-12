@@ -7,16 +7,16 @@ import { responseMeta } from "../response-meta.js";
 import { nodeTransport } from "./node-transport.js";
 import { fileScheme as browserFileScheme } from "./file-scheme.browser.js";
 import { nodeTransport as browserNodeTransport } from "./node-transport.browser.js";
-import { testSession } from "../test-helpers/session.js";
+import { testHyperjump } from "../test-helpers/hyperjump.js";
 
 /**
- * @import { Session } from "../session.d.ts"
+ * @import { Hyperjump } from "../hyperjump.d.ts"
  */
 
 describe("the file: scheme", () => {
   /** @type string */
   let directory;
-  /** @type Session */
+  /** @type Hyperjump */
   let session;
   /** @type (path: string) => URL */
   let site;
@@ -32,7 +32,7 @@ describe("the file: scheme", () => {
     await symlink(join(directory, "site", "index.html"), join(directory, "site", "alias.html"));
     const siteUrl = pathToFileURL(join(directory, "site") + "/");
     site = (path) => new URL(path, siteUrl);
-    session = testSession(nodeTransport({ file: { root: join(directory, "site") } }), {
+    session = testHyperjump(nodeTransport({ file: { root: join(directory, "site") } }), {
       // What `root` refuses, so these tests are about `root`
       allow: [pathToFileURL(directory + "/").href]
     });
@@ -68,7 +68,7 @@ describe("the file: scheme", () => {
   });
 
   test("a directory is a network error", async () => {
-    const fetching = testSession(nodeTransport(), { allow: [pathToFileURL(directory).href] }).fetch(pathToFileURL(directory).href);
+    const fetching = testHyperjump(nodeTransport(), { allow: [pathToFileURL(directory).href] }).fetch(pathToFileURL(directory).href);
     await expect(fetching).rejects.toThrow(/is a directory/);
     await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_NOT_A_FILE" } });
   });
@@ -84,7 +84,7 @@ describe("the file: scheme", () => {
   });
 
   test("a root that can't be read is a network error that names it", async () => {
-    const missingRoot = testSession(nodeTransport({ file: { root: join(directory, "missing") } }), { allow: [pathToFileURL(directory + "/").href] });
+    const missingRoot = testHyperjump(nodeTransport({ file: { root: join(directory, "missing") } }), { allow: [pathToFileURL(directory + "/").href] });
     const fetching = missingRoot.fetch(pathToFileURL(join(directory, "missing", "a.json")));
     await expect(fetching).rejects.toThrow(/The file: scheme's root, '.*missing', can't be read/);
     await expect(fetching).rejects.toMatchObject({ cause: { code: "ENOENT" } });
@@ -101,7 +101,7 @@ describe("the file: scheme", () => {
   });
 
   test("the Node.js transport can leave file: out", async () => {
-    await expect(testSession(nodeTransport({ file: false }), { allow: [pathToFileURL(directory + "/").href] }).fetch(pathToFileURL(join(directory, "secret.txt")))).rejects.toMatchObject({ cause: { code: "ERR_UNKNOWN_URL_SCHEME" } });
+    await expect(testHyperjump(nodeTransport({ file: false }), { allow: [pathToFileURL(directory + "/").href] }).fetch(pathToFileURL(join(directory, "secret.txt")))).rejects.toMatchObject({ cause: { code: "ERR_UNKNOWN_URL_SCHEME" } });
   });
 
   test("in a browser, file: and the Node.js transport throw", () => {

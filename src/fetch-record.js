@@ -2,7 +2,7 @@ import { responseMeta } from "./response-meta.js";
 
 /**
  * @import * as API from "./fetch-record.d.ts"
- * @import { Session } from "./session.d.ts"
+ * @import { Hyperjump } from "./hyperjump.d.ts"
  */
 
 /**
@@ -48,7 +48,7 @@ export class FetchRecord {
     this.url = init.url;
     this.method = init.method;
     this.initiator = init.initiator;
-    /** @type Session */
+    /** @type Hyperjump */
     this.session = init.session;
     this.priority = init.priority;
     this.requestHeaders = init.requestHeaders;

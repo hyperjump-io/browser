@@ -1,4 +1,4 @@
-import type { Session } from "./session.d.ts";
+import type { Hyperjump } from "./hyperjump.d.ts";
 import type { FetchRecord, FetchRecordJson } from "./fetch-record.d.ts";
 import type { Har, HarOptions } from "./har.d.ts";
 
@@ -11,9 +11,9 @@ export type TraceOptions = {
  * Records what a session fetches, like a network panel in devtools. `waterfall()` draws it as text.
  */
 export class Trace {
-  constructor(session: Session, options?: TraceOptions);
+  constructor(session: Hyperjump, options?: TraceOptions);
 
-  readonly session: Session;
+  readonly session: Hyperjump;
 
   /** The records, in the order the requests started */
   readonly records: readonly FetchRecord[];

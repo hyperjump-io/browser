@@ -4,7 +4,7 @@ import { toHar } from "./har.js";
 /**
  * @import * as API from "./trace.d.ts"
  * @import { FetchRecord } from "./fetch-record.d.ts"
- * @import { Session } from "./session.d.ts"
+ * @import { Hyperjump } from "./hyperjump.d.ts"
  */
 
 /** @implements API.Trace */
@@ -16,7 +16,7 @@ export class Trace {
   #stop;
 
   /**
-   * @param {Session} session
+   * @param {Hyperjump} session
    * @param {API.TraceOptions} [options]
    */
   constructor(session, options = {}) {

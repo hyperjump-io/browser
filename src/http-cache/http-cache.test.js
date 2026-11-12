@@ -5,12 +5,12 @@ import { responseMeta } from "../response-meta.js";
 import { HttpCache, httpCache } from "./http-cache.js";
 import { MemoryCacheStore } from "./memory-cache-store.js";
 import { settle, startServer } from "../test-helpers/server.js";
-import { testSession } from "../test-helpers/session.js";
+import { testHyperjump } from "../test-helpers/hyperjump.js";
 
 /**
  * @import { IncomingMessage, ServerResponse } from "node:http"
  * @import { CacheStore, HttpCacheOptions } from "./http-cache.d.ts"
- * @import { SessionFetchInit } from "../session.d.ts"
+ * @import { HyperjumpFetchInit } from "../hyperjump.d.ts"
  */
 
 /** @type Record<string, (request: IncomingMessage, response: ServerResponse) => void> */
@@ -108,9 +108,9 @@ const setup = async (options = {}) => {
   });
   const store = options.store ?? new MemoryCacheStore();
   const cache = new HttpCache(defaultTransport(), { ...options, store, now: () => now });
-  const session = testSession(options.runtimeFollows ? runtimeFollows(cache) : cache, { allow: [server.url] });
+  const session = testHyperjump(options.runtimeFollows ? runtimeFollows(cache) : cache, { allow: [server.url] });
 
-  /** @type (path: string, init?: SessionFetchInit) => Promise<{ response: Response, body: string, cache: string | undefined }> */
+  /** @type (path: string, init?: HyperjumpFetchInit) => Promise<{ response: Response, body: string, cache: string | undefined }> */
   const get = async (path, init) => {
     const response = await session.fetch(`${server.url}${path}`, { redirect: options.manual ? "manual" : "follow", ...init });
     const body = await response.text();
@@ -312,7 +312,7 @@ describe("the HTTP cache", () => {
     const { server, session, get, hits } = await setup();
     try {
       await get("/max-age");
-      const tab = testSession(session.stack, { allow: [server.url] });
+      const tab = testHyperjump(session.stack, { allow: [server.url] });
       expect(responseMeta(await tab.fetch(`${server.url}/max-age`)).cache).to.equal("hit");
       expect(hits("/max-age")).to.equal(1);
     } finally {
@@ -479,7 +479,7 @@ describe("the HTTP cache", () => {
   test("can be composed into a stack", async () => {
     const server = await startServer((request, response) => routes["/max-age"](request, response));
     try {
-      const session = testSession(compose(httpCache())(defaultTransport()), { allow: [server.url] });
+      const session = testHyperjump(compose(httpCache())(defaultTransport()), { allow: [server.url] });
       await (await session.fetch(`${server.url}/a`)).text();
       await settle();
       expect(responseMeta(await session.fetch(`${server.url}/a`)).cache).to.equal("hit");

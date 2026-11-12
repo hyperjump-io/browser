@@ -3,7 +3,7 @@ import { urlEntries } from "./url-entries.js";
 import { headersFor } from "./request-headers.js";
 
 /**
- * @import { HeadersFunction } from "./session.d.ts"
+ * @import { HeadersFunction } from "./hyperjump.d.ts"
  */
 
 describe("request headers", () => {

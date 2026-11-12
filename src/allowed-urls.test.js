@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { cwd } from "node:process";
 import { pathToFileURL } from "node:url";
 import { allows, realEntries, resolveAllowRetrieval } from "./allowed-urls.js";
-import { Session } from "./session.js";
+import { Hyperjump } from "./hyperjump.js";
 import { fetcher } from "./layers.js";
 import { withUrl } from "./response-meta.js";
 import { nodeTransport } from "./transports/node-transport.js";
@@ -89,7 +89,7 @@ describe("allowRetrieval", () => {
     });
 
     test("the default is the working directory", async () => {
-      const session = new Session(nodeTransport());
+      const session = new Hyperjump({ stack: nodeTransport() });
       const response = await session.fetch(pathToFileURL(join(cwd(), "package.json")));
       expect(response.ok).to.equal(true);
       await response.body?.cancel();
@@ -97,27 +97,27 @@ describe("allowRetrieval", () => {
     });
 
     test("the default doesn't allow the network", async () => {
-      const session = new Session(fetcher(() => new Response("fetched")));
+      const session = new Hyperjump({ stack: fetcher(() => new Response("fetched")) });
       const fetching = session.fetch("https://a.test/");
       await expect(fetching).rejects.toThrow("Fetching 'https://a.test/' isn't allowed. Add it to the session's 'allowRetrieval' to allow it.");
       await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_RETRIEVAL_NOT_ALLOWED" } });
     });
 
     test("a symlink to a file outside an allowed directory is refused", async () => {
-      const session = new Session(nodeTransport(), { allowRetrieval: [directoryUrl(inside)] });
+      const session = new Hyperjump({ stack: nodeTransport(), allowRetrieval: [directoryUrl(inside)] });
       await expect(session.fetch(fileUrl(inside, "link.json"))).rejects.toThrow(/isn't allowed/);
       await expect(session.fetch(fileUrl(inside, "linked-directory", "outside.json"))).rejects.toThrow(/isn't allowed/);
       expect((await session.fetch(fileUrl(inside, "inside.json"))).ok).to.equal(true);
     });
 
     test("an entry is compared by its real path", async () => {
-      const session = new Session(nodeTransport(), { allowRetrieval: [directoryUrl(join(inside, "..", "link-to-inside"))] });
+      const session = new Hyperjump({ stack: nodeTransport(), allowRetrieval: [directoryUrl(join(inside, "..", "link-to-inside"))] });
       expect((await session.fetch(fileUrl(inside, "inside.json"))).ok).to.equal(true);
       expect((await session.fetch(fileUrl(inside, "..", "link-to-inside", "inside.json"))).ok).to.equal(true);
     });
 
     test("a missing file in an allowed directory is missing, not refused", async () => {
-      const session = new Session(nodeTransport(), { allowRetrieval: [directoryUrl(inside)] });
+      const session = new Hyperjump({ stack: nodeTransport(), allowRetrieval: [directoryUrl(inside)] });
       await expect(session.fetch(fileUrl(inside, "missing.json"))).rejects.toMatchObject({ cause: { code: "ENOENT" } });
     });
 
@@ -132,10 +132,11 @@ describe("allowRetrieval", () => {
     test("a redirect to a URL it doesn't allow isn't followed", async () => {
       /** @type string[] */
       const fetched = [];
-      const session = new Session(fetcher((request) => {
+      const stack = fetcher((request) => {
         fetched.push(request.url);
         return new Response(null, { status: 302, headers: { location: "https://internal.test/secret" } });
-      }), { allowRetrieval: ["https://a.test/"] });
+      });
+      const session = new Hyperjump({ stack, allowRetrieval: ["https://a.test/"] });
       const fetching = session.fetch("https://a.test/start");
       await expect(fetching).rejects.toThrow("Fetching 'https://a.test/start' led to 'https://internal.test/secret', which isn't allowed. Add it to the session's 'allowRetrieval' to allow it.");
       await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_RETRIEVAL_NOT_ALLOWED" } });
@@ -144,25 +145,27 @@ describe("allowRetrieval", () => {
 
     test("a response from a URL it doesn't allow isn't used, and its body is cancelled", async () => {
       let cancelled = false;
-      const session = new Session(fetcher(() => {
+      const stack = fetcher(() => {
         const body = new ReadableStream({ cancel: () => {
           cancelled = true;
         } });
         return withUrl(new Response(body), "https://internal.test/secret");
-      }), { allowRetrieval: ["https://a.test/"] });
+      });
+      const session = new Hyperjump({ stack, allowRetrieval: ["https://a.test/"] });
       await expect(session.fetch("https://a.test/start")).rejects.toThrow("Fetching 'https://a.test/start' led to 'https://internal.test/secret', which isn't allowed");
       expect(cancelled).to.equal(true);
     });
 
     test("what a layer answers without fetching has to be allowed too", async () => {
       const stack = fetcher(() => new Response("{}"));
-      await expect(new Session(stack, { allowRetrieval: [] }).fetch("https://a.test/a.json")).rejects.toThrow(/isn't allowed/);
-      expect(await (await new Session(stack, { allowRetrieval: ["https://a.test/"] }).fetch("https://a.test/a.json")).text()).to.equal("{}");
+      await expect(new Hyperjump({ stack, allowRetrieval: [] }).fetch("https://a.test/a.json")).rejects.toThrow(/isn't allowed/);
+      expect(await (await new Hyperjump({ stack, allowRetrieval: ["https://a.test/"] }).fetch("https://a.test/a.json")).text()).to.equal("{}");
     });
 
     test("a refused URL is recorded as a failure, without the session's headers", async () => {
       let called = false;
-      const session = new Session(fetcher(() => new Response("fetched")), {
+      const session = new Hyperjump({
+        stack: fetcher(() => new Response("fetched")),
         allowRetrieval: [],
         headers: { "https://a.test/": () => {
           called = true;
@@ -182,7 +185,7 @@ describe("allowRetrieval", () => {
     });
 
     test("an entry that isn't a URL throws when the session is created", () => {
-      expect(() => new Session(undefined, { allowRetrieval: ["http://["] })).to.throw(TypeError, /isn't a URL/);
+      expect(() => new Hyperjump({ allowRetrieval: ["http://["] })).to.throw(TypeError, /isn't a URL/);
     });
   });
 });

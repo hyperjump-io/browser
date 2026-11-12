@@ -5,10 +5,10 @@ import { responseMeta } from "../response-meta.js";
 import { Throttle, throttle } from "./throttle.js";
 import { scheduler } from "./scheduler.js";
 import { controlled, tick } from "../test-helpers/controlled.js";
-import { testSession } from "../test-helpers/session.js";
+import { testHyperjump } from "../test-helpers/hyperjump.js";
 
 /**
- * @import { Session, SessionFetchInit } from "../session.d.ts"
+ * @import { Hyperjump, HyperjumpFetchInit } from "../hyperjump.d.ts"
  * @import { ThrottleOptions } from "./throttle.d.ts"
  */
 
@@ -61,7 +61,7 @@ describe("the throttle", () => {
 
   test("each session is throttled by itself", async () => {
     const { net, layer, go, finish } = page();
-    const other = testSession(layer);
+    const other = testHyperjump(layer);
     go("page.css", "high");
     go("page-low", "low");
     go("other-low", "low", other);
@@ -91,7 +91,7 @@ describe("the throttle", () => {
 
   test("works with the scheduler, and marks what it did", async () => {
     const net = controlled();
-    const session = testSession(compose(throttle(), scheduler({ perKey: 2 }))(net.transport));
+    const session = testHyperjump(compose(throttle(), scheduler({ perKey: 2 }))(net.transport));
     const css = session.fetch("https://a.test/css", { priority: "high" });
     const low1 = session.fetch("https://a.test/low-1", { priority: "low" });
     const low2 = session.fetch("https://a.test/low-2", { priority: "low" });
@@ -125,10 +125,10 @@ describe("the throttle", () => {
 const page = (options = {}) => {
   const net = controlled();
   const layer = new Throttle(net.transport, options);
-  const session = testSession(layer);
+  const session = testHyperjump(layer);
   /** @type Map<string, Promise<Response>> */
   const responses = new Map();
-  /** @type (name: string, priority?: SessionFetchInit["priority"], from?: Session) => void */
+  /** @type (name: string, priority?: HyperjumpFetchInit["priority"], from?: Hyperjump) => void */
   const go = (name, priority, from = session) => {
     responses.set(name, from.fetch(`https://a.test/${name}`, { priority }));
   };

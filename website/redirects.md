@@ -30,7 +30,8 @@ a request to a `file:` URL. To allow other schemes, use the session's
 `redirectSchemes` option:
 
 ```typescript
-const session = new Session(stack, {
+const session = new Hyperjump({
+  stack,
   allowRetrieval: ["https://example.com/"],
   redirectSchemes: ["http:", "https:", "data:"]
 });

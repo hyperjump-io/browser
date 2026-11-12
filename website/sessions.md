@@ -1,12 +1,13 @@
 # Sessions
 
 A session is the requests that belong together, the way the requests of a page
-load do. You create a session on a stack and fetch through it:
+load do. You create a session from a configuration and fetch through it:
 
 ```typescript
-import { Session } from "@hyperjump/browser";
+import { Hyperjump } from "@hyperjump/browser";
 
-const session = new Session(stack, {
+const session = new Hyperjump({
+  stack,
   allowRetrieval: ["https://example.com/docs/"]
 });
 
@@ -16,6 +17,10 @@ const page = await session.fetch("https://example.com/docs/index.html");
 `session.fetch` takes the same arguments as `fetch`. Without a stack, a session
 fetches `http:`, `https:`, and `data:` URLs with the runtime's `fetch`. For more
 information about stacks, see [Layers](layers.md).
+
+The configuration is a plain object, so you can keep it and create another
+session from it with `new Hyperjump(config)`. Sessions with the same stack
+share what the stack keeps, such as an HTTP cache.
 
 A session resolves a relative URL the way a browser does. In a browser, that's
 against the page. In Node.js, it's against the working directory, so
@@ -27,6 +32,7 @@ document refers to, resolve it against the document's URL yourself, such as
 
 | Option | Description |
 | --- | --- |
+| `stack` | What the session fetches through: a transport, or layers on one. The default is `defaultTransport()`. |
 | `allowRetrieval` | The URLs the session can fetch. By default, it allows the working directory in Node.js and the page's origin in a browser. For more information, see [What a session can fetch](allow-retrieval.md). |
 | `headers` | Headers for the requests to some URLs, such as credentials. For more information, see [Headers](#headers). |
 | `maxRedirects` | How many redirects a request can follow before it's a network error. The default is 20. |
@@ -38,7 +44,8 @@ A session's `headers` are by URL, so a credential goes only to the URLs it's
 for, even when a document refers to URLs on other origins:
 
 ```typescript
-const session = new Session(stack, {
+const session = new Hyperjump({
+  stack,
   headers: {
     "https://api.example.com/": { "Authorization": `Bearer ${token}` },
     "https://example.com/private/": { "X-API-Key": key }
@@ -59,7 +66,8 @@ A value can be a function of the URL, and the function can be async, so it can
 refresh a token. The session calls it for each request:
 
 ```typescript
-const session = new Session(stack, {
+const session = new Hyperjump({
+  stack,
   headers: {
     "https://api.example.com/": async () => ({ "Authorization": `Bearer ${await getToken()}` })
   }

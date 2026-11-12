@@ -8,7 +8,7 @@ import { HttpCache } from "./http-cache.js";
 import { FileCacheStore } from "./file-cache-store.js";
 import { FileCacheStore as BrowserFileCacheStore } from "./file-cache-store.browser.js";
 import { settle, startServer } from "../test-helpers/server.js";
-import { testSession } from "../test-helpers/session.js";
+import { testHyperjump } from "../test-helpers/hyperjump.js";
 
 /**
  * @import { CachedEntry } from "./http-cache.d.ts"
@@ -162,7 +162,7 @@ describe("the file cache store", () => {
     });
     try {
       const run = async () => {
-        const session = testSession(new HttpCache(defaultTransport(), { store: new FileCacheStore({ directory: dir }) }), { allow: [server.url] });
+        const session = testHyperjump(new HttpCache(defaultTransport(), { store: new FileCacheStore({ directory: dir }) }), { allow: [server.url] });
         const response = await session.fetch(`${server.url}/doc`);
         const body = await response.text();
         await settle();

@@ -2,12 +2,12 @@ import { describe, test, expect } from "vitest";
 import { canRefer } from "./file-references.js";
 import { fetcher } from "./layers.js";
 import { withUrl } from "./response-meta.js";
-import { testSession } from "./test-helpers/session.js";
+import { testHyperjump } from "./test-helpers/hyperjump.js";
 
 /**
  * @import { FetchRecord } from "./fetch-record.d.ts"
- * @import { Session } from "./session.js"
- * @import { SessionOptions } from "./session.d.ts"
+ * @import { Hyperjump } from "./hyperjump.js"
+ * @import { HyperjumpConfig } from "./hyperjump.d.ts"
  */
 
 describe("file: references", () => {
@@ -40,7 +40,7 @@ describe("file: references", () => {
     });
 
     test("the referrer is where the initiator's response came from, after redirects", async () => {
-      const session = testSession(fetcher((request) => request.url === "https://a.test/start"
+      const session = testHyperjump(fetcher((request) => request.url === "https://a.test/start"
         ? new Response(null, { status: 302, headers: { location: "https://b.test/page.json" } })
         : new Response(`from ${request.url}`)), { allow: ["file:///project/"] });
       const page = await session.fetch("https://a.test/start");
@@ -69,7 +69,7 @@ describe("file: references", () => {
     test("a redirect can't lead a document from the web to a file", async () => {
       /** @type string[] */
       const fetched = [];
-      const session = testSession(fetcher((request) => {
+      const session = testHyperjump(fetcher((request) => {
         fetched.push(request.url);
         return request.url.startsWith("file:")
           ? new Response(`from ${request.url}`)
@@ -90,7 +90,7 @@ describe("file: references", () => {
 
     test("a response from a file isn't used for a document from the web, and its body is cancelled", async () => {
       let cancelled = false;
-      const session = testSession(fetcher((request) => {
+      const session = testHyperjump(fetcher((request) => {
         if (request.url.startsWith("https:")) {
           return new Response("{}");
         }
@@ -110,7 +110,7 @@ describe("file: references", () => {
  * A session whose stack answers every URL with where it's from, and can
  * fetch the test origins and the files in `file:///project/`
  *
- * @type (options?: SessionOptions) => { session: Session, fetched: () => string[] }
+ * @type (options?: HyperjumpConfig) => { session: Hyperjump, fetched: () => string[] }
  */
 const setup = (options = {}) => {
   /** @type string[] */
@@ -119,5 +119,5 @@ const setup = (options = {}) => {
     fetched.push(request.url);
     return new Response(`from ${request.url}`);
   });
-  return { session: testSession(stack, { allow: ["file:///project/"], ...options }), fetched: () => fetched };
+  return { session: testHyperjump(stack, { allow: ["file:///project/"], ...options }), fetched: () => fetched };
 };

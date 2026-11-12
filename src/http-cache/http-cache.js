@@ -7,7 +7,7 @@ import { nullBodyStatuses } from "../statuses.js";
 /**
  * @import * as API from "./http-cache.d.ts"
  * @import { FetchContext, Fetcher } from "../layers.d.ts"
- * @import { CacheMode } from "../session.d.ts"
+ * @import { CacheMode } from "../hyperjump.d.ts"
  * @import { ResponseMeta } from "../response-meta.d.ts"
  */
 

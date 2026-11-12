@@ -10,14 +10,14 @@ import { canRefer, referrerOf, refusedReference } from "./file-references.js";
 import { contextUrl, defaultAllowRetrieval } from "#context-url";
 
 /**
- * @import * as API from "./session.d.ts"
+ * @import * as API from "./hyperjump.d.ts"
  * @import { FetchContext, Fetcher } from "./layers.d.ts"
  * @import { Observer, TraceEvent } from "./fetch-record.d.ts"
  * @import { UrlEntries } from "./url-entries.js"
  */
 
-/** @implements API.Session */
-export class Session {
+/** @implements API.Hyperjump */
+export class Hyperjump {
   /** @type AbortController */
   #controller = new AbortController();
 
@@ -62,17 +62,15 @@ export class Session {
    */
   #observers = new Map();
 
-  /**
-   * @param {Fetcher} [stack]
-   * @param {API.SessionOptions} [options]
-   */
-  constructor(stack = defaultTransport(), options = {}) {
-    this.stack = stack;
-    this.#headers = urlEntries(options.headers ?? {}, this.#contextUrl);
-    this.#allowRetrieval = resolveAllowRetrieval(options.allowRetrieval, this.#contextUrl, defaultAllowRetrieval);
+  /** @param {API.HyperjumpConfig} [config] */
+  constructor(config = {}) {
+    /** @type Fetcher */
+    this.stack = config.stack ?? defaultTransport();
+    this.#headers = urlEntries(config.headers ?? {}, this.#contextUrl);
+    this.#allowRetrieval = resolveAllowRetrieval(config.allowRetrieval, this.#contextUrl, defaultAllowRetrieval);
     this.#policy = {
-      max: options.maxRedirects ?? 20,
-      schemes: [...options.redirectSchemes ?? ["http:", "https:"]],
+      max: config.maxRedirects ?? 20,
+      schemes: [...config.redirectSchemes ?? ["http:", "https:"]],
       headers: (url) => headersFor(this.#headers, url),
       allows: (url) => this.#allows(url)
     };
@@ -99,7 +97,7 @@ export class Session {
     return /** @type T */ (this.#state.get(key));
   }
 
-  /** @type API.Session["fetch"] */
+  /** @type API.Hyperjump["fetch"] */
   async fetch(input, init = {}) {
     if (this.closed) {
       throw this.signal.reason;
@@ -160,7 +158,7 @@ export class Session {
     return trackBody(response, () => recordEnd(record), (chunk) => recordChunk(record, chunk, watching.bodies));
   }
 
-  /** @type API.Session["observe"] */
+  /** @type API.Hyperjump["observe"] */
   observe(observer, options = {}) {
     this.#observers.set(observer, { bodies: options.bodies ?? false });
     return () => {
@@ -168,7 +166,7 @@ export class Session {
     };
   }
 
-  /** @type API.Session["close"] */
+  /** @type API.Hyperjump["close"] */
   close(reason = new DOMException("The session was closed", "AbortError")) {
     this.#controller.abort(reason);
   }

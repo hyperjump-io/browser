@@ -5,7 +5,7 @@ import { enqueue } from "./queue.js";
 /**
  * @import * as API from "./throttle.d.ts"
  * @import { FetchContext, Fetcher } from "../layers.d.ts"
- * @import { Session } from "../session.d.ts"
+ * @import { Hyperjump } from "../hyperjump.d.ts"
  * @import { Waiter } from "./queue.js"
  */
 
@@ -76,7 +76,7 @@ export class Throttle {
     return trackBody(response, release);
   }
 
-  /** @type (session: Session) => Page */
+  /** @type (session: Hyperjump) => Page */
   #page(session) {
     return session.state(this, () => ({ important: 0, delayable: 0, queue: [] }));
   }

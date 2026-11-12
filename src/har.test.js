@@ -7,7 +7,7 @@ import { scheduler } from "./layers/scheduler.js";
 import { httpCache } from "./http-cache/http-cache.js";
 import { controlled, tick } from "./test-helpers/controlled.js";
 import { settle, startServer } from "./test-helpers/server.js";
-import { testSession } from "./test-helpers/session.js";
+import { testHyperjump } from "./test-helpers/hyperjump.js";
 
 /**
  * @import { Har } from "./har.d.ts"
@@ -26,7 +26,7 @@ describe("HAR", () => {
       response.end(css ? "body{}" : Buffer.from([0x89, 0x50, 0x4e, 0x47]));
     });
     try {
-      const session = testSession(defaultTransport(), { allow: [server.url], headers: { [`${server.url}/`]: { "user-agent": "browser-test" } } });
+      const session = testHyperjump(defaultTransport(), { allow: [server.url], headers: { [`${server.url}/`]: { "user-agent": "browser-test" } } });
       const trace = new Trace(session, { bodies: true });
       const page = await session.fetch(`${server.url}/index.html`, { priority: "high" });
       await page.text();
@@ -63,7 +63,7 @@ describe("HAR", () => {
   });
 
   test("bodies are left out unless the trace keeps them", async () => {
-    const session = testSession(fetcher(() => new Response("secret", { headers: { "content-type": "text/plain" } })));
+    const session = testHyperjump(fetcher(() => new Response("secret", { headers: { "content-type": "text/plain" } })));
     const trace = new Trace(session);
     await (await session.fetch("https://a.test/x")).text();
     const har = trace.toHar();
@@ -83,7 +83,7 @@ describe("HAR", () => {
         return new Response("done", { headers: { "content-type": "text/plain" } });
       }
     });
-    const session = testSession(steps);
+    const session = testHyperjump(steps);
     const trace = new Trace(session);
     await (await session.fetch("https://a.test/a")).text();
     const har = trace.toHar();
@@ -97,7 +97,7 @@ describe("HAR", () => {
 
   test("waiting in the scheduler is blocked", async () => {
     const net = controlled();
-    const session = testSession(scheduler({ perKey: 1 })(net.transport));
+    const session = testHyperjump(scheduler({ perKey: 1 })(net.transport));
     const trace = new Trace(session);
     const first = session.fetch("https://a.test/1");
     const second = session.fetch("https://a.test/2");
@@ -121,7 +121,7 @@ describe("HAR", () => {
     const steps = fetcher((request, ctx) => new URL(request.url).pathname === "/old"
       ? new Response(null, { status: 301, headers: { location: "/new" } })
       : net.transport.fetch(request, ctx));
-    const session = testSession(scheduler({ perKey: 1 })(steps));
+    const session = testHyperjump(scheduler({ perKey: 1 })(steps));
     const trace = new Trace(session);
     const blocker = session.fetch("https://a.test/blocker");
     const moved = session.fetch("https://a.test/old");
@@ -155,7 +155,7 @@ describe("HAR", () => {
     });
     try {
       const stack = httpCache()(defaultTransport());
-      const session = testSession(stack, { allow: [server.url, "nope://x"] });
+      const session = testHyperjump(stack, { allow: [server.url, "nope://x"] });
       const trace = new Trace(session);
       await (await session.fetch(`${server.url}/x`)).text();
       await settle();
@@ -175,7 +175,7 @@ describe("HAR", () => {
   });
 
   test("an empty trace is a valid HAR", async () => {
-    const har = new Trace(testSession()).toHar({ title: "nothing" });
+    const har = new Trace(testHyperjump()).toHar({ title: "nothing" });
     await valid(har);
     expect(har.log.entries).to.eql([]);
   });

@@ -5,7 +5,7 @@ in a browser's network panel. A `Trace` collects the records of a session, and
 draws them as a waterfall:
 
 ```typescript
-import { Session, Trace } from "@hyperjump/browser";
+import { Hyperjump, Trace } from "@hyperjump/browser";
 
 const trace = new Trace(session);
 

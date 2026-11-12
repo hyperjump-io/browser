@@ -6,10 +6,10 @@ cache and a scheduler, and end at a transport that picks a handler by URL
 scheme, including `file:` on the server.
 
 ```typescript
-import { Session, compose, httpCache, scheduler, nodeTransport } from "@hyperjump/browser";
+import { Hyperjump, compose, httpCache, scheduler, nodeTransport } from "@hyperjump/browser";
 
 const stack = compose(httpCache(), scheduler())(nodeTransport());
-const session = new Session(stack, { allowRetrieval: ["https://example.com/"] });
+const session = new Hyperjump({ stack, allowRetrieval: ["https://example.com/"] });
 
 const response = await session.fetch("https://example.com/docs/index.html");
 ```

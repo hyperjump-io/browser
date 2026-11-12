@@ -1,11 +1,14 @@
-# Sessions (`src/session.js`)
+# Sessions (`src/hyperjump.js`)
 
 A session is the requests that belong together, like a page load's. It sits
 on a stack it's given and gives the stack what the stack can't know.
 
-- `new Session(stack, options)` takes the stack as a `Fetcher`, so any stack,
-  or any part of one, can be a session's. Without one, it's
-  `defaultTransport()`.
+- The class is `Hyperjump`. A session is what an instance is, and a layer
+  has it as `ctx.session`.
+- `new Hyperjump(config)` takes one configuration object, with the stack in
+  it as a `Fetcher`, so any stack, or any part of one, can be a session's.
+  Without one, it's `defaultTransport()`. The configuration is a value an
+  application keeps, so another session is `new Hyperjump(config)`.
 - A relative URL is resolved against the context URL, as it is in a
   browser: the working directory in Node.js and the page in a browser
   (`#context-url`). The session reads it once, when it's created, so
@@ -59,6 +62,10 @@ Rejected:
   application or one of its layers, which could call the runtime's `fetch`
   anyway, so hiding the stack wouldn't take anything away from them (see
   [What a session can fetch](allow-retrieval.md)).
-- `fork()`, a sibling with the same options. A sibling is
-  `new Session(session.stack, options)`, and `fork` couldn't say which
-  options to change without being `new Session` again.
+- `fork()`, a sibling with the same configuration. A sibling is
+  `new Hyperjump(config)`, or `new Hyperjump({ ...config, headers })` to
+  change something.
+- The stack as an argument of its own, `new Hyperjump(stack, options)`. An
+  application would have two values to keep for one configuration.
+- A class that holds the configuration and makes sessions. A plain object
+  holds it already.

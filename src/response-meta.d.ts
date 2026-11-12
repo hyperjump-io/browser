@@ -1,5 +1,5 @@
 import type { FetchRecord } from "./fetch-record.d.ts";
-import type { Session } from "./session.d.ts";
+import type { Hyperjump } from "./hyperjump.d.ts";
 
 /**
  * What's known about a response that isn't part of it, like what devtools
@@ -19,7 +19,7 @@ export type ResponseMeta = {
   /** Every URL the request went through, first to last, when the session followed redirects */
   redirects?: string[];
 
-  /** The record of the {@link Session.fetch} that the response is for */
+  /** The record of the {@link Hyperjump.fetch} that the response is for */
   record?: FetchRecord;
 };
 

@@ -4,9 +4,9 @@ On a server, a session can fetch `file:` URLs the way a browser opens files. Use
 `nodeTransport()` as the bottom of your stack:
 
 ```typescript
-import { Session, nodeTransport } from "@hyperjump/browser";
+import { Hyperjump, nodeTransport } from "@hyperjump/browser";
 
-const session = new Session(nodeTransport({ file: { root: "./site" } }));
+const session = new Hyperjump({ stack: nodeTransport({ file: { root: "./site" } }) });
 
 const page = await session.fetch("site/index.html");
 ```
