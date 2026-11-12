@@ -1,111 +1,142 @@
 # Get started
 
-This tutorial builds a stack that loads a page the way a browser does: it
-follows redirects, caches responses, and loads the style sheet before the
-images. Then it shows you what happened.
+This tutorial explores a small Star Wars API by following the links between its
+documents. After that works, you point the same code at files on disk and find
+that it works almost exactly the same way.
 
-## Build a stack
+## JRef
 
-A stack is layers on top of a transport. Each layer wraps the one below it, and
-`compose` lists them from the top down:
+The API's documents are in
+[JRef](https://github.com/hyperjump-io/json-reference/blob/main/spec.md). JRef
+is JSON with references. Any object with a `$ref` property is a URL reference to
+the value it refers to. Here's how the first film refers to its characters:
+
+```jref
+{
+  "title": "A New Hope",
+  "director": "George Lucas",
+  "characters": [
+    { "$ref": "../../people/1" },
+    { "$ref": "../../people/2" }
+  ]
+}
+```
+
+Each character has its own document. The film refers to those documents instead
+of duplicating them. You don't have to retrieve them yourself because a
+reference is transparent like a reference in most programming languages. When
+you step into one, you get the value it refers to rather than the reference.
+
+## Browse an API
+
+The API is at <https://swapi.hyperjump.io>. It's a version of the
+[Star Wars API](https://swapi.dev) rewritten in JRef. You can
+[browse it in the explorer](https://explore.hyperjump.io#https://swapi.hyperjump.io/api/films/1).
+
+Retrieving happens through a session, which is a `Hyperjump` instance. Start by
+creating one with a list of what it may retrieve. A document can refer to
+anything anywhere, so a session doesn't retrieve anything from the network until
+you say where it may go. This one can only access the Star Wars API:
 
 ```typescript
 import {
-  Hyperjump, Trace, compose, nodeTransport,
-  httpCache, throttle, scheduler
+  Hyperjump,
+  get,
+  jrefArrayIter,
+  jrefStep,
+  jrefValue
 } from "@hyperjump/browser";
 
-const stack = compose(
-  httpCache(),
-  throttle(),
-  scheduler()
-)(nodeTransport());
+const session = new Hyperjump({
+  allowRetrieval: ["https://swapi.hyperjump.io/"]
+});
 ```
 
-The order matters, the way it does in a browser:
-
-1. `httpCache` answers what it has before anything waits for a connection.
-2. `throttle` holds back low-priority requests while important ones load.
-3. `scheduler` limits how many requests go to each server at once.
-
-`nodeTransport()` fetches `http:`, `https:`, `data:`, and `file:` URLs. In a
-browser, use `defaultTransport()`, which doesn't have `file:`, and leave out
-`httpCache`, because a browser caches responses itself.
-
-There's no layer for redirects. The session follows them, and each step goes
-down the whole stack. For more information, see [Redirects](redirects.md).
-
-## Load a page
-
-A session is the requests that belong together, like a page load. Create one
-from a configuration that has the stack, and fetch the page:
+Use the session to get the first film:
 
 ```typescript
-const config = { stack, allowRetrieval: ["https://example.com/"] };
-const session = new Hyperjump(config);
-const trace = new Trace(session);
-
-const page = await session.fetch("https://example.com/index.html");
-const html = await page.text();
+const aNewHope = await get(
+  session,
+  "https://swapi.hyperjump.io/api/films/1"
+);
 ```
 
-`session.fetch` works like `fetch`. A session fetches only what its
-`allowRetrieval` allows, so a page can't make it fetch whatever the page names.
-For more information, see [What a session can fetch](allow-retrieval.md).
-
-Now load what the page refers to. A reference is relative to the page it's in, so
-resolve it against `page.url`. Pass the page's response as the `initiator`, so
-the trace knows what caused each request, and give each request a `priority`:
+`get` returns a JRef abstract syntax tree (AST) node for the value that URL
+identifies. You reach the film's properties by stepping into it with `jrefStep`,
+which takes the session so it can follow references. When you get to a value
+that isn't an object or an array, `jrefValue` returns it as plain JavaScript:
 
 ```typescript
-await Promise.all([
-  session.fetch(new URL("main.css", page.url), { priority: "high", initiator: page }),
-  session.fetch(new URL("hero.jpg", page.url), { priority: "low", initiator: page }),
-  session.fetch(new URL("footer.jpg", page.url), { priority: "low", initiator: page })
-].map(async (response) => (await response).arrayBuffer()));
+const title = await jrefStep(session, "title", aNewHope);
+jrefValue(title); // "A New Hope"
 ```
 
-While the style sheet loads, the throttle lets only one image through.
-
-Read or cancel every body. A request keeps its connection until you finish
-with its body.
-
-## See what happened
-
-The trace recorded every request:
+The film's `characters` property is where the references come in. Iterating over
+the array follows each reference as you reach it, so the session retrieves every
+character you get back from its own URL:
 
 ```typescript
-console.log(trace.waterfall());
+const characters = await jrefStep(session, "characters", aNewHope);
+
+for await (const character of jrefArrayIter(session, characters)) {
+  const name = await jrefStep(session, "name", character);
+  console.log(jrefValue(name));
+}
 ```
 
-Each row is a request, under the request that caused it, with where its
-response came from and a bar for when it waited and loaded. For more
-information, see [Tracing](tracing.md).
+```text
+Luke Skywalker
+C-3PO
+R2-D2
+...
+```
 
-## Load it again
+Notice that the loop never mentions a `$ref` or a URL. The session followed each
+reference for you and retrieved each document the first time the loop needed
+it.
 
-Fetch the page again in a new session with the same configuration:
+The session also keeps every document it retrieves. If another film refers to
+Luke, the session uses the copy of his document it already has instead of
+retrieving it again. That gives you a consistent view of the API for as long as
+you use the session. Create a new session when you want to see changes. For
+more information, see
+[Get documents](documents.md#a-session-keeps-its-documents).
+
+## Browse files
+
+Files work the same way. Their media type comes from the file extension. For
+JRef the extension is `.jref`. Here's Luke again, this time as a file with a
+reference to his homeworld:
+
+```jref
+{
+  "name": "Luke Skywalker",
+  "homeworld": { "$ref": "../planets/1.jref" }
+}
+```
+
+The default for `allowRetrieval` allows all files in the working directory, so
+you don't need to configure anything:
 
 ```typescript
-const again = new Hyperjump(config);
-await (await again.fetch("https://example.com/index.html")).text();
+const session = new Hyperjump();
+
+const luke = await get(session, "./api/people/1.jref");
+const homeworld = await jrefStep(session, "homeworld", luke);
+const name = await jrefStep(session, "name", homeworld);
+jrefValue(name); // "Tatooine"
 ```
 
-The HTTP cache belongs to the stack, so the new session gets the page from the
-cache if it's still fresh, the way a new tab does.
-
-## Close the session
-
-When you're done with a page, close its session. Like navigating away, it stops
-everything the session started that hasn't finished:
-
-```typescript
-session.close();
-```
+Everything after `get` is the same code you used for the API. Keep in mind that
+`./api/people/1.jref` isn't a path, it's a URL. That means the string you pass
+to `get` is the same regardless of what operating system you're using. A
+Windows path such as `C:\api\people\1.jref` doesn't work, not even on Windows,
+because a URL reads `C:` as a scheme.
 
 ## What's next
 
-- [Sessions](sessions.md): options and closing
-- [Layers](layers.md): write your own layers
-- [HTTP caching](http-caching.md): cache modes and keeping responses on disk
-- [Priorities](priorities.md): connection limits and what loads first
+- [Browse documents](browsing.md) for every way to read a node
+- [What a session can fetch](allow-retrieval.md) before you use documents you
+  don't control
+- [Sessions](sessions.md) for a session's options, and the stack it retrieves
+  through

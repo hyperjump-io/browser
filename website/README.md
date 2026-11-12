@@ -25,7 +25,7 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 ## Contents
 
 - [Install](install.md): install in Node.js and browsers
-- [Get started](getting-started.md): build a stack and load a page like a browser does
+- [Get started](getting-started.md): browse an API and files step by step
 - [Get documents](documents.md): get a value from a document, and follow references
 - [Browse documents](browsing.md): read a value and step into it, following references
 - [Media types](media-types.md): formats other than JSON and JRef
