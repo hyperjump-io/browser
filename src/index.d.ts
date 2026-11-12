@@ -21,6 +21,7 @@ export * from "./trace.js";
 export * from "./har.js";
 export * from "./file-urls.js";
 export * from "./documents/documents.js";
+export * from "./documents/browsing.js";
 export * from "./media-types/media-types.js";
 export * from "./media-types/json-media-type.js";
 export * from "./media-types/jref-media-type.js";

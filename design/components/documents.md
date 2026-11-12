@@ -62,6 +62,18 @@ what makes this a hypermedia browser, and the stack is how they retrieve.
   (see [`file:` from `file:`](file-references.md)).
 - Following a reference that leads back to one already followed is an
   error, with the chain of URLs.
+- `get` with `referencedFrom`, a node, follows a reference from the
+  document the node is in, which is how the browsing functions follow one
+  (see [Browsing](browsing.md)). The document is found from the node's
+  location: the one the session has at that URL, or one that a document
+  contains under it.
+  - Two documents can say they contain a document with the same URL, so
+    the session keeps the entries of contained documents by URL, and the
+    one the node is in is the one where the location's pointer leads to
+    that node.
+  - A node the session doesn't have, like one an application parsed
+    itself, is followed without a document: nothing caused the request,
+    and nothing embedded is found.
 
 ## Errors
 
@@ -95,6 +107,11 @@ Rejected:
   keys are allowed in it. TypeScript infers the configuration's type from
   an object literal only when it shares a property with the session's, so
   `new Hyperjump({ mediaTypes })` was an error.
+- A map from every node to its document, filled when a document is
+  parsed. It's a walk of every tree for what one pointer lookup finds.
+- The document as an option of `get`, like the v2 prototype's
+  `referencedIn`. A caller that has a node doesn't have its document,
+  which is what the option would be for.
 - The media types as an option of `get`. Every call would pass them, and
   the documents a session keeps were parsed with one list.
 - One error that wraps whatever kept a document from being retrieved, like

@@ -17,8 +17,8 @@ jsonValue(director); // "George Lucas"
 ```
 
 The value is a node of a JSON abstract syntax tree (AST), which has its
-`location` and its `position` in the document. To read a node, use the
-functions in [Parse JSON and JRef](parsing.md).
+`location` and its `position` in the document. To read a node and step into it,
+see [Browse documents](browsing.md).
 
 `get` resolves a relative URL the way the session does. In Node.js, that's
 against the working directory, so `get(session, "data/film.json")` reads a file.

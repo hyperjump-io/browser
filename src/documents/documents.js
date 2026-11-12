@@ -30,10 +30,16 @@ import { responseMeta } from "../response-meta.js";
  * document that's asked for again while it's fetched or parsed is the same
  * one, and what its media types work out to.
  *
+ * `contained` is the entries of the documents that documents contain, by
+ * the URL each says it has. Nothing is found there by its URL alone, since
+ * two documents can say they contain the same one. It's where the document
+ * a node is in is looked for.
+ *
  * @typedef {{
  *   mediaTypes: readonly MediaTypePlugin[],
  *   accept: string,
- *   entries: Map<string, Promise<Entry>>
+ *   entries: Map<string, Promise<Entry>>,
+ *   contained: Map<string, Entry[]>
  * }} Documents
  */
 
@@ -50,7 +56,8 @@ export const getDocument = async (session, url, options = {}) => {
 /** @type typeof API.get */
 export const get = async (session, url, options = {}) => {
   let { documentUrl, fragment } = parseUrl(session, url);
-  let entry = await load(session, documentUrl, options.initiator);
+  const from = options.referencedFrom && await entryOf(session, options.referencedFrom);
+  let entry = from ? await referenced(session, documentUrl, from) : await load(session, documentUrl, options.initiator);
   /** @type string[] */
   const chain = [];
 
@@ -85,6 +92,32 @@ const referenced = async (session, url, from) => {
 };
 
 /**
+ * The entry of the document a node is in, if the session has it: the
+ * document at the node's location, or one that a document contains under
+ * that URL. Which one is checked by finding the node in it, since two
+ * documents can say they contain a document with the same URL.
+ *
+ * @type (session: API.DocumentSession, node: { location: string }) => Promise<Entry | undefined>
+ */
+const entryOf = async (session, node) => {
+  const { entries, contained } = documentsOf(session);
+  const { documentUrl, fragment } = parseUrl(session, node.location);
+  const pointer = decodeURIComponent(fragment);
+
+  const kept = await entries.get(documentUrl)?.catch(() => undefined);
+  for (const entry of [...kept ? [kept] : [], ...contained.get(documentUrl) ?? []]) {
+    try {
+      if (jsonPointerGet(pointer, /** @type JrefNode */ (entry.document.children[0])) === node) {
+        return entry;
+      }
+    } catch {
+      // The location isn't in this document
+    }
+  }
+  return undefined;
+};
+
+/**
  * A URL as a document's URL and a fragment, which stays percent-encoded
  *
  * @type (session: API.DocumentSession, url: string | URL) => { documentUrl: string, fragment: string }
@@ -99,7 +132,7 @@ const parseUrl = (session, url) => {
 /** @type (session: API.DocumentSession) => Documents */
 const documentsOf = (session) => session.state(documentsKey, () => {
   const mediaTypes = session.config.mediaTypes ?? defaultMediaTypes;
-  return { mediaTypes, accept: acceptHeader(mediaTypes), entries: new Map() };
+  return { mediaTypes, accept: acceptHeader(mediaTypes), entries: new Map(), contained: new Map() };
 });
 
 /**
@@ -138,7 +171,7 @@ const load = (session, url, initiator) => {
 
 /** @type (session: API.DocumentSession, url: string, initiator: API.GetOptions["initiator"]) => Promise<Entry> */
 const retrieve = async (session, url, initiator) => {
-  const { mediaTypes, accept } = documentsOf(session);
+  const { mediaTypes, accept, contained } = documentsOf(session);
   const response = await session.fetch(url, { headers: { accept }, initiator });
 
   try {
@@ -164,7 +197,12 @@ const retrieve = async (session, url, initiator) => {
     }
 
     const document = await mediaType.parse({ text: () => response.text(), url: responseUrl.href });
-    return { document, mediaType, record: responseMeta(response).record, embedded: embeddedIn(document) };
+    /** @type Entry */
+    const entry = { document, mediaType, record: responseMeta(response).record, embedded: embeddedIn(document) };
+    for (const [embeddedUrl, embeddedDocument] of entry.embedded) {
+      contained.set(embeddedUrl, [...contained.get(embeddedUrl) ?? [], { ...entry, document: embeddedDocument }]);
+    }
+    return entry;
   } catch (error) {
     // A body that wasn't read holds its file or connection
     if (!response.bodyUsed) {

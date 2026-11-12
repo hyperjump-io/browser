@@ -28,6 +28,14 @@ export type GetOptions = {
    * followed. Only a `file:` document can refer to a `file:` URL.
    */
   initiator?: FetchRecord | Response;
+
+  /**
+   * The reference that's being followed, or any node of the document it's
+   * in, when that's a document the session has. A document it contains is
+   * found before anything is retrieved, and it's what caused the request,
+   * instead of `initiator`. A node the session doesn't have is ignored.
+   */
+  referencedFrom?: { location: string };
 };
 
 /**
