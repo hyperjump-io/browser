@@ -5,9 +5,18 @@ A failure is a network error, the `TypeError` `fetch` rejects with (see
 readers: a person reads its message, and code reads its `cause.code`.
 
 - The message says what went wrong and names the URL, like
-  "`'file:///project/a.json'` doesn't exist". A failure an option causes
-  names the option, like `allowRetrieval` or `maxRedirects`, so whoever
-  reads it knows what to change.
+  "`'data/a.json'` doesn't exist". A failure an option causes names the
+  option, like `allowRetrieval` or `maxRedirects`, so whoever reads it
+  knows what to change.
+- A message says a `file:` URL relative to the working directory, so it
+  doesn't say where files are on the machine (see
+  [Local paths in errors](file-urls.md)). A relative path is what
+  `allowRetrieval` takes too, so a refused file's message says what to add.
+  The error's `url` is the exact URL that failed: the one that was asked
+  for, or where a redirect or a response led when that's what was refused.
+- A filesystem error other than a missing file or a refused permission is
+  said by its code, like `EISDIR`, because the system's message says the
+  absolute path. The system's error is still the cause.
 - `cause` says why to code, with a `code`:
   - A failure that comes from the system has the system's error as its
     cause, with the system's code. A file that's missing is `ENOENT` from

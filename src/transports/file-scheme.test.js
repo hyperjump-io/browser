@@ -3,6 +3,7 @@ import { chmod, mkdir, mkdtemp, realpath, symlink, writeFile } from "node:fs/pro
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { relativeFileUrl } from "../file-urls.js";
 import { responseMeta } from "../response-meta.js";
 import { nodeTransport } from "./node-transport.js";
 import { fileScheme as browserFileScheme } from "./file-scheme.browser.js";
@@ -56,8 +57,8 @@ describe("the file: scheme", () => {
   test("a missing file is a network error, not a 404, whose cause is the filesystem's", async () => {
     const fetching = session.fetch(site("missing.html"));
     await expect(fetching).rejects.toThrow(TypeError);
-    await expect(fetching).rejects.toThrow(`'${site("missing.html").href}' doesn't exist`);
-    await expect(fetching).rejects.toMatchObject({ cause: { code: "ENOENT" } });
+    await expect(fetching).rejects.toThrow(`'${relativeFileUrl(site("missing.html").href)}' doesn't exist`);
+    await expect(fetching).rejects.toMatchObject({ cause: { code: "ENOENT" }, url: site("missing.html").href });
   });
 
   // Permissions don't stop root

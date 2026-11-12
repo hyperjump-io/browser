@@ -1,4 +1,5 @@
 import { networkError } from "./response-meta.js";
+import { relativeFileUrl } from "./file-urls.js";
 
 /**
  * @import { FetchRecord } from "./fetch-record.d.ts"
@@ -26,7 +27,7 @@ export const canRefer = (url, referrer) => referrer === undefined
 const onlyFiles = "Only a file: document can refer to a file: URL.";
 
 /** @type (url: string, referrer: string) => TypeError */
-export const refusedReference = (url, referrer) => networkError(`Fetching '${url}' isn't allowed from '${referrer}'. ${onlyFiles}`, { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" });
+export const refusedReference = (url, referrer) => networkError(`Fetching '${relativeFileUrl(url)}' isn't allowed from '${relativeFileUrl(referrer)}'. ${onlyFiles}`, { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" }, url);
 
 /** @type (url: string, responseUrl: string, referrer: string) => TypeError */
-export const refusedReferenceResponse = (url, responseUrl, referrer) => networkError(`Fetching '${url}' led to '${responseUrl}', which isn't allowed from '${referrer}'. ${onlyFiles}`, { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" });
+export const refusedReferenceResponse = (url, responseUrl, referrer) => networkError(`Fetching '${relativeFileUrl(url)}' led to '${relativeFileUrl(responseUrl)}', which isn't allowed from '${relativeFileUrl(referrer)}'. ${onlyFiles}`, { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" }, responseUrl);

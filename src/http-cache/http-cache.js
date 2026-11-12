@@ -104,7 +104,7 @@ export class HttpCache {
     const entry = await this.#lookup(request);
     if (!entry) {
       if (mode === "only-if-cached") {
-        throw networkError(`'${request.url}' isn't in the cache, and its cache mode is "only-if-cached"`, { code: "ERR_CACHE_MISS" });
+        throw networkError(`'${request.url}' isn't in the cache, and its cache mode is "only-if-cached"`, { code: "ERR_CACHE_MISS" }, request.url);
       }
       if (method === "HEAD") {
         return markCache(await this.inner.fetch(request, ctx), "miss");

@@ -1,6 +1,7 @@
 import { networkError, setResponseMeta, withUrl } from "./response-meta.js";
 import { refusedResponse } from "./allowed-urls.js";
 import { canRefer, referrerOf, refusedReferenceResponse } from "./file-references.js";
+import { relativeFileUrl } from "./file-urls.js";
 
 /**
  * @import { FetchContext, Fetcher } from "./layers.d.ts"
@@ -59,14 +60,14 @@ export const follow = async (stack, request, ctx, policy, added) => {
 
     await response.body?.cancel();
     if (mode === "error") {
-      throw networkError(`'${current.url}' redirected to '${location}', and redirect is "error"`, { code: "ERR_UNEXPECTED_REDIRECT" });
+      throw networkError(`'${relativeFileUrl(current.url)}' redirected to '${location}', and redirect is "error"`, { code: "ERR_UNEXPECTED_REDIRECT" }, current.url);
     }
     if (hops + 1 > policy.max) {
-      throw networkError(`'${request.url}' redirected more than ${policy.max} times, the session's 'maxRedirects'`, { code: "ERR_TOO_MANY_REDIRECTS" });
+      throw networkError(`'${relativeFileUrl(request.url)}' redirected more than ${policy.max} times, the session's 'maxRedirects'`, { code: "ERR_TOO_MANY_REDIRECTS" }, request.url);
     }
     const target = new URL(location, response.url || current.url);
     if (!policy.schemes.includes(target.protocol)) {
-      throw networkError(`'${current.url}' redirected to a ${target.protocol} URL, '${target.href}', which isn't allowed. Add the scheme to the session's 'redirectSchemes' to allow it.`, { code: "ERR_UNSAFE_REDIRECT" });
+      throw networkError(`'${relativeFileUrl(current.url)}' redirected to a ${target.protocol} URL, '${relativeFileUrl(target.href)}', which isn't allowed. Add the scheme to the session's 'redirectSchemes' to allow it.`, { code: "ERR_UNSAFE_REDIRECT" }, target.href);
     }
     if (!target.hash) {
       target.hash = new URL(current.url).hash;

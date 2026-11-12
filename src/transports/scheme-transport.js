@@ -18,7 +18,7 @@ export class SchemeTransport {
     const scheme = new URL(request.url).protocol;
     const handler = this.schemes[scheme];
     if (!handler) {
-      throw networkError(`The '${scheme}' scheme isn't supported, so '${request.url}' can't be fetched`, { code: "ERR_UNKNOWN_URL_SCHEME" });
+      throw networkError(`The '${scheme}' scheme isn't supported, so '${request.url}' can't be fetched`, { code: "ERR_UNKNOWN_URL_SCHEME" }, request.url);
     }
     return handler.fetch(request, ctx);
   }
@@ -56,7 +56,7 @@ const fetchFailed = (request, error) => {
   }
   const cause = error.cause ?? error;
   const reason = error.cause instanceof Error ? `: ${error.cause.message}` : "";
-  return networkError(`Failed to fetch '${request.url}'${reason}`, cause);
+  return networkError(`Failed to fetch '${request.url}'${reason}`, cause, request.url);
 };
 
 /** @type typeof API.defaultTransport */

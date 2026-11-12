@@ -4,6 +4,7 @@ import { Readable } from "node:stream";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { fetcher } from "../layers.js";
 import { networkError, setResponseMeta, withUrl } from "../response-meta.js";
+import { relativeFileUrl } from "../file-urls.js";
 
 /**
  * @import * as API from "./file-scheme.d.ts"
@@ -13,7 +14,7 @@ import { networkError, setResponseMeta, withUrl } from "../response-meta.js";
 export const fileScheme = (options = {}) => fetcher(async (request, ctx) => {
   ctx.record.mark("file:read", { priority: ctx.priority.value });
   if (request.method !== "GET" && request.method !== "HEAD") {
-    throw networkError(`'${request.url}' can't be fetched with ${request.method}. A file: URL can only be fetched with GET or HEAD.`, { code: "ERR_METHOD_NOT_SUPPORTED" });
+    throw networkError(`'${relativeFileUrl(request.url)}' can't be fetched with ${request.method}. A file: URL can only be fetched with GET or HEAD.`, { code: "ERR_METHOD_NOT_SUPPORTED" }, request.url);
   }
 
   const url = new URL(request.url);
@@ -23,7 +24,7 @@ export const fileScheme = (options = {}) => fetcher(async (request, ctx) => {
   try {
     written = fileURLToPath(url);
   } catch (error) {
-    throw networkError(`'${request.url}' isn't a file URL: ${/** @type Error */ (error).message}`, error);
+    throw networkError(`'${request.url}' isn't a file URL: ${/** @type Error */ (error).message}`, error, request.url);
   }
 
   if (options.root !== undefined && !isInside(resolve(options.root), written)) {
@@ -34,7 +35,7 @@ export const fileScheme = (options = {}) => fetcher(async (request, ctx) => {
   try {
     root = options.root === undefined ? undefined : await realpath(options.root);
   } catch (error) {
-    throw networkError(`The file: scheme's root, '${options.root}', can't be read, so '${request.url}' can't be fetched: ${/** @type Error */ (error).message}`, error);
+    throw networkError(`The file: scheme's root, '${options.root}', can't be read (${codeOf(error)}), so '${relativeFileUrl(request.url)}' can't be fetched`, error, request.url);
   }
 
   // A symlink in `root` can point out of it, so it's checked again where it
@@ -65,7 +66,7 @@ export const fileScheme = (options = {}) => fetcher(async (request, ctx) => {
   }
   if (!stats.isFile()) {
     await handle.close();
-    throw networkError(`'${request.url}' is ${stats.isDirectory() ? "a directory" : "something other than a file"}, so it can't be fetched`, { code: "ERR_NOT_A_FILE" });
+    throw networkError(`'${relativeFileUrl(request.url)}' is ${stats.isDirectory() ? "a directory" : "something other than a file"}, so it can't be fetched`, { code: "ERR_NOT_A_FILE" }, request.url);
   }
 
   const headers = new Headers({
@@ -86,7 +87,7 @@ export const fileScheme = (options = {}) => fetcher(async (request, ctx) => {
 });
 
 /** @type (url: string, root: string) => TypeError */
-const outsideRoot = (url, root) => networkError(`'${url}' is outside the file: scheme's root, '${root}'`, { code: "ERR_OUTSIDE_ROOT" });
+const outsideRoot = (url, root) => networkError(`'${relativeFileUrl(url)}' is outside the file: scheme's root, '${root}'`, { code: "ERR_OUTSIDE_ROOT" }, url);
 
 /**
  * What a filesystem error means for the URL. Its cause is the filesystem's
@@ -95,15 +96,19 @@ const outsideRoot = (url, root) => networkError(`'${url}' is outside the file: s
  * @type (url: string, error: unknown) => TypeError
  */
 const readError = (url, error) => {
-  const code = /** @type NodeJS.ErrnoException */ (error).code;
+  const code = codeOf(error);
   if (code === "ENOENT" || code === "ENOTDIR") {
-    return networkError(`'${url}' doesn't exist`, error);
+    return networkError(`'${relativeFileUrl(url)}' doesn't exist`, error, url);
   }
   if (code === "EACCES" || code === "EPERM") {
-    return networkError(`'${url}' can't be read, because permission is denied`, error);
+    return networkError(`'${relativeFileUrl(url)}' can't be read, because permission is denied`, error, url);
   }
-  return networkError(`'${url}' can't be read: ${/** @type Error */ (error).message}`, error);
+  // The system's message says the absolute path, so only its code is said
+  return networkError(`'${relativeFileUrl(url)}' can't be read (${codeOf(error)})`, error, url);
 };
+
+/** @type (error: unknown) => string | undefined */
+const codeOf = (error) => /** @type NodeJS.ErrnoException */ (error).code;
 
 /** @type (root: string, path: string) => boolean */
 const isInside = (root, path) => {

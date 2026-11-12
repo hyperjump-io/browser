@@ -66,7 +66,13 @@ export const trackBody = (response, done, onChunk) => {
 };
 
 /** @type typeof API.networkError */
-export const networkError = (message, cause) => new TypeError(message, cause === undefined ? undefined : { cause });
+export const networkError = (message, cause, url) => {
+  const error = /** @type ReturnType<typeof API.networkError> */ (new TypeError(message, cause === undefined ? undefined : { cause }));
+  if (url !== undefined) {
+    error.url = url;
+  }
+  return error;
+};
 
 /** @type (from: Response, to: Response) => void */
 const copyMeta = (from, to) => {

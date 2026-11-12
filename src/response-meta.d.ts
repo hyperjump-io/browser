@@ -53,10 +53,17 @@ export const replaceBody: (response: Response, body: ReadableStream<Uint8Array> 
  */
 export const trackBody: (response: Response, done: () => void, onChunk?: (chunk: Uint8Array) => void) => Response;
 
+/** A network error, with the exact URL that failed, if whatever made it gave one */
+export type NetworkError = TypeError & { url?: string };
+
 /**
  * A network error, the `TypeError` `fetch` rejects with. Its message says
  * what went wrong, and its `cause` has a `code` that says it to code: the
  * error it comes from, like the filesystem's (`ENOENT`), or `{ code }` for
  * one a layer makes itself, like `{ code: "ERR_CACHE_MISS" }`.
+ *
+ * A message says a `file:` URL with `relativeFileUrl`, so it doesn't say
+ * where files are on the machine. `url` is the exact URL that failed, which
+ * the error has as its `url`.
  */
-export const networkError: (message: string, cause?: unknown) => TypeError;
+export const networkError: (message: string, cause?: unknown, url?: string) => NetworkError;

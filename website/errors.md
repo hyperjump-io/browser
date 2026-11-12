@@ -12,8 +12,13 @@ The error's message says what went wrong and names the URL, so you can show it
 to a person:
 
 ```text
-'file:///home/me/project/schema.json' doesn't exist
+'schemas/person.json' doesn't exist
 ```
+
+Error messages often end up in logs and bug reports. To keep them from revealing
+where your files are, a message shows a `file:` URL relative to the working
+directory. The error's `url` has the whole URL. If you want your own messages to
+show URLs the same way, use `relativeFileUrl(url)`.
 
 To tell failures apart in code, use the error's `cause.code`:
 

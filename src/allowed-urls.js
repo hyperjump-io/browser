@@ -1,6 +1,7 @@
 import { realUrl } from "#real-url";
 import { isPrefix, urlKey } from "./url-entries.js";
 import { networkError } from "./response-meta.js";
+import { relativeFileUrl } from "./file-urls.js";
 
 /**
  * Resolve a session's `allowRetrieval` against its base. Without a list,
@@ -65,7 +66,7 @@ export const allows = async ({ exact, prefixes }, url) => {
 };
 
 /** @type (url: string) => TypeError */
-export const refused = (url) => networkError(`Fetching '${url}' isn't allowed. Add it to the session's 'allowRetrieval' to allow it.`, { code: "ERR_RETRIEVAL_NOT_ALLOWED" });
+export const refused = (url) => networkError(`Fetching '${relativeFileUrl(url)}' isn't allowed. Add it to the session's 'allowRetrieval' to allow it.`, { code: "ERR_RETRIEVAL_NOT_ALLOWED" }, url);
 
 /** @type (url: string, responseUrl: string) => TypeError */
-export const refusedResponse = (url, responseUrl) => networkError(`Fetching '${url}' led to '${responseUrl}', which isn't allowed. Add it to the session's 'allowRetrieval' to allow it.`, { code: "ERR_RETRIEVAL_NOT_ALLOWED" });
+export const refusedResponse = (url, responseUrl) => networkError(`Fetching '${relativeFileUrl(url)}' led to '${relativeFileUrl(responseUrl)}', which isn't allowed. Add it to the session's 'allowRetrieval' to allow it.`, { code: "ERR_RETRIEVAL_NOT_ALLOWED" }, responseUrl);

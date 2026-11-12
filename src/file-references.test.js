@@ -1,5 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { canRefer } from "./file-references.js";
+import { relativeFileUrl } from "./file-urls.js";
 import { fetcher } from "./layers.js";
 import { withUrl } from "./response-meta.js";
 import { testHyperjump } from "./test-helpers/hyperjump.js";
@@ -28,8 +29,8 @@ describe("file: references", () => {
       const { session, fetched } = setup();
       const page = await session.fetch("https://a.test/page.json");
       const fetching = session.fetch("file:///project/a.json", { initiator: page });
-      await expect(fetching).rejects.toThrow("Fetching 'file:///project/a.json' isn't allowed from 'https://a.test/page.json'. Only a file: document can refer to a file: URL.");
-      await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
+      await expect(fetching).rejects.toThrow(`Fetching '${relativeFileUrl("file:///project/a.json")}' isn't allowed from 'https://a.test/page.json'. Only a file: document can refer to a file: URL.`);
+      await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" }, url: "file:///project/a.json" });
       expect(fetched()).to.eql(["https://a.test/page.json"]);
     });
 
@@ -80,7 +81,7 @@ describe("file: references", () => {
       fetched.length = 0;
 
       const fetching = session.fetch("https://a.test/start", { initiator: web });
-      await expect(fetching).rejects.toThrow("Fetching 'https://a.test/start' led to 'file:///project/a.json', which isn't allowed from 'https://a.test/page.json'. Only a file: document can refer to a file: URL.");
+      await expect(fetching).rejects.toThrow(`Fetching 'https://a.test/start' led to '${relativeFileUrl("file:///project/a.json")}', which isn't allowed from 'https://a.test/page.json'. Only a file: document can refer to a file: URL.`);
       await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
       expect(fetched).to.eql(["https://a.test/start"]);
 
@@ -100,7 +101,7 @@ describe("file: references", () => {
         return withUrl(new Response(body), "file:///project/a.json");
       }), { allow: ["file:///project/", "urn:example:a"] });
       const page = await session.fetch("https://a.test/page.json");
-      await expect(session.fetch("urn:example:a", { initiator: page })).rejects.toThrow("Fetching 'urn:example:a' led to 'file:///project/a.json', which isn't allowed from 'https://a.test/page.json'");
+      await expect(session.fetch("urn:example:a", { initiator: page })).rejects.toThrow(`Fetching 'urn:example:a' led to '${relativeFileUrl("file:///project/a.json")}', which isn't allowed from 'https://a.test/page.json'`);
       expect(cancelled).to.equal(true);
     });
   });

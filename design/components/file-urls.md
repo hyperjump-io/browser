@@ -7,6 +7,8 @@ a `file:` URL in it says where the files are on the machine. So
 `data/a.json#/a`, or `../other/a.json` outside it. Other URLs are said as
 they are.
 
+- A network error says its URLs this way, and keeps the exact URL that
+  failed as its `url` (see [Network errors](network-errors.md)).
 - A `JsonPointerError` says the location of the node it failed at, made
   relative this way. The location is already on the node, so
   `jsonPointerGet` and `jsonStep` aren't given the document's URL.
@@ -31,7 +33,8 @@ Rejected:
 
 ## Known limitations
 
-- A network error's message says the URL as it is, so a missing file's
-  says its absolute path (see [Network errors](network-errors.md)).
+- A network error's cause is the system's error, whose own message says
+  the absolute path.
+- A `JsonPointerError` doesn't keep the exact location.
 - A stack trace still says where the library is installed. Showing it is
   up to the application.
