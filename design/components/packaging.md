@@ -14,6 +14,9 @@
 - `index.js` imports the parts with versions through their subpath imports,
   and `index.d.ts` exports their declarations directly, because a part and
   its browser version have the same declaration.
+- Retrieval code never imports document code. Retrieval is the session's
+  `fetch`, the layers, the transports, and tracing, and documents are built
+  on it, so the stack could be a package of its own.
 
 Rejected:
 
