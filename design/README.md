@@ -31,7 +31,6 @@ for users is in [`website/`](../website/README.md).
 - [What a session can fetch](components/allow-retrieval.md): `allowRetrieval`, so a document can't make a session fetch whatever it names
 - [`file:` from `file:`](components/file-references.md): only a file can refer to a file, so a document from the web can't read them
 - [Redirects](components/redirects.md): followed by the session one at a time, through the stack
-- [Partial content](components/partial-content.md): ranges, and storing 206s
 - [The file cache store](components/file-cache-store.md): the HTTP cache on disk
 - [The scheduler](components/scheduler.md): connection limits and priorities, shared by every session
 - [The throttle](components/throttle.md): a page's low-priority requests wait for its important ones

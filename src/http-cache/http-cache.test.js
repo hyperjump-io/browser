@@ -73,6 +73,14 @@ const routes = {
   },
   "/missing": (_request, response) => response.writeHead(404).end("not here"),
   "/target": (_request, response) => response.end("target"),
+  "/ranged": (request, response) => {
+    response.setHeader("cache-control", "max-age=60");
+    if (request.headers.range === "bytes=0-1") {
+      response.writeHead(206, { "content-range": "bytes 0-1/4" }).end("01");
+    } else {
+      response.end("0123");
+    }
+  },
   "/hop-by-hop": (_request, response) => {
     response.setHeader("connection", "keep-alive, x-private-hop");
     response.setHeader("x-private-hop", "1");
@@ -211,6 +219,23 @@ describe("the HTTP cache", () => {
     try {
       await get("/max-age");
       expect((await get("/max-age", { headers: { "if-none-match": "\"x\"" } })).cache).to.equal("bypass");
+    } finally {
+      await server.close();
+    }
+  });
+
+  test("a range bypasses the cache, and a 206 isn't stored", async () => {
+    const { server, get, hits } = await setup();
+    try {
+      const range = { headers: { range: "bytes=0-1" } };
+      const part = await get("/ranged", range);
+      expect([part.response.status, part.body, part.cache]).to.eql([206, "01", "bypass"]);
+      expect((await get("/ranged")).cache, "the part wasn't stored").to.equal("miss");
+      expect((await get("/ranged", range)).cache, "a whole copy doesn't answer a range").to.equal("bypass");
+      expect(hits("/ranged")).to.equal(3);
+
+      const offline = await get("/ranged", { ...range, cache: "only-if-cached" });
+      expect([offline.response.status, offline.body, offline.cache], "the whole copy, because nothing can be sent").to.eql([200, "0123", "hit"]);
     } finally {
       await server.close();
     }

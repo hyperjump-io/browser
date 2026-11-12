@@ -14,17 +14,6 @@ export type CachedEntry = {
   /** Milliseconds since the epoch, by the cache's clock */
   requestTime: number;
   responseTime: number;
-
-  /**
-   * Set when only parts of the representation are stored, from 206s. Then
-   * `body` is the parts' bytes one after another, `status` is the whole
-   * representation's (200), and the entry only answers ranges it has.
-   */
-  partial?: {
-    /** The whole representation's length, if a `Content-Range` said it */
-    length?: number;
-    segments: { start: number; length: number }[];
-  };
 };
 
 /**
@@ -88,7 +77,7 @@ export type HttpCacheOptions = {
 /**
  * An HTTP cache, by RFC 9111 and the Fetch standard's cache modes:
  * freshness, revalidation, `Vary`, `stale-while-revalidate`, request
- * directives, invalidation by unsafe methods, and partial content.
+ * directives, and invalidation by unsafe methods.
  */
 export class HttpCache implements Layer {
   constructor(inner: Fetcher, options?: HttpCacheOptions);

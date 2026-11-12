@@ -22,23 +22,10 @@ const session = new Session(stack, { allowRetrieval: ["https://example.com/"] })
 The cache belongs to the layer, so every session on the same stack shares it,
 the way a browser's tabs do.
 
-## Partial content
+## Ranges
 
-The cache answers a request with a `Range` header from what it has:
-
-- It answers a range from a whole cached response, with a 206.
-- It stores a 206 as a part of the whole response, and joins parts that have
-  the same strong `ETag`, so the bytes of two versions are never mixed.
-- When the parts add up to the whole response, the cache answers requests for
-  all of it too.
-- It answers a range past the end with a 416.
-- When the parts have only some of a range, it fetches only the missing bytes.
-  The request has `If-Range` with the parts' `ETag`, so if the file changed,
-  the server sends the whole new version instead and old and new bytes are
-  never mixed.
-
-A request for several ranges at once, or one with `If-Range`, bypasses the
-cache.
+The cache doesn't answer ranges. A request with a `Range` header bypasses the
+cache, and a 206 response isn't cached.
 
 ## Cache modes
 
@@ -140,5 +127,4 @@ await findLayer(stack, HttpCache)?.purge("https://example.com/app.css");
 ## Where a response came from
 
 `responseMeta(response).cache` says what the cache did: `"hit"`, `"miss"`,
-`"revalidated"`, `"stale"`, `"bypass"`, or `"filled"` for a range that the cache
-answered with cached bytes and the missing ones.
+`"revalidated"`, `"stale"`, or `"bypass"`.

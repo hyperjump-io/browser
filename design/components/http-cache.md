@@ -19,8 +19,10 @@ it's a private cache, like a browser's.
   waiting for it.
 - The request's `max-age`, `min-fresh`, `max-stale`, `no-cache`, and
   `no-store` are followed.
-- A range is answered from what's stored, and 206s are stored as parts (see
-  [Partial content](partial-content.md)).
+- The cache doesn't do ranges. A request with a `Range` bypasses it, and a
+  206 isn't stored, which RFC 9111 §3.3 requires of a cache that doesn't do
+  them. With `only-if-cached`, nothing can be sent, so a stored response
+  answers it whole, which a server can do too (RFC 9110 §14.2).
 - The cache mode is the Fetch standard's, from `fetch(url, { cache })`,
   given to the stack as `ctx.cacheMode`. A runtime on a server ignores
   `Request.cache` or refuses some of its values, so it isn't on the request.
@@ -57,9 +59,13 @@ Above the layers that send requests, so a hit never sends one.
 
 Rejected:
 
-- `http-cache-semantics`. It doesn't do `stale-while-revalidate`, partial
-  content, or more than one variant for a URL, and those are what a browser's
-  cache does.
+- `http-cache-semantics`. It doesn't do `stale-while-revalidate` or more
+  than one variant for a URL, and those are what a browser's cache does.
+- Partial content: answering ranges from what's stored, storing 206s as
+  parts of a representation, and fetching only the bytes that are missing.
+  Nothing here sends a `Range`. What it would be for, resuming a download
+  that failed, doesn't work for a compressed response: the stored bytes are
+  decoded, and the `ETag` of the compressed form is another one or weak.
 - A store that does the HTTP. Every store would have to, so writing one, like
   for Redis, would mean writing a cache.
 - Caching a redirect the runtime followed under the URL that was asked for,
