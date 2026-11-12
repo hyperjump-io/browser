@@ -33,7 +33,6 @@ for users is in [`website/`](../website/README.md).
 - [Redirects](components/redirects.md): followed by the session one at a time, through the stack
 - [Partial content](components/partial-content.md): ranges, and storing 206s
 - [The file cache store](components/file-cache-store.md): the HTTP cache on disk
-- [Batching](components/batch.md): requests made at about the same time, sent together
 - [The scheduler](components/scheduler.md): connection limits and priorities, shared by every session
 - [The throttle](components/throttle.md): a page's low-priority requests wait for its important ones
 - [Destination priority](components/destination-priority.md): a priority by what the resource is for

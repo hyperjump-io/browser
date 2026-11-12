@@ -66,9 +66,6 @@ priority.set("high");
 
 A request that already started keeps its priority.
 
-When requests share one request, such as with [`batch`](batching.md), the
-shared request has the most urgent priority of the callers still waiting.
-
 ## Hold back low-priority requests
 
 While a page has an important request loading, the `throttle` layer only lets

@@ -16,6 +16,5 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 - [File URLs](file-urls.md): fetch `file:` URLs on a server
 - [Redirects](redirects.md): how a session follows redirects through the stack
 - [HTTP caching](http-caching.md): cache responses by their caching headers
-- [Batch requests](batching.md): send requests that go together as one
 - [Priorities](priorities.md): connection limits, and what loads first
 - [Tracing](tracing.md): see what a session fetched, and why

@@ -77,5 +77,8 @@ Rejected:
   Sharing them in the HTTP cache, as a browser's cache does, was rejected
   too, because only a stack with a cache would share them (see
   [HTTP cache](http-cache.md)).
+- A layer that collects requests made at about the same time and sends
+  them together as one. It needs a server with a batch endpoint, and
+  sending a few at a time is the scheduler's.
 - `(next) => fetch` functions without a context. A layer couldn't keep state
   for a session, follow a priority that changes, or say what it did.
