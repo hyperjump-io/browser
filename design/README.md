@@ -16,6 +16,8 @@ for users is in [`website/`](../website/README.md).
 - **[Style](style/README.md)**: how code here is laid out and written.
 - **Components**: how each part works, what was decided, and what was
   rejected, with known limitations.
+- **[Benchmarks](benchmarks/README.md)**: the measurements behind
+  performance decisions.
 
 ## Components
 
@@ -38,3 +40,5 @@ for users is in [`website/`](../website/README.md).
 - [The throttle](components/throttle.md): a page's low-priority requests wait for its important ones
 - [Tracing](components/tracing.md): what a session fetched, as a waterfall
 - [HAR export](components/har.md): traces that open in browser devtools
+- [The JSON AST](components/json-ast.md): parsing JSON and JRef to trees with positions, and never failing
+- [Local paths in errors](components/file-urls.md): a `file:` URL in a message is relative to the working directory

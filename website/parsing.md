@@ -1,0 +1,188 @@
+# Parse JSON and JRef
+
+You can use the JSON and JRef parsers on their own, without a session. They
+parse into a JSON abstract syntax tree (AST), which is a
+[unist](https://github.com/syntax-tree/unist) tree with a position for every
+value.
+
+## Parse
+
+`fromJson` parses JSON text. It never throws. Instead, it recovers from syntax
+errors where it can and returns every error it found:
+
+```typescript
+import { fromJson, jsonSyntaxErrorMessage } from "@hyperjump/browser";
+
+const result = fromJson(`{ "a": [1, 2,] }`, "https://example.com/doc");
+result.status; // "recovered"
+result.node; // The AST
+
+const [error] = result.errors;
+error.ruleId; // "trailing-comma"
+jsonSyntaxErrorMessage(error); // "Trailing commas are not allowed"
+```
+
+The `status` says how parsing went:
+
+| Status | Meaning |
+| --- | --- |
+| `"success"` | No syntax errors |
+| `"recovered"` | There were syntax errors, but the parser could tell what the text meant. A trailing comma is an example. The AST has every value. |
+| `"failure"` | The parser couldn't parse some values because of syntax errors. The AST has error nodes where those values would be. |
+
+Each error is plain data with a `ruleId` and a `place`. The `ruleId` is a name
+such as `"trailing-comma"`. To turn an error into a message for people to read,
+use `jsonSyntaxErrorMessage`.
+
+The second argument of `fromJson` is the document's URL, which every node's
+`location` starts with. It has to be an absolute URL without a fragment, or
+`fromJson` throws a `TypeError`. With the
+`allowComments` option, `fromJson` accepts `//` and `/* */` comments the way
+JSON with Comments (JSONC) does. Comments aren't part of the AST. The result
+lists them in `comments` in the order they appear:
+
+```typescript
+const json = `{ "a": 1 // one
+}`;
+const result = fromJson(json, "https://example.com/doc", {
+  allowComments: true
+});
+
+result.node.location; // "https://example.com/doc#"
+result.comments[0].value; // " one"
+```
+
+`fromJref` parses JRef the same way. Each reference node gets an `href`, which
+is the reference resolved against the document's URL:
+
+```typescript
+import { fromJref } from "@hyperjump/browser";
+
+const jref = `{ "x": { "$ref": "#/y" }, "y": 1 }`;
+const { node } = fromJref(jref, "https://example.com/doc");
+```
+
+`fromJref` takes the `allowComments` option too.
+
+A `$ref` whose value doesn't resolve to a URL against the document's URL isn't a
+reference. `//[` is one, and so is `b` in a `urn:` document. Its object is an
+error node with the `type` `"invalid-reference"`, the `status` is `"failure"`,
+and the error's `ruleId` is `"invalid-reference"`. To turn the errors from
+`fromJref` into messages, use `jrefSyntaxErrorMessage`, which describes JSON
+syntax errors too:
+
+```typescript
+import { fromJref, jrefSyntaxErrorMessage } from "@hyperjump/browser";
+
+const result = fromJref(`{ "$ref": "//[" }`, "https://example.com/doc");
+result.status; // "failure"
+result.node.type; // "invalid-reference"
+jrefSyntaxErrorMessage(result.errors[0]);
+// "'//[' is not a valid reference"
+```
+
+## Read the AST
+
+Each node has a `jsonType`, a `location`, and a `position`. The `location` is a
+URL with a JSON Pointer to the node. The `position` says where the node is in
+the text.
+
+To read values out of the AST, use the JSON AST functions. This example gets a
+node with a JSON Pointer and then reads the node's value and its position:
+
+```typescript
+import {
+  fromJson,
+  jsonSyntaxErrorMessage,
+  jsonValue,
+  jsonPointerGet
+} from "@hyperjump/browser";
+
+const json = `{ "a": { "b": [10, 20] } }`;
+const result = fromJson(json, "https://example.com/doc");
+if (result.status === "failure") {
+  throw Error(jsonSyntaxErrorMessage(result.errors[0]));
+}
+
+const twenty = jsonPointerGet("/a/b/1", result.node);
+jsonValue(twenty); // 20
+twenty.position?.start; // { line: 1, column: 20, offset: 19 }
+```
+
+The example checks the `status` first because only a parse whose status is
+`"failure"` can have error nodes. After that check, TypeScript knows that the
+AST has none.
+
+These are the functions for reading the AST:
+
+| Function | Description |
+| --- | --- |
+| `jsonPointerGet(pointer, node)` | The node a JSON Pointer points to |
+| `jsonStep(key, node)` | A property or item of a node |
+| `jsonValue(node)` | The node's value as JavaScript |
+| `jsonObjectHas`, `jsonObjectKeys`, `jsonObjectValues`, `jsonObjectEntries`, `jsonArrayIter` | Read objects and arrays |
+| `toJson(node, options)` | The node as JSON text. The `space` option indents it like the `space` of `JSON.stringify`. |
+| `fromJs(value, location)` | An AST from a JavaScript value, whose root has the `location`. A URL without a fragment is a document's, so its root is `#`. |
+
+None of these follow references.
+
+`jsonPointerGet` and `jsonStep` throw a `JsonPointerError` when a property or
+item doesn't exist. Its message says the location that the pointer couldn't
+reach. That location comes from the node's `location`, so it starts with the URL
+you gave `fromJson` or `fromJs`.
+
+Error messages often end up in logs and bug reports. To keep them from revealing
+where your files are, the message shows a `file:` URL relative to the working
+directory, such as `data/person.json#/name`. If you want your own messages to
+show URLs the same way, use `relativeFileUrl(url)`.
+
+In an AST from a parse whose status is `"failure"`, a value that the parser
+couldn't parse is `undefined`. The root itself can be an error node, so check
+that its `type` is `"json"` first:
+
+```typescript
+import {
+  fromJson,
+  JsonPointerError,
+  jsonPointerGet
+} from "@hyperjump/browser";
+
+const { node } = fromJson(`{ "a": }`, "https://example.com/doc");
+if (node.type === "json") {
+  jsonPointerGet("/a", node); // undefined
+
+  try {
+    jsonPointerGet("/b", node);
+  } catch (error) {
+    if (error instanceof JsonPointerError) {
+      error.message;
+      // "Property 'b' doesn't exist at https://example.com/doc#/b"
+    }
+  }
+}
+```
+
+`jsonValue` and `toJson` leave such a value out of an object. In an array, they
+make it `null` so the items after it keep their positions.
+
+## Build nodes
+
+If you build nodes of your own, use `appendToLocation` to give them a
+`location`. It adds a property name or array index to the JSON Pointer of the
+parent's `location`. It encodes the result the way the parser does, so you can
+compare it to the locations the parser made:
+
+```typescript
+import {
+  appendToLocation,
+  fromJson,
+  jsonPointerGet
+} from "@hyperjump/browser";
+
+const result = fromJson(`{ "x": {} }`, "https://example.com/doc");
+if (result.status !== "failure") {
+  const parent = jsonPointerGet("/x", result.node);
+  appendToLocation("a b", parent.location);
+  // "https://example.com/doc#/x/a%20b"
+}
+```

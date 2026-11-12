@@ -14,3 +14,10 @@ export * from "./layers/scheduler.js";
 export * from "./layers/throttle.js";
 export * from "./trace.js";
 export * from "./har.js";
+export * from "./file-urls.js";
+export * from "./json/jsonast-util.js";
+export * from "./json/location.js";
+export * from "./jref/jref-util.js";
+// The JSON and JRef utilities both export hasStatus. The JRef one is the same
+// function, typed for both kinds of document.
+export { hasStatus } from "./jref/jref-util.js";

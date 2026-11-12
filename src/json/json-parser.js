@@ -1,0 +1,711 @@
+import { scanToken } from "./json-scanner.js";
+import { appendToLocation } from "./location.js";
+
+/**
+ * @import { Point, Position } from "unist"
+ * @import { JsonToken, JsonTokenKind } from "./json-scanner.js"
+ * @import {
+ *   JsonCommentNode,
+ *   JsonErrorNode,
+ *   JsonInvalidNode,
+ *   JsonMissingNode,
+ *   JsonParseStatus,
+ *   JsonNode,
+ *   JsonPropertyNameNode,
+ *   JsonPropertyNode,
+ *   JsonTolerantNode
+ * } from "./jsonast.d.ts"
+ * @import { JsonOptions, JsonParseResult, JsonSyntaxError, JsonSyntaxErrorCode } from "./jsonast-util.d.ts"
+ * @import * as API from "./jsonast-util.d.ts"
+ */
+
+/**
+ * @typedef {JsonTolerantNode | JsonErrorNode} JsonValueNode
+ */
+
+/**
+ * @typedef {{ jsonType: "null", value: null }
+ *   | { jsonType: "boolean", value: boolean }
+ *   | { jsonType: "number", value: number }
+ *   | { jsonType: "string", value: string }} JsonScalar
+ */
+
+/**
+ * @typedef {{
+ *   code: JsonSyntaxErrorCode;
+ *   offset: number;
+ *   length: number;
+ *   found?: string;
+ * }} SyntaxError
+ */
+
+/**
+ * @typedef {{
+ *   after: { position?: Position } | undefined;
+ *   offset: number;
+ *   length: number;
+ * }} Separator
+ */
+
+/** @type Record<JsonSyntaxErrorCode, (found?: string) => string> */
+const MESSAGES = {
+  "trailing-comma": () => "Trailing commas are not allowed",
+  "comma-expected": () => "Expected a comma",
+  "colon-expected": () => "Expected a colon",
+  "value-expected": () => "Expected a value",
+  "brace-not-closed": () => "Object is missing its closing brace",
+  "bracket-not-closed": () => "Array is missing its closing bracket",
+  "unexpected-token": (found) => `Unexpected '${found}'`,
+  "end-of-file-expected": () => "Expected the end of the file",
+  "property-key-expected": () => "Expected a property name",
+  "property-key-not-quoted": () => "Property names must be in double quotes",
+  "property-key-single-quoted": () => "Property names must use double quotes instead of single quotes",
+  "string-single-quoted": () => "Strings must use double quotes instead of single quotes",
+  "string-not-closed": () => "String is missing its closing quote",
+  "invalid-escape": () => "Invalid escape sequence",
+  "invalid-character": () => "Control characters are not allowed in strings",
+  "number-invalid": (found) => `'${found}' is not a valid number`,
+  "invalid-literal": (found) => `'${found}' is not a valid value`,
+  "comment-not-allowed": () => "Comments are not allowed in JSON",
+  "comment-not-closed": () => "Comment is missing its closing '*/'",
+  "max-depth-exceeded": () => `Objects and arrays can't be nested more than ${MAX_DEPTH} levels deep`
+};
+
+// RFC 8259 allows a limit on nesting depth. Without one, deeply nested input
+// would overflow the call stack.
+const MAX_DEPTH = 1000;
+
+const NUMBER = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?$/;
+
+/** @type Set<JsonTokenKind> */
+const KEY_STARTS = new Set(["string", "number", "true", "false", "null", "unknown"]);
+
+/** @type typeof API.jsonSyntaxErrorMessage */
+export const jsonSyntaxErrorMessage = (error) => MESSAGES[error.ruleId](error.actual);
+
+/**
+ * Parse JSON text into a JSON AST, recovering from syntax errors wherever
+ * possible. Every error found is returned along with the best-effort AST.
+ *
+ * @type (text: string, url: string, options?: JsonOptions) => JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode>
+ */
+export const parseJson = (text, url, options = {}) => {
+  const lineStarts = findLineStarts(text);
+
+  /** @type SyntaxError[] */
+  const errors = [];
+
+  /** @type JsonCommentNode[] */
+  const comments = [];
+
+  // Set when the AST can't fully represent the input: a value is invalid or
+  // missing, a property name is missing, or input had to be discarded
+  let failed = false;
+  let ranToEndOfFile = false;
+
+  /** @type WeakSet<object> */
+  const unclosed = new WeakSet();
+
+  /** @type JsonToken */
+  let token = scanToken("", 0);
+  let previousOffset = 0;
+  let previousLength = 0;
+
+  /** @type (code: JsonSyntaxErrorCode, offset: number, length: number, found?: string) => void */
+  const report = (code, offset, length, found) => {
+    errors.push({ code, offset, length, found });
+  };
+
+  /** @type (code: JsonSyntaxErrorCode) => void */
+  const reportAtPrevious = (code) => {
+    report(code, previousOffset, Math.max(previousLength, 1));
+  };
+
+  // A function so type narrowing doesn't assume the token can't change
+  const kind = () => token.kind;
+
+  const raw = () => {
+    return text.slice(token.offset, token.offset + token.length);
+  };
+
+  // Points are mostly requested in document order, so the line of the last
+  // point is checked before searching
+  let lastLine = 0;
+
+  /** @type (line: number, offset: number) => boolean */
+  const isOnLine = (line, offset) => {
+    return lineStarts[line] <= offset && (line + 1 === lineStarts.length || offset < lineStarts[line + 1]);
+  };
+
+  /** @type (offset: number) => Point */
+  const point = (offset) => {
+    let line = lastLine;
+    if (!isOnLine(line, offset)) {
+      if (line + 1 < lineStarts.length && isOnLine(line + 1, offset)) {
+        line++;
+      } else {
+        let low = 0;
+        let high = lineStarts.length - 1;
+        while (low < high) {
+          const middle = Math.ceil((low + high) / 2);
+          if (lineStarts[middle] <= offset) {
+            low = middle;
+          } else {
+            high = middle - 1;
+          }
+        }
+        line = low;
+      }
+      lastLine = line;
+    }
+
+    return { line: line + 1, column: offset - lineStarts[line] + 1, offset: offset };
+  };
+
+  /** @type (start: number, end: number) => Position */
+  const position = (start, end) => {
+    return { start: point(start), end: point(end) };
+  };
+
+  /** @type (comment: JsonToken) => JsonCommentNode */
+  const commentNode = (comment) => {
+    const isBlock = text.startsWith("/*", comment.offset);
+    const end = comment.offset + comment.length;
+    const valueEnd = isBlock && !comment.reachedEndOfFile ? end - 2 : end;
+
+    return {
+      type: "json-comment",
+      kind: isBlock ? "block" : "line",
+      value: text.slice(comment.offset + 2, valueEnd),
+      position: position(comment.offset, end)
+    };
+  };
+
+  /** @type (node: { position?: Position }) => number */
+  const startOf = (node) => /** @type Position */ (node.position).start.offset ?? 0;
+
+  /** @type (node: { position?: Position }) => number */
+  const endOf = (node) => /** @type Position */ (node.position).end.offset ?? 0;
+
+  // Looking ahead scans the token that's usually consumed next, so the first
+  // token scanned is kept to save scanning it again
+  let peekedFrom = -1;
+
+  /** @type JsonToken */
+  let peeked = token;
+
+  /** @type (offset: number) => JsonToken */
+  const scanAt = (offset) => {
+    return offset === peekedFrom ? peeked : scanToken(text, offset);
+  };
+
+  /** @type (offset: number) => JsonToken */
+  const scanSignificant = (offset) => {
+    let result = scanAt(offset);
+    peekedFrom = offset;
+    peeked = result;
+    while (result.kind === "comment") {
+      result = scanToken(text, result.offset + result.length);
+    }
+    return result;
+  };
+
+  const next = () => {
+    previousOffset = token.offset;
+    previousLength = token.length;
+
+    for (;;) {
+      token = scanAt(token.offset + token.length);
+
+      for (const error of token.errors) {
+        report(error.code, error.offset, error.length);
+      }
+
+      if (token.reachedEndOfFile) {
+        ranToEndOfFile = true;
+      }
+
+      if (token.kind === "comment") {
+        if (!options.allowComments) {
+          report("comment-not-allowed", token.offset, token.length);
+        } else {
+          if (token.reachedEndOfFile) {
+            report("comment-not-closed", token.offset, token.length);
+          }
+          comments.push(commentNode(token));
+        }
+        continue;
+      }
+
+      return;
+    }
+  };
+
+  /** @type (code: JsonSyntaxErrorCode, container: JsonTolerantNode, lastItem: { position?: Position } | undefined) => void */
+  const reportNotClosed = (code, container, lastItem) => {
+    unclosed.add(container);
+    if (ranToEndOfFile) {
+      return;
+    }
+
+    if (lastItem) {
+      // The last item can be an unclosed container that covers whitespace
+      const lastItemText = text.slice(startOf(lastItem), endOf(lastItem));
+      report(code, startOf(lastItem), lastItemText.trimEnd().length);
+    } else {
+      report(code, startOf(container), 1);
+    }
+  };
+
+  /** @type (separator: Separator) => void */
+  const reportCommaExpected = (separator) => {
+    if (separator.after && !unclosed.has(separator.after)) {
+      report("comma-expected", separator.offset, Math.max(separator.length, 1));
+    }
+  };
+
+  /** @type (after: { position?: Position } | undefined) => Separator */
+  const separatorAfter = (after) => {
+    return { after, offset: previousOffset, length: previousLength };
+  };
+
+  const skipStrayColons = () => {
+    const start = token.offset;
+    while (token.kind === ":") {
+      next();
+    }
+
+    const end = previousOffset + previousLength;
+    report("unexpected-token", start, end - start, text.slice(start, end));
+  };
+
+  const looksLikeProperty = () => {
+    return token.kind === "string" && scanSignificant(token.offset + token.length).kind === ":";
+  };
+
+  const isEndOfContainer = () => {
+    return token.kind === "}" || token.kind === "]" || token.kind === "eof";
+  };
+
+  /**
+   * Parse a comma. If there's a gap where a value should be, the offset where
+   * the gap starts is returned.
+   *
+   * @type (closer: JsonTokenKind, isExtra: boolean, isFirst: boolean) => number | undefined
+   */
+  const parseComma = (closer, isExtra, isFirst) => {
+    const commaOffset = token.offset;
+    const beforeOffset = previousOffset;
+    const beforeLength = previousLength;
+    next();
+
+    const isTrailing = token.kind === closer;
+    if (isTrailing) {
+      report("trailing-comma", commaOffset, 1);
+    }
+
+    // A lone comma in an otherwise empty container is only a trailing comma
+    if (isExtra && !(isTrailing && isFirst)) {
+      report("value-expected", beforeOffset, Math.max(beforeLength, 1));
+      return beforeOffset + beforeLength;
+    }
+  };
+
+  /** @type (nodeLocation: string, offset: number) => JsonMissingNode */
+  const missing = (nodeLocation, offset) => {
+    failed = true;
+    return {
+      type: "json-missing",
+      location: nodeLocation,
+      position: position(offset, offset)
+    };
+  };
+
+  /** @type (nodeLocation: string) => JsonInvalidNode */
+  const parseInvalid = (nodeLocation) => {
+    failed = true;
+
+    /** @type JsonInvalidNode */
+    const node = {
+      type: "json-invalid",
+      raw: raw(),
+      location: nodeLocation,
+      position: position(token.offset, token.offset + token.length)
+    };
+    next();
+    return node;
+  };
+
+  /** @type (scalar: JsonScalar, nodeLocation: string) => JsonTolerantNode */
+  const parseScalar = (scalar, nodeLocation) => {
+    /** @type JsonTolerantNode */
+    const node = {
+      type: "json",
+      ...scalar,
+      location: nodeLocation,
+      position: position(token.offset, token.offset + token.length)
+    };
+    next();
+    return node;
+  };
+
+  /**
+   * Parse a property. The value is returned separately, and is `undefined`
+   * when it's missing, so the caller can tell where the property's text ends.
+   *
+   * @type (objectLocation: string) => { property: JsonPropertyNode<{ type: "json" }, JsonErrorNode>, value: JsonValueNode | undefined }
+   */
+  const parseProperty = (objectLocation) => {
+    const start = token.offset;
+
+    /** @type JsonPropertyNameNode */
+    let keyNode;
+    const keyMissing = !KEY_STARTS.has(token.kind);
+    if (keyMissing) {
+      report("property-key-expected", token.offset, 1);
+      failed = true;
+      keyNode = {
+        type: "json-property-name",
+        jsonType: "string",
+        value: "",
+        position: position(token.offset, token.offset)
+      };
+    } else {
+      if (token.kind !== "string") {
+        report("property-key-not-quoted", token.offset, token.length);
+      } else if (token.quote === "'") {
+        report("property-key-single-quoted", token.offset, token.length);
+      }
+
+      keyNode = {
+        type: "json-property-name",
+        jsonType: "string",
+        // For anything other than a string, the value is the text as written
+        value: token.value,
+        position: position(token.offset, token.offset + token.length)
+      };
+      next();
+    }
+
+    /** @type number | undefined */
+    let colonOffset;
+    if (token.kind === ":") {
+      colonOffset = token.offset;
+      next();
+      if (token.kind === ":") {
+        skipStrayColons();
+      }
+    } else if (!keyMissing) {
+      reportAtPrevious("colon-expected");
+    }
+
+    const valueLocation = appendToLocation(keyNode.value, objectLocation);
+    const value = looksLikeProperty() ? undefined : parseValue(valueLocation);
+    if (!value) {
+      if (colonOffset === undefined) {
+        reportAtPrevious("value-expected");
+      } else {
+        report("value-expected", colonOffset, 1);
+      }
+
+      // The missing value has no width, but the property extends to where
+      // parsing stopped so the cursor is inside it while typing the value
+      const missingNode = missing(valueLocation, previousOffset + previousLength);
+      /** @type JsonPropertyNode<{ type: "json" }, JsonErrorNode> */
+      const property = {
+        type: "json-property",
+        children: [keyNode, missingNode],
+        position: position(start, token.offset)
+      };
+      return { property, value };
+    }
+
+    /** @type JsonPropertyNode<{ type: "json" }, JsonErrorNode> */
+    const property = {
+      type: "json-property",
+      children: [keyNode, value],
+      position: position(start, endOf(value))
+    };
+    return { property, value };
+  };
+
+  /**
+   * For each opening bracket, the offset where scanning resumes after its
+   * container. Brackets are paired the same way the parser pairs them: a
+   * closer ends any unclosed containers of the other kind before it. It's
+   * computed in one pass the first time it's needed so lookahead never costs
+   * more than a few tokens, no matter how the input is constructed.
+   *
+   * @type Map<number, number> | undefined
+   */
+  let containerEnds;
+
+  /** @type (openOffset: number) => number */
+  const containerEnd = (openOffset) => {
+    if (!containerEnds) {
+      containerEnds = new Map();
+
+      /** @type JsonToken[] */
+      const openers = [];
+      let scanned = scanSignificant(0);
+      while (scanned.kind !== "eof") {
+        if (scanned.kind === "{" || scanned.kind === "[") {
+          openers.push(scanned);
+        } else if (scanned.kind === "}" || scanned.kind === "]") {
+          const match = scanned.kind === "}" ? "{" : "[";
+          while (openers.length > 0 && openers[openers.length - 1].kind !== match) {
+            containerEnds.set(/** @type JsonToken */ (openers.pop()).offset, scanned.offset);
+          }
+          const opener = openers.pop();
+          if (opener) {
+            containerEnds.set(opener.offset, scanned.offset + scanned.length);
+          }
+        }
+        scanned = scanSignificant(scanned.offset + scanned.length);
+      }
+
+      for (const opener of openers) {
+        containerEnds.set(opener.offset, text.length);
+      }
+    }
+
+    return /** @type number */ (containerEnds.get(openOffset));
+  };
+
+  /**
+   * A container where an object expects a property name is either the value of
+   * a property whose name is missing or the start of the next item in the
+   * array this object is in, meaning this object is missing its closing brace.
+   * What comes after the container decides. Anything that can only continue an
+   * object means the name is missing. Anything else means the container is the
+   * array's next item.
+   */
+  const startsNextArrayItem = () => {
+    if (token.kind !== "{" && token.kind !== "[") {
+      return false;
+    }
+
+    const after = scanSignificant(containerEnd(token.offset));
+    if (after.kind === "]" || after.kind === "eof") {
+      return true;
+    }
+
+    if (after.kind === ",") {
+      const following = scanSignificant(after.offset + after.length);
+      return following.kind !== "string" || scanSignificant(following.offset + following.length).kind !== ":";
+    }
+
+    return false;
+  };
+
+  let depth = 0;
+
+  /**
+   * A container nested too deeply is reported once and kept as a single
+   * invalid node so the rest of the document can still be parsed.
+   *
+   * @type (nodeLocation: string) => JsonInvalidNode
+   */
+  const parseTooDeep = (nodeLocation) => {
+    report("max-depth-exceeded", token.offset, 1);
+    const end = containerEnd(token.offset);
+    token = { ...token, kind: "unknown", length: end - token.offset, errors: [] };
+    return parseInvalid(nodeLocation);
+  };
+
+  /** @type (jsonType: "object" | "array", containerLocation: string, isArrayItem: boolean) => JsonTolerantNode */
+  const parseContainer = (jsonType, containerLocation, isArrayItem) => {
+    depth++;
+    const start = token.offset;
+    const closer = jsonType === "object" ? "}" : "]";
+    next();
+
+    /** @type JsonPropertyNode<{ type: "json" }, JsonErrorNode>[] */
+    const properties = [];
+
+    /** @type JsonValueNode[] */
+    const items = [];
+
+    /** @type {{ position?: Position } | undefined} */
+    let lastItem;
+    let index = 0;
+
+    /** @type Separator | undefined */
+    let separator;
+    while (!isEndOfContainer()) {
+      if (token.kind === ",") {
+        const gapOffset = parseComma(closer, !separator, index === 0);
+        if (gapOffset !== undefined && jsonType === "array") {
+          // An index never needs escaping or encoding
+          items.push(missing(`${containerLocation}/${index}`, gapOffset));
+        }
+        if (gapOffset !== undefined) {
+          index++;
+        }
+        separator = undefined;
+        continue;
+      }
+
+      if (jsonType === "array" && token.kind === ":") {
+        skipStrayColons();
+        separator ??= separatorAfter(undefined);
+        continue;
+      }
+
+      if (separator) {
+        reportCommaExpected(separator);
+      }
+
+      if (jsonType === "array" && looksLikeProperty()) {
+        break;
+      }
+
+      if (jsonType === "object" && isArrayItem && startsNextArrayItem()) {
+        break;
+      }
+
+      if (jsonType === "object") {
+        index++;
+        const { property, value } = parseProperty(containerLocation);
+        properties.push(property);
+        lastItem = property;
+        separator = separatorAfter(value);
+      } else {
+        // Every token that isn't a value was handled above
+        const item = /** @type JsonValueNode */ (parseValue(`${containerLocation}/${index++}`, true));
+        items.push(item);
+        lastItem = item;
+        separator = separatorAfter(item);
+      }
+    }
+
+    // An unclosed container extends to where parsing stopped, including any
+    // whitespace after its last token. Editors look up the node at the
+    // cursor, and while typing at the end of a truncated document, the
+    // cursor is usually in that whitespace.
+    const isClosed = token.kind === closer;
+    const containerPosition = position(start, isClosed ? token.offset + token.length : token.offset);
+
+    /** @type JsonTolerantNode */
+    const container = jsonType === "object"
+      ? { type: "json", jsonType: jsonType, children: properties, location: containerLocation, position: containerPosition }
+      : { type: "json", jsonType: jsonType, children: items, location: containerLocation, position: containerPosition };
+
+    if (isClosed) {
+      next();
+    } else {
+      reportNotClosed(jsonType === "object" ? "brace-not-closed" : "bracket-not-closed", container, lastItem);
+    }
+    depth--;
+    return container;
+  };
+
+  /** @type (valueLocation: string, isArrayItem?: boolean) => JsonTolerantNode | JsonInvalidNode | undefined */
+  const parseValue = (valueLocation, isArrayItem = false) => {
+    if ((token.kind === "{" || token.kind === "[") && depth >= MAX_DEPTH) {
+      return parseTooDeep(valueLocation);
+    }
+
+    switch (token.kind) {
+      case "{":
+        return parseContainer("object", valueLocation, isArrayItem);
+
+      case "[":
+        return parseContainer("array", valueLocation, isArrayItem);
+
+      case "string":
+        if (token.quote === "'") {
+          report("string-single-quoted", token.offset, token.length);
+        }
+        return parseScalar({ jsonType: "string", value: token.value }, valueLocation);
+
+      case "number":
+        if (!NUMBER.test(token.value)) {
+          report("number-invalid", token.offset, token.length, token.value);
+          return parseInvalid(valueLocation);
+        }
+        return parseScalar({ jsonType: "number", value: Number(token.value) }, valueLocation);
+
+      case "true":
+        return parseScalar({ jsonType: "boolean", value: true }, valueLocation);
+
+      case "false":
+        return parseScalar({ jsonType: "boolean", value: false }, valueLocation);
+
+      case "null":
+        return parseScalar({ jsonType: "null", value: null }, valueLocation);
+
+      case "unknown":
+        report("invalid-literal", token.offset, token.length, token.value);
+        return parseInvalid(valueLocation);
+
+      default:
+        return undefined;
+    }
+  };
+
+  next();
+
+  const rootLocation = `${url}#`;
+
+  /** @type JsonValueNode | undefined */
+  let node;
+  if (kind() === "eof") {
+    report("value-expected", 0, 0);
+    node = missing(rootLocation, 0);
+  } else {
+    const root = parseValue(rootLocation);
+    node = root ?? missing(rootLocation, 0);
+
+    if (kind() !== "eof") {
+      report("end-of-file-expected", token.offset, Math.max(text.trimEnd().length - token.offset, 1));
+      failed = true;
+    }
+  }
+
+  errors.sort((a, b) => a.offset - b.offset);
+  const syntaxErrors = errors.map((error) => {
+    /** @type JsonSyntaxError */
+    const syntaxError = {
+      source: "json",
+      ruleId: error.code,
+      place: position(error.offset, error.offset + error.length)
+    };
+    if (error.found !== undefined) {
+      syntaxError.actual = error.found;
+    }
+    return syntaxError;
+  });
+
+  /** @type JsonParseStatus */
+  const status = syntaxErrors.length === 0 ? "success" : failed ? "failure" : "recovered";
+
+  // The status is what decides the type of the node, which is checked by the
+  // tests rather than the type system
+  return /** @type JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode> */ ({ status, node, errors: syntaxErrors, comments });
+};
+
+/** @type (text: string) => number[] */
+const findLineStarts = (text) => {
+  const lineStarts = [0];
+
+  // Lines almost always end with "\n", which can be found quickly
+  if (!text.includes("\r")) {
+    let index = text.indexOf("\n");
+    while (index !== -1) {
+      lineStarts.push(index + 1);
+      index = text.indexOf("\n", index + 1);
+    }
+    return lineStarts;
+  }
+
+  for (let index = 0; index < text.length; index++) {
+    if (text[index] === "\r" && text[index + 1] === "\n") {
+      index++;
+    }
+    if (text[index] === "\n" || text[index] === "\r") {
+      lineStarts.push(index + 1);
+    }
+  }
+  return lineStarts;
+};

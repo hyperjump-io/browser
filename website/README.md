@@ -19,3 +19,4 @@ includes `file:` URLs.
 - [HTTP caching](http-caching.md): cache responses by their caching headers
 - [Priorities](priorities.md): connection limits, and what loads first
 - [Tracing](tracing.md): see what a session fetched, and why
+- [Parse JSON and JRef](parsing.md): the parsers and the functions that read their ASTs

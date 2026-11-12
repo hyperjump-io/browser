@@ -22,7 +22,8 @@
   "files": [
     "src/",
     "!**/*.test.js",
-    "!src/test-helpers/"
+    "!src/test-helpers/",
+    "!src/json/jsonast-util-tests/"
   ],
   "exports": {
     ".": {
@@ -75,5 +76,9 @@
     "typescript": "*",
     "vite": "*",
     "vitest": "*"
+  },
+  "dependencies": {
+    "@hyperjump/json-pointer": "^2.0.1",
+    "@types/unist": "^3.0.3"
   }
 }
