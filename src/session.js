@@ -167,7 +167,6 @@ export class Session {
     const ctx = {
       session: this,
       cacheMode: cache ?? "default",
-      signal,
       priority: priority instanceof PrioritySignal ? priority : PrioritySignal.of(priority ?? "auto"),
       destination: record.destination,
       record

@@ -72,7 +72,7 @@ export class Scheduler {
       return this.inner.fetch(request, ctx);
     }
 
-    await this.#acquire(key, ctx);
+    await this.#acquire(key, request.signal, ctx);
     let released = false;
     const release = () => {
       if (!released) {
@@ -106,9 +106,9 @@ export class Scheduler {
     this.#active.set(key, (this.#active.get(key) ?? 0) + 1);
   }
 
-  /** @type (key: string, ctx: FetchContext) => Promise<void> */
-  #acquire(key, ctx) {
-    const { priority, signal, record } = ctx;
+  /** @type (key: string, signal: AbortSignal, ctx: FetchContext) => Promise<void> */
+  #acquire(key, signal, ctx) {
+    const { priority, record } = ctx;
     if (signal.aborted) {
       return Promise.reject(/** @type unknown */ (signal.reason));
     }

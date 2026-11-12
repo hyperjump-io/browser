@@ -6,10 +6,10 @@ pass between them:
 1. The `Request` and the `Response`. What needs the layer below to do
    something says so in the request, like the session's
    `redirect: "manual"`.
-2. The context fields the session defines: `session`, `signal`,
-   `cacheMode`, `priority`, `destination`, and `record`. Each has one typed
-   meaning. A layer can give the one below it a changed copy, like a lower
-   priority or a shared request's signal, but it can't add fields.
+2. The context fields the session defines: `session`, `cacheMode`,
+   `priority`, `destination`, and `record`. Each has one typed meaning. A
+   layer can give the one below it a changed copy, like a lower priority,
+   but it can't add fields.
 3. Response meta and record marks, which go out to whoever called `fetch`
    or is watching, like a trace.
 

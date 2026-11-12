@@ -62,8 +62,8 @@ describe("sessions", () => {
   });
 
   test("the caller's signal aborts its request", async () => {
-    const session = testSession(fetcher((_request, ctx) => new Promise((_resolve, reject) => {
-      ctx.signal.addEventListener("abort", () => reject(ctx.signal.reason));
+    const session = testSession(fetcher((request) => new Promise((_resolve, reject) => {
+      request.signal.addEventListener("abort", () => reject(request.signal.reason));
     })));
     const controller = new AbortController();
     const pending = session.fetch("https://a.test/", { signal: controller.signal });

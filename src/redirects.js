@@ -74,10 +74,10 @@ export const follow = async (stack, request, ctx, policy, added) => {
     await check(current.url, target.href, ctx, policy);
 
     ctx.record.mark("redirect", { status: response.status, from: current.url, to: target.href });
-    current = nextHop(spare ?? current, target, response.status, ctx);
+    current = nextHop(spare ?? current, target, response.status);
     urls.push(target.href);
     added = await policy.headers(target.href);
-    ctx.signal.throwIfAborted();
+    current.signal.throwIfAborted();
   }
 };
 
@@ -145,9 +145,9 @@ export const sentHeaders = (own, added) => {
  * a POST a GET, and a 303 makes anything but GET or HEAD a GET, without the
  * body. `Authorization` isn't sent to another origin.
  *
- * @type (previous: Request, target: URL, status: number, ctx: FetchContext) => Request
+ * @type (previous: Request, target: URL, status: number) => Request
  */
-const nextHop = (previous, target, status, ctx) => {
+const nextHop = (previous, target, status) => {
   let method = previous.method;
   /** @type BodyInit | null */
   let body = previous.body;
@@ -171,7 +171,7 @@ const nextHop = (previous, target, status, ctx) => {
     method,
     headers,
     body,
-    signal: ctx.signal,
+    signal: previous.signal,
     redirect: previous.redirect,
     // Node.js needs it for a streamed body
     ...body ? { duplex: "half" } : {}

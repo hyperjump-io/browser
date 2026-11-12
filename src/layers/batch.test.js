@@ -152,7 +152,7 @@ const usersApi = (scope) => {
     match: (request) => new URL(request.url).pathname.startsWith("/users/") ? "users" : undefined,
     execute: async (requests, _inner, ctx) => {
       const ids = requests.map((request) => /** @type string */ (new URL(request.url).pathname.split("/").pop()));
-      calls.push({ ids, signal: ctx.signal });
+      calls.push({ ids, signal: ctx.session.signal });
       await gate;
       return ids.map((id) => new Response(`user ${id}`));
     }

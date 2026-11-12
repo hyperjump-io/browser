@@ -40,18 +40,14 @@ order that's wrong still works, only not as well.
 ## The context
 
 A request goes down the stack with its context (`FetchContext`): the
-session, the cache mode, the signal, the priority, the destination, and the
-record. A layer
-can give the one below it a changed copy, like a shared request's signal,
-but these are the only fields (see
+session, the cache mode, the priority, the destination, and the record. A
+layer can give the one below it a changed copy, like a lower priority, but
+these are the only fields (see
 [How layers communicate](../principles/how-layers-communicate.md)).
 
 - `session` is for a layer's per-session state, and its signal.
 - `cacheMode` is the Fetch standard's cache mode, for the HTTP cache (see
   [HTTP cache](http-cache.md)).
-- `signal` aborts when the caller aborts or the session closes. A request's
-  own signal is the same, but a layer that makes a new request can give it
-  another, so the context has it too.
 - `priority` is a signal that can change while a request waits (see
   [Priorities](priorities.md)).
 - `destination` is what the resource is for, like `"style"` or `"image"`,
@@ -60,8 +56,16 @@ but these are the only fields (see
 - `record` is where a layer says what it did (see
   [Fetch records](fetch-records.md)).
 
+What aborts a request is its own `signal`, which aborts when the caller
+aborts or the session closes. A layer that makes a new request gives it a
+signal, like the session's for a request that belongs to the session.
+
 Rejected:
 
+- A `signal` on the context as well as the request's. A layer that made a
+  new request could give one and not the other, and the runtime's `fetch`
+  reads only the request's, so a request a layer below stopped waiting for
+  could still be sent.
 - Layers as a list given to the session, each a `handle(request, ctx,
   next)`. A layer couldn't have methods an application calls, the stack
   wasn't a value that could be passed around, and a transport was a special

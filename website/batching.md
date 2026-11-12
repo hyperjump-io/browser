@@ -11,7 +11,8 @@ const users = batch({
   match: (request) => new URL(request.url).pathname.startsWith("/users/") ? "users" : undefined,
   execute: async (requests, inner, ctx) => {
     const ids = requests.map((request) => new URL(request.url).pathname.split("/").pop());
-    const response = await inner.fetch(new Request(`https://api.example.com/users?ids=${ids.join(",")}`), ctx);
+    const batched = new Request(`https://api.example.com/users?ids=${ids.join(",")}`, { signal: ctx.session.signal });
+    const response = await inner.fetch(batched, ctx);
     const byId = await response.json();
     return ids.map((id) => Response.json(byId[id]));
   }
@@ -21,6 +22,10 @@ const users = batch({
 `match` returns a key for requests that can go together, or `undefined` to pass
 a request on. `execute` gets the requests that have the same key, and returns
 one response for each, in the same order.
+
+The request that `execute` sends belongs to the batch, not to one caller, so give
+it the session's signal. Then closing the session stops it, and a caller that
+gives up doesn't stop it for the others.
 
 | Option | Description |
 | --- | --- |

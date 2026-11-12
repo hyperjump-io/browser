@@ -58,13 +58,16 @@ Each request goes down the stack with a context:
 | --- | --- |
 | `session` | The session the request is in |
 | `cacheMode` | The request's cache mode, from `fetch(url, { cache })` |
-| `signal` | Aborts when the caller aborts or the session closes |
 | `priority` | The request's priority, which can change while it waits. Read `priority.value`. |
 | `destination` | What the resource is for, or `""` |
 | `record` | The request's record. Call `record.mark(name, detail)` to say what your layer did. |
 
 To give the layer below a different value, pass it a copy of the context, such
-as `inner.fetch(request, { ...ctx, signal })`.
+as `inner.fetch(request, { ...ctx, priority })`.
+
+A request's own `signal` aborts when the caller aborts or the session closes. If
+your layer makes a new request, give it a signal, such as the session's
+(`ctx.session.signal`).
 
 A layer that keeps state for each session uses `ctx.session.state`, with the
 layer itself as the key, so one stack can serve many sessions:

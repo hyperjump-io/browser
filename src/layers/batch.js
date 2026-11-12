@@ -46,8 +46,9 @@ export class Batch {
     if (key === undefined) {
       return this.inner.fetch(request, ctx);
     }
-    if (ctx.signal.aborted) {
-      return Promise.reject(/** @type unknown */ (ctx.signal.reason));
+    const { signal } = request;
+    if (signal.aborted) {
+      return Promise.reject(/** @type unknown */ (signal.reason));
     }
 
     const owner = this.#scope === "root" ? ctx.session.root : ctx.session;
@@ -60,7 +61,7 @@ export class Batch {
       const created = {
         members: [],
         // The batch belongs to its scope, not to the caller that came first
-        ctx: { ...ctx, session: owner, signal: owner.signal, priority: priority.signal },
+        ctx: { ...ctx, session: owner, priority: priority.signal },
         priority
       };
       created.timer = setTimeout(() => this.#flush(queues, key, created), this.#options.windowMs ?? 0);
@@ -79,14 +80,14 @@ export class Batch {
         reject,
         aborted: false,
         done: () => {
-          ctx.signal.removeEventListener("abort", onAbort);
+          signal.removeEventListener("abort", onAbort);
           leave();
         }
       };
       const onAbort = () => {
         member.aborted = true;
         member.done();
-        reject(/** @type unknown */ (ctx.signal.reason));
+        reject(/** @type unknown */ (signal.reason));
         // Not sent yet, so it's taken out of the batch
         const index = batch.members.indexOf(member);
         if (queues.get(key) === batch && index !== -1) {
@@ -97,7 +98,7 @@ export class Batch {
           }
         }
       };
-      ctx.signal.addEventListener("abort", onAbort, { once: true });
+      signal.addEventListener("abort", onAbort, { once: true });
       ctx.record.mark("batch:queued", { key, position: batch.members.length });
       batch.members.push(member);
     });

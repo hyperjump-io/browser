@@ -9,7 +9,8 @@ export type BatchOptions = {
 
   /**
    * Send a batch: usually one combined request with `inner.fetch`, split into
-   * a response for each request, in the same order
+   * a response for each request, in the same order. The batch belongs to
+   * `ctx.session`, so give the combined request its signal.
    */
   execute: (requests: Request[], inner: Fetcher, ctx: FetchContext) => Promise<Response[]>;
 

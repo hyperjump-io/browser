@@ -134,7 +134,7 @@ export class HttpCache {
         // The refresh belongs to the session, not to this request, and nobody
         // is waiting for it, so it's low priority
         ctx.record.mark("cache:background-revalidate");
-        const backgroundCtx = { ...ctx, signal: ctx.session.signal, priority: PrioritySignal.of("low") };
+        const backgroundCtx = { ...ctx, priority: PrioritySignal.of("low") };
         this.#revalidate(entry, new Request(request, { signal: ctx.session.signal }), backgroundCtx)
           .then((response) => response.body?.cancel(), () => {});
         return this.#serve(entry, request, "stale", age);

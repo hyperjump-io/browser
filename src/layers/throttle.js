@@ -99,7 +99,8 @@ export class Throttle {
 
   /** @type (page: Page, request: Request, ctx: FetchContext) => Promise<Kind> */
   #acquire(page, request, ctx) {
-    const { signal, priority, record } = ctx;
+    const { signal } = request;
+    const { priority, record } = ctx;
     if (signal.aborted) {
       return Promise.reject(/** @type unknown */ (signal.reason));
     }

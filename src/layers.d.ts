@@ -21,16 +21,14 @@ export type Decorator<Out extends Fetcher = Fetcher> = (inner: Fetcher) => Out;
 /**
  * What the session knows about a request, which goes down the stack with
  * it. A layer can give the one below it a changed copy, like
- * `{ ...ctx, signal }`, but these are the only fields.
+ * `{ ...ctx, priority }`, but these are the only fields. What aborts a
+ * request is its own `signal`.
  */
 export type FetchContext = {
   readonly session: Session;
 
   /** How the HTTP cache handles the request, from `fetch(url, { cache })` */
   readonly cacheMode: CacheMode;
-
-  /** Aborts when the caller aborts, or the session or one of its parents closes */
-  readonly signal: AbortSignal;
 
   /**
    * The request's priority, from `fetch(url, { priority })`. Read `value`, and
