@@ -82,7 +82,6 @@ fold from competing with the style sheet the page is waiting for.
 | `maxDelayable` | Low-priority requests in flight at once when nothing important is loading. The default is 10. |
 | `maxDelayableWhileBusy` | Low-priority requests in flight at once while something important is loading. The default is 1. |
 | `isDelayable` | Which requests the throttle can hold back. The default is requests with priority `"low"`. |
-| `scope` | `"root"` is the default. It counts a session and its child sessions as one page, like a page with its frames. `"session"` counts each session by itself. |
 
 A held request whose priority you raise starts right away.
 

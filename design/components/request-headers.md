@@ -39,8 +39,6 @@ is the safe way.
   gets the headers for the URL it leads to, not the ones the URL before it
   got. A token for one path doesn't follow a redirect to another path on
   the same origin.
-- A child session has its parent's keys. A key it's given replaces the same
-  key of its parent's, so a child can give a URL other headers or none.
 
 Rejected:
 

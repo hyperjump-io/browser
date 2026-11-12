@@ -7,11 +7,10 @@ request, and splits the answer into a response for each.
 
 - A batch is sent at the end of the task it was started in, or after
   `windowMs`, or as soon as it has `maxSize` requests.
-- Batches are collected for a scope: each session, or a session and its
-  children with `scope: "root"`.
-- A batch belongs to its scope, not to the caller that came first.
-  `execute` gets a context with the scope's session, and the request it
-  makes has the session's signal, so one caller aborting doesn't fail the
+- Batches are collected for each session.
+- A batch belongs to its session, not to the caller that came first.
+  `execute` gets a context with the session, and the request it makes has
+  the session's signal, so one caller aborting doesn't fail the
   others, and closing the session stops it (see
   [State lives as long as what it's for](../principles/state-lifetimes.md)).
 - A caller that aborts before the batch is sent is taken out of it. If that

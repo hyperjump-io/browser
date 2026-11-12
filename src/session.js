@@ -21,9 +21,6 @@ export class Session {
   /** @type AbortController */
   #controller = new AbortController();
 
-  /** @type AbortSignal */
-  #signal;
-
   /**
    * What relative URLs are resolved against: the working directory in
    * Node.js, or the page in a browser. It's read once, so everything the
@@ -35,9 +32,6 @@ export class Session {
 
   /** @type UrlEntries<HeadersInit | API.HeadersFunction> */
   #headers;
-
-  /** @type {{ max: number, schemes: string[] }} */
-  #redirects;
 
   /**
    * The URLs it can fetch, resolved, or the error a check throws when the
@@ -70,53 +64,26 @@ export class Session {
 
   /**
    * @param {Fetcher} [stack]
-   * @param {API.SessionOptions & { parent?: API.Session }} [options]
+   * @param {API.SessionOptions} [options]
    */
   constructor(stack = defaultTransport(), options = {}) {
     this.stack = stack;
-    /** @type API.Session | undefined */
-    this.parent = options.parent;
     this.#headers = urlEntries(options.headers ?? {}, this.#contextUrl);
-    this.#redirects = {
-      max: options.maxRedirects ?? 20,
-      schemes: [...options.redirectSchemes ?? ["http:", "https:"]]
-    };
     this.#allowRetrieval = resolveAllowRetrieval(options.allowRetrieval, this.#contextUrl, defaultAllowRetrieval);
     this.#policy = {
-      ...this.#redirects,
+      max: options.maxRedirects ?? 20,
+      schemes: [...options.redirectSchemes ?? ["http:", "https:"]],
       headers: (url) => headersFor(this.#headers, url),
       allows: (url) => this.#allows(url)
     };
-    this.#signal = this.parent
-      ? AbortSignal.any([this.#controller.signal, this.parent.signal])
-      : this.#controller.signal;
   }
 
   get signal() {
-    return this.#signal;
+    return this.#controller.signal;
   }
 
   get closed() {
-    return this.#signal.aborted;
-  }
-
-  get root() {
-    /** @type API.Session */
-    let session = this;
-    while (session.parent) {
-      session = session.parent;
-    }
-    return session;
-  }
-
-  /** @type API.Session["lineage"] */
-  * lineage() {
-    /** @type API.Session | undefined */
-    let session = this;
-    while (session) {
-      yield session;
-      session = session.parent;
-    }
+    return this.signal.aborted;
   }
 
   /**
@@ -203,18 +170,6 @@ export class Session {
     };
   }
 
-  /** @type API.Session["child"] */
-  child(options = {}) {
-    const headers = new Map([...this.#headers, ...urlEntries(options.headers ?? {}, this.#contextUrl)]);
-    return new Session(this.stack, {
-      headers: Object.fromEntries(headers),
-      maxRedirects: options.maxRedirects ?? this.#redirects.max,
-      redirectSchemes: options.redirectSchemes ?? this.#redirects.schemes,
-      allowRetrieval: options.allowRetrieval ?? (this.#allowRetrieval instanceof TypeError ? undefined : this.#allowRetrieval),
-      parent: this
-    });
-  }
-
   /** @type API.Session["close"] */
   close(reason = new DOMException("The session was closed", "AbortError")) {
     this.#controller.abort(reason);
@@ -247,48 +202,27 @@ export class Session {
     return allows(await this.#realEntries, url);
   }
 
-  /** Whether anyone is watching this session or a parent, and whether any of them want bodies */
+  /** Whether anyone is watching, and whether any of them want bodies */
   #watching() {
-    let observed = false;
-    let bodies = false;
-    for (const session of this.#sessions()) {
-      for (const options of session.#observers.values()) {
-        observed = true;
-        bodies ||= options.bodies;
-      }
-    }
-    return { observed, bodies };
+    const watchers = [...this.#observers.values()];
+    return { observed: watchers.length > 0, bodies: watchers.some((options) => options.bodies) };
   }
 
   /**
-   * Tell the observers of this session and its parents. An observer that
-   * throws doesn't stop the request or the other observers.
+   * Tell the observers. An observer that throws doesn't stop the request or
+   * the other observers.
    *
    * @param {TraceEvent} event
    */
   #notify(event) {
-    for (const session of this.#sessions()) {
-      for (const observer of session.#observers.keys()) {
-        try {
-          observer(event);
-        } catch (error) {
-          queueMicrotask(() => {
-            throw error;
-          });
-        }
+    for (const observer of this.#observers.keys()) {
+      try {
+        observer(event);
+      } catch (error) {
+        queueMicrotask(() => {
+          throw error;
+        });
       }
-    }
-  }
-
-  /**
-   * This session and its parents, as this class, so their private fields can
-   * be read. A parent is always a `Session`, because only `child` makes one.
-   *
-   * @yields {Session}
-   */
-  * #sessions() {
-    for (const session of this.lineage()) {
-      yield /** @type Session */ (session);
     }
   }
 }

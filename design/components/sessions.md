@@ -34,25 +34,11 @@ on a stack it's given and gives the stack what the stack can't know.
   can serve many sessions (see
   [State lives as long as what it's for](../principles/state-lifetimes.md)).
 
-## Child sessions
-
-`child(options)` is a session nested in this one, like an iframe.
-
-- It has the same stack.
-- It has its parent's redirect options and `allowRetrieval` unless it's
-  given its own.
-- It has its parent's headers, and a key it's given replaces the same key
-  of its parent's.
-- Its state is its own. A layer that shares state with its parent uses
-  `root`, the top of the chain, or `lineage()`, the session and its parents
-  in order.
-- Closing a parent closes its children. Closing a child leaves its parent
-  open.
-- Its requests are seen by its parents' observers (see
-  [Fetch records](fetch-records.md)).
-
 Rejected:
 
+- Child sessions: a session nested in another, like an iframe, with its
+  parent's options, closed when its parent closes, and seen by its parent's
+  observers. There's no use case for one.
 - A `baseURL` option, for relative URLs and relative `headers` keys and
   `allowRetrieval` entries. The references that matter are a document's,
   and they resolve against the document's URL, which is its response's.

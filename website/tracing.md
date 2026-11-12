@@ -1,8 +1,8 @@
 # Tracing
 
 Every request a session makes has a record of what happened to it, like a row
-in a browser's network panel. A `Trace` collects the records of a session and
-its child sessions, and draws them as a waterfall:
+in a browser's network panel. A `Trace` collects the records of a session, and
+draws them as a waterfall:
 
 ```typescript
 import { Session, Trace } from "@hyperjump/browser";
@@ -59,7 +59,6 @@ Your own layers can add marks with `ctx.record.mark(name, detail)`.
 
 | Option | Description |
 | --- | --- |
-| `children` | `false` to leave out the requests of child sessions |
 | `bodies` | `true` to keep response bodies on the records |
 
 To stop recording, call `trace.stop()`. `trace.toJSON()` gives the records as

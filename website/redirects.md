@@ -39,8 +39,6 @@ const session = new Session(stack, {
 A redirect can only lead to a URL that the session's `allowRetrieval` allows.
 For more information, see [What a session can fetch](allow-retrieval.md).
 
-A child session has its parent's redirect options unless you give it its own.
-
 ## Where a response went
 
 The response has the URL it ended at as `response.url`, and

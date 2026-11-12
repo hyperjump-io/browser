@@ -39,9 +39,9 @@ request's own headers go to each step, as in `fetch`.
   and Bun return the 3xx. A browser returns an opaque redirect, which
   doesn't say where it leads, so the session asks again with the request's
   own mode and the browser follows it.
-- `maxRedirects` and `redirectSchemes` are session options, and a child
-  session has its parent's unless it's given its own. What a session may be
-  sent to is about what it fetches, not about how the stack fetches it.
+- `maxRedirects` and `redirectSchemes` are session options. What a session
+  may be sent to is about what it fetches, not about how the stack fetches
+  it.
 - A stack that's called without a session returns a 3xx as it is, like
   `redirect: "manual"`.
 

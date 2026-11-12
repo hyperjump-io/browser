@@ -21,9 +21,8 @@ export class Trace {
    */
   constructor(session, options = {}) {
     this.session = session;
-    const children = options.children ?? true;
     this.#stop = session.observe((event) => {
-      if (event.type === "start" && (children || event.record.session === session)) {
+      if (event.type === "start") {
         this.#records.push(event.record);
       }
     }, { bodies: options.bodies ?? false });

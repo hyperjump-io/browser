@@ -19,7 +19,7 @@ for users is in [`website/`](../website/README.md).
 
 - [Response meta](components/response-meta.md): what's known about a response that isn't part of it
 - [Priorities](components/priorities.md): signals that can change while a request waits
-- [Sessions](components/sessions.md): the requests that belong together, and child sessions
+- [Sessions](components/sessions.md): the requests that belong together
 - [Layers](components/layers.md): fetchers that wrap fetchers, and the context
 - [Fetch records](components/fetch-records.md): what happened to each request, and observing a session
 - [Network errors](components/network-errors.md): messages for people, and `cause.code` for code

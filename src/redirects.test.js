@@ -7,6 +7,11 @@ import { httpCache } from "./http-cache/http-cache.js";
 import { readBody, settle, startServer } from "./test-helpers/server.js";
 import { testSession } from "./test-helpers/session.js";
 
+/**
+ * @import { Session } from "./session.js"
+ * @import { SessionOptions } from "./session.d.ts"
+ */
+
 describe("redirects", () => {
   test("are followed one at a time, through the stack", async () => {
     const server = await redirectServer();
@@ -122,7 +127,10 @@ describe("redirects", () => {
       expect((await (await session.fetch(`${server.url}/to-other`)).json()).apiKey, "a credential doesn't follow a redirect to another origin").to.equal(null);
       expect((await (await session.fetch(`${server.url}/r/302/echo`)).json()).apiKey, "a path's credential doesn't follow a redirect out of the path").to.equal("server");
 
-      const both = session.child({ headers: { [`${other.url}/`]: { "x-api-key": "other" } } });
+      const both = testSession(defaultTransport(), {
+        allow: [server.url, other.url],
+        headers: { [`${other.url}/`]: { "x-api-key": "other" } }
+      });
       expect((await (await both.fetch(`${server.url}/to-other`)).json()).apiKey, "a redirect gets the credential for where it leads").to.equal("other");
     } finally {
       await server.close();
@@ -188,14 +196,15 @@ describe("redirects", () => {
     }
   });
 
-  test("a child session has its parent's redirect options unless it's given its own", async () => {
+  test("maxRedirects and redirectSchemes are the session's", async () => {
     const server = await redirectServer();
     try {
-      const parent = testSession(defaultTransport(), { allow: [server.url], maxRedirects: 1, redirectSchemes: ["http:", "data:"] });
-      await expect(parent.child().fetch(`${server.url}/chain/1`)).rejects.toThrow(/more than 1 times/);
-      expect(await (await parent.child().fetch(`${server.url}/to-data`)).text()).to.equal("hi");
-      expect((await parent.child({ maxRedirects: 2 }).fetch(`${server.url}/chain/1`)).status).to.equal(200);
-      const toData = parent.child({ redirectSchemes: ["http:"] }).fetch(`${server.url}/to-data`);
+      /** @type (options: SessionOptions) => Session */
+      const session = (options) => testSession(defaultTransport(), { allow: [server.url], ...options });
+      await expect(session({ maxRedirects: 1 }).fetch(`${server.url}/chain/1`)).rejects.toThrow(/more than 1 times/);
+      expect((await session({ maxRedirects: 2 }).fetch(`${server.url}/chain/1`)).status).to.equal(200);
+      expect(await (await session({ redirectSchemes: ["http:", "data:"] }).fetch(`${server.url}/to-data`)).text()).to.equal("hi");
+      const toData = session({ redirectSchemes: ["http:"] }).fetch(`${server.url}/to-data`);
       await expect(toData).rejects.toThrow(/Add the scheme to the session's 'redirectSchemes'/);
       await expect(toData).rejects.toMatchObject({ cause: { code: "ERR_UNSAFE_REDIRECT" } });
     } finally {

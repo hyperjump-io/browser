@@ -50,10 +50,6 @@ application.
 - A `data:` URL is always allowed. It's its own content, so nothing is
   fetched, and a list couldn't allow it anyway: it has no `/` to be a
   prefix of.
-- A child session has its parent's list unless it's given its own, which
-  replaces its parent's instead of adding to it, so a child can allow less.
-  A child that allows more is still the application's choice, since only
-  the application makes sessions.
 
 Rejected:
 

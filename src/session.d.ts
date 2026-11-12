@@ -87,23 +87,14 @@ export type SessionFetchInit = Omit<RequestInit, "cache" | "priority"> & {
  */
 export class Session {
   /** Without a stack, it's `defaultTransport()` */
-  constructor(stack?: Fetcher, options?: SessionOptions & { parent?: Session });
+  constructor(stack?: Fetcher, options?: SessionOptions);
 
   readonly stack: Fetcher;
 
-  /** The session this is a child of (see {@link Session.child}) */
-  readonly parent: Session | undefined;
-
-  /** Aborts when this session or one of its parents is closed */
+  /** Aborts when the session is closed */
   get signal(): AbortSignal;
 
   get closed(): boolean;
-
-  /** The top of the session's parents: the page, for a frame. A session without a parent is its own root. */
-  get root(): Session;
-
-  /** This session, then its parent, and so on to the root */
-  lineage(): Generator<Session, void, unknown>;
 
   /**
    * State for a layer, or anything else, that lives as long as the session.
@@ -124,22 +115,13 @@ export class Session {
   fetch(input: string | URL | Request, init?: SessionFetchInit): Promise<Response>;
 
   /**
-   * Watch the requests of this session and its children: when each starts,
+   * Watch the session's requests: when each starts,
    * what the layers mark on it, when its response arrives, and when it ends.
    * With `bodies`, records keep the response bodies. Returns a function that
    * stops watching.
    */
   observe(observer: Observer, options?: { bodies?: boolean }): () => void;
 
-  /**
-   * A session nested in this one, like an iframe. It has the same stack. It
-   * has this one's redirect options and `allowRetrieval` unless it's given
-   * its own, and it has this one's headers, with a key it's given replacing
-   * the same key of this one's. Its state is its own,
-   * and closing this one closes it.
-   */
-  child(options?: SessionOptions): Session;
-
-  /** Abort everything the session and its children started, and refuse new requests */
+  /** Abort everything the session started, and refuse new requests */
   close(reason?: unknown): void;
 }

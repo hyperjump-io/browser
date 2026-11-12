@@ -18,8 +18,7 @@ const response = await session.fetch("https://example.com/docs/index.html");
   the stack you need, and add your own the same way.
 - **HTTP done properly.** An RFC 9111 cache with revalidation, `Vary`,
   `stale-while-revalidate`, and partial content, in memory or on disk.
-- **Sessions like page loads.** Closing a session cancels what it started,
-  and child sessions work like iframes.
+- **Sessions like page loads.** Closing a session cancels what it started.
 - **Node.js and browsers.** It runs on the server and in web browsers.
 
 ## Install

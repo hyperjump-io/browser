@@ -109,7 +109,7 @@ session.close();
 
 ## What's next
 
-- [Sessions](sessions.md): options, child sessions, and closing
+- [Sessions](sessions.md): options and closing
 - [Layers](layers.md): write your own layers
 - [HTTP caching](http-caching.md): cache modes and keeping responses on disk
 - [Priorities](priorities.md): connection limits and what loads first

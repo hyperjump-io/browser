@@ -13,11 +13,8 @@ the fold don't compete with the stylesheet the page is waiting for.
   order they came.
 - A held request whose priority changes so it isn't delayable starts right
   away, as an important request.
-- A page is a session and its children (`scope: "root"`, the default), like a
-  page and its frames, so a frame's low-priority requests wait for its
-  page's important ones. `scope: "session"` throttles each session by
-  itself.
-- Its counts are a page's, in the root session's state. The scheduler's
+- A page is a session, so each session is throttled by itself.
+- Its counts are a page's, in the session's state. The scheduler's
   limits are the network's, on the layer. They answer different questions:
   what a page asks for first, and how many requests the network carries at
   once (see

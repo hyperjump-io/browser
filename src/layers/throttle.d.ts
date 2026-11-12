@@ -2,10 +2,10 @@ import type { Decorator, FetchContext, Fetcher, Layer } from "../layers.d.ts";
 import type { Session } from "../session.d.ts";
 
 export type ThrottleOptions = {
-  /** Delayable requests in flight at once for a page when nothing important is loading. Default 10. */
+  /** Delayable requests in flight at once for a session when nothing important is loading. Default 10. */
   maxDelayable?: number;
 
-  /** Delayable requests in flight at once for a page while something important is loading. Default 1. */
+  /** Delayable requests in flight at once for a session while something important is loading. Default 1. */
   maxDelayableWhileBusy?: number;
 
   /**
@@ -14,18 +14,12 @@ export type ThrottleOptions = {
    */
   isDelayable?: (request: Request, ctx: FetchContext) => boolean;
 
-  /**
-   * What a page is: a session with its children (`"root"`, the default), like
-   * a page with its frames, or each session (`"session"`)
-   */
-  scope?: "root" | "session";
-
   /** When a request stops counting as in flight, as for the scheduler. Default `"body"`. */
   releaseOn?: "body" | "headers";
 };
 
 /**
- * Holds back a page's low-priority requests while its important ones load,
+ * Holds back a session's low-priority requests while its important ones load,
  * like Chrome's resource scheduler. Important requests are never held back.
  */
 export class Throttle implements Layer {
@@ -33,7 +27,7 @@ export class Throttle implements Layer {
 
   readonly inner: Fetcher;
 
-  /** What's in flight and held back for a session's page */
+  /** What's in flight and held back for a session */
   stats(session: Session): { important: number; delayable: number; queued: number };
 
   fetch(request: Request, ctx: FetchContext): Promise<Response>;

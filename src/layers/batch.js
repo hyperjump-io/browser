@@ -27,9 +27,6 @@ export class Batch {
   /** @type API.BatchOptions */
   #options;
 
-  /** @type {"session" | "root"} */
-  #scope;
-
   /**
    * @param {Fetcher} inner
    * @param {API.BatchOptions} options
@@ -37,7 +34,6 @@ export class Batch {
   constructor(inner, options) {
     this.inner = inner;
     this.#options = options;
-    this.#scope = options.scope ?? "session";
   }
 
   /** @type API.Batch["fetch"] */
@@ -51,17 +47,15 @@ export class Batch {
       return Promise.reject(/** @type unknown */ (signal.reason));
     }
 
-    const owner = this.#scope === "root" ? ctx.session.root : ctx.session;
     /** @type Map<string, Pending> */
-    const queues = owner.state(this, () => new Map());
+    const queues = ctx.session.state(this, () => new Map());
     let pending = queues.get(key);
     if (!pending) {
       const priority = new PriorityGroup();
       /** @type Pending */
       const created = {
         members: [],
-        // The batch belongs to its scope, not to the caller that came first
-        ctx: { ...ctx, session: owner, priority: priority.signal },
+        ctx: { ...ctx, priority: priority.signal },
         priority
       };
       created.timer = setTimeout(() => this.#flush(queues, key, created), this.#options.windowMs ?? 0);

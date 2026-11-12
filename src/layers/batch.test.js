@@ -72,23 +72,14 @@ describe("batch", () => {
     await expect(session.fetch("https://a.test/1")).rejects.toThrow(/returned 0 responses for 1 requests/);
   });
 
-  describe("scope and aborting", () => {
-    test("root puts the requests of a page and its frames in one batch, and session keeps them apart", async () => {
-      const shared = usersApi("root");
-      const page = testSession(shared.layer);
-      const results = [page.fetch("https://a.test/users/1"), page.child().fetch("https://a.test/users/2")];
+  describe("sessions and aborting", () => {
+    test("each session has its own batches", async () => {
+      const api = usersApi();
+      const results = [testSession(api.layer).fetch("https://a.test/users/1"), testSession(api.layer).fetch("https://a.test/users/2")];
       await tick();
-      shared.release();
-      expect(await Promise.all(results.map(async (response) => (await response).text()))).to.eql(["user 1", "user 2"]);
-      expect(shared.calls.map((call) => call.ids)).to.eql([["1", "2"]]);
-
-      const separate = usersApi("session");
-      const page2 = testSession(separate.layer);
-      const results2 = [page2.fetch("https://a.test/users/1"), page2.child().fetch("https://a.test/users/2")];
-      await tick();
-      separate.release();
-      await Promise.all(results2.map(async (response) => (await response).text()));
-      expect(separate.calls.map((call) => call.ids)).to.eql([["1"], ["2"]]);
+      api.release();
+      await Promise.all(results.map(async (response) => (await response).text()));
+      expect(api.calls.map((call) => call.ids)).to.eql([["1"], ["2"]]);
     });
 
     test("a caller that aborts before the batch is sent is taken out of it", async () => {
@@ -135,10 +126,8 @@ describe("batch", () => {
 /**
  * A batch over a pretend API that answers once it's released, and keeps each
  * batch's IDs and signal
- *
- * @param {"session" | "root"} [scope]
  */
-const usersApi = (scope) => {
+const usersApi = () => {
   /** @type {{ ids: string[], signal: AbortSignal }[]} */
   const calls = [];
   /** @type () => void */
@@ -148,7 +137,6 @@ const usersApi = (scope) => {
     release = resolve;
   });
   const layer = batch({
-    scope,
     match: (request) => new URL(request.url).pathname.startsWith("/users/") ? "users" : undefined,
     execute: async (requests, _inner, ctx) => {
       const ids = requests.map((request) => /** @type string */ (new URL(request.url).pathname.split("/").pop()));

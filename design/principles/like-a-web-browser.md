@@ -5,8 +5,7 @@ web browser does, and the standards it follows: the Fetch standard, RFC 9110,
 and RFC 9111.
 
 - A session is the requests that belong together, like a page load. Closing
-  it cancels what it started, like navigating away. A child session is like
-  an iframe.
+  it cancels what it started, like navigating away.
 - The session follows redirects, so every layer sees each step, as a
   browser's HTTP cache does. The layers are in the order a browser checks
   things: the HTTP cache, then the network. Cache hits never wait for a

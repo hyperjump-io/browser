@@ -100,24 +100,3 @@ session.close();
 ```
 
 A request's own `signal` still works too. Aborting it only aborts that request.
-
-## Child sessions
-
-A child session is a session nested in another one, like an iframe in a page:
-
-```typescript
-const frame = session.child({ allowRetrieval: ["https://example.com/widgets/"] });
-```
-
-A child session has these properties:
-
-- It uses the same stack as its parent.
-- It gets its parent's redirect options and `allowRetrieval` unless you give it
-  its own.
-- It gets its parent's headers. A key you give it replaces the same key of its
-  parent's, so `{ "https://example.com/": {} }` takes that URL's headers away.
-- It closes when its parent closes.
-
-Layers keep state for each session, such as the requests it has in flight.
-A child session has its own state, so layers keep its requests apart from its
-parent's unless you set them up to share.

@@ -59,28 +59,16 @@ describe("the throttle", () => {
     await finish("main.css", "busy-low", "image");
   });
 
-  test("by default, a frame's low-priority requests wait for its page's important ones", async () => {
-    const { net, session, go, finish } = page();
-    const frame = session.child();
+  test("each session is throttled by itself", async () => {
+    const { net, layer, go, finish } = page();
+    const other = testSession(layer);
     go("page.css", "high");
     go("page-low", "low");
-    go("frame-low", "low", frame);
+    go("other-low", "low", other);
+    go("other-low-2", "low", other);
     await tick();
-    expect(net.started.toSorted()).to.eql(["a.test/page-low", "a.test/page.css"]);
-    await finish("page.css");
-    expect(net.started.at(-1)).to.equal("a.test/frame-low");
-    await finish("page-low", "frame-low");
-  });
-
-  test("with scope: session, each session is throttled by itself", async () => {
-    const { net, session, go, finish } = page({ scope: "session" });
-    const frame = session.child();
-    go("page.css", "high");
-    go("page-low", "low");
-    go("frame-low", "low", frame);
-    await tick();
-    expect(net.started.toSorted()).to.eql(["a.test/frame-low", "a.test/page-low", "a.test/page.css"]);
-    await finish("page.css", "page-low", "frame-low");
+    expect(net.started.toSorted()).to.eql(["a.test/other-low", "a.test/other-low-2", "a.test/page-low", "a.test/page.css"]);
+    await finish("page.css", "page-low", "other-low", "other-low-2");
   });
 
   test("aborting a held request takes it out, and an error frees its place", async () => {

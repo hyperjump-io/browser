@@ -19,9 +19,6 @@ export type BatchOptions = {
 
   /** Send a batch as soon as it has this many requests */
   maxSize?: number;
-
-  /** Collect batches for each session (`"session"`, the default), or a session and its children (`"root"`) */
-  scope?: "session" | "root";
 };
 
 /**

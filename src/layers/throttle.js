@@ -25,9 +25,6 @@ export class Throttle {
   /** @type NonNullable<API.ThrottleOptions["isDelayable"]> */
   #isDelayable;
 
-  /** @type {"root" | "session"} */
-  #scope;
-
   /** @type {"body" | "headers"} */
   #releaseOn;
 
@@ -42,7 +39,6 @@ export class Throttle {
     this.#maxDelayable = options.maxDelayable ?? 10;
     this.#maxWhileBusy = options.maxDelayableWhileBusy ?? 1;
     this.#isDelayable = options.isDelayable ?? ((_request, ctx) => ctx.priority.value === "low");
-    this.#scope = options.scope ?? "root";
     this.#releaseOn = options.releaseOn ?? "body";
   }
 
@@ -82,8 +78,7 @@ export class Throttle {
 
   /** @type (session: Session) => Page */
   #page(session) {
-    const owner = this.#scope === "root" ? session.root : session;
-    return owner.state(this, () => ({ important: 0, delayable: 0, queue: [] }));
+    return session.state(this, () => ({ important: 0, delayable: 0, queue: [] }));
   }
 
   /** @type (page: Page) => number */

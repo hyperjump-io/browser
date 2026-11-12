@@ -3,16 +3,12 @@ import type { FetchRecord, FetchRecordJson } from "./fetch-record.d.ts";
 import type { Har, HarOptions } from "./har.d.ts";
 
 export type TraceOptions = {
-  /** Record the requests of the session's children too. Default `true`. */
-  children?: boolean;
-
   /** Keep response bodies. Default `false`. */
   bodies?: boolean;
 };
 
 /**
- * Records what a session and its children fetch, like a network panel in
- * devtools. `waterfall()` draws it as text.
+ * Records what a session fetches, like a network panel in devtools. `waterfall()` draws it as text.
  */
 export class Trace {
   constructor(session: Session, options?: TraceOptions);

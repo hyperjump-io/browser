@@ -80,13 +80,3 @@ URL. For more information, see
 
 `allowRetrieval` checks URLs, not the addresses they connect to. A host whose
 DNS points at an internal address gets through if the list allows its URL.
-
-## Child sessions
-
-A [child session](sessions.md#child-sessions) gets its parent's list unless you
-give it its own. Its own list replaces its parent's instead of adding to it, so
-a child can allow less than its parent:
-
-```typescript
-const frame = session.child({ allowRetrieval: ["./widgets/"] });
-```

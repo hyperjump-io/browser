@@ -20,10 +20,10 @@ what each layer did with it, and how it ended. A response has it as
   tree. It's what caused a request, not only for watching: only a `file:`
   initiator can refer to a `file:` URL (see
   [`file:` from `file:`](file-references.md)).
-- `session.observe(observer)` sees each request of the session and its
-  children start, be marked, get its response, and end. An observer that
-  throws doesn't stop the request or the other observers. Its error is
-  thrown later, where it's reported as uncaught.
+- `session.observe(observer)` sees each request of the session start, be
+  marked, get its response, and end. An observer that throws doesn't stop
+  the request or the other observers. Its error is thrown later, where
+  it's reported as uncaught.
 - A body is wrapped to know when it's done, and how big it was, only while
   someone is watching, because wrapping costs a stream for every response.
   So `endTime` and `bodySize` are known only for requests that were watched.

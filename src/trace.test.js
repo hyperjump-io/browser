@@ -8,15 +8,12 @@ import { testSession } from "./test-helpers/session.js";
 const ok = fetcher(() => new Response(""));
 
 describe("traces", () => {
-  test("record a session's requests and, by default, its children's", async () => {
-    const page = testSession(ok);
-    const frame = page.child();
-    const all = new Trace(page);
-    const pageOnly = new Trace(page, { children: false });
-    await (await page.fetch("https://a.test/page")).text();
-    await (await frame.fetch("https://a.test/frame")).text();
-    expect(all.records.map((record) => record.url)).to.eql(["https://a.test/page", "https://a.test/frame"]);
-    expect(pageOnly.records.map((record) => record.url)).to.eql(["https://a.test/page"]);
+  test("record a session's requests, in the order they started", async () => {
+    const session = testSession(ok);
+    const trace = new Trace(session);
+    await (await session.fetch("https://a.test/first")).text();
+    await (await session.fetch("https://a.test/second")).text();
+    expect(trace.records.map((record) => record.url)).to.eql(["https://a.test/first", "https://a.test/second"]);
   });
 
   test("stop records nothing new", async () => {

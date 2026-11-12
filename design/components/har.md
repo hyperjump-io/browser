@@ -24,8 +24,3 @@ export, so a trace can be opened in Chrome's or Firefox's network panel.
   did.
 - What's made is checked against the HAR 1.2 schema in the tests
   (`har-validator`).
-
-Rejected:
-
-- A page for each session. A child session is like a frame, which is part of
-  its page in a browser's HAR.

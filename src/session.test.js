@@ -94,55 +94,6 @@ describe("sessions", () => {
     expect(seen).to.eql(["auto ", "high style", "low image"]);
   });
 
-  describe("child sessions", () => {
-    test("are like iframes", async () => {
-      const echo = fetcher((request) => new Response(`${request.url} ${request.headers.get("accept-language")} ${request.headers.get("x-frame")}`));
-      const page = testSession(echo, { headers: { "https://site.test/": { "accept-language": "en" } } });
-      const frame = page.child({ headers: { "https://site.test/widgets/": { "x-frame": "1" } } });
-
-      expect(frame.stack).to.equal(page.stack);
-      expect(frame.parent).to.equal(page);
-      expect(await (await frame.fetch("https://site.test/widgets/a.json")).text()).to.equal("https://site.test/widgets/a.json en 1");
-      expect(await (await page.fetch("https://site.test/widgets/a.json")).text()).to.equal("https://site.test/widgets/a.json en null");
-    });
-
-    test("a headers key replaces the same key of their parent's", async () => {
-      const echo = fetcher((request) => new Response(`${request.headers.get("x-a")} ${request.headers.get("x-b")}`));
-      const page = testSession(echo, { headers: { "https://a.test/": { "x-a": "page", "x-b": "page" } } });
-      expect(await (await page.child({ headers: { "https://a.test": { "x-a": "frame" } } }).fetch("https://a.test/")).text()).to.equal("frame null");
-      expect(await (await page.child({ headers: { "https://a.test/": {} } }).fetch("https://a.test/")).text(), "a child can take a URL's headers away").to.equal("null null");
-    });
-
-    test("have their own state", () => {
-      const page = testSession();
-      const frame = page.child();
-      const key = {};
-      page.state(key, () => "page");
-      expect(frame.state(key, () => "frame")).to.equal("frame");
-    });
-
-    test("close when their parent does, but not the other way around", async () => {
-      const page = testSession(fetcher(() => new Response("")));
-      const frame = page.child();
-      const other = page.child();
-      other.close();
-      expect(other.closed).to.equal(true);
-      expect(page.closed).to.equal(false);
-      page.close();
-      expect(frame.closed).to.equal(true);
-      await expect(frame.fetch("https://a.test/")).rejects.toMatchObject({ name: "AbortError" });
-    });
-
-    test("know their root and lineage", () => {
-      const page = testSession();
-      const frame = page.child();
-      const nested = frame.child();
-      expect(page.root).to.equal(page);
-      expect(nested.root).to.equal(page);
-      expect([...nested.lineage()]).to.eql([nested, frame, page]);
-    });
-  });
-
   describe("records", () => {
     test("every response has its record", async () => {
       const session = testSession(fetcher(() => new Response("")));
@@ -201,19 +152,6 @@ describe("sessions", () => {
       await expect(session.fetch("https://a.test/")).rejects.toThrow("offline");
       const end = events.find((event) => event.type === "end");
       expect(end?.record.toJSON().error).to.match(/offline/);
-    });
-
-    test("a child's requests are seen by its parent's observers", async () => {
-      const page = testSession(fetcher(() => new Response("")));
-      /** @type string[] */
-      const urls = [];
-      page.observe((event) => {
-        if (event.type === "start") {
-          urls.push(event.record.url);
-        }
-      });
-      await page.child().fetch("https://a.test/frame");
-      expect(urls).to.eql(["https://a.test/frame"]);
     });
   });
 });
