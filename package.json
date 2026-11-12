@@ -40,6 +40,10 @@
       "node": "./src/default-stack.js",
       "default": "./src/default-stack.browser.js"
     },
+    "#path-to-url": {
+      "node": "./src/json/path-to-url.js",
+      "default": "./src/json/path-to-url.browser.js"
+    },
     "#real-url": {
       "node": "./src/real-url.js",
       "default": "./src/real-url.browser.js"
@@ -74,11 +78,13 @@
     "oxlint": "*",
     "oxlint-tsgolint": "*",
     "typescript": "*",
+    "vfile-message": "^4.0.4",
     "vite": "*",
     "vitest": "*"
   },
   "dependencies": {
     "@hyperjump/json-pointer": "^2.0.1",
-    "@types/unist": "^3.0.3"
+    "@types/unist": "^3.0.3",
+    "unified": "^11.0.5"
   }
 }

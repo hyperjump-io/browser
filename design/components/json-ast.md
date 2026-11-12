@@ -22,8 +22,11 @@ status with it:
   parameter for those nodes, which defaults to `never`, so complete trees
   are typed as before. `hasStatus` narrows document nodes by status.
 - Syntax errors are plain objects in `errors`, with specific `ruleId`s and
-  positions. `jsonSyntaxErrorMessage` describes one. Whatever reports them
-  decides the worst status it accepts.
+  positions. `jsonSyntaxErrorMessage` describes one. They become
+  `VFileMessage`s where they're reported or thrown, by the unified plugins
+  (`rejsonParse`, `jrefParse`), whose `accept` option sets the worst
+  status that doesn't fail the file. The media type plugins throw a
+  `SyntaxError` instead (see [Media types](media-types.md)).
 - While typing at the end of a truncated document, the cursor is usually in
   whitespace after the last token, so an unclosed container extends to
   where parsing stopped, as it does in `json-language-server`. A property
@@ -63,8 +66,9 @@ status with it:
   node is only in the tolerant types, and a `success` or `recovered` tree's
   references can all be followed. A `$ref` that isn't a string isn't a
   reference, so it's an ordinary object.
-  - `jrefSyntaxErrorMessage` describes JRef's errors and JSON's, so `json/`
-    doesn't know JRef's messages.
+  - `jrefSyntaxErrorMessage` describes JRef's errors and JSON's, and
+    `reportSyntaxErrors` takes the message function, so `json/` doesn't
+    know JRef's messages.
 - A `$ref` that's a `file:` URL by itself, like `file:///home/me/a.json`,
   is an error too (`ruleId: "absolute-file-reference"`), and its object is
   an invalid reference. A document with one says where files are on the
@@ -129,6 +133,19 @@ status with it:
   relative reference always has something to resolve against. A message
   says a `file:` URL relative to the working directory (see
   [Local paths in errors](file-urls.md)).
+- The unified parse plugins make a document's URL from the file's `path`
+  and `cwd` (`#path-to-url`, which has a version for browsers), and the
+  document node has it as `url`. A file without a `path`, like text from
+  stdin, gets it from the `url` option of `rejsonParse` and `jrefParse`. A
+  file with neither fails the parse with a message, because its document
+  would have no URL (`file-url.js`).
+  - A file with a `path` and a `url` fails too. They'd be two places to say
+    where the document is, which could disagree.
+  - A `location` option that replaced the file's path was rejected for the
+    same reason.
+  - Making up a URL for a file without a path was rejected. Its relative
+    references would resolve against a URL that nothing said the document
+    has.
 - `appendToLocation` caches the encoded form of each segment, because
   encoding was most of the time `fromJs` took (see
   [Node locations](../benchmarks/node-locations.md)).

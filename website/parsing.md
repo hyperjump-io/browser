@@ -191,3 +191,43 @@ if (result.status !== "failure") {
   // "https://example.com/doc#/x/a%20b"
 }
 ```
+
+## In a unified pipeline
+
+`rejsonParse` and `rejsonStringify` are plugins for
+[unified](https://unifiedjs.com/) pipelines that process JSON files. `jrefParse` and `jrefStringify`
+do the same for JRef. With `accept: "recovered"`, the pipeline still processes a
+file when the parser recovers from its syntax errors and reports those errors as
+warnings.
+
+The parse plugins take the `allowComments` option, which works as it does for
+`fromJson`. The document's URL comes from the file's `path`, resolved against
+the file's `cwd`, and the document node has it as its `url`. Node locations
+start with it, and the parser resolves JRef references against it. For text that isn't
+a file, such as text from stdin, give the parse plugin a `url` option instead:
+
+```typescript
+const processor = unified()
+  .use(jrefParse, { url: "https://example.com/doc.jref" })
+  .use(jrefStringify);
+```
+
+Without a `path` or a `url`, the document has no URL and the parse fails. A file
+that has both also fails, because they could disagree about where the document
+is. The stringify plugins take the `space` option of `toJson`. To change the AST in a
+pipeline, use a transformer plugin between the parse and stringify plugins.
+
+The parse plugins produce a document node whose `status` says how parsing went.
+Use `hasStatus` to check it. Unlike checking `status` directly, `hasStatus`
+narrows the document's type in TypeScript. TypeScript then knows that a
+document with the status `"success"` or `"recovered"` has no error nodes:
+
+```typescript
+import { hasStatus } from "@hyperjump/browser";
+
+if (hasStatus(document, "success", "recovered")) {
+  // document.children has no error nodes
+}
+```
+
+`hasStatus` works for JRef documents too.
