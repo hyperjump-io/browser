@@ -1,6 +1,7 @@
 import { relativeFileUrl } from "../file-urls.js";
 import { jsonPointerGet } from "../json/jsonast-util.js";
 import { acceptHeader, defaultMediaTypes, mediaTypeForContentType, mediaTypeForExtension } from "../media-types/media-types.js";
+import { PriorityGroup, PrioritySignal } from "../priority.js";
 import { responseMeta } from "../response-meta.js";
 
 /**
@@ -26,6 +27,13 @@ import { responseMeta } from "../response-meta.js";
  */
 
 /**
+ * A document that's being retrieved, or was. While it's retrieved, its
+ * request has the most urgent priority of whoever is waiting for it.
+ *
+ * @typedef {{ loading: Promise<Entry>, priority: PriorityGroup }} Kept
+ */
+
+/**
  * What a session keeps for documents: the entries by URL, as promises, so a
  * document that's asked for again while it's fetched or parsed is the same
  * one, and what its media types work out to.
@@ -38,7 +46,7 @@ import { responseMeta } from "../response-meta.js";
  * @typedef {{
  *   mediaTypes: readonly MediaTypePlugin[],
  *   accept: string,
- *   entries: Map<string, Promise<Entry>>,
+ *   entries: Map<string, Kept>,
  *   contained: Map<string, Entry[]>
  * }} Documents
  */
@@ -49,15 +57,16 @@ const documentsKey = {};
 /** @type typeof API.getDocument */
 export const getDocument = async (session, url, options = {}) => {
   const { documentUrl } = parseUrl(session, url);
-  const { document } = await load(session, documentUrl, options.initiator);
+  const { document } = await load(session, documentUrl, options.initiator, prioritySignal(options.priority));
   return document;
 };
 
 /** @type typeof API.get */
 export const get = async (session, url, options = {}) => {
   let { documentUrl, fragment } = parseUrl(session, url);
+  const priority = prioritySignal(options.priority);
   const from = options.referencedFrom && await entryOf(session, options.referencedFrom);
-  let entry = from ? await referenced(session, documentUrl, from) : await load(session, documentUrl, options.initiator);
+  let entry = from ? await referenced(session, documentUrl, from, priority) : await load(session, documentUrl, options.initiator, priority);
   /** @type string[] */
   const chain = [];
 
@@ -75,7 +84,7 @@ export const get = async (session, url, options = {}) => {
     }
 
     ({ documentUrl, fragment } = parseUrl(session, node.href));
-    entry = await referenced(session, documentUrl, entry);
+    entry = await referenced(session, documentUrl, entry, priority);
   }
 };
 
@@ -84,12 +93,15 @@ export const get = async (session, url, options = {}) => {
  * document that `from`'s contains, or that's contained with it, is found
  * before anything the session has or fetches.
  *
- * @type (session: API.DocumentSession, url: string, from: Entry) => Promise<Entry>
+ * @type (session: API.DocumentSession, url: string, from: Entry, priority: PrioritySignal) => Promise<Entry>
  */
-const referenced = async (session, url, from) => {
+const referenced = async (session, url, from, priority) => {
   const document = from.embedded.get(url);
-  return document ? { ...from, document } : load(session, url, from.record);
+  return document ? { ...from, document } : load(session, url, from.record, priority);
 };
+
+/** @type (priority: API.GetOptions["priority"]) => PrioritySignal */
+const prioritySignal = (priority) => priority instanceof PrioritySignal ? priority : PrioritySignal.of(priority ?? "auto");
 
 /**
  * The entry of the document a node is in, if the session has it: the
@@ -104,7 +116,7 @@ const entryOf = async (session, node) => {
   const { documentUrl, fragment } = parseUrl(session, node.location);
   const pointer = decodeURIComponent(fragment);
 
-  const kept = await entries.get(documentUrl)?.catch(() => undefined);
+  const kept = await entries.get(documentUrl)?.loading.catch(() => undefined);
   for (const entry of [...kept ? [kept] : [], ...contained.get(documentUrl) ?? []]) {
     try {
       if (jsonPointerGet(pointer, /** @type JrefNode */ (entry.document.children[0])) === node) {
@@ -141,38 +153,47 @@ const documentsOf = (session) => session.state(documentsKey, () => {
  * redirect led, so there's one document for a URL however it was reached.
  * One that fails isn't kept, so it can be asked for again.
  *
- * @type (session: API.DocumentSession, url: string, initiator: API.GetOptions["initiator"]) => Promise<Entry>
+ * Whoever waits for a document adds its priority to the document's until
+ * its wait is over, so a document that's being preloaded at a low priority
+ * is fetched at a higher one once something needs it.
+ *
+ * @type (session: API.DocumentSession, url: string, initiator: API.GetOptions["initiator"], priority: PrioritySignal) => Promise<Entry>
  */
-const load = (session, url, initiator) => {
+const load = (session, url, initiator, priority) => {
   const { entries } = documentsOf(session);
   const existing = entries.get(url);
   if (existing) {
-    return existing;
+    return existing.loading.finally(existing.priority.add(priority));
   }
 
-  /** @type Promise<Entry> */
-  const loading = retrieve(session, url, initiator).then((entry) => {
-    const finalUrl = entry.document.url;
-    const reached = entries.get(finalUrl);
-    if (reached && reached !== loading) {
-      return reached;
-    }
-    entries.set(finalUrl, loading);
-    return entry;
-  });
-  entries.set(url, loading);
-  loading.catch(() => {
-    if (entries.get(url) === loading) {
+  const group = new PriorityGroup();
+  const leave = group.add(priority);
+  /** @type Kept */
+  const kept = {
+    priority: group,
+    loading: retrieve(session, url, initiator, group.signal).then((entry) => {
+      const finalUrl = entry.document.url;
+      const reached = entries.get(finalUrl);
+      if (reached && reached !== kept) {
+        return reached.loading;
+      }
+      entries.set(finalUrl, kept);
+      return entry;
+    })
+  };
+  entries.set(url, kept);
+  kept.loading.catch(() => {
+    if (entries.get(url) === kept) {
       entries.delete(url);
     }
   });
-  return loading;
+  return kept.loading.finally(leave);
 };
 
-/** @type (session: API.DocumentSession, url: string, initiator: API.GetOptions["initiator"]) => Promise<Entry> */
-const retrieve = async (session, url, initiator) => {
+/** @type (session: API.DocumentSession, url: string, initiator: API.GetOptions["initiator"], priority: PrioritySignal) => Promise<Entry> */
+const retrieve = async (session, url, initiator, priority) => {
   const { mediaTypes, accept, contained } = documentsOf(session);
-  const response = await session.fetch(url, { headers: { accept }, initiator });
+  const response = await session.fetch(url, { headers: { accept }, initiator, priority });
 
   try {
     // A response a layer made can have no URL, and one a redirect led to

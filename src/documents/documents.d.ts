@@ -3,6 +3,7 @@ import type { Hyperjump } from "../hyperjump.d.ts";
 import type { JrefNode } from "../jref/jref-ast.d.ts";
 import type { JsonPointerError } from "../json/jsonast-util.d.ts";
 import type { DocumentNode, MediaTypePlugin } from "../media-types/media-types.d.ts";
+import type { Priority, PrioritySignal } from "../priority.d.ts";
 
 // What a session's configuration has for documents. The session doesn't
 // know documents, so it's added here to what the session declares.
@@ -22,6 +23,15 @@ declare module "../hyperjump.d.ts" {
 export type DocumentSession = Pick<Hyperjump, "fetch" | "state" | "contextUrl" | "config">;
 
 export type GetOptions = {
+  /**
+   * How urgent the document is, like `fetchpriority` in browsers. The
+   * references `get` follows have it too. A document that's asked for again
+   * while it's being retrieved has the most urgent priority of whoever is
+   * waiting for it, so a document that's preloaded at `"low"` is fetched
+   * sooner once something needs it.
+   */
+  priority?: Priority | PrioritySignal;
+
   /**
    * What caused the document to be retrieved: an earlier request's record,
    * or its response, like the document with the reference that's being

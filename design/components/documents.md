@@ -25,6 +25,16 @@ what makes this a hypermedia browser, and the stack is how they retrieve.
   reached at a URL the session already has a document for is that
   document, so there's one for a URL however it was reached.
 - A document that fails isn't kept, so it can be asked for again.
+- `get` and `getDocument` take a `priority`, which is the request's, and
+  the references `get` follows have it too. Whoever waits for a document
+  adds its priority to the document's (`PriorityGroup`) until its wait is
+  over, so the request has the most urgent priority of whoever is waiting.
+  A tool that preloads documents at `low` doesn't hold up one that's
+  needed now (see [Priorities](priorities.md)). It matters where the stack
+  orders requests by priority: the scheduler does, which the default stack
+  has in Node.js, and the throttle does, which it doesn't.
+  - The browsing functions don't take a priority. What's being browsed is
+    needed now, which is `auto`.
 - An entry keeps the plugin that parsed it, which says what its fragments
   identify, and its response's fetch record. A document carries neither.
 - A plugin's `parse` gives a document the documents it contains

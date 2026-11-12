@@ -11,6 +11,9 @@ import { defaultMediaTypes } from "../media-types/media-types.js";
 import { jrefMediaType } from "../media-types/jref-media-type.js";
 import { fromJref } from "../jref/jref-util.js";
 import { nodeTransport } from "../transports/node-transport.js";
+import { scheduler } from "../layers/scheduler.js";
+import { PriorityController } from "../priority.js";
+import { controlled, tick } from "../test-helpers/controlled.js";
 import { Trace } from "../trace.js";
 
 /**
@@ -226,6 +229,68 @@ describe("documents", () => {
     test("a fragment that doesn't identify a value is a JsonPointerError", async () => {
       const { session } = site({ "/a": [`{}`, jref] });
       await expect(get(session, "https://a.test/a#/b")).rejects.toThrow(JsonPointerError);
+    });
+  });
+
+  describe("priority", () => {
+    test("a document is fetched with the priority it's asked for, and so are the references that are followed", async () => {
+      /** @type string[] */
+      const seen = [];
+      const session = new Hyperjump({
+        stack: fetcher((request, ctx) => {
+          const path = new URL(request.url).pathname;
+          seen.push(`${path} ${ctx.priority.value}`);
+          return new Response(path === "/a" ? `{ "$ref": "/b" }` : `1`, { headers: jref });
+        }),
+        allowRetrieval: ["https://a.test/"]
+      });
+      await get(session, "https://a.test/a", { priority: "low" });
+      await getDocument(session, "https://a.test/c", { priority: "high" });
+      await get(session, "https://a.test/d");
+      expect(seen).to.eql(["/a low", "/b low", "/c high", "/d auto"]);
+    });
+
+    test("a document that's waited for again has the most urgent priority of whoever is waiting", async () => {
+      const net = controlled();
+      const session = new Hyperjump({ stack: scheduler({ perKey: 1 })(net.transport), allowRetrieval: ["https://a.test/"] });
+      const blocker = session.fetch("https://a.test/blocker");
+      const preloaded = getDocument(session, "https://a.test/preloaded", { priority: "low" });
+      const other = session.fetch("https://a.test/other");
+      await tick();
+      expect(net.started, "both wait for the one connection").to.eql(["a.test/blocker"]);
+
+      const needed = getDocument(session, "https://a.test/preloaded", { priority: "high" });
+      await tick();
+      net.answer("a.test/blocker");
+      await (await blocker).text();
+      await tick();
+      expect(net.started.at(-1), "it went ahead of the request that came after it").to.equal("a.test/preloaded");
+
+      net.answer("a.test/preloaded", `1`, { headers: json });
+      expect(await needed).to.equal(await preloaded);
+      await tick();
+      net.answer("a.test/other");
+      await (await other).text();
+    });
+
+    test("a priority can change while a document waits", async () => {
+      const net = controlled();
+      const session = new Hyperjump({ stack: scheduler({ perKey: 1 })(net.transport), allowRetrieval: ["https://a.test/"] });
+      const blocker = session.fetch("https://a.test/blocker");
+      const priority = new PriorityController("low");
+      const document = getDocument(session, "https://a.test/a", { priority: priority.signal });
+      const other = session.fetch("https://a.test/other");
+      await tick();
+      priority.set("high");
+      net.answer("a.test/blocker");
+      await (await blocker).text();
+      await tick();
+      expect(net.started.at(-1)).to.equal("a.test/a");
+      net.answer("a.test/a", `1`, { headers: json });
+      await document;
+      await tick();
+      net.answer("a.test/other");
+      await (await other).text();
     });
   });
 

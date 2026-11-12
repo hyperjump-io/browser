@@ -66,6 +66,9 @@ priority.set("high");
 
 A request that already started keeps its priority.
 
+`get` and `getDocument` take a `priority` too. For more information, see
+[Get documents](documents.md#priority).
+
 ## Hold back low-priority requests
 
 While a page has an important request loading, the `throttle` layer only lets

@@ -68,6 +68,20 @@ To see a document that changed, create a new session.
 The session also keeps a document under the URL its response came from, so a
 URL that redirects and the URL it redirects to give you the same document.
 
+## Priority
+
+`get` and `getDocument` take a `priority`, which works like `fetchpriority` in a
+browser. The references that `get` follows have the same priority:
+
+```typescript
+await get(session, url, { priority: "low" });
+```
+
+If you ask for a document again while the session is still retrieving it, its
+request gets the more urgent of the two priorities. That way an app can load
+documents ahead of time at `"low"` without holding up a document that it needs
+now. For more information, see [Priorities](priorities.md).
+
 ## Errors
 
 `get` and `getDocument` reject with whatever kept them from giving you a
