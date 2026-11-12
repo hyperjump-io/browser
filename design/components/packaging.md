@@ -19,9 +19,16 @@
   the layers, the transports, and tracing. Documents are `src/documents/`,
   `src/media-types/`, `src/json/`, and `src/jref/`, and they're built on
   it, so the stack could be a package of its own.
+- `unified` is a dependency for its types alone. The declarations of the
+  unified plugins import its `Plugin` type, and no code imports it, so it's
+  never loaded unless an application uses it. `@types/unist` is one for
+  the same reason: the AST's declarations import `Position` and `Data`.
 
 Rejected:
 
 - A second entry point for Node.js (`@hyperjump/browser/node`). An
   application that runs in both would have to import from the right one in
   each, and code shared between them couldn't.
+- `unified` as an optional peer dependency. Without it installed, the
+  entry point's declarations import a module that isn't there, which is a
+  type error for the users who don't use the plugins.
