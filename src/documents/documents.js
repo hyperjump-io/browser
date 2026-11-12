@@ -12,13 +12,16 @@ import { responseMeta } from "../response-meta.js";
 
 /**
  * A document a session has: the document, the plugin that parsed it, which
- * says what its fragments identify, and its response's record, which is the
- * initiator of the requests its references cause.
+ * says what its fragments identify, its response's record, which is the
+ * initiator of the requests its references cause, and the documents it
+ * contains, by URL. A document found in another has its container's plugin,
+ * record, and set.
  *
  * @typedef {{
  *   document: DocumentNode,
  *   mediaType: MediaTypePlugin,
- *   record: FetchRecord | undefined
+ *   record: FetchRecord | undefined,
+ *   embedded: ReadonlyMap<string, DocumentNode>
  * }} Entry
  */
 
@@ -47,7 +50,7 @@ export const getDocument = async (session, url, options = {}) => {
 /** @type typeof API.get */
 export const get = async (session, url, options = {}) => {
   let { documentUrl, fragment } = parseUrl(session, url);
-  let initiator = options.initiator;
+  let entry = await load(session, documentUrl, options.initiator);
   /** @type string[] */
   const chain = [];
 
@@ -58,16 +61,27 @@ export const get = async (session, url, options = {}) => {
     }
     chain.push(href);
 
-    const { document, mediaType, record } = await load(session, documentUrl, initiator);
-    const pointer = mediaType.fragmentPointer?.(document, fragment) ?? "";
-    const node = jsonPointerGet(pointer, /** @type JrefNode */ (document.children[0]));
+    const pointer = entry.mediaType.fragmentPointer?.(entry.document, fragment) ?? "";
+    const node = jsonPointerGet(pointer, /** @type JrefNode */ (entry.document.children[0]));
     if (node.type !== "reference") {
       return node;
     }
 
     ({ documentUrl, fragment } = parseUrl(session, node.href));
-    initiator = record;
+    entry = await referenced(session, documentUrl, entry);
   }
+};
+
+/**
+ * The entry for the document a reference in `from`'s document leads to. A
+ * document that `from`'s contains, or that's contained with it, is found
+ * before anything the session has or fetches.
+ *
+ * @type (session: API.DocumentSession, url: string, from: Entry) => Promise<Entry>
+ */
+const referenced = async (session, url, from) => {
+  const document = from.embedded.get(url);
+  return document ? { ...from, document } : load(session, url, from.record);
 };
 
 /**
@@ -150,7 +164,7 @@ const retrieve = async (session, url, initiator) => {
     }
 
     const document = await mediaType.parse({ text: () => response.text(), url: responseUrl.href });
-    return { document, mediaType, record: responseMeta(response).record };
+    return { document, mediaType, record: responseMeta(response).record, embedded: embeddedIn(document) };
   } catch (error) {
     // A body that wasn't read holds its file or connection
     if (!response.bodyUsed) {
@@ -158,6 +172,23 @@ const retrieve = async (session, url, initiator) => {
     }
     throw error;
   }
+};
+
+/**
+ * The documents a document contains, by their URLs as they're compared:
+ * parsed, without fragments
+ *
+ * @type (document: DocumentNode) => Map<string, DocumentNode>
+ * @throws {TypeError} If a URL isn't one.
+ */
+const embeddedIn = (document) => {
+  const embedded = new Map();
+  for (const [url, contained] of Object.entries(document.embedded ?? {})) {
+    const parsed = new URL(url);
+    parsed.hash = "";
+    embedded.set(parsed.href, contained);
+  }
+  return embedded;
 };
 
 /**

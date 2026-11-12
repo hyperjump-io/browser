@@ -46,6 +46,12 @@ A plugin is a plain object:
 | `parse(response)` | Parses a response into a document. It gets the response's `text` and its `url`, and returns a document whose `url` is that URL. If the response can't be a document, it throws. |
 | `fragmentPointer(document, fragment)` | The JSON Pointer to the node that a fragment identifies. Without it, a fragment identifies the whole document. |
 
+If a document contains other documents that have URLs of their own, return them
+as the document's `embedded` property: an object of documents by their URLs.
+A reference in the document, or in one of the documents it contains, finds them
+there, and the session doesn't retrieve them. A reference in any other document
+doesn't find them, so a document can't change what other documents get.
+
 For `get` to find values in a document and follow its references, the
 document's root has to be a JSON AST node. `fromJs` makes one from a JavaScript
 value. A reference is a node whose `type` is `"reference"`, with the URL it

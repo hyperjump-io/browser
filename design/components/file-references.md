@@ -28,8 +28,19 @@ URL.
 - A `data:` document isn't a file, so it can't refer to one. Its content
   could have come from anywhere.
 
+## Embedded documents
+
+A document can contain others, each with the URL it says it has (see
+[Documents](documents.md)). A request an embedded document causes has its
+container's record as its initiator, so it's judged by the document it was
+found in, not by the URL it says it has. A document from the web that says
+it contains a `file:` document can't use it to refer to a file.
+
 Rejected:
 
+- Judging an embedded document by its own URL. A document from the web
+  would say it contains a document with a `file:` URL, and that one's
+  references to files would be followed.
 - A layer, like the `Referer` check of each session's stack in the v2
   prototype. The stack is shared, and the HTTP cache above the transport
   would answer before it, which is why `allowRetrieval` isn't a layer

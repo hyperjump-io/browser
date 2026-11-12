@@ -27,6 +27,23 @@ what makes this a hypermedia browser, and the stack is how they retrieve.
 - A document that fails isn't kept, so it can be asked for again.
 - An entry keeps the plugin that parsed it, which says what its fragments
   identify, and its response's fetch record. A document carries neither.
+- A plugin's `parse` gives a document the documents it contains
+  (`embedded`), parsed, by the URL each says it has. A reference looks in
+  its document's set first, then in what the session has, then it's
+  fetched.
+  - An embedded document has its container's set, plugin, and record. So
+    it finds the others its container has, its fragments are its
+    container's media type's, and a request it causes has its container's
+    record as its `initiator`.
+  - It isn't kept under its own URL, and only a reference from its
+    container, or from a document contained with it, finds it. A document
+    can say it contains a document with any URL, so what it says can't
+    change what another document's reference finds.
+  - `getDocument` and the first document of a `get` are always
+    retrieved. Only a reference finds an embedded document.
+  - It isn't retrieved, so `allowRetrieval` doesn't apply to it.
+  - Its URL is parsed, without a fragment, when its container is loaded.
+    One that isn't a URL keeps the container from being used.
 - A URL is parsed where it comes in, against the session's context URL,
   and the document's URL is its response's (see
   [Identifiers are URLs](../principles/identifiers-are-urls.md)). A
@@ -87,7 +104,6 @@ Rejected:
 
 ## Known limitations
 
-- A document inside another document isn't found (embedded documents).
 - A document that names a file by an absolute `file:` URL isn't rejected.
 - `get` takes the nodes of a document to be a JSON AST, with references
   as `reference` nodes that have an `href`.

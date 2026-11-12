@@ -5,6 +5,16 @@ export type DocumentNode<T = unknown> = {
 
   /** The document's URL, which its nodes' locations start with */
   url: string;
+
+  /**
+   * The documents this one contains, parsed, by the URL each says it has.
+   * A reference in this document, or in one of them, finds them before
+   * anything is retrieved. Nothing else does, so what a document says it
+   * contains doesn't change what a reference in another document finds.
+   * They aren't retrieved, so `allowRetrieval` doesn't apply to them. A URL
+   * has to be absolute.
+   */
+  embedded?: Record<string, DocumentNode<T>>;
 };
 
 /**

@@ -37,6 +37,9 @@ fragments identify. JSON and JRef are built in.
   which is plain data (see [The JSON AST](json-ast.md)). A `file:` URL in
   the message is relative to the working directory (see
   [Local paths in errors](file-urls.md)).
+- `parse` gives a document the documents it contains, as `embedded` (see
+  [Documents](documents.md)). An embedded document is in its container's
+  media type.
 - A plugin's `fragmentPointer` turns a fragment into a JSON Pointer, so a
   media type defines what its fragments identify. JRef's are JSON
   Pointers. A media type without it, like JSON, identifies the whole

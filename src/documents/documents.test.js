@@ -7,12 +7,16 @@ import { get, getDocument } from "./documents.js";
 import { Hyperjump } from "../hyperjump.js";
 import { fetcher } from "../layers.js";
 import { jsonValue, JsonPointerError } from "../json/jsonast-util.js";
+import { defaultMediaTypes } from "../media-types/media-types.js";
 import { jrefMediaType } from "../media-types/jref-media-type.js";
+import { fromJref } from "../jref/jref-util.js";
 import { nodeTransport } from "../transports/node-transport.js";
 import { Trace } from "../trace.js";
 
 /**
  * @import { HyperjumpConfig } from "../hyperjump.d.ts"
+ * @import { Json } from "../json/jsonast.d.ts"
+ * @import { DocumentNode, MediaTypePlugin } from "../media-types/media-types.d.ts"
  */
 
 const jref = { "content-type": "application/reference+json" };
@@ -202,7 +206,102 @@ describe("documents", () => {
       await expect(get(session, "https://a.test/a#/b")).rejects.toThrow(JsonPointerError);
     });
   });
+
+  describe("embedded documents", () => {
+    const bundled = { "content-type": "application/x-bundle" };
+    const mediaTypes = [...defaultMediaTypes, bundleMediaType];
+
+    test("a reference finds a document its document contains, without fetching it", async () => {
+      const { session, requests } = site({
+        "/bundle": [bundle({ $ref: "https://elsewhere.test/b#/c" }, { "https://elsewhere.test/b": { c: 42 } }), bundled]
+      }, { mediaTypes });
+      const node = await get(session, "https://a.test/bundle");
+      expect(jsonValue(node)).to.equal(42);
+      expect(node.location).to.equal("https://elsewhere.test/b#/c");
+      expect(requests.map((request) => request.url), "allowRetrieval doesn't apply to what isn't retrieved").to.eql(["https://a.test/bundle"]);
+    });
+
+    test("an embedded document finds the others its container has, and its container", async () => {
+      const { session, requests } = site({
+        "/bundle": [bundle({ a: { $ref: "/x" }, end: "here" }, {
+          "https://a.test/x": { $ref: "/y" },
+          "https://a.test/y": { $ref: "/bundle#/end" }
+        }), bundled]
+      }, { mediaTypes });
+      expect(jsonValue(await get(session, "https://a.test/bundle#/a"))).to.equal("here");
+      expect(requests.length).to.equal(1);
+    });
+
+    test("what an embedded document refers to that isn't contained is fetched, caused by its container", async () => {
+      const { session } = site({
+        "/bundle": [bundle({ $ref: "/x" }, { "https://a.test/x": { $ref: "/other" } }), bundled],
+        "/other": [`1`, json]
+      }, { mediaTypes });
+      const trace = new Trace(session);
+      expect(jsonValue(await get(session, "https://a.test/bundle"))).to.equal(1);
+      expect(trace.tree().map(({ record, depth }) => `${depth} ${new URL(record.url).pathname}`)).to.eql(["0 /bundle", "1 /other"]);
+    });
+
+    test("an embedded document is judged by the document it was found in, so one from the web can't refer to a file", async () => {
+      const { session } = site({
+        "/bundle": [bundle({ $ref: "file:///project/a.json" }, { "file:///project/a.json": { $ref: "secret.json" } }), bundled]
+      }, { mediaTypes, allowRetrieval: ["https://a.test/", "file:///project/"] });
+      await expect(get(session, "https://a.test/bundle")).rejects.toMatchObject({
+        cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" },
+        url: "file:///project/secret.json"
+      });
+    });
+
+    test("only references from the container find it, so it doesn't change what other documents get", async () => {
+      const { session, requests } = site({
+        "/bundle": [bundle({ $ref: "/x" }, { "https://a.test/x": "the bundle's" }), bundled],
+        "/other": [`{ "$ref": "/x" }`, jref],
+        "/x": [`"the real one"`, json]
+      }, { mediaTypes });
+      expect(jsonValue(await get(session, "https://a.test/bundle"))).to.equal("the bundle's");
+      expect(jsonValue(await get(session, "https://a.test/other"))).to.equal("the real one");
+      expect(jsonValue(await get(session, "https://a.test/x")), "it isn't kept under its own URL").to.equal("the real one");
+      expect(jsonValue(await get(session, "https://a.test/bundle")), "and the container still finds its own").to.equal("the bundle's");
+      expect(requests.map((request) => new URL(request.url).pathname)).to.eql(["/bundle", "/other", "/x"]);
+    });
+
+    test("its URL is compared as a URL, without a fragment", async () => {
+      const { session } = site({
+        "/bundle": [bundle({ $ref: "/docs/../x#/a" }, { "HTTPS://a.test/x#ignored": { a: 1 } }), bundled]
+      }, { mediaTypes });
+      expect(jsonValue(await get(session, "https://a.test/bundle"))).to.equal(1);
+    });
+
+    test("a document that says it contains something that isn't a URL can't be used", async () => {
+      const { session } = site({ "/bundle": [bundle(1, { "not a url": 2 }), bundled] }, { mediaTypes });
+      await expect(getDocument(session, "https://a.test/bundle")).rejects.toThrow(TypeError);
+    });
+  });
 });
+
+/**
+ * A made-up format with embedded documents: JSON with a `main` JRef value
+ * and the JRef values it contains by URL
+ *
+ * @type (main: Json, embedded: Record<string, Json>) => string
+ */
+const bundle = (main, embedded) => JSON.stringify({ main, embedded });
+
+/** @type MediaTypePlugin */
+const bundleMediaType = {
+  mediaType: "application/x-bundle",
+  extensions: [],
+  parse: async (response) => {
+    const { main, embedded } = /** @type {{ main: Json, embedded: Record<string, Json> }} */ (JSON.parse(await response.text()));
+    /** @type (value: Json, url: string) => DocumentNode */
+    const document = (value, url) => ({ type: "bundle-document", children: [fromJref(JSON.stringify(value), url).node], url });
+    return {
+      ...document(main, response.url),
+      embedded: Object.fromEntries(Object.entries(embedded).map(([url, value]) => [url, document(value, URL.parse(url)?.href.split("#")[0] ?? "https://invalid.test/")]))
+    };
+  },
+  fragmentPointer: (_document, fragment) => decodeURIComponent(fragment)
+};
 
 /**
  * A session on a pretend site at `https://a.test`, which answers each path
