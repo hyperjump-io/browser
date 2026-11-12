@@ -1,8 +1,10 @@
 # Design
 
-`@hyperjump/browser` is a `fetch` inspired by web browsers: requests belong
-to a session, go through a stack of layers, and end at a transport that
-picks a handler by URL scheme. These documents record decisions: what the
+`@hyperjump/browser` is a hypermedia browser. It retrieves documents the
+way a web browser does: requests belong to a session, go through a stack of
+layers, and end at a transport that picks a handler by URL scheme. The
+stack is how it retrieves, and a retrieval feature is here only if it
+serves loading documents. These documents record decisions: what the
 code does, why, and what was rejected and why. They don't record history,
 such as what the code used to do or when it changed. That's in git. The
 `.d.ts` files in `src/` are the source of truth for the API. Documentation

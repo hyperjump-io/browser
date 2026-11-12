@@ -1,8 +1,12 @@
 # @hyperjump/browser v2
 
-A `fetch` inspired by web browsers. Requests belong to a session, go through a
-stack of layers (an HTTP cache, a scheduler, and the application's own), and end at a transport that picks a handler by URL
-scheme, including `file:` on the server. It replaces
+A hypermedia browser: it retrieves documents and follows the references
+between them. It retrieves the way a web browser does. Requests belong to a
+session, go through a stack of layers (an HTTP cache, a scheduler, and the
+application's own), and end at a transport that picks a handler by URL
+scheme, including `file:` on the server. The stack is how it retrieves, and
+a retrieval feature stays only if it serves loading documents. Documents
+are built on the stack next (see `TODO.md`). It replaces
 `@hyperjump/browser` v1, a client for JRef documents, and the v2 prototype
 on `main`, which won't be released.
 

@@ -1,9 +1,10 @@
 # Hyperjump - Browser
 
-A `fetch` inspired by web browsers. Requests belong to a session, the way a
-page load's requests do. They go through a stack of layers, like an HTTP
-cache and a scheduler, and end at a transport that picks a handler by URL
-scheme, including `file:` on the server.
+A hypermedia browser that retrieves documents the way a web browser does.
+Requests belong to a session, the way a page load's requests do. They go
+through a stack of layers, like an HTTP cache and a scheduler, and end at a
+transport that picks a handler by URL scheme, including `file:` on the
+server.
 
 ```typescript
 import { Hyperjump, compose, httpCache, scheduler, nodeTransport } from "@hyperjump/browser";

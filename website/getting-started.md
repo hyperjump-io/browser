@@ -1,8 +1,8 @@
 # Get started
 
 This tutorial builds a stack that loads a page the way a browser does: it
-follows redirects, shares requests that are the same, caches responses, and
-loads the style sheet before the images. Then it shows you what happened.
+follows redirects, caches responses, and loads the style sheet before the
+images. Then it shows you what happened.
 
 ## Build a stack
 

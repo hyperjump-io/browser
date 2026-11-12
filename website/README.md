@@ -1,15 +1,16 @@
 # Browser
 
-The Hyperjump browser is a `fetch` inspired by web browsers. Requests belong to
-a session, the way the requests of a page load do. Each request goes through a
-stack of layers, such as an HTTP cache, and ends at a transport that retrieves
-it by its URL scheme. On a server, that includes `file:` URLs.
+The Hyperjump browser is a hypermedia client that retrieves documents the way a
+web browser does. Requests belong to a session, the way the requests of a page
+load do. Each request goes through a stack of layers, such as an HTTP cache, and
+ends at a transport that retrieves it by its URL scheme. On a server, that
+includes `file:` URLs.
 
 ## Contents
 
 - [Install](install.md): install in Node.js and browsers
 - [Get started](getting-started.md): build a stack and load a page like a browser does
-- [Sessions](sessions.md): fetch through a session, close it, and nest sessions
+- [Sessions](sessions.md): fetch through a session, and close it
 - [What a session can fetch](allow-retrieval.md): allow only the URLs your app should fetch
 - [Errors](errors.md): what a failed request rejects with, and how to tell failures apart
 - [Layers](layers.md): build a stack and write your own layers

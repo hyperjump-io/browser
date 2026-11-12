@@ -1,8 +1,9 @@
 {
   "name": "@hyperjump/browser",
   "version": "2.0.0-dev",
-  "description": "A fetch inspired by web browsers: sessions, a stack of layers, an HTTP cache, and file: URLs on the server",
+  "description": "A hypermedia browser that retrieves documents like a web browser: sessions, a stack of layers, an HTTP cache, and file: URLs on the server",
   "keywords": [
+    "hypermedia",
     "fetch",
     "http-cache",
     "browser",
