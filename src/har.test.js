@@ -4,7 +4,6 @@ import { compose, fetcher } from "./layers.js";
 import { defaultTransport } from "./transports/scheme-transport.js";
 import { Trace } from "./trace.js";
 import { destinationPriority } from "./layers/destination-priority.js";
-import { dedupe } from "./layers/dedupe.js";
 import { registry } from "./layers/registry.js";
 import { scheduler } from "./layers/scheduler.js";
 import { httpCache } from "./http-cache/http-cache.js";
@@ -121,17 +120,16 @@ describe("HAR", () => {
     expect(har.log.entries[1]._marks?.some((mark) => mark.name === "scheduler:queued")).to.equal(true);
   });
 
-  test("waiting before a redirect is the first step's, and a request that joined another has the priority it was given", async () => {
+  test("waiting before a redirect is the first step's, and a request has the priority it was given", async () => {
     const net = controlled();
     const steps = fetcher((request, ctx) => new URL(request.url).pathname === "/old"
       ? new Response(null, { status: 301, headers: { location: "/new" } })
       : net.transport.fetch(request, ctx));
-    const session = testSession(compose(destinationPriority(), dedupe(), scheduler({ perKey: 1 }))(steps));
+    const session = testSession(compose(destinationPriority(), scheduler({ perKey: 1 }))(steps));
     const trace = new Trace(session);
     const blocker = session.fetch("https://a.test/blocker");
     const moved = session.fetch("https://a.test/old");
-    const css1 = session.fetch("https://a.test/c.css", { destination: "style" });
-    const css2 = session.fetch("https://a.test/c.css", { destination: "style" });
+    const css = session.fetch("https://a.test/c.css", { destination: "style" });
     await tick();
     await new Promise((resolve) => setTimeout(resolve, 30));
 
@@ -143,8 +141,7 @@ describe("HAR", () => {
     };
     await step("a.test/blocker", blocker);
     expect(net.started.at(-1)).to.equal("a.test/c.css");
-    await step("a.test/c.css", css1);
-    await (await css2).text();
+    await step("a.test/c.css", css);
     expect(net.started.at(-1), "/old got the slot, and redirected to /new").to.equal("a.test/new");
     await step("a.test/new", moved);
 
@@ -152,7 +149,7 @@ describe("HAR", () => {
     await valid(har);
     const firstStep = har.log.entries.find((entry) => entry.request.url === "https://a.test/old");
     expect(firstStep?.timings.blocked).to.be.greaterThanOrEqual(25);
-    expect(har.log.entries.filter((entry) => entry.request.url === "https://a.test/c.css").map((entry) => entry._priority)).to.eql(["High", "High"]);
+    expect(har.log.entries.filter((entry) => entry.request.url === "https://a.test/c.css").map((entry) => entry._priority)).to.eql(["High"]);
   });
 
   test("says what came from the cache and the registry, and what failed", async () => {

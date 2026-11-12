@@ -125,16 +125,12 @@ export class Trace {
 }
 
 /**
- * What the source column says: the request it joined, what the cache did, or
- * where its response came from
+ * What the source column says: what the cache did, or where its response
+ * came from
  *
  * @type (record: FetchRecord) => string
  */
 const sourceOf = (record) => {
-  const joined = record.marks.find((mark) => mark.name === "dedupe:joined");
-  if (joined) {
-    return `joined #${/** @type {{ request: number }} */ (joined.detail).request}`;
-  }
   if (record.cache && record.cache !== "miss" && record.cache !== "bypass") {
     return `cache ${record.cache}`;
   }

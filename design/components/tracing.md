@@ -13,8 +13,7 @@ panel in devtools, from the session's observers and the requests' records
 - `waterfall()` draws one row for each request, indented under its
   initiator, with its destination, where its response came from, its
   status, and a bar: `░` while it waited in the throttle or the scheduler,
-  `█` while it loaded. A request that joined another says which. A failure's
-  status is `ERR`.
+  `█` while it loaded. A failure's status is `ERR`.
 - What a request waited for is read from the throttle's and the scheduler's
   marks: from when it started to when it first reached the transport. Later
   steps of a redirect aren't waiting. Reading marks is what traces are for

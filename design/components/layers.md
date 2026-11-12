@@ -29,8 +29,7 @@ layers only work in some places. Each one's document says why. Together:
 | Layer | Goes | Because |
 | --- | --- | --- |
 | `ResourceMap` | at the top | what a document says about itself is found first |
-| `DestinationPriority` | above dedupe, the throttle, and the scheduler | they act on the priority it gives |
-| `Dedupe` | above the HTTP cache | requests that miss at the same time are one |
+| `DestinationPriority` | above the throttle and the scheduler | they act on the priority it gives |
 | `HttpCache` | above the throttle and the scheduler | a hit never waits |
 | `Throttle` | above the scheduler | what a page asks for first is what the scheduler gets first |
 | `Scheduler` | right above the transport | only requests that are sent use a connection |
@@ -67,5 +66,13 @@ Rejected:
   next)`. A layer couldn't have methods an application calls, the stack
   wasn't a value that could be passed around, and a transport was a special
   case instead of a fetcher.
+- A layer that makes requests that are the same, in flight at once, one
+  request. A browser doesn't do it for `fetch`, where two calls are two
+  requests, and what it's for, a document referred to twice, is a session's
+  document cache's: a document that's being fetched or parsed is found by
+  its URL, so a second reference waits for it instead of fetching again.
+  Sharing them in the HTTP cache, as a browser's cache does, was rejected
+  too, because only a stack with a cache would share them (see
+  [HTTP cache](http-cache.md)).
 - `(next) => fetch` functions without a context. A layer couldn't keep state
   for a session, follow a priority that changes, or say what it did.

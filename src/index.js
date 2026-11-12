@@ -13,7 +13,6 @@ export * from "./http-cache/http-cache.js";
 export * from "./http-cache/memory-cache-store.js";
 export * from "./http-cache/cache-control.js";
 export * from "#file-cache-store";
-export * from "./layers/dedupe.js";
 export * from "./layers/batch.js";
 export * from "./layers/scheduler.js";
 export * from "./layers/throttle.js";

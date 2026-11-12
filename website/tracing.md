@@ -24,14 +24,12 @@ console.log(trace.waterfall());
   4 ↳ example.com/old-logo.png           image    network          200  |           ░░░░░░░░░░░██████████████|
   5 ↳ example.com/hero.jpg               image    network          200  |           ░░░░░░░░░░░█████████     |
   6 ↳ example.com/footer.jpg             image    network          200  |           ░░░░░░░░░░░░███████      |
-  7 ↳ example.com/main.css               style    joined #2        200  |            ████████████            |
 ```
 
 Each row is a request, under the request that caused it. `░` is time it waited
 for the throttle or the scheduler, and `█` is time it was loading. The style
-sheet and the script went first in this example. The images waited, the logo
-redirected, and the second `main.css` joined the first request instead of
-loading again.
+sheet and the script went first in this example. The images waited, and the logo
+redirected.
 
 ## What caused a request
 

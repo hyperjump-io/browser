@@ -32,7 +32,7 @@ export class PriorityController {
 
 /**
  * The priority of several requests that share one underlying request, like
- * ones dedupe or batching combine: the most urgent of its members'. When a
+ * ones batching combines: the most urgent of its members'. When a
  * member leaves, it's the most urgent of the rest. With no members, it keeps
  * its last value.
  */

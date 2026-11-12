@@ -53,8 +53,7 @@ it's a private cache, like a browser's.
 
 ## Where it goes
 
-Below dedupe, so requests that miss at the same time are one request. Above
-the layers that send requests, so a hit never sends one.
+Above the layers that send requests, so a hit never sends one.
 
 Rejected:
 
@@ -66,3 +65,10 @@ Rejected:
 - Caching a redirect the runtime followed under the URL that was asked for,
   so a browser still saved the round trip. A 302
   would be served as if it were permanent.
+
+## Known limitations
+
+- Requests for the same URL that miss at the same time are each sent. A
+  browser's cache makes the later ones wait for the first and answers them
+  from what it stores. Here a session's document cache keeps a session from
+  asking twice, so only sessions that ask at the same time send it twice.

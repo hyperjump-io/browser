@@ -66,8 +66,8 @@ priority.set("high");
 
 A request that already started keeps its priority.
 
-When requests share one request, such as with [`dedupe`](sharing-requests.md),
-the shared request has the most urgent priority of the callers still waiting.
+When requests share one request, such as with [`batch`](batching.md), the
+shared request has the most urgent priority of the callers still waiting.
 
 ## Hold back low-priority requests
 

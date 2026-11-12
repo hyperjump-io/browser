@@ -2,7 +2,6 @@ import { describe, test, expect } from "vitest";
 import { fetcher } from "./layers.js";
 import { Trace } from "./trace.js";
 import { scheduler } from "./layers/scheduler.js";
-import { dedupe } from "./layers/dedupe.js";
 import { controlled, tick } from "./test-helpers/controlled.js";
 import { testSession } from "./test-helpers/session.js";
 
@@ -78,18 +77,6 @@ describe("traces", () => {
     expect(lines[3], "b.js waited for a slot").to.match(/░/);
     const pageId = trace.records[0].id;
     expect(trace.toJSON().map((record) => record.initiator)).to.eql([undefined, pageId, pageId]);
-  });
-
-  test("a request that joined another says which", async () => {
-    const net = controlled();
-    const session = testSession(dedupe()(net.transport));
-    const trace = new Trace(session);
-    const a = session.fetch("https://a.test/x");
-    const b = session.fetch("https://a.test/x");
-    await tick();
-    net.answer("a.test/x");
-    await Promise.all([a, b].map(async (response) => (await response).text()));
-    expect(trace.waterfall()).to.match(new RegExp(`joined #${trace.records[0].id}`));
   });
 
   test("an empty trace says so", () => {

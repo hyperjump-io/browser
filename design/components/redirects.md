@@ -8,7 +8,7 @@ Every layer sees each URL:
   301 saves a round trip;
 - the registry and the resource map answer where a redirect leads, and a
   registry entry can be a redirect, which makes it an alias;
-- dedupe and the scheduler see the URLs that are really fetched.
+- the scheduler sees the URLs that are really fetched.
 
 It follows the Fetch standard:
 

@@ -4,7 +4,6 @@ import { PriorityController } from "../priority.js";
 import { responseMeta } from "../response-meta.js";
 import { HttpCache } from "../http-cache/http-cache.js";
 import { Scheduler, scheduler } from "./scheduler.js";
-import { dedupe } from "./dedupe.js";
 import { controlled, tick } from "../test-helpers/controlled.js";
 import { testSession } from "../test-helpers/session.js";
 
@@ -232,43 +231,6 @@ describe("the scheduler", () => {
       await finish(net, "a.test/prefetch", later);
       expect(net.started).to.eql(["a.test/blocker", "a.test/auto", "a.test/prefetch"]);
       prefetch.set("high");
-    });
-
-    test("dedupe gives a shared request the most urgent priority of the callers waiting", async () => {
-      const net = controlled();
-      const session = testSession(dedupe()(scheduler({ perKey: 1 })(net.transport)));
-      const blocker = session.fetch("https://a.test/blocker");
-      await tick();
-      const low = session.fetch("https://a.test/shared", { priority: "low" });
-      const auto = session.fetch("https://a.test/auto");
-      const high = session.fetch("https://a.test/shared", { priority: "high" });
-      await tick();
-      await finish(net, "a.test/blocker", blocker);
-      expect(net.started.at(-1), "the high caller moved it up").to.equal("a.test/shared");
-      net.answer("a.test/shared");
-      expect(await (await low).text()).to.equal("a.test/shared");
-      expect(await (await high).text()).to.equal("a.test/shared");
-      await tick();
-      await finish(net, "a.test/auto", auto);
-    });
-
-    test("when the urgent caller gives up, the shared request goes back down", async () => {
-      const net = controlled();
-      const session = testSession(dedupe()(scheduler({ perKey: 1 })(net.transport)));
-      const blocker = session.fetch("https://a.test/blocker");
-      await tick();
-      const low = session.fetch("https://a.test/shared", { priority: "low" });
-      const auto = session.fetch("https://a.test/auto");
-      await tick();
-      const controller = new AbortController();
-      const high = session.fetch("https://a.test/shared", { priority: "high", signal: controller.signal });
-      await tick();
-      controller.abort();
-      await expect(high).rejects.toMatchObject({ name: "AbortError" });
-      await finish(net, "a.test/blocker", blocker);
-      expect(net.started.at(-1)).to.equal("a.test/auto");
-      await finish(net, "a.test/auto", auto);
-      await finish(net, "a.test/shared", low);
     });
   });
 });

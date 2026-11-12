@@ -12,13 +12,12 @@ stylesheets before images without being told.
   the caller changes it, the request has the caller's, and if the caller
   changes it back to `auto`, it has the destination's again.
 - It marks `priority:default`, with the priority it gave, so what a request
-  was given is known even when it never reaches the network, like when it
-  joined another request.
+  was given is known even when it never reaches the network, like when the
+  cache answers it.
 
 ## Where it goes
 
-Above dedupe, the throttle, and the scheduler, which act on the priority it
-gives.
+Above the throttle and the scheduler, which act on the priority it gives.
 
 Rejected:
 
