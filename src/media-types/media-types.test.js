@@ -121,7 +121,7 @@ describe("media types", () => {
       const parsing = mediaType.parse({ text: async () => `{\n  "a": 1,\n}`, url: "https://example.com/main" });
       await expect(parsing).rejects.toThrow(SyntaxError);
       await expect(parsing).rejects.toThrow("Trailing commas are not allowed at https://example.com/main:2:9");
-      await expect(parsing).rejects.toMatchObject({ cause: { source: "json", ruleId: "trailing-comma" } });
+      await expect(parsing).rejects.toMatchObject({ cause: { code: "ERR_SYNTAX", source: "json", ruleId: "trailing-comma" }, url: "https://example.com/main" });
     });
   });
 

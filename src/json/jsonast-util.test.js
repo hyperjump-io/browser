@@ -14,9 +14,9 @@ import {
   jsonObjectEntries,
   jsonValue,
   jsonPointerGet,
-  jsonStep,
-  JsonPointerError
+  jsonStep
 } from "./jsonast-util.js";
+import { coded } from "../test-helpers/errors.js";
 
 /**
  * @import { JsonNode, JsonTolerantNode } from "./jsonast.d.ts"
@@ -127,7 +127,7 @@ describe("jsonast-util", async () => {
     });
 
     test("stepping into a duplicated property fails", () => {
-      expect(() => jsonStep("foo", subject)).to.throw(JsonPointerError);
+      expect(() => jsonStep("foo", subject)).toThrow(coded("ERR_POINTER_DUPLICATE_PROPERTY", "https://example.com/doc#/foo"));
     });
 
     test("stepping into a unique property in the same object works", () => {
@@ -152,59 +152,65 @@ describe("jsonast-util", async () => {
     });
 
     test("leading zero is not a valid index", () => {
-      expect(() => jsonStep("01", subject)).to.throw(JsonPointerError);
+      expect(() => jsonStep("01", subject)).toThrow(coded("ERR_POINTER_INVALID_INDEX"));
     });
 
     test("trailing characters are not a valid index", () => {
-      expect(() => jsonStep("1abc", subject)).to.throw(JsonPointerError);
+      expect(() => jsonStep("1abc", subject)).toThrow(coded("ERR_POINTER_INVALID_INDEX"));
     });
 
     test("negative numbers are not a valid index", () => {
-      expect(() => jsonStep("-1", subject)).to.throw(JsonPointerError);
+      expect(() => jsonStep("-1", subject)).toThrow(coded("ERR_POINTER_INVALID_INDEX"));
     });
 
     test("decimals are not a valid index", () => {
-      expect(() => jsonStep("1.0", subject)).to.throw(JsonPointerError);
+      expect(() => jsonStep("1.0", subject)).toThrow(coded("ERR_POINTER_INVALID_INDEX"));
     });
 
     test("out of range", () => {
-      expect(() => jsonStep("3", subject)).to.throw(JsonPointerError);
+      expect(() => jsonStep("3", subject)).toThrow(coded("ERR_POINTER_NOT_FOUND"));
     });
 
     test("'-' refers to a nonexistent element", () => {
-      expect(() => jsonStep("-", subject)).to.throw(JsonPointerError);
+      expect(() => jsonStep("-", subject)).toThrow(coded("ERR_POINTER_NOT_FOUND"));
     });
   });
 
   describe("JSON Pointer error messages", () => {
     test("say the location from the node", () => {
       const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": { "b": 1 } }`, "https://example.com/doc").node);
-      expect(() => jsonPointerGet("/a/c", subject)).to.throw(JsonPointerError, "Property 'c' doesn't exist at https://example.com/doc#/a/c");
+      expect(() => jsonPointerGet("/a/c", subject)).to.throw("Property 'c' doesn't exist at https://example.com/doc#/a/c");
+      expect(() => jsonPointerGet("/a/c", subject)).toThrow(coded("ERR_POINTER_NOT_FOUND", "https://example.com/doc#/a/c"));
     });
 
     test("say the location of a missing value", () => {
       const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": }`, "https://example.com/doc").node);
-      expect(() => jsonPointerGet("/a/b", subject)).to.throw(JsonPointerError, "Can't index into a missing value at https://example.com/doc#/a");
+      expect(() => jsonPointerGet("/a/b", subject)).to.throw("Can't index into a missing value at https://example.com/doc#/a");
+      expect(() => jsonPointerGet("/a/b", subject)).toThrow(coded("ERR_POINTER_NOT_INDEXABLE", "https://example.com/doc#/a"));
     });
 
     test("say the location of a missing root", () => {
       const subject = /** @type JsonTolerantNode */ (fromJson(``, "https://example.com/doc").node);
-      expect(() => jsonPointerGet("/a", subject)).to.throw(JsonPointerError, "Can't index into a missing value at https://example.com/doc#");
+      expect(() => jsonPointerGet("/a", subject)).to.throw("Can't index into a missing value at https://example.com/doc#");
+      expect(() => jsonPointerGet("/a", subject)).toThrow(coded("ERR_POINTER_NOT_INDEXABLE", "https://example.com/doc#"));
     });
 
     test("say the location of an invalid value", () => {
       const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": NaN }`, "https://example.com/doc").node);
-      expect(() => jsonPointerGet("/a/b", subject)).to.throw(JsonPointerError, "Can't index into an invalid value at https://example.com/doc#/a");
+      expect(() => jsonPointerGet("/a/b", subject)).to.throw("Can't index into an invalid value at https://example.com/doc#/a");
+      expect(() => jsonPointerGet("/a/b", subject)).toThrow(coded("ERR_POINTER_NOT_INDEXABLE", "https://example.com/doc#/a"));
     });
 
     test("say a file URL relative to the working directory", () => {
       const subject = /** @type JsonTolerantNode */ (fromJson(`{}`, `${pathToFileURL(cwd()).href}/data/a.json`).node);
-      expect(() => jsonPointerGet("/a", subject)).to.throw(JsonPointerError, "Property 'a' doesn't exist at data/a.json#/a");
+      expect(() => jsonPointerGet("/a", subject)).to.throw("Property 'a' doesn't exist at data/a.json#/a");
+      expect(() => jsonPointerGet("/a", subject)).toThrow(coded("ERR_POINTER_NOT_FOUND", `${pathToFileURL(cwd()).href}/data/a.json#/a`));
     });
 
     test("say an index that doesn't exist", () => {
       const subject = parse(`[]`);
-      expect(() => jsonStep("0", subject)).to.throw(JsonPointerError, "Index '0' doesn't exist at https://example.com/doc#/0");
+      expect(() => jsonStep("0", subject)).to.throw("Index '0' doesn't exist at https://example.com/doc#/0");
+      expect(() => jsonStep("0", subject)).toThrow(coded("ERR_POINTER_NOT_FOUND", "https://example.com/doc#/0"));
     });
   });
 

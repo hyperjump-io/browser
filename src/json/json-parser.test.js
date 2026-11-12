@@ -8,9 +8,9 @@ import {
   jsonObjectKeys,
   jsonPointerGet,
   jsonStep,
-  toJson,
-  JsonPointerError
+  toJson
 } from "./jsonast-util.js";
+import { coded } from "../test-helpers/errors.js";
 import { fromJref, hasStatus, jrefSyntaxErrorMessage } from "../jref/jref-util.js";
 
 /** The document URL for tests that don't care what it is */
@@ -1132,11 +1132,11 @@ describe("missing values in utilities", () => {
   });
 
   test("a property that doesn't exist is still an error", () => {
-    expect(() => jsonStep("c", object)).toThrow(JsonPointerError);
+    expect(() => jsonStep("c", object)).toThrow(coded("ERR_POINTER_NOT_FOUND"));
   });
 
   test("a pointer can't go through a missing value", () => {
-    expect(() => jsonPointerGet("/b/c", object)).toThrow(JsonPointerError);
+    expect(() => jsonPointerGet("/b/c", object)).toThrow(coded("ERR_POINTER_NOT_INDEXABLE"));
   });
 
   test("a missing property value is left out when stringified", () => {
@@ -1160,11 +1160,11 @@ describe("invalid values in utilities", () => {
   });
 
   test("a pointer can't go through an invalid value", () => {
-    expect(() => jsonPointerGet("/a/b", subject)).toThrow(JsonPointerError);
+    expect(() => jsonPointerGet("/a/b", subject)).toThrow(coded("ERR_POINTER_NOT_INDEXABLE"));
   });
 
   test("can't be stringified", () => {
-    expect(() => toJson(subject)).toThrow(TypeError);
+    expect(() => toJson(subject)).toThrow(coded("ERR_INVALID_VALUE"));
   });
 });
 

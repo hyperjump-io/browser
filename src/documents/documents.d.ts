@@ -1,7 +1,6 @@
 import type { FetchRecord } from "../fetch-record.d.ts";
 import type { Hyperjump } from "../hyperjump.d.ts";
 import type { JrefNode } from "../jref/jref-ast.d.ts";
-import type { JsonPointerError } from "../json/jsonast-util.d.ts";
 import type { DocumentNode, MediaTypePlugin } from "../media-types/media-types.d.ts";
 import type { Priority, PrioritySignal } from "../priority.d.ts";
 
@@ -74,7 +73,8 @@ export type FollowedNode<T = JrefNode> = Exclude<T, { type: "reference" }>;
  * `status`, for a response that isn't a success, or
  * `ERR_UNSUPPORTED_MEDIA_TYPE` for a response no plugin parses. Its `url`
  * is the URL that failed.
- * @throws What the plugin's `parse` rejects with, like a `SyntaxError`.
+ * @throws What the plugin's `parse` rejects with, like a `SyntaxError`
+ * whose `cause.code` is `ERR_SYNTAX`.
  */
 export const getDocument: (session: DocumentSession, url: string | URL, options?: GetOptions) => Promise<DocumentNode>;
 
@@ -86,7 +86,8 @@ export const getDocument: (session: DocumentSession, url: string | URL, options?
  *
  * @throws What {@link getDocument} throws, for the document and for each one
  * a reference leads to.
- * @throws A {@link JsonPointerError} if a fragment doesn't identify a value.
+ * @throws What `jsonPointerGet` throws if a fragment doesn't identify a
+ * value, like an `Error` whose `cause.code` is `ERR_POINTER_NOT_FOUND`.
  * @throws An `Error` whose `cause.code` is `ERR_REFERENCE_CYCLE`, with the
  * `chain` of URLs, if following references leads back to one that was
  * already followed.

@@ -1,11 +1,11 @@
-import type { JsonPointerError } from "../json/jsonast-util.d.ts";
 import type { DocumentSession, FollowedNode } from "./documents.d.ts";
 
 /**
  * The property `key` of an object or the item at index `key` of an array,
  * following a reference if it's one.
  *
- * @throws A {@link JsonPointerError} if the property or item doesn't exist.
+ * @throws What `jsonStep` throws, like an `Error` whose `cause.code` is
+ * `ERR_POINTER_NOT_FOUND` if the property or item doesn't exist.
  * @throws What `get` throws, if it follows a reference.
  */
 export const jrefStep: (session: DocumentSession, key: string, node: FollowedNode) => Promise<FollowedNode>;
@@ -37,8 +37,9 @@ export const jrefObjectKeys: (node: FollowedNode) => Generator<string, void, unk
 /**
  * The value of a string, number, boolean, or null node as JavaScript.
  *
- * @throws Error for an array or object. Getting their value would need to
- * follow the references in them.
+ * @throws An `Error` whose `cause.code` is `ERR_STRUCTURED_VALUE` for an
+ * array or object. Getting their value would need to follow the references
+ * in them. Its `url` is the node's location.
  */
 export const jrefValue: {
   (node: FollowedNode & { jsonType: "null" }): null;

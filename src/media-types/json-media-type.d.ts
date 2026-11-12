@@ -12,6 +12,7 @@ export type JsonMediaTypeDocument = JsonDocumentNode<"success">;
  * identifies the whole document.
  *
  * `parse` rejects with a `SyntaxError` for JSON with a syntax error. Its
- * `cause` is the first `JsonSyntaxError`.
+ * `cause` is the first `JsonSyntaxError`, with the `code` `ERR_SYNTAX`, and
+ * its `url` is the document's.
  */
 export const jsonMediaType: Readonly<MediaTypePlugin<JsonMediaTypeDocument>>;

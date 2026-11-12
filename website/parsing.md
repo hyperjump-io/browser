@@ -131,10 +131,17 @@ These are the functions for reading the AST:
 
 None of these follow references.
 
-`jsonPointerGet` and `jsonStep` throw a `JsonPointerError` when a property or
-item doesn't exist. Its message says the location that the pointer couldn't
-reach. That location comes from the node's `location`, so it starts with the URL
-you gave `fromJson` or `fromJs`.
+`jsonPointerGet` and `jsonStep` throw an error when they can't reach a value.
+Its `cause.code` says why, and its `url` is the location that the pointer
+couldn't reach. That location comes from the node's `location`, so it starts
+with the URL you gave `fromJson` or `fromJs`.
+
+| Code | The pointer |
+| --- | --- |
+| `ERR_POINTER_NOT_FOUND` | Names a property or an item that doesn't exist |
+| `ERR_POINTER_INVALID_INDEX` | Uses a key that isn't an array index for an array |
+| `ERR_POINTER_DUPLICATE_PROPERTY` | Names a property that the object has more than once |
+| `ERR_POINTER_NOT_INDEXABLE` | Steps into a value that isn't an object or an array |
 
 Error messages often end up in logs and bug reports. To keep them from revealing
 where your files are, the message shows a `file:` URL relative to the working
@@ -146,11 +153,7 @@ couldn't parse is `undefined`. The root itself can be an error node, so check
 that its `type` is `"json"` first:
 
 ```typescript
-import {
-  fromJson,
-  JsonPointerError,
-  jsonPointerGet
-} from "@hyperjump/browser";
+import { fromJson, jsonPointerGet } from "@hyperjump/browser";
 
 const { node } = fromJson(`{ "a": }`, "https://example.com/doc");
 if (node.type === "json") {
@@ -159,13 +162,20 @@ if (node.type === "json") {
   try {
     jsonPointerGet("/b", node);
   } catch (error) {
-    if (error instanceof JsonPointerError) {
-      error.message;
-      // "Property 'b' doesn't exist at https://example.com/doc#/b"
+    const { cause, message, url } = error as Error & {
+      cause?: { code?: string };
+      url?: string;
+    };
+    if (cause?.code === "ERR_POINTER_NOT_FOUND") {
+      message; // "Property 'b' doesn't exist at https://example.com/doc#/b"
+      url; // "https://example.com/doc#/b"
     }
   }
 }
 ```
+
+`toJson` throws an error whose `cause.code` is `"ERR_INVALID_VALUE"` for text
+that the parser couldn't read as any value, such as `nope`.
 
 `jsonValue` and `toJson` leave such a value out of an object. In an array, they
 make it `null` so the items after it keep their positions.

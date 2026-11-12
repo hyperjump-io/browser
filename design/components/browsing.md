@@ -39,8 +39,8 @@ follow references with.
     needs following to read a property name, but with them browsing is one
     family of functions. Otherwise a browse would switch between `jref*`
     and `json*` and the user would have to know which is safe.
-  - `jrefValue` throws for an object or an array, which `jsonValue`
-    doesn't. Getting their value would mean following every reference in
+  - `jrefValue` throws for an object or an array (`ERR_STRUCTURED_VALUE`),
+    which `jsonValue` doesn't. Getting their value would mean following every reference in
     them, which could retrieve any number of documents. A reference node is
     an object, so it throws for one too.
   - There's no `jrefPointerGet`. A JSON Pointer in a JRef fragment doesn't

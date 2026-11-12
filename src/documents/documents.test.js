@@ -6,7 +6,8 @@ import { pathToFileURL } from "node:url";
 import { get, getDocument } from "./documents.js";
 import { Hyperjump } from "../hyperjump.js";
 import { fetcher } from "../layers.js";
-import { jsonValue, JsonPointerError } from "../json/jsonast-util.js";
+import { jsonValue } from "../json/jsonast-util.js";
+import { coded } from "../test-helpers/errors.js";
 import { defaultMediaTypes } from "../media-types/media-types.js";
 import { jrefMediaType } from "../media-types/jref-media-type.js";
 import { fromJref } from "../jref/jref-util.js";
@@ -118,6 +119,7 @@ describe("documents", () => {
       const { session } = site({ "/bad": [`{ "a": 1, }`, json] });
       await expect(getDocument(session, "https://b.test/a")).rejects.toMatchObject({ cause: { code: "ERR_RETRIEVAL_NOT_ALLOWED" } });
       await expect(getDocument(session, "https://a.test/bad")).rejects.toThrow(SyntaxError);
+      await expect(getDocument(session, "https://a.test/bad")).rejects.toThrow(coded("ERR_SYNTAX", "https://a.test/bad"));
     });
 
     test("a document that fails isn't kept, and its body isn't left open", async () => {
@@ -226,9 +228,9 @@ describe("documents", () => {
       await expect(get(session, "https://a.test/self")).rejects.toMatchObject({ cause: { code: "ERR_REFERENCE_CYCLE" } });
     });
 
-    test("a fragment that doesn't identify a value is a JsonPointerError", async () => {
+    test("a fragment that doesn't identify a value is an error with a code and its location", async () => {
       const { session } = site({ "/a": [`{}`, jref] });
-      await expect(get(session, "https://a.test/a#/b")).rejects.toThrow(JsonPointerError);
+      await expect(get(session, "https://a.test/a#/b")).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/a#/b"));
     });
   });
 

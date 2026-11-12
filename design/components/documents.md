@@ -89,8 +89,8 @@ what makes this a hypermedia browser, and the stack is how they retrieve.
 
 A network error is the session's, and a syntax error is the plugin's. What
 else keeps a document from being used is an `Error` whose `cause.code`
-says why, with the exact URL as its `url`, like a network error (see
-[Network errors](network-errors.md)):
+says why, with the exact URL as its `url` (see
+[Errors with codes](coded-errors.md)):
 
 | Code | Failure |
 | --- | --- |

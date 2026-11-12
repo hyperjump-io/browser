@@ -1,4 +1,5 @@
 import { relativeFileUrl } from "../file-urls.js";
+import { codedError } from "../json/coded-error.js";
 import { jsonPointerGet } from "../json/jsonast-util.js";
 import { acceptHeader, defaultMediaTypes, mediaTypeForContentType, mediaTypeForExtension } from "../media-types/media-types.js";
 import { PriorityGroup, PrioritySignal } from "../priority.js";
@@ -73,7 +74,7 @@ export const get = async (session, url, options = {}) => {
   for (;;) {
     const href = `${documentUrl}#${fragment}`;
     if (chain.includes(href)) {
-      throw documentError(`Following references led back to '${relativeFileUrl(href)}'`, { code: "ERR_REFERENCE_CYCLE", chain: [...chain, href] }, href);
+      throw codedError(`Following references led back to '${relativeFileUrl(href)}'`, { code: "ERR_REFERENCE_CYCLE", chain: [...chain, href] }, href);
     }
     chain.push(href);
 
@@ -202,7 +203,7 @@ const retrieve = async (session, url, initiator, priority) => {
     responseUrl.hash = "";
 
     if (!response.ok) {
-      throw documentError(`'${relativeFileUrl(responseUrl.href)}' can't be used, because its response's status is ${response.status}`, { code: "ERR_HTTP_STATUS", status: response.status }, responseUrl.href);
+      throw codedError(`'${relativeFileUrl(responseUrl.href)}' can't be used, because its response's status is ${response.status}`, { code: "ERR_HTTP_STATUS", status: response.status }, responseUrl.href);
     }
 
     // A file doesn't have a media type, so its extension is all there is
@@ -214,7 +215,7 @@ const retrieve = async (session, url, initiator, priority) => {
       const reason = isFile
         ? "no media type has its extension"
         : `no media type parses its 'Content-Type', which is ${response.headers.has("content-type") ? `'${response.headers.get("content-type")}'` : "missing"}`;
-      throw documentError(`'${relativeFileUrl(responseUrl.href)}' can't be used, because ${reason}. Use the session's 'mediaTypes' to add support for a media type.`, { code: "ERR_UNSUPPORTED_MEDIA_TYPE" }, responseUrl.href);
+      throw codedError(`'${relativeFileUrl(responseUrl.href)}' can't be used, because ${reason}. Use the session's 'mediaTypes' to add support for a media type.`, { code: "ERR_UNSUPPORTED_MEDIA_TYPE" }, responseUrl.href);
     }
 
     const document = await mediaType.parse({ text: () => response.text(), url: responseUrl.href });
@@ -249,19 +250,10 @@ const embeddedIn = (document) => {
   for (const [url, contained] of Object.entries(document.embedded ?? {})) {
     const parsed = new URL(url);
     if (parsed.protocol === "file:" && !document.url.startsWith("file:")) {
-      throw documentError(`'${document.url}' can't be used, because it says it contains a document with an absolute file: URL`, { code: "ERR_ABSOLUTE_FILE_URL" }, document.url);
+      throw codedError(`'${document.url}' can't be used, because it says it contains a document with an absolute file: URL`, { code: "ERR_ABSOLUTE_FILE_URL" }, document.url);
     }
     parsed.hash = "";
     embedded.set(parsed.href, contained);
   }
   return embedded;
 };
-
-/**
- * Why a document can't be used, when it isn't a network error. Like a
- * network error, its `cause.code` says why to code, and its `url` is the
- * exact URL.
- *
- * @type (message: string, cause: { code: string, [key: string]: unknown }, url: string) => Error & { url: string }
- */
-const documentError = (message, cause, url) => Object.assign(new Error(message, { cause }), { url });

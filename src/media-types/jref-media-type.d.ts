@@ -12,6 +12,7 @@ export type JrefMediaTypeDocument = JrefDocumentNode<"success">;
  * fragment is a JSON Pointer.
  *
  * `parse` rejects with a `SyntaxError` for JRef with a syntax error, or
- * with a reference that isn't a URL. Its `cause` is the first error.
+ * with a reference that isn't a URL. Its `cause` is the first error, with
+ * the `code` `ERR_SYNTAX`, and its `url` is the document's.
  */
 export const jrefMediaType: Readonly<MediaTypePlugin<JrefMediaTypeDocument>> & Required<Pick<MediaTypePlugin<JrefMediaTypeDocument>, "fragmentPointer">>;

@@ -70,7 +70,8 @@ for await (const [name, value] of jrefObjectEntries(session, homeworld)) {
 }
 ```
 
-The example skips objects and arrays because `jrefValue` throws for them.
+The example skips objects and arrays because `jrefValue` throws an error for
+them, whose `cause.code` is `"ERR_STRUCTURED_VALUE"`.
 Getting the whole value would mean following every reference inside it. That
 could retrieve any number of documents and possibly the entire API. To read an
 object or an array, step into it.

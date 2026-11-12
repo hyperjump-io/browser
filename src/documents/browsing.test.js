@@ -4,7 +4,8 @@ import { get } from "./documents.js";
 import { Hyperjump } from "../hyperjump.js";
 import { fetcher } from "../layers.js";
 import { fromJref } from "../jref/jref-util.js";
-import { jsonStep, toJson, JsonPointerError } from "../json/jsonast-util.js";
+import { jsonStep, toJson } from "../json/jsonast-util.js";
+import { coded } from "../test-helpers/errors.js";
 import { defaultMediaTypes } from "../media-types/media-types.js";
 import { Trace } from "../trace.js";
 
@@ -36,11 +37,11 @@ describe("browsing", () => {
       expect(requests).to.eql(["/a", "/b"]);
     });
 
-    test("a property or item that doesn't exist is a JsonPointerError", async () => {
+    test("a property or item that doesn't exist is an error with a code and its location", async () => {
       const { session } = site({ "/a": { foo: [] } });
       const subject = await get(session, "https://a.test/a");
-      await expect(jrefStep(session, "bar", subject)).rejects.toThrow(JsonPointerError);
-      await expect(jrefStep(session, "0", await jrefStep(session, "foo", subject))).rejects.toThrow(JsonPointerError);
+      await expect(jrefStep(session, "bar", subject)).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/a#/bar"));
+      await expect(jrefStep(session, "0", await jrefStep(session, "foo", subject))).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/a#/foo/0"));
     });
 
     test("a reference that's followed is caused by the document it's in", async () => {
@@ -142,8 +143,9 @@ describe("browsing", () => {
     test("throws for an object or an array, which could have references", async () => {
       const { session } = site({ "/a": { b: [] } });
       const subject = await get(session, "https://a.test/a");
-      expect(() => jrefValue(subject)).to.throw("Can't get the value of a structured value.");
-      expect(() => jrefValue(/** @type FollowedNode */ (jsonStep("b", subject)))).to.throw("Can't get the value of a structured value.");
+      expect(() => jrefValue(subject)).to.throw("Can't get the value of an object at https://a.test/a#. Step into it instead.");
+      expect(() => jrefValue(subject)).toThrow(coded("ERR_STRUCTURED_VALUE", "https://a.test/a#"));
+      expect(() => jrefValue(/** @type FollowedNode */ (jsonStep("b", subject)))).toThrow(coded("ERR_STRUCTURED_VALUE", "https://a.test/a#/b"));
     });
   });
 });

@@ -58,3 +58,14 @@ with `fetch`, so it isn't a network error.
 
 A failed request shows in a trace with its message. For more information, see
 [Tracing](tracing.md).
+
+## Other errors
+
+A failure that isn't a network error works the same way: it's an error whose
+`cause.code` says why, with the URL it's about as its `url`.
+
+| Codes | From |
+| --- | --- |
+| `ERR_HTTP_STATUS`, `ERR_UNSUPPORTED_MEDIA_TYPE`, `ERR_ABSOLUTE_FILE_URL`, `ERR_REFERENCE_CYCLE`, `ERR_SYNTAX` | `get` and `getDocument`. For more information, see [Get documents](documents.md#errors). |
+| `ERR_POINTER_NOT_FOUND`, `ERR_POINTER_INVALID_INDEX`, `ERR_POINTER_DUPLICATE_PROPERTY`, `ERR_POINTER_NOT_INDEXABLE`, `ERR_INVALID_VALUE` | The functions that read an AST. For more information, see [Parse JSON and JRef](parsing.md#read-the-ast). |
+| `ERR_STRUCTURED_VALUE` | `jrefValue`. For more information, see [Browse documents](browsing.md#read-nodes). |

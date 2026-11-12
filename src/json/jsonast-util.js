@@ -2,6 +2,7 @@ import { parseJson } from "./json-parser.js";
 
 export { jsonSyntaxErrorMessage } from "./json-parser.js";
 import { relativeFileUrl } from "../file-urls.js";
+import { codedError } from "./coded-error.js";
 import { appendToLocation } from "./location.js";
 import { parseDocumentUrl } from "./document-url.js";
 
@@ -57,35 +58,40 @@ export const jsonStep = (key, node) => {
           // RFC 6901: If a referenced member name is not unique in an object,
           // the member that is referenced is undefined, and evaluation fails.
           if (found) {
-            throw new JsonPointerError(`Property '${key}' is not unique at ${stepLocation(key, node)}`);
+            throw pointerError(`Property '${key}' is not unique`, "ERR_POINTER_DUPLICATE_PROPERTY", appendToLocation(key, node.location));
           }
           found = true;
           result = valueNode;
         }
       }
       if (!found) {
-        throw new JsonPointerError(`Property '${key}' doesn't exist at ${stepLocation(key, node)}`);
+        throw pointerError(`Property '${key}' doesn't exist`, "ERR_POINTER_NOT_FOUND", appendToLocation(key, node.location));
       }
       return result;
     }
     case "array": {
       if (key !== "-" && !arrayIndexPattern.test(key)) {
-        throw new JsonPointerError(`'${key}' is not a valid array index at ${stepLocation(key, node)}`);
+        throw pointerError(`'${key}' is not a valid array index`, "ERR_POINTER_INVALID_INDEX", appendToLocation(key, node.location));
       }
       const index = key === "-" ? node.children.length : parseInt(key, 10);
       if (!node.children[index]) {
-        throw new JsonPointerError(`Index '${index}' doesn't exist at ${stepLocation(key, node)}`);
+        throw pointerError(`Index '${index}' doesn't exist`, "ERR_POINTER_NOT_FOUND", appendToLocation(key, node.location));
       }
       return memberValue(node.children[index]);
     }
     default: {
-      throw new JsonPointerError(`Can't index into scalar value at ${stepLocation(key, node)}`);
+      throw pointerError("Can't index into scalar value", "ERR_POINTER_NOT_INDEXABLE", appendToLocation(key, node.location));
     }
   }
 };
 
-/** @type (segment: string, node: { location: string }) => string */
-const stepLocation = (segment, node) => relativeFileUrl(appendToLocation(segment, node.location));
+/**
+ * Why a pointer couldn't be followed, at the location it couldn't reach or
+ * couldn't go through
+ *
+ * @type (message: string, code: string, location: string) => Error
+ */
+const pointerError = (message, code, location) => codedError(`${message} at ${relativeFileUrl(location)}`, { code }, location);
 
 /** @type typeof API.jsonPointerGet */
 export const jsonPointerGet = (pointer, tree) => {
@@ -94,11 +100,11 @@ export const jsonPointerGet = (pointer, tree) => {
   let node = memberValue(tree);
   for (const segment of pointerSegments(pointer)) {
     if (node === undefined) {
-      const location = parentSegment === undefined ? relativeFileUrl(tree.location) : stepLocation(parentSegment, parent);
-      throw new JsonPointerError(`Can't index into a missing value at ${location}`);
+      const location = parentSegment === undefined ? tree.location : appendToLocation(parentSegment, parent.location);
+      throw pointerError("Can't index into a missing value", "ERR_POINTER_NOT_INDEXABLE", location);
     }
     if (node.type === "json-invalid") {
-      throw new JsonPointerError(`Can't index into an invalid value at ${relativeFileUrl(node.location)}`);
+      throw pointerError("Can't index into an invalid value", "ERR_POINTER_NOT_INDEXABLE", node.location);
     }
 
     parent = node;
@@ -181,17 +187,6 @@ export const jsonObjectEntries = function* (node) {
   }
 };
 
-/** @implements API.JsonPointerError */
-export class JsonPointerError extends Error {
-  /**
-   * @param {string} [message]
-   */
-  constructor(message) {
-    super(message);
-    this.name = this.constructor.name;
-  }
-}
-
 /**
  * The value to write for a node, or `undefined` for a missing value, which
  * is written the way `JSON.stringify` writes `undefined`. An invalid value
@@ -205,7 +200,7 @@ const presentValue = (node) => {
       return undefined;
     case "json-invalid": {
       const invalidNode = /** @type JsonInvalidNode */ (node);
-      throw TypeError(`Can't convert an invalid value to JSON: '${invalidNode.raw}' at ${relativeFileUrl(invalidNode.location)}`);
+      throw codedError(`Can't convert an invalid value to JSON: '${invalidNode.raw}' at ${relativeFileUrl(invalidNode.location)}`, { code: "ERR_INVALID_VALUE" }, invalidNode.location);
     }
     default:
       return /** @type JsonNode<unknown> */ (node);

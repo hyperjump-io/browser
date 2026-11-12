@@ -1,4 +1,6 @@
 import { get } from "./documents.js";
+import { relativeFileUrl } from "../file-urls.js";
+import { codedError } from "../json/coded-error.js";
 import { jsonArrayIter, jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonObjectValues, jsonStep, jsonValue } from "../json/jsonast-util.js";
 
 /**
@@ -41,7 +43,7 @@ export const jrefObjectKeys = jsonObjectKeys;
 /** @type typeof API.jrefValue */
 export const jrefValue = (/** @type FollowedNode */ node) => {
   if (node.jsonType === "object" || node.jsonType === "array") {
-    throw Error("Can't get the value of a structured value.");
+    throw codedError(`Can't get the value of an ${node.jsonType} at ${relativeFileUrl(node.location)}. Step into it instead.`, { code: "ERR_STRUCTURED_VALUE" }, node.location);
   }
 
   return /** @type never */ (jsonValue(node));

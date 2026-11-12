@@ -33,10 +33,10 @@ fragments identify. JSON and JRef are built in.
   `url`, which its constructor can't set.
 - The JSON and JRef plugins only make a document for a parse whose status
   is `success`. Anything else rejects with a `SyntaxError` whose message
-  says the first error and where it is, and whose `cause` is the error,
-  which is plain data (see [The JSON AST](json-ast.md)). A `file:` URL in
-  the message is relative to the working directory (see
-  [Local paths in errors](file-urls.md)).
+  says the first error and where it is. Its `cause` is the error, which is
+  plain data (see [The JSON AST](json-ast.md)), with the code `ERR_SYNTAX`,
+  and its `url` is the document's (see
+  [Errors with codes](coded-errors.md)).
 - `parse` gives a document the documents it contains, as `embedded` (see
   [Documents](documents.md)). An embedded document is in its container's
   media type.

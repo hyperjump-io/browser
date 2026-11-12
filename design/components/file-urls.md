@@ -9,9 +9,10 @@ they are.
 
 - A network error says its URLs this way, and keeps the exact URL that
   failed as its `url` (see [Network errors](network-errors.md)).
-- A `JsonPointerError` says the location of the node it failed at, made
-  relative this way. The location is already on the node, so
-  `jsonPointerGet` and `jsonStep` aren't given the document's URL.
+- An error from `jsonPointerGet` or `jsonStep` says the location it failed
+  at, made relative this way, and has the exact one as its `url` (see
+  [Errors with codes](coded-errors.md)). The location is already on the
+  node, so they aren't given the document's URL.
 - `relativeFileUrl` is exported, so applications say URLs the same way in
   their own messages. It takes an `href`: a document's URL or a node's
   location (see
@@ -35,6 +36,5 @@ Rejected:
 
 - A network error's cause is the system's error, whose own message says
   the absolute path.
-- A `JsonPointerError` doesn't keep the exact location.
 - A stack trace still says where the library is installed. Showing it is
   up to the application.

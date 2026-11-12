@@ -144,7 +144,8 @@ export type ToJsonOptions = {
  * item, so the items after it keep their positions. A missing root produces an
  * empty string.
  *
- * @throws TypeError if the tree contains a {@link JsonInvalidNode}.
+ * @throws An `Error` whose `cause.code` is `ERR_INVALID_VALUE` if the tree
+ * contains a {@link JsonInvalidNode}. Its `url` is the node's location.
  */
 export const toJson: (node: JsonNode<unknown, JsonErrorNode> | JsonErrorNode, options?: ToJsonOptions) => string;
 
@@ -173,7 +174,12 @@ export type JsonMemberValue<N> = Exclude<JsonMember<N>, JsonMissingNode> | (Json
  * Index into an object or array JsonNode. If the property or item exists but
  * its value is missing, the result is `undefined`.
  *
- * @throws A {@link JsonPointerError} if the property or item doesn't exist.
+ * @throws An `Error` whose `cause.code` says why the step can't be taken,
+ * and whose `url` is the location it didn't reach:
+ * - `ERR_POINTER_NOT_FOUND`: the property or item doesn't exist
+ * - `ERR_POINTER_INVALID_INDEX`: the key isn't an array index
+ * - `ERR_POINTER_DUPLICATE_PROPERTY`: the object has the property twice
+ * - `ERR_POINTER_NOT_INDEXABLE`: the node isn't an object or an array
  */
 export const jsonStep: <N extends AnyJsonNode>(key: string, node: N) => JsonMemberValue<N>;
 
@@ -181,8 +187,10 @@ export const jsonStep: <N extends AnyJsonNode>(key: string, node: N) => JsonMemb
  * Get a JsonNode using a JSON Pointer. If the last segment points to a missing
  * value, the result is `undefined`.
  *
- * @throws A {@link JsonPointerError} if the pointer doesn't resolve,
- * including when it tries to index into a missing or invalid value.
+ * @throws What {@link jsonStep} throws if the pointer doesn't resolve. A
+ * pointer that goes into a missing or invalid value is
+ * `ERR_POINTER_NOT_INDEXABLE` too, at that value's location.
+ * @throws An `Error` if `pointer` isn't a JSON Pointer.
  */
 export const jsonPointerGet: <N extends AnyJsonNode>(pointer: string, tree: N) => N | JsonMemberValue<N>;
 
@@ -215,7 +223,3 @@ export const jsonObjectKeys: (node: AnyJsonNode) => Generator<string, void, unkn
 export const jsonObjectValues: <N extends AnyJsonNode>(node: N) => Generator<JsonMemberValue<N>, void, unknown>;
 
 export const jsonObjectEntries: <N extends AnyJsonNode>(node: N) => Generator<[string, JsonMemberValue<N>], void, unknown>;
-
-export class JsonPointerError extends Error {
-  constructor(message?: string);
-}
