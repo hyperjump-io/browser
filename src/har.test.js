@@ -1,9 +1,8 @@
 import { describe, test, expect } from "vitest";
 import validator from "har-validator";
-import { compose, fetcher } from "./layers.js";
+import { fetcher } from "./layers.js";
 import { defaultTransport } from "./transports/scheme-transport.js";
 import { Trace } from "./trace.js";
-import { destinationPriority } from "./layers/destination-priority.js";
 import { scheduler } from "./layers/scheduler.js";
 import { httpCache } from "./http-cache/http-cache.js";
 import { controlled, tick } from "./test-helpers/controlled.js";
@@ -27,12 +26,12 @@ describe("HAR", () => {
       response.end(css ? "body{}" : Buffer.from([0x89, 0x50, 0x4e, 0x47]));
     });
     try {
-      const session = testSession(destinationPriority()(defaultTransport()), { allow: [server.url], headers: { [`${server.url}/`]: { "user-agent": "browser-test" } } });
+      const session = testSession(defaultTransport(), { allow: [server.url], headers: { [`${server.url}/`]: { "user-agent": "browser-test" } } });
       const trace = new Trace(session, { bodies: true });
-      const page = await session.fetch(`${server.url}/index.html`, { destination: "document" });
+      const page = await session.fetch(`${server.url}/index.html`, { priority: "high" });
       await page.text();
-      await (await session.fetch(`${server.url}/main.css?v=2`, { destination: "style", initiator: page })).text();
-      await (await session.fetch(`${server.url}/logo.png`, { destination: "image", initiator: page })).arrayBuffer();
+      await (await session.fetch(`${server.url}/main.css?v=2`, { initiator: page })).text();
+      await (await session.fetch(`${server.url}/logo.png`, { priority: "low", initiator: page })).arrayBuffer();
 
       const har = trace.toHar();
       await valid(har);
@@ -40,17 +39,15 @@ describe("HAR", () => {
       expect(har.log.pages[0].title).to.equal(`${server.url}/index.html`);
       expect(har.log.entries.every((entry) => entry.pageref === "page_1")).to.equal(true);
 
-      expect(document._resourceType).to.equal("document");
       expect(document._priority).to.equal("High");
       expect(document.response.content.text).to.equal("<link rel=stylesheet href=main.css>");
       expect(document.response.content.size).to.equal(35);
       expect(document.request.headers).to.deep.include({ name: "user-agent", value: "browser-test" });
 
-      expect(css._resourceType).to.equal("stylesheet");
       expect(css.request.queryString).to.eql([{ name: "v", value: "2" }]);
       expect(css._initiator).to.eql({ type: "other", url: `${server.url}/index.html` });
 
-      expect(image._priority, "the priority the layers used").to.equal("Low");
+      expect(image._priority).to.equal("Low");
       expect(image.response.content.encoding).to.equal("base64");
       expect(image.response.content.text).to.equal(Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64"));
       expect(image.response.content.mimeType).to.equal("image/png");
@@ -124,11 +121,11 @@ describe("HAR", () => {
     const steps = fetcher((request, ctx) => new URL(request.url).pathname === "/old"
       ? new Response(null, { status: 301, headers: { location: "/new" } })
       : net.transport.fetch(request, ctx));
-    const session = testSession(compose(destinationPriority(), scheduler({ perKey: 1 }))(steps));
+    const session = testSession(scheduler({ perKey: 1 })(steps));
     const trace = new Trace(session);
     const blocker = session.fetch("https://a.test/blocker");
     const moved = session.fetch("https://a.test/old");
-    const css = session.fetch("https://a.test/c.css", { destination: "style" });
+    const css = session.fetch("https://a.test/c.css", { priority: "high" });
     await tick();
     await new Promise((resolve) => setTimeout(resolve, 30));
 

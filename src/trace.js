@@ -93,7 +93,6 @@ export class Trace {
       return [
         String(record.id).padStart(3),
         pad(name, urlWidth),
-        pad(record.destination || "-", 8),
         pad(sourceOf(record), 16),
         pad(status, 4),
         `|${bar.join("")}|`
@@ -104,7 +103,6 @@ export class Trace {
     const header = [
       "  #",
       pad("url", urlWidth),
-      pad("dest", 8),
       pad("source", 16),
       pad("stat", 4),
       ` 0ms${" ".repeat(Math.max(1, width - 3 - total.length))}${total}`

@@ -9,21 +9,21 @@ import { Session, Trace } from "@hyperjump/browser";
 
 const trace = new Trace(session);
 
-const page = await session.fetch("https://example.com/index.html", { destination: "document" });
-await session.fetch(new URL("main.css", page.url), { destination: "style", initiator: page });
+const page = await session.fetch("https://example.com/index.html");
+await session.fetch(new URL("main.css", page.url), { priority: "high", initiator: page });
 // ...
 
 console.log(trace.waterfall());
 ```
 
 ```text
-  # url                                  dest     source           stat  0ms                            195ms
-  1 example.com/index.html               document network          200  |████████████                        |
-  2 ↳ example.com/main.css               style    network          200  |           █████████████            |
-  3 ↳ example.com/app.js                 script   network          200  |           ████████████             |
-  4 ↳ example.com/old-logo.png           image    network          200  |           ░░░░░░░░░░░██████████████|
-  5 ↳ example.com/hero.jpg               image    network          200  |           ░░░░░░░░░░░█████████     |
-  6 ↳ example.com/footer.jpg             image    network          200  |           ░░░░░░░░░░░░███████      |
+  # url                                  source           stat  0ms                            195ms
+  1 example.com/index.html               network          200  |████████████                        |
+  2 ↳ example.com/main.css               network          200  |           █████████████            |
+  3 ↳ example.com/app.js                 network          200  |           ████████████             |
+  4 ↳ example.com/old-logo.png           network          200  |           ░░░░░░░░░░░██████████████|
+  5 ↳ example.com/hero.jpg               network          200  |           ░░░░░░░░░░░█████████     |
+  6 ↳ example.com/footer.jpg             network          200  |           ░░░░░░░░░░░░███████      |
 ```
 
 Each row is a request, under the request that caused it. `░` is time it waited
@@ -43,7 +43,7 @@ asked for, what each layer did, and how it ended:
 
 | Property | Description |
 | --- | --- |
-| `url`, `method`, `destination` | What the request asked for |
+| `url`, `method` | What the request asked for |
 | `initiator` | The record of the request that caused it |
 | `marks` | What each layer did, and when, such as `"redirect"` or `"scheduler:queued"` |
 | `status`, `finalUrl`, `source`, `cache` | How it ended, and where its response came from |
@@ -87,7 +87,7 @@ Some fields start with `_`, which HAR allows for extra information:
 | Field | Description |
 | --- | --- |
 | `_initiator` | The request that caused this one |
-| `_priority`, `_resourceType` | The priority the layers gave the request, and its destination, the way Chrome names them |
+| `_priority` | The priority the layers gave the request, the way Chrome names it |
 | `_source`, `_cache` | Where the response came from, and what the HTTP cache did |
 | `_marks` | What each layer did, in milliseconds from the request's start |
 | `_error` | Why the request failed |

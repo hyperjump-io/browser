@@ -24,5 +24,10 @@ Rejected:
 - A priority as a string on the context. It couldn't change while a request
   waits, and copies of the context, which layers make, wouldn't see a
   change.
+- A priority from what a resource is for, like a browser's
+  `Request.destination`, given by a layer, so a style sheet loads before an
+  image without being told. A session loads documents, so there are no
+  kinds of resources to tell apart. A caller that knows what matters gives
+  a priority.
 - A setter on the signal (`signal.set`). Anything that could read a
   request's priority could change it.

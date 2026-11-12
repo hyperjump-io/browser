@@ -47,7 +47,6 @@ export class FetchRecord {
     this.id = nextId++;
     this.url = init.url;
     this.method = init.method;
-    this.destination = init.destination;
     this.initiator = init.initiator;
     /** @type Session */
     this.session = init.session;
@@ -120,7 +119,6 @@ export class FetchRecord {
       id: this.id,
       url: this.url,
       method: this.method,
-      destination: this.destination,
       initiator: this.initiator?.id,
       startTime: this.startTime,
       responseTime: this.responseTime,

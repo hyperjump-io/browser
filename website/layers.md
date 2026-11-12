@@ -59,7 +59,6 @@ Each request goes down the stack with a context:
 | `session` | The session the request is in |
 | `cacheMode` | The request's cache mode, from `fetch(url, { cache })` |
 | `priority` | The request's priority, which can change while it waits. Read `priority.value`. |
-| `destination` | What the resource is for, or `""` |
 | `record` | The request's record. Call `record.mark(name, detail)` to say what your layer did. |
 
 To give the layer below a different value, pass it a copy of the context, such

@@ -49,11 +49,11 @@ describe("traces", () => {
     expect(trace.tree().map(({ record, depth }) => `${depth} ${new URL(record.url).pathname}`)).to.eql(["0 /", "1 /a.css", "2 /font.woff2", "1 /b.js"]);
   });
 
-  test("the waterfall shows the tree, destinations, statuses, and waiting", async () => {
+  test("the waterfall shows the tree, statuses, and waiting", async () => {
     const net = controlled();
     const session = testSession(scheduler({ perKey: 1 })(net.transport));
     const trace = new Trace(session);
-    const pagePending = session.fetch("https://site.test/index.html", { destination: "document" });
+    const pagePending = session.fetch("https://site.test/index.html");
     await tick();
     net.answer("site.test/index.html");
     const page = await pagePending;
@@ -68,7 +68,7 @@ describe("traces", () => {
 
     const lines = trace.waterfall({ width: 20 }).split("\n");
     expect(lines.length).to.equal(4);
-    expect(lines[1]).to.match(/site\.test\/index\.html\s+document/);
+    expect(lines[1]).to.match(/site\.test\/index\.html/);
     expect(lines[2]).to.match(/↳ site\.test\/a\.css/);
     expect(lines[3]).to.match(/↳ site\.test\/b\.js .*200\s+\|[ ░█]+\|$/);
     expect(lines[3], "b.js waited for a slot").to.match(/░/);

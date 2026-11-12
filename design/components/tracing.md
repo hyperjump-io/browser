@@ -10,8 +10,7 @@ devtools, from the session's observers and the requests' records (see
 - `tree()` puts each request after the one that initiated it. A request
   whose initiator isn't in the trace is at the top.
 - `waterfall()` draws one row for each request, indented under its
-  initiator, with its destination, where its response came from, its
-  status, and a bar: `░` while it waited in the throttle or the scheduler,
+  initiator, with where its response came from, its status, and a bar: `░` while it waited in the throttle or the scheduler,
   `█` while it loaded. A failure's status is `ERR`.
 - What a request waited for is read from the throttle's and the scheduler's
   marks: from when it started to when it first reached the transport. Later

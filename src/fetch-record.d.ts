@@ -27,7 +27,6 @@ export class FetchRecord {
   readonly id: number;
   readonly url: string;
   readonly method: string;
-  readonly destination: string;
 
   /** The request that caused this one, like the document that referred to it */
   readonly initiator: FetchRecord | undefined;
@@ -83,7 +82,6 @@ export type FetchRecordJson = {
   id: number;
   url: string;
   method: string;
-  destination: string;
   initiator: number | undefined;
   startTime: number;
   responseTime: number | undefined;
@@ -105,7 +103,6 @@ export type FetchRecordJson = {
 export const startRecord: (init: {
   url: string;
   method: string;
-  destination: string;
   initiator: FetchRecord | undefined;
   session: Session;
   priority: string;

@@ -5,21 +5,6 @@ import { waitingUntil } from "./waiting.js";
  * @import { FetchRecord } from "./fetch-record.d.ts"
  */
 
-/** Destinations as Chrome's resource types */
-const resourceTypes = new Map([
-  ["", "fetch"],
-  ["document", "document"],
-  ["iframe", "document"],
-  ["style", "stylesheet"],
-  ["script", "script"],
-  ["image", "image"],
-  ["font", "font"],
-  ["audio", "media"],
-  ["video", "media"],
-  ["track", "texttrack"],
-  ["manifest", "manifest"]
-]);
-
 /** Priorities as Chrome's */
 const chromePriorities = new Map([["high", "High"], ["auto", "Medium"], ["low", "Low"]]);
 
@@ -28,7 +13,7 @@ export const toHar = (records, options = {}) => {
   const pageref = "page_1";
   const ordered = records.toSorted((a, b) => a.startTime - b.startTime);
   const first = ordered[0];
-  const title = options.title ?? (ordered.find((record) => record.destination === "document") ?? first)?.url ?? "";
+  const title = options.title ?? first?.url ?? "";
   return {
     log: {
       version: "1.2",
@@ -109,14 +94,14 @@ const entriesFor = (record, pageref, includeMarks) => {
 
 /**
  * What every entry of a record has. Its priority is the one the layers used:
- * as it reached the transport, or as a layer set it, or as it was asked for.
+ * as it reached the transport, or as it was asked for.
  *
  * @type (record: FetchRecord, pageref: string, url: string, start: number) => Omit<API.HarEntry, "time" | "response" | "timings">
  */
 const common = (record, pageref, url, start) => {
   /** @type (name: string) => string | undefined */
   const used = (name) => /** @type {{ priority?: string } | undefined} */ (record.marks.find((mark) => mark.name === name)?.detail)?.priority;
-  const priority = used("network:start") ?? used("file:read") ?? used("priority:default") ?? record.priority;
+  const priority = used("network:start") ?? used("file:read") ?? record.priority;
   return {
     pageref,
     startedDateTime: isoAt(start),
@@ -132,8 +117,6 @@ const common = (record, pageref, url, start) => {
     },
     cache: {},
     _priority: chromePriorities.get(priority) ?? priority,
-    _resourceType: resourceTypes.get(record.destination) ?? "other",
-    _destination: record.destination,
     ...record.initiator ? { _initiator: { type: "other", url: record.initiator.url } } : {}
   };
 };

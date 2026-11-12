@@ -80,30 +80,29 @@ describe("sessions", () => {
     expect(testSession().state(key, () => "other")).to.equal("other");
   });
 
-  test("layers get the priority and destination", async () => {
+  test("layers get the priority", async () => {
     /** @type string[] */
     const seen = [];
     const session = testSession(fetcher((_request, ctx) => {
-      seen.push(`${ctx.priority.value} ${ctx.destination}`);
+      seen.push(ctx.priority.value);
       return new Response("");
     }));
     await session.fetch("https://a.test/1");
-    await session.fetch("https://a.test/2", { priority: "high", destination: "style" });
+    await session.fetch("https://a.test/2", { priority: "high" });
     const controller = new PriorityController("low");
-    await session.fetch("https://a.test/3", { priority: controller.signal, destination: "image" });
-    expect(seen).to.eql(["auto ", "high style", "low image"]);
+    await session.fetch("https://a.test/3", { priority: controller.signal });
+    expect(seen).to.eql(["auto", "high", "low"]);
   });
 
   describe("records", () => {
     test("every response has its record", async () => {
       const session = testSession(fetcher(() => new Response("")));
-      const page = await session.fetch("https://site.test/index.html", { destination: "document" });
-      const css = await session.fetch("https://site.test/main.css", { destination: "style", initiator: page });
+      const page = await session.fetch("https://site.test/index.html");
+      const css = await session.fetch("https://site.test/main.css", { initiator: page });
 
       const pageRecord = responseMeta(page).record;
       const cssRecord = responseMeta(css).record;
       expect(pageRecord?.url).to.equal("https://site.test/index.html");
-      expect(pageRecord?.destination).to.equal("document");
       expect(pageRecord?.status).to.equal(200);
       expect(cssRecord?.initiator).to.equal(pageRecord);
       expect(cssRecord?.id).to.be.greaterThan(/** @type number */ (pageRecord?.id));

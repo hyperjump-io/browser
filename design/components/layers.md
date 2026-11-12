@@ -28,7 +28,6 @@ layers only work in some places. Each one's document says why. Together:
 
 | Layer | Goes | Because |
 | --- | --- | --- |
-| `DestinationPriority` | above the throttle and the scheduler | they act on the priority it gives |
 | `HttpCache` | above the throttle and the scheduler | a hit never waits |
 | `Throttle` | above the scheduler | what a page asks for first is what the scheduler gets first |
 | `Scheduler` | right above the transport | only requests that are sent use a connection |
@@ -39,9 +38,9 @@ order that's wrong still works, only not as well.
 ## The context
 
 A request goes down the stack with its context (`FetchContext`): the
-session, the cache mode, the priority, the destination, and the record. A
-layer can give the one below it a changed copy, like a lower priority, but
-these are the only fields (see
+session, the cache mode, the priority, and the record. A layer can give
+the one below it a changed copy, like a lower priority, but these are the
+only fields (see
 [How layers communicate](../principles/how-layers-communicate.md)).
 
 - `session` is for a layer's per-session state, and its signal.
@@ -49,9 +48,6 @@ these are the only fields (see
   [HTTP cache](http-cache.md)).
 - `priority` is a signal that can change while a request waits (see
   [Priorities](priorities.md)).
-- `destination` is what the resource is for, like `"style"` or `"image"`,
-  as `Request.destination` is in a browser. A script can't set
-  `Request.destination`, so it's on the context.
 - `record` is where a layer says what it did (see
   [Fetch records](fetch-records.md)).
 

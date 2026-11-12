@@ -16,11 +16,9 @@ export, so a trace can be opened in Chrome's or Firefox's network panel.
   the rest.
 - A body is in `content.text` if the trace kept bodies: as text for a text
   type, and base64 otherwise.
-- HAR allows fields that start with `_`. Chrome reads `_initiator`,
-  `_resourceType` (from the destination), and `_priority`. The priority is
-  the one the layers used, from the marks: as the request reached the
-  transport, or as a layer gave it, like `DestinationPriority`, or as it was
-  asked for. `_source`, `_cache`, `_error`, and `_marks` say what the stack
-  did.
+- HAR allows fields that start with `_`. Chrome reads `_initiator` and
+  `_priority`. The priority is the one the layers used, from the marks: as
+  the request reached the transport, or as it was asked for. `_source`,
+  `_cache`, `_error`, and `_marks` say what the stack did.
 - What's made is checked against the HAR 1.2 schema in the tests
   (`har-validator`).

@@ -105,7 +105,7 @@ export class Session {
       throw this.signal.reason;
     }
 
-    const { cache, priority, destination, initiator, ...requestInit } = init;
+    const { cache, priority, initiator, ...requestInit } = init;
     const callerSignal = init.signal ?? (input instanceof Request ? input.signal : undefined);
     const signal = callerSignal ? AbortSignal.any([this.signal, callerSignal]) : this.signal;
 
@@ -122,7 +122,6 @@ export class Session {
     const record = startRecord({
       url: request.url,
       method: request.method,
-      destination: destination ?? "",
       initiator: initiatorRecord,
       session: this,
       priority: priority instanceof PrioritySignal ? priority.value : priority ?? "auto",
@@ -135,7 +134,6 @@ export class Session {
       session: this,
       cacheMode: cache ?? "default",
       priority: priority instanceof PrioritySignal ? priority : PrioritySignal.of(priority ?? "auto"),
-      destination: record.destination,
       record
     };
 

@@ -36,13 +36,6 @@ export type FetchContext = {
    */
   readonly priority: PrioritySignal;
 
-  /**
-   * What the resource is for, from `fetch(url, { destination })`, like
-   * `"document"`, `"style"`, or `"image"`. It's `""` if it isn't given, as for
-   * `fetch` in a browser.
-   */
-  readonly destination: string;
-
   /** The request's record. A layer says what it did with `record.mark(name, detail)`. */
   readonly record: FetchRecord;
 };

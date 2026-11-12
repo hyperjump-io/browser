@@ -12,11 +12,10 @@ A stack is layers on top of a transport. Each layer wraps the one below it, and
 ```typescript
 import {
   Session, Trace, compose, nodeTransport,
-  destinationPriority, httpCache, throttle, scheduler
+  httpCache, throttle, scheduler
 } from "@hyperjump/browser";
 
 const stack = compose(
-  destinationPriority(),
   httpCache(),
   throttle(),
   scheduler()
@@ -25,11 +24,9 @@ const stack = compose(
 
 The order matters, the way it does in a browser:
 
-1. `destinationPriority` gives each request a priority from what it's for, so
-   the layers below can use it.
-2. `httpCache` answers what it has before anything waits for a connection.
-3. `throttle` holds back low-priority requests while important ones load.
-4. `scheduler` limits how many requests go to each server at once.
+1. `httpCache` answers what it has before anything waits for a connection.
+2. `throttle` holds back low-priority requests while important ones load.
+3. `scheduler` limits how many requests go to each server at once.
 
 `nodeTransport()` fetches `http:`, `https:`, `data:`, and `file:` URLs. In a
 browser, use `defaultTransport()`, which doesn't have `file:`.
@@ -46,30 +43,27 @@ the stack, and fetch the page:
 const session = new Session(stack, { allowRetrieval: ["https://example.com/"] });
 const trace = new Trace(session);
 
-const page = await session.fetch("https://example.com/index.html", { destination: "document" });
+const page = await session.fetch("https://example.com/index.html");
 const html = await page.text();
 ```
 
-`session.fetch` works like `fetch`. The `destination` says what the resource is
-for, which is how the stack knows a document is important. A session fetches
-only what its `allowRetrieval` allows, so a page can't make it fetch whatever
-the page names. For more information, see
-[What a session can fetch](allow-retrieval.md).
+`session.fetch` works like `fetch`. A session fetches only what its
+`allowRetrieval` allows, so a page can't make it fetch whatever the page names.
+For more information, see [What a session can fetch](allow-retrieval.md).
 
 Now load what the page refers to. A reference is relative to the page it's in, so
 resolve it against `page.url`. Pass the page's response as the `initiator`, so
-the trace knows what caused each request:
+the trace knows what caused each request, and give each request a `priority`:
 
 ```typescript
 await Promise.all([
-  session.fetch(new URL("main.css", page.url), { destination: "style", initiator: page }),
-  session.fetch(new URL("hero.jpg", page.url), { destination: "image", initiator: page }),
-  session.fetch(new URL("footer.jpg", page.url), { destination: "image", initiator: page })
+  session.fetch(new URL("main.css", page.url), { priority: "high", initiator: page }),
+  session.fetch(new URL("hero.jpg", page.url), { priority: "low", initiator: page }),
+  session.fetch(new URL("footer.jpg", page.url), { priority: "low", initiator: page })
 ].map(async (response) => (await response).arrayBuffer()));
 ```
 
-The style sheet gets a high priority, and the images get a low one. While the
-style sheet loads, the throttle lets only one image through.
+While the style sheet loads, the throttle lets only one image through.
 
 Read or cancel every body. A request keeps its connection until you finish
 with its body.

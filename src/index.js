@@ -13,6 +13,5 @@ export * from "./http-cache/cache-control.js";
 export * from "#file-cache-store";
 export * from "./layers/scheduler.js";
 export * from "./layers/throttle.js";
-export * from "./layers/destination-priority.js";
 export * from "./trace.js";
 export * from "./har.js";

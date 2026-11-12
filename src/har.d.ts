@@ -45,11 +45,9 @@ export type HarEntry = {
   cache: Record<string, never>;
   timings: { blocked: number; dns: -1; connect: -1; send: number; wait: number; receive: number; ssl: -1 };
 
-  /** HAR allows fields that start with `_`. Chrome reads `_initiator`, `_priority`, and `_resourceType`. */
+  /** HAR allows fields that start with `_`. Chrome reads `_initiator` and `_priority`. */
   _initiator?: { type: "other"; url: string };
   _priority?: string;
-  _resourceType?: string;
-  _destination?: string;
   _source?: string;
   _cache?: string;
   _redirectHop?: boolean;

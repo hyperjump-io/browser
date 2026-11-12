@@ -60,13 +60,6 @@ export type SessionFetchInit = Omit<RequestInit, "cache" | "priority"> & {
   priority?: Priority | PrioritySignal;
 
   /**
-   * What the resource is for, like `Request.destination` in browsers:
-   * `"document"`, `"style"`, `"script"`, `"image"`, `"font"`, `"json"`, or one
-   * of an application's
-   */
-  destination?: string;
-
-  /**
    * What caused the request: an earlier request's record, or its response,
    * like the document that referred to this one. Traces show requests under
    * it, and only a `file:` initiator can refer to a `file:` URL. A request

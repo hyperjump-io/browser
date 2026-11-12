@@ -81,28 +81,3 @@ fold from competing with the style sheet the page is waiting for.
 | `isDelayable` | Which requests the throttle can hold back. The default is requests with priority `"low"`. |
 
 A held request whose priority you raise starts right away.
-
-## Priority by destination
-
-A browser loads style sheets before images without anyone telling it to. The
-`destinationPriority` layer does the same: a request whose priority is `"auto"`
-gets one from its `destination`:
-
-| Destination | Priority |
-| --- | --- |
-| `document`, `style`, `font` | `high` |
-| `image`, `audio`, `video`, `track` | `low` |
-| Anything else | `auto` |
-
-```typescript
-import { destinationPriority } from "@hyperjump/browser";
-
-const stack = compose(destinationPriority(), httpCache(), throttle(), scheduler())(defaultTransport());
-
-await session.fetch("https://example.com/main.css", { destination: "style" }); // high
-await session.fetch("https://example.com/photo.jpg", { destination: "image" }); // low
-```
-
-A priority you pass yourself wins. To use your own priorities, pass them:
-`destinationPriority({ schema: "high" })`. Put `destinationPriority` before
-the layers that use priorities.
