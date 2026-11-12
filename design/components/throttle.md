@@ -4,15 +4,15 @@ A page's low-priority requests are held back while its important ones load,
 like Chrome's resource scheduler, so analytics, prefetches, and images below
 the fold don't compete with the stylesheet the page is waiting for.
 
-- A request is delayable when `isDelayable` says so, which by default is
-  when its priority is `low`. Anything else is important, and is never held
-  back.
+- A request can be held back when `isDelayable` says so, which by default
+  is when its priority is `low`. Anything else is important, and is never
+  held back.
 - While any important request of the page is in flight, only
-  `maxDelayableWhileBusy` delayable ones can be (1). Otherwise,
-  `maxDelayable` can be (10). Held requests start by priority, then in the
-  order they came.
-- A held request whose priority changes so it isn't delayable starts right
-  away, as an important request.
+  `maxDelayableWhileBusy` of the ones that can be held back are in flight
+  too (1). Otherwise, `maxDelayable` are (10). Held requests start by
+  priority, then in the order they came.
+- A held request whose priority changes so `isDelayable` no longer says so
+  starts right away, as an important request.
 - A page is a session, so each session is throttled by itself.
 - Its counts are a page's, in the session's state. The scheduler's
   limits are the network's, on the layer. They answer different questions:

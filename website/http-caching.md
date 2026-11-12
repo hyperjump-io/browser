@@ -40,7 +40,7 @@ Like `fetch`, `session.fetch` takes a `cache` option:
 | `default` | Uses a fresh response, and revalidates a stale one |
 | `no-store` | Doesn't use the cache or store the response |
 | `reload` | Doesn't use the cache, but stores the response |
-| `no-cache` | Revalidates even a fresh response |
+| `no-cache` | Always revalidates, even a fresh response |
 | `force-cache` | Uses any cached response, however old, and fetches only if there isn't one |
 | `only-if-cached` | Uses any cached response, and fails with a network error if there isn't one |
 
