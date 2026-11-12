@@ -11,7 +11,6 @@ export const testOrigins = [
   "https://b.test/",
   "https://c.test/",
   "https://site.test/",
-  "https://pinned.test/",
   "https://example.com/",
   "https://trusted.example/",
   "http://localhost/"

@@ -26,7 +26,6 @@ for users is in [`website/`](../website/README.md).
 - [The scheme transport](components/scheme-transport.md): the bottom of a stack
 - [The `file:` scheme](components/file-scheme.md): files on a server, like a browser reads them
 - [Packaging](components/packaging.md): Node.js and browsers
-- [The registry](components/registry.md): documents the application has, answered first
 - [HTTP cache](components/http-cache.md): RFC 9111, with the Fetch standard's cache modes
 - [Request headers](components/request-headers.md): headers by URL, so a credential goes only where it's for
 - [What a session can fetch](components/allow-retrieval.md): `allowRetrieval`, so a document can't make a session fetch whatever it names

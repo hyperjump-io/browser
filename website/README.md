@@ -19,4 +19,3 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 - [Batch requests](batching.md): send requests that go together as one
 - [Priorities](priorities.md): connection limits, and what loads first
 - [Tracing](tracing.md): see what a session fetched, and why
-- [Registry](registry.md): answer requests with documents you already have

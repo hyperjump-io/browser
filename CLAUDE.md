@@ -1,8 +1,7 @@
 # @hyperjump/browser v2
 
 A `fetch` inspired by web browsers. Requests belong to a session, go through a
-stack of layers (an HTTP cache, a registry, dedupe, a scheduler, and the
-application's own), and end at a transport that picks a handler by URL
+stack of layers (an HTTP cache, a scheduler, and the application's own), and end at a transport that picks a handler by URL
 scheme, including `file:` on the server. It replaces
 `@hyperjump/browser` v1, a client for JRef documents, and the v2 prototype
 on `main`, which won't be released.

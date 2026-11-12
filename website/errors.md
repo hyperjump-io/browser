@@ -46,7 +46,6 @@ with `fetch`, so it isn't a network error.
 | `ERR_TOO_MANY_REDIRECTS` | The request redirected more times than the session's `maxRedirects`. |
 | `ERR_UNSAFE_REDIRECT` | A redirect led to a scheme that isn't in the session's `redirectSchemes`. For more information, see [Redirects](redirects.md). |
 | `ERR_CACHE_MISS` | The request's `cache` is `"only-if-cached"`, and the HTTP cache doesn't have the response. |
-| `ERR_NOT_IN_REGISTRY` | The registry's `onMiss` is `"error"`, and the URL isn't registered. |
 | `ERR_UNKNOWN_URL_SCHEME` | The transport doesn't have a fetcher for the URL's scheme. |
 | `ERR_METHOD_NOT_SUPPORTED` | A `file:` URL was fetched with a method other than `GET` or `HEAD`. |
 | `ERR_OUTSIDE_ROOT` | A `file:` URL is outside the `file:` scheme's `root`. |

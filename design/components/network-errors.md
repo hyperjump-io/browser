@@ -30,7 +30,6 @@ readers: a person reads its message, and code reads its `cause.code`.
 | `ERR_TOO_MANY_REDIRECTS` | More redirects than `maxRedirects` | session |
 | `ERR_UNSAFE_REDIRECT` | A redirect to a scheme that isn't in `redirectSchemes` | session |
 | `ERR_CACHE_MISS` | Nothing cached for `only-if-cached` | [HTTP cache](http-cache.md) |
-| `ERR_NOT_IN_REGISTRY` | A URL that isn't registered, with `onMiss: "error"` | [The registry](registry.md) |
 | `ERR_UNKNOWN_URL_SCHEME` | A scheme without a fetcher | [The scheme transport](scheme-transport.md) |
 | `ERR_METHOD_NOT_SUPPORTED` | A `file:` URL with a method other than `GET` or `HEAD` | [The `file:` scheme](file-scheme.md) |
 | `ERR_OUTSIDE_ROOT` | A file outside the `file:` scheme's `root` | the `file:` scheme |

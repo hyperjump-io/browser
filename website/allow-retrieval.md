@@ -53,9 +53,9 @@ a trace shows it as a request that failed. For more information, see
 [Tracing](tracing.md).
 
 The session checks a URL before any layer gets the request, so a URL that the
-[registry](registry.md) or the [HTTP cache](http-caching.md) answers has to be
-in the list too. If your registry has a copy of a document from another origin,
-add that URL to the list.
+[HTTP cache](http-caching.md) or a layer of your own answers has to be in the
+list too. If a layer has a copy of a document from another origin, add that URL
+to the list.
 
 ## What it protects against
 

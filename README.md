@@ -2,8 +2,7 @@
 
 A `fetch` inspired by web browsers. Requests belong to a session, the way a
 page load's requests do. They go through a stack of layers, like an HTTP
-cache, a registry of documents the application already has, and requests
-already in flight, and end at a transport that picks a handler by URL
+cache and a scheduler, and end at a transport that picks a handler by URL
 scheme, including `file:` on the server.
 
 ```typescript

@@ -6,14 +6,9 @@ layer works with each step:
 
 - The HTTP cache stores the redirects themselves, so a cached 301 saves a round
   trip.
-- A [registry](registry.md) answers where a redirect leads, and a registry
-  entry can be a redirect, which makes it an alias:
-
-  ```typescript
-  registry({
-    entries: { "https://example.com/latest.json": { status: 302, headers: { Location: "/v2.json" } } }
-  });
-  ```
+- A [layer](layers.md#write-a-layer) that answers a URL itself answers where a
+  redirect leads, and it can answer with a redirect, which makes a URL an
+  alias.
 
 ## What it follows
 

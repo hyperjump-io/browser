@@ -70,9 +70,14 @@ Rejected:
   prefixes can't say, like any subdomain, could be `URLPattern` entries
   when something needs it, as for `headers` keys.
 - A layer. The stack is shared by sessions, so each session's list would
-  have to reach the layer some other way, and a layer above it, like the
-  registry, would answer before it. And the HTTP cache would have to be
-  below it, so a cached response isn't a way around it.
+  have to reach the layer some other way, and a layer above it would
+  answer before it. And the HTTP cache would have to be below it, so a
+  cached response isn't a way around it.
+- A second place for layers, answered before `allowRetrieval` is checked,
+  for documents an application already has. It would make "resolved
+  locally" a concept here. A layer that answers URLs itself goes on the
+  stack like any other, and the application lists its URLs in
+  `allowRetrieval`.
 
 ## Where it's checked
 
@@ -109,12 +114,13 @@ A refused URL is a network error, the `TypeError` `fetch` rejects with (see
 [Like a web browser](../principles/like-a-web-browser.md)). Its message
 names the URL and says to add it to the session's `allowRetrieval`.
 
-Because the session checks a URL before the stack sees it, what the registry
-or the HTTP cache would answer has to be allowed too. A cached response
-isn't a way around the list. A bundled copy of a well-known document is
-listed in `allowRetrieval`, like its URL would be if it were fetched. The
-session can't know which layer will answer a URL, and checking below the
-layers that don't fetch would mean checking below the cache.
+Because the session checks a URL before the stack sees it, what a layer
+answers without fetching, like the HTTP cache, has to be allowed too. A
+cached response isn't a way around the list. A copy of a document that an
+application's layer answers with is listed in `allowRetrieval`, like its
+URL would be if it were fetched. The session can't know which layer will
+answer a URL, and checking below the layers that don't fetch would mean
+checking below the cache.
 
 ## Symlinks
 

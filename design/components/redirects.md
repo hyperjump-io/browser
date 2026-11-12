@@ -6,8 +6,8 @@ Every layer sees each URL:
 
 - the HTTP cache stores a redirect as a response of its own, so a cacheable
   301 saves a round trip;
-- the registry answers where a redirect leads, and a registry entry can be
-  a redirect, which makes it an alias;
+- a layer that answers a URL itself answers where a redirect leads, and it
+  can answer with a redirect, which makes a URL an alias;
 - the scheduler sees the URLs that are really fetched.
 
 It follows the Fetch standard:

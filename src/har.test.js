@@ -4,7 +4,6 @@ import { compose, fetcher } from "./layers.js";
 import { defaultTransport } from "./transports/scheme-transport.js";
 import { Trace } from "./trace.js";
 import { destinationPriority } from "./layers/destination-priority.js";
-import { registry } from "./layers/registry.js";
 import { scheduler } from "./layers/scheduler.js";
 import { httpCache } from "./http-cache/http-cache.js";
 import { controlled, tick } from "./test-helpers/controlled.js";
@@ -152,27 +151,25 @@ describe("HAR", () => {
     expect(har.log.entries.filter((entry) => entry.request.url === "https://a.test/c.css").map((entry) => entry._priority)).to.eql(["High"]);
   });
 
-  test("says what came from the cache and the registry, and what failed", async () => {
+  test("says what came from the cache, and what failed", async () => {
     const server = await startServer((_request, response) => {
       response.setHeader("cache-control", "max-age=60");
       response.end("cached");
     });
     try {
-      const stack = compose(registry({ entries: { "https://pinned.test/a.json": "{}" } }), httpCache())(defaultTransport());
+      const stack = httpCache()(defaultTransport());
       const session = testSession(stack, { allow: [server.url, "nope://x"] });
       const trace = new Trace(session);
       await (await session.fetch(`${server.url}/x`)).text();
       await settle();
       await (await session.fetch(`${server.url}/x`)).text();
-      await (await session.fetch("https://pinned.test/a.json")).text();
       await expect(session.fetch("nope://x")).rejects.toThrow(TypeError);
 
       const har = trace.toHar();
       await valid(har);
-      const [miss, hit, pinned, failed] = har.log.entries;
+      const [miss, hit, failed] = har.log.entries;
       expect([miss._source, miss._cache]).to.eql(["network", "miss"]);
       expect([hit._source, hit._cache]).to.eql(["http-cache", "hit"]);
-      expect(pinned._source).to.equal("registry");
       expect(failed.response.status).to.equal(0);
       expect(failed._error).to.match(/isn't supported/);
     } finally {

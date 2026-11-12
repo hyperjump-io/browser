@@ -1,10 +1,9 @@
 import { describe, test, expect } from "vitest";
-import { compose } from "./layers.js";
+import { layer } from "./layers.js";
 import { defaultTransport } from "./transports/scheme-transport.js";
 import { nodeTransport } from "./transports/node-transport.js";
 import { responseMeta } from "./response-meta.js";
 import { httpCache } from "./http-cache/http-cache.js";
-import { registry } from "./layers/registry.js";
 import { readBody, settle, startServer } from "./test-helpers/server.js";
 import { testSession } from "./test-helpers/session.js";
 
@@ -42,27 +41,28 @@ describe("redirects", () => {
     }
   });
 
-  test("a registry entry can be a redirect, and can answer where a redirect leads", async () => {
+  test("a layer can answer with a redirect, and can answer where a redirect leads", async () => {
     const server = await redirectServer();
     try {
-      const stack = compose(
-        registry({
-          base: server.url,
-          entries: {
-            "/latest.json": { status: 302, headers: { location: "/v2.json" } },
-            "/v2.json": "{\"version\":2}",
-            "/old-api": { status: 308, headers: { location: "/api" } }
-          }
-        })
-      )(defaultTransport());
-      const session = testSession(stack, { allow: [server.url] });
+      const answers = layer((request, ctx, inner) => {
+        switch (new URL(request.url).pathname) {
+          case "/latest.json":
+            return Promise.resolve(new Response(null, { status: 302, headers: { location: "/v2.json" } }));
+          case "/v2.json":
+            return Promise.resolve(new Response("{\"version\":2}"));
+          case "/old-api":
+            return Promise.resolve(new Response(null, { status: 308, headers: { location: "/api" } }));
+          default:
+            return inner.fetch(request, ctx);
+        }
+      });
+      const session = testSession(answers(defaultTransport()), { allow: [server.url] });
 
       const latest = await session.fetch(`${server.url}/latest.json`);
       expect(await latest.json()).to.eql({ version: 2 });
       expect(latest.url).to.equal(`${server.url}/v2.json`);
-      expect(responseMeta(latest).source).to.equal("registry");
 
-      expect(await (await session.fetch(`${server.url}/r/302/v2.json`)).json(), "a redirect from the network to a registered URL").to.eql({ version: 2 });
+      expect(await (await session.fetch(`${server.url}/r/302/v2.json`)).json(), "a redirect from the network to a URL the layer answers").to.eql({ version: 2 });
       expect(server.hits.get("/v2.json")).to.equal(undefined);
       expect((await (await session.fetch(`${server.url}/old-api`)).json()).path).to.equal("/api");
     } finally {

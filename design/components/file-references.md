@@ -31,9 +31,9 @@ URL.
 Rejected:
 
 - A layer, like the `Referer` check of each session's stack in the v2
-  prototype. The stack is shared, and the registry and the HTTP cache
-  above the transport would answer before it, which is why `allowRetrieval`
-  isn't a layer either.
+  prototype. The stack is shared, and the HTTP cache above the transport
+  would answer before it, which is why `allowRetrieval` isn't a layer
+  either.
 - Refusing a `file:` URL without an initiator. The application's own
   requests have none, and they're how it reads its files.
 

@@ -6,8 +6,7 @@ import { cwd } from "node:process";
 import { pathToFileURL } from "node:url";
 import { allows, realEntries, resolveAllowRetrieval } from "./allowed-urls.js";
 import { Session } from "./session.js";
-import { compose, fetcher } from "./layers.js";
-import { registry } from "./layers/registry.js";
+import { fetcher } from "./layers.js";
 import { withUrl } from "./response-meta.js";
 import { nodeTransport } from "./transports/node-transport.js";
 import { defaultAllowRetrieval as nodeDefault } from "./context-url.js";
@@ -155,10 +154,10 @@ describe("allowRetrieval", () => {
       expect(cancelled).to.equal(true);
     });
 
-    test("what the registry answers has to be allowed too", async () => {
-      const stack = compose(registry({ entries: { "https://pinned.test/a.json": "{}" } }))(fetcher(() => new Response("fetched")));
-      await expect(new Session(stack, { allowRetrieval: [] }).fetch("https://pinned.test/a.json")).rejects.toThrow(/isn't allowed/);
-      expect(await (await new Session(stack, { allowRetrieval: ["https://pinned.test/"] }).fetch("https://pinned.test/a.json")).text()).to.equal("{}");
+    test("what a layer answers without fetching has to be allowed too", async () => {
+      const stack = fetcher(() => new Response("{}"));
+      await expect(new Session(stack, { allowRetrieval: [] }).fetch("https://a.test/a.json")).rejects.toThrow(/isn't allowed/);
+      expect(await (await new Session(stack, { allowRetrieval: ["https://a.test/"] }).fetch("https://a.test/a.json")).text()).to.equal("{}");
     });
 
     test("a refused URL is recorded as a failure, without the session's headers", async () => {

@@ -61,6 +61,6 @@ export const trackBody: (response: Response, done: () => void, onChunk?: (chunk:
  * A network error, the `TypeError` `fetch` rejects with. Its message says
  * what went wrong, and its `cause` has a `code` that says it to code: the
  * error it comes from, like the filesystem's (`ENOENT`), or `{ code }` for
- * one a layer makes itself, like `{ code: "ERR_NOT_IN_REGISTRY" }`.
+ * one a layer makes itself, like `{ code: "ERR_CACHE_MISS" }`.
  */
 export const networkError: (message: string, cause?: unknown) => TypeError;
