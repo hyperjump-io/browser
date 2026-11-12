@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { defaultStack as nodeStack } from "./default-stack.js";
 import { defaultStack as browserStack } from "./default-stack.browser.js";
+import { Hyperjump, defaultStack } from "./index.js";
 import { layersOf } from "./layers.js";
 import { Scheduler } from "./layers/scheduler.js";
 import { SchemeTransport } from "./transports/scheme-transport.js";
@@ -21,5 +22,12 @@ describe("the default stack", () => {
 
   test("is made for each session", () => {
     expect(nodeStack()).not.to.equal(nodeStack());
+    expect(new Hyperjump().stack).not.to.equal(new Hyperjump().stack);
+  });
+
+  test("is shared by the sessions of a configuration that has one", () => {
+    const config = { stack: defaultStack() };
+    expect(config.stack).to.be.instanceOf(Scheduler);
+    expect(new Hyperjump(config).stack).to.equal(new Hyperjump(config).stack);
   });
 });

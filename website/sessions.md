@@ -22,11 +22,22 @@ Without a stack, a session gets a default stack of its own:
 - In Node.js, it's `scheduler()` on `nodeTransport()`. It fetches `http:`,
   `https:`, `data:`, and `file:` URLs, and limits how many requests go to each
   server at once. For more information, see [Priorities](priorities.md).
-- In a browser, it's `defaultTransport()`, which fetches `http:`, `https:`, and
-  `data:` URLs with the browser's `fetch`.
+- In a browser, the stack is `defaultTransport()`, which fetches `http:`,
+  `https:`, and `data:` URLs with the browser's `fetch`.
 
-The default stack has no HTTP cache. To cache responses, or to share a stack
-between sessions, build your own.
+Each session without a stack gets a new one. To share one between sessions, so
+they share its connection limits, put `defaultStack()` in the configuration that
+you create them from:
+
+```typescript
+import { Hyperjump, defaultStack } from "@hyperjump/browser";
+
+const config = { stack: defaultStack() };
+const first = new Hyperjump(config);
+const second = new Hyperjump(config);
+```
+
+The default stack has no HTTP cache. To cache responses, build your own stack.
 
 The configuration is a plain object, so you can keep it and create another
 session from it with `new Hyperjump(config)`. Sessions with the same stack

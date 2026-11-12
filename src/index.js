@@ -1,4 +1,5 @@
 export * from "./hyperjump.js";
+export * from "#default-stack";
 export * from "./layers.js";
 export * from "./priority.js";
 export { FetchRecord } from "./fetch-record.js";

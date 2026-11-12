@@ -21,6 +21,9 @@ on a stack it's given and gives the stack what the stack can't know.
     `allowRetrieval` is for.
   - In a browser it's `defaultTransport()`. A browser limits connections
     itself.
+  - `defaultStack()` is exported, so an application that keeps one
+    configuration for many sessions shares one, as `{ stack:
+    defaultStack() }`, without saying what the default is in each runtime.
   - It has no HTTP cache. A default stack lives as long as its session, so
     a cache in it would be gone with the session, and a browser caches
     already.
