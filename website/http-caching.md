@@ -12,7 +12,7 @@ const session = new Hyperjump({ stack, allowRetrieval: ["https://example.com/"] 
 
 The cache is for a server. A browser caches responses itself, so in a browser,
 `httpCache` throws an error. It caches only `http:` and `https:` URLs, so a
-`file:` URL is read every time.
+session reads a `file:` URL every time.
 
 - It uses a fresh response without making a request.
 - It revalidates a stale response that has an `ETag` or `Last-Modified`
