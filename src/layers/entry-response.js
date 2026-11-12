@@ -7,7 +7,7 @@ import { nullBodyStatuses } from "../statuses.js";
  */
 
 /**
- * A new response for an entry of a registry or a resource map. A body can
+ * A new response for an entry of a registry. A body can
  * only be read once, so each request gets its own.
  *
  * @type (entry: RegistryEntry, request: Request, ctx: FetchContext) => Promise<Response>

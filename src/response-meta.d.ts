@@ -20,13 +20,6 @@ export type ResponseMeta = {
    */
   cache?: "hit" | "miss" | "revalidated" | "stale" | "bypass" | "filled";
 
-  /**
-   * A parsed form of the body that whatever made the response already had,
-   * like the object a resource map's resource was found in. Use it instead of
-   * parsing the body to keep the object's identity.
-   */
-  value?: unknown;
-
   /** Every URL the request went through, first to last, when the session followed redirects */
   redirects?: string[];
 

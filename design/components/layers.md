@@ -28,7 +28,6 @@ layers only work in some places. Each one's document says why. Together:
 
 | Layer | Goes | Because |
 | --- | --- | --- |
-| `ResourceMap` | at the top | what a document says about itself is found first |
 | `DestinationPriority` | above the throttle and the scheduler | they act on the priority it gives |
 | `HttpCache` | above the throttle and the scheduler | a hit never waits |
 | `Throttle` | above the scheduler | what a page asks for first is what the scheduler gets first |

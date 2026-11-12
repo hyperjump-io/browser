@@ -1,13 +1,11 @@
 import { describe, test, expect } from "vitest";
 import { canRefer } from "./file-references.js";
 import { fetcher } from "./layers.js";
-import { ResourceMap } from "./layers/resource-map.js";
 import { withUrl } from "./response-meta.js";
 import { testSession } from "./test-helpers/session.js";
 
 /**
  * @import { FetchRecord } from "./fetch-record.d.ts"
- * @import { Decorator, Fetcher } from "./layers.d.ts"
  * @import { Session } from "./session.js"
  * @import { SessionOptions } from "./session.d.ts"
  */
@@ -105,31 +103,21 @@ describe("file: references", () => {
       await expect(session.fetch("urn:example:a", { initiator: page })).rejects.toThrow("Fetching 'urn:example:a' led to 'file:///project/a.json', which isn't allowed from 'https://a.test/page.json'");
       expect(cancelled).to.equal(true);
     });
-
-    test("a document from the web can't contain a file", async () => {
-      /** @type ResourceMap | undefined */
-      let map;
-      const { session, fetched } = setup({ layer: (inner) => map = new ResourceMap(inner) });
-      const bundle = await session.fetch("https://a.test/bundle.json");
-      map?.register(bundle, "file:///project/a.json", "the bundle's");
-      await expect(session.fetch("file:///project/a.json", { initiator: bundle })).rejects.toThrow(/Only a file: document/);
-      expect(fetched()).to.eql(["https://a.test/bundle.json"]);
-    });
   });
 });
 
 /**
- * A session whose stack answers every URL with where it's from, under
- * `layer`, and can fetch the test origins and the files in `file:///project/`
+ * A session whose stack answers every URL with where it's from, and can
+ * fetch the test origins and the files in `file:///project/`
  *
- * @type (options?: SessionOptions & { layer?: Decorator }) => { session: Session, fetched: () => string[] }
+ * @type (options?: SessionOptions) => { session: Session, fetched: () => string[] }
  */
-const setup = ({ layer = (/** @type Fetcher */ inner) => inner, ...options } = {}) => {
+const setup = (options = {}) => {
   /** @type string[] */
   const fetched = [];
-  const stack = layer(fetcher((request) => {
+  const stack = fetcher((request) => {
     fetched.push(request.url);
     return new Response(`from ${request.url}`);
-  }));
+  });
   return { session: testSession(stack, { allow: ["file:///project/"], ...options }), fetched: () => fetched };
 };
