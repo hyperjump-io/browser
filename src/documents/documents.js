@@ -176,7 +176,11 @@ const retrieve = async (session, url, initiator) => {
 
 /**
  * The documents a document contains, by their URLs as they're compared:
- * parsed, without fragments
+ * parsed, without fragments.
+ *
+ * A document that isn't a file can only have a `file:` URL in it that's
+ * absolute, which says where files are on a machine, so it can't be used.
+ * In a file, one could have been relative, which can't be told from here.
  *
  * @type (document: DocumentNode) => Map<string, DocumentNode>
  * @throws {TypeError} If a URL isn't one.
@@ -185,6 +189,9 @@ const embeddedIn = (document) => {
   const embedded = new Map();
   for (const [url, contained] of Object.entries(document.embedded ?? {})) {
     const parsed = new URL(url);
+    if (parsed.protocol === "file:" && !document.url.startsWith("file:")) {
+      throw documentError(`'${document.url}' can't be used, because it says it contains a document with an absolute file: URL`, { code: "ERR_ABSOLUTE_FILE_URL" }, document.url);
+    }
     parsed.hash = "";
     embedded.set(parsed.href, contained);
   }

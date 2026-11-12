@@ -1456,6 +1456,31 @@ describe("invalid references", () => {
     expect(() => fromJref(`{ "$ref": "foo" }`, url)).toThrow(TypeError);
   });
 
+  test.each([
+    "file:///home/me/project/a.json",
+    "FILE:/home/me/a.json",
+    "file://server/share/a.json#/b"
+  ])("a $ref that's an absolute file: URL is an invalid reference: %s", (reference) => {
+    const result = fromJref(JSON.stringify({ $ref: reference }), "file:///home/me/project/main.jref");
+
+    expect(result.status).toBe("failure");
+    expect(result.node).toMatchObject({ type: "invalid-reference" });
+    expect(result.errors).toMatchObject([{ source: "jref", ruleId: "absolute-file-reference", actual: reference }]);
+  });
+
+  test("a relative reference in a file is a reference", () => {
+    const { status, node } = fromJref(`{ "$ref": "../other/a.json" }`, "file:///home/me/project/main.jref");
+
+    expect(status).toBe("success");
+    expect(node).toMatchObject({ type: "reference", href: "file:///home/me/other/a.json" });
+  });
+
+  test("the message for an absolute file: URL doesn't say it", () => {
+    const { errors } = fromJref(`{ "$ref": "file:///home/me/a.json" }`, base);
+
+    expect(jrefSyntaxErrorMessage(errors[0])).toBe("A reference can't be an absolute file: URL. Use a relative reference to refer to a file.");
+  });
+
   test("the message says the reference", () => {
     const { errors } = fromJref(`{ "$ref": "//[" }`, base);
 

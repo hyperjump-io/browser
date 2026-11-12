@@ -74,6 +74,7 @@ says why, with the exact URL as its `url`, like a network error (see
 | --- | --- |
 | `ERR_HTTP_STATUS` | A response that isn't a success. The cause has its `status`. |
 | `ERR_UNSUPPORTED_MEDIA_TYPE` | A response no media type plugin parses |
+| `ERR_ABSOLUTE_FILE_URL` | A document that isn't a file and says it contains a document with a `file:` URL (see [`file:` from `file:`](file-references.md)) |
 | `ERR_REFERENCE_CYCLE` | References that lead back to one already followed. The cause has the `chain`. |
 
 They're `Error`s, not the `TypeError` of a network error, because a server
@@ -104,6 +105,5 @@ Rejected:
 
 ## Known limitations
 
-- A document that names a file by an absolute `file:` URL isn't rejected.
 - `get` takes the nodes of a document to be a JSON AST, with references
   as `reference` nodes that have an `href`.

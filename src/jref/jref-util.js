@@ -38,9 +38,15 @@ export const fromJref = (jref, url, options = {}) => {
 };
 
 /** @type typeof API.jrefSyntaxErrorMessage */
-export const jrefSyntaxErrorMessage = (error) => error.source === "jref"
-  ? `'${error.actual}' is not a valid reference`
-  : jsonSyntaxErrorMessage(error);
+export const jrefSyntaxErrorMessage = (error) => {
+  if (error.source !== "jref") {
+    return jsonSyntaxErrorMessage(error);
+  }
+  // The URL says where files are on a machine, so the message doesn't say it
+  return error.ruleId === "absolute-file-reference"
+    ? "A reference can't be an absolute file: URL. Use a relative reference to refer to a file."
+    : `'${error.actual}' is not a valid reference`;
+};
 
 /**
  * Make every object with a string `$ref` a reference, or an invalid
@@ -63,11 +69,12 @@ const annotateReferences = (node, url, errors) => {
       const [keyNode, valueNode] = propertyNode.children;
       if (!isReference && keyNode.value === "$ref" && "jsonType" in valueNode && valueNode.jsonType === "string") {
         const href = resolveReference(valueNode.value, url);
-        if (href === undefined) {
+        const absoluteFile = isAbsoluteFileUrl(valueNode.value);
+        if (href === undefined || absoluteFile) {
           Object.assign(node, { type: "invalid-reference" });
           errors.push({
             source: "jref",
-            ruleId: "invalid-reference",
+            ruleId: absoluteFile ? "absolute-file-reference" : "invalid-reference",
             // fromJson gives every node a position
             place: /** @type NonNullable<typeof valueNode.position> */ (valueNode.position),
             actual: valueNode.value
@@ -89,3 +96,12 @@ const annotateReferences = (node, url, errors) => {
  * @type (reference: string, url: string) => string | undefined
  */
 const resolveReference = (reference, url) => URL.parse(reference, url)?.href;
+
+/**
+ * Whether a reference is a `file:` URL by itself, not one that's relative to
+ * a file. A document that has one says where files are on the machine it
+ * was written on, wherever it goes.
+ *
+ * @type (reference: string) => boolean
+ */
+const isAbsoluteFileUrl = (reference) => URL.parse(reference)?.protocol === "file:";

@@ -182,8 +182,30 @@ describe("documents", () => {
       expect(trace.tree().map(({ record, depth }) => `${depth} ${new URL(record.url).pathname}`)).to.eql(["0 /a", "1 /b", "2 /c"]);
     });
 
-    test("a document from the web can't refer to a file", async () => {
-      const { session } = site({ "/a": [`{ "$ref": "file:///project/secret.json" }`, jref] }, { allowRetrieval: ["https://a.test/", "file:///project/"] });
+    test("a document with a reference that's an absolute file: URL can't be used", async () => {
+      const { session, requests } = site({ "/a": [`{ "a": 1, "b": { "$ref": "file:///project/secret.json" } }`, jref] }, { allowRetrieval: ["https://a.test/", "file:///project/"] });
+      const getting = get(session, "https://a.test/a#/a");
+      await expect(getting).rejects.toThrow(SyntaxError);
+      await expect(getting).rejects.toThrow("A reference can't be an absolute file: URL. Use a relative reference to refer to a file. at https://a.test/a:1:26");
+      await expect(getting).rejects.toMatchObject({ cause: { ruleId: "absolute-file-reference" } });
+      expect(requests.length).to.equal(1);
+    });
+
+    test("a document from the web can't refer to a file, whatever its media type says", async () => {
+      /** @type MediaTypePlugin */
+      const linkMediaType = {
+        mediaType: "text/x-link",
+        extensions: [],
+        parse: async (response) => ({
+          type: "link-document",
+          children: [{ type: "reference", href: await response.text(), jsonType: "object", children: [], location: `${response.url}#` }],
+          url: response.url
+        })
+      };
+      const { session } = site({ "/a": [`file:///project/secret.json`, { "content-type": "text/x-link" }] }, {
+        mediaTypes: [linkMediaType],
+        allowRetrieval: ["https://a.test/", "file:///project/"]
+      });
       await expect(get(session, "https://a.test/a")).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
     });
 
@@ -242,14 +264,24 @@ describe("documents", () => {
       expect(trace.tree().map(({ record, depth }) => `${depth} ${new URL(record.url).pathname}`)).to.eql(["0 /bundle", "1 /other"]);
     });
 
-    test("an embedded document is judged by the document it was found in, so one from the web can't refer to a file", async () => {
+    test("a document that isn't a file can't say it contains a file", async () => {
       const { session } = site({
-        "/bundle": [bundle({ $ref: "file:///project/a.json" }, { "file:///project/a.json": { $ref: "secret.json" } }), bundled]
+        "/bundle": [bundle(1, { "file:///project/a.json": { $ref: "secret.json" } }), bundled]
       }, { mediaTypes, allowRetrieval: ["https://a.test/", "file:///project/"] });
-      await expect(get(session, "https://a.test/bundle")).rejects.toMatchObject({
-        cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" },
-        url: "file:///project/secret.json"
+      const loading = getDocument(session, "https://a.test/bundle");
+      await expect(loading).rejects.toThrow("'https://a.test/bundle' can't be used, because it says it contains a document with an absolute file: URL");
+      await expect(loading).rejects.toMatchObject({ cause: { code: "ERR_ABSOLUTE_FILE_URL" }, url: "https://a.test/bundle" });
+    });
+
+    test("a file can contain files, and they can refer to files", async () => {
+      const session = new Hyperjump({
+        stack: fetcher((request) => request.url.endsWith("/bundle")
+          ? new Response(bundle({ $ref: "a.json" }, { "file:///project/a.json": { $ref: "b.json" } }), { headers: bundled })
+          : new Response(`"b"`)),
+        mediaTypes: [{ ...bundleMediaType, extensions: ["/bundle"] }, ...defaultMediaTypes],
+        allowRetrieval: ["file:///project/"]
       });
+      expect(jsonValue(await get(session, "file:///project/bundle"))).to.equal("b");
     });
 
     test("only references from the container find it, so it doesn't change what other documents get", async () => {

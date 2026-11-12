@@ -65,6 +65,12 @@ status with it:
   reference, so it's an ordinary object.
   - `jrefSyntaxErrorMessage` describes JRef's errors and JSON's, so `json/`
     doesn't know JRef's messages.
+- A `$ref` that's a `file:` URL by itself, like `file:///home/me/a.json`,
+  is an error too (`ruleId: "absolute-file-reference"`), and its object is
+  an invalid reference. A document with one says where files are on the
+  machine it was written on, just by being shared, and it only works
+  there. A file is referred to with a relative reference, from a file, so
+  nothing that should work is refused. The message doesn't say the URL.
   - An annotation that isn't an error, with the document's status still
     `success`, was rejected. A session could use the rest of the document,
     but every complete tree could have references that can't be followed,

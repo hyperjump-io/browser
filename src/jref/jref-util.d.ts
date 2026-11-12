@@ -29,8 +29,11 @@ export type JrefSyntaxError = {
   /**
    * - `invalid-reference`: a `$ref` that doesn't resolve to a URL against
    *   the document's URL
+   * - `absolute-file-reference`: a `$ref` that's a `file:` URL by itself,
+   *   like `file:///home/me/a.json`. It says where files are on a machine,
+   *   so a file is referred to with a relative reference.
    */
-  ruleId: "invalid-reference";
+  ruleId: "invalid-reference" | "absolute-file-reference";
 
   /** The span of the `$ref`'s value */
   place: Position;

@@ -78,7 +78,7 @@ value:
 | A network error | The session can't fetch the URL. For more information, see [Errors](errors.md). |
 | An `Error` whose `cause.code` is `"ERR_HTTP_STATUS"` | The response's status isn't a success. The `cause.status` is the status. |
 | An `Error` whose `cause.code` is `"ERR_UNSUPPORTED_MEDIA_TYPE"` | No media type parses the response. For more information, see [Media types](media-types.md). |
-| A `SyntaxError` | The document has a syntax error. Its `cause` is the error, with a `ruleId` and a `place`. |
+| A `SyntaxError` | The document has a syntax error, or a reference that's an absolute `file:` URL. Its `cause` is the error, with a `ruleId` and a `place`. |
 | A `JsonPointerError` | The fragment doesn't identify a value |
 | An `Error` whose `cause.code` is `"ERR_REFERENCE_CYCLE"` | Following references leads back to a reference that `get` already followed. The `cause.chain` lists the URLs. |
 

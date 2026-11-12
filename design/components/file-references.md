@@ -28,6 +28,21 @@ URL.
 - A `data:` document isn't a file, so it can't refer to one. Its content
   could have come from anywhere.
 
+## Absolute `file:` URLs
+
+A document that names a file by an absolute `file:` URL can't be used. It
+says where files are on a machine wherever it's shared, and it only works
+on that machine.
+
+- A JRef `$ref` that's an absolute `file:` URL is a syntax error (see
+  [The JSON AST](json-ast.md)), so the document isn't made.
+- A document that isn't a file and says it contains a document with a
+  `file:` URL is an error, `ERR_ABSOLUTE_FILE_URL` (see
+  [Documents](documents.md)). A URL that's given resolved can't be told
+  from a relative one in a file, so a file can contain files.
+- Checking the document a request comes from stays, for a media type
+  plugin that makes references itself.
+
 ## Embedded documents
 
 A document can contain others, each with the URL it says it has (see
