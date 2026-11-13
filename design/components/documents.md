@@ -24,6 +24,12 @@ what makes this a hypermedia browser, and the stack is how they retrieve.
   a redirect led or the file a symlink points to. A document that's
   reached at a URL the session already has a document for is that
   document, so there's one for a URL however it was reached.
+  - It isn't kept under its own `url`. A media type whose documents say
+    what their URL is, like one with an identifier in it, gives a document
+    that `url`, and its nodes' locations start with it. If that were where
+    it's kept, a document could answer for any URL it names. Such a
+    document finds itself by that URL when its plugin lists it in its own
+    `embedded`.
 - A document that fails isn't kept, so it can be asked for again.
 - `get` and `getDocument` take a `priority`, which is the request's, and
   the references `get` follows have it too. Whoever waits for a document

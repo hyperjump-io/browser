@@ -152,7 +152,9 @@ const documentsOf = (session) => session.state(documentsKey, () => {
  * The session's entry for a URL, retrieved if it doesn't have one. A
  * document is also kept under the URL its response came from, like where a
  * redirect led, so there's one document for a URL however it was reached.
- * One that fails isn't kept, so it can be asked for again.
+ * It's never kept under the URL the document says it has, which a document
+ * could use to answer for another one. One that fails isn't kept, so it can
+ * be asked for again.
  *
  * Whoever waits for a document adds its priority to the document's until
  * its wait is over, so a document that's being preloaded at a low priority
@@ -172,13 +174,12 @@ const load = (session, url, initiator, priority) => {
   /** @type Kept */
   const kept = {
     priority: group,
-    loading: retrieve(session, url, initiator, group.signal).then((entry) => {
-      const finalUrl = entry.document.url;
-      const reached = entries.get(finalUrl);
+    loading: retrieve(session, url, initiator, group.signal).then(({ entry, responseUrl }) => {
+      const reached = entries.get(responseUrl);
       if (reached && reached !== kept) {
         return reached.loading;
       }
-      entries.set(finalUrl, kept);
+      entries.set(responseUrl, kept);
       return entry;
     })
   };
@@ -191,7 +192,11 @@ const load = (session, url, initiator, priority) => {
   return kept.loading.finally(leave);
 };
 
-/** @type (session: API.DocumentSession, url: string, initiator: API.GetOptions["initiator"], priority: PrioritySignal) => Promise<Entry> */
+/**
+ * A document's entry, and the URL its response came from
+ *
+ * @type (session: API.DocumentSession, url: string, initiator: API.GetOptions["initiator"], priority: PrioritySignal) => Promise<{ entry: Entry, responseUrl: string }>
+ */
 const retrieve = async (session, url, initiator, priority) => {
   const { mediaTypes, accept, contained } = documentsOf(session);
   const response = await session.fetch(url, { headers: { accept }, initiator, priority });
@@ -224,7 +229,7 @@ const retrieve = async (session, url, initiator, priority) => {
     for (const [embeddedUrl, embeddedDocument] of entry.embedded) {
       contained.set(embeddedUrl, [...contained.get(embeddedUrl) ?? [], { ...entry, document: embeddedDocument }]);
     }
-    return entry;
+    return { entry, responseUrl: responseUrl.href };
   } catch (error) {
     // A body that wasn't read holds its file or connection
     if (!response.bodyUsed) {

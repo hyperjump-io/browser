@@ -81,6 +81,28 @@ describe("documents", () => {
       expect(await getDocument(session, "https://a.test/old")).to.equal(direct);
     });
 
+    test("a document is kept under its response's URL, not the URL it says it has", async () => {
+      /** @type MediaTypePlugin */
+      const selfIdentified = {
+        mediaType: "application/x-self-identified",
+        extensions: [],
+        parse: async (response) => {
+          const text = await response.text();
+          const url = /** @type {{ id: string }} */ (JSON.parse(text)).id;
+          return { type: "self-identified-document", children: [fromJref(text, url).node], url };
+        }
+      };
+      const { session, requests } = site({
+        "/claims": [`{ "id": "https://a.test/real" }`, { "content-type": "application/x-self-identified" }],
+        "/real": [`"the real one"`, json]
+      }, { mediaTypes: [...defaultMediaTypes, selfIdentified] });
+      const claims = await getDocument(session, "https://a.test/claims");
+      expect(claims.url).to.equal("https://a.test/real");
+      expect(jsonValue(await get(session, "https://a.test/real"))).to.equal("the real one");
+      expect(await getDocument(session, "https://a.test/claims")).to.equal(claims);
+      expect(requests.map((request) => new URL(request.url).pathname)).to.eql(["/claims", "/real"]);
+    });
+
     test("a relative URL is resolved against the session's context URL", async () => {
       const session = new Hyperjump();
       const document = await getDocument(session, "package.json");
