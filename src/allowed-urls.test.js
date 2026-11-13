@@ -107,7 +107,7 @@ describe("allowRetrieval", () => {
     test("the default doesn't allow the network", async () => {
       const session = new Hyperjump({ stack: fetcher(() => new Response("fetched")) });
       const fetching = session.fetch("https://a.test/");
-      await expect(fetching).rejects.toThrow("Fetching 'https://a.test/' isn't allowed. Add it to the session's 'allowRetrieval' to allow it.");
+      await expect(fetching).rejects.toThrow("Fetching 'https://a.test/' isn't allowed. Add it to 'allowRetrieval' to allow it.");
       await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_RETRIEVAL_NOT_ALLOWED" } });
     });
 
@@ -146,7 +146,7 @@ describe("allowRetrieval", () => {
       });
       const session = new Hyperjump({ stack, allowRetrieval: ["https://a.test/"] });
       const fetching = session.fetch("https://a.test/start");
-      await expect(fetching).rejects.toThrow("Fetching 'https://a.test/start' led to 'https://internal.test/secret', which isn't allowed. Add it to the session's 'allowRetrieval' to allow it.");
+      await expect(fetching).rejects.toThrow("Fetching 'https://a.test/start' led to 'https://internal.test/secret', which isn't allowed. Add it to 'allowRetrieval' to allow it.");
       await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_RETRIEVAL_NOT_ALLOWED" } });
       expect(fetched).to.eql(["https://a.test/start"]);
     });

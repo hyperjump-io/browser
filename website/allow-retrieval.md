@@ -41,7 +41,7 @@ Fetching a URL the list doesn't allow is a network error, the `TypeError` that
 `fetch` rejects with. The message says how to allow the URL:
 
 ```text
-Fetching 'https://example.com/other' isn't allowed. Add it to the session's 'allowRetrieval' to allow it.
+Fetching 'https://example.com/other' isn't allowed. Add it to 'allowRetrieval' to allow it.
 ```
 
 Its `cause.code` is `ERR_RETRIEVAL_NOT_ALLOWED`, so your app can tell a refused

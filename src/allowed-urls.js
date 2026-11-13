@@ -66,7 +66,7 @@ export const allows = async ({ exact, prefixes }, url) => {
 };
 
 /** @type (url: string) => TypeError */
-export const refused = (url) => networkError(`Fetching '${relativeFileUrl(url)}' isn't allowed. Add it to the session's 'allowRetrieval' to allow it.`, { code: "ERR_RETRIEVAL_NOT_ALLOWED" }, url);
+export const refused = (url) => networkError(`Fetching '${relativeFileUrl(url)}' isn't allowed. Add it to 'allowRetrieval' to allow it.`, { code: "ERR_RETRIEVAL_NOT_ALLOWED" }, url);
 
 /** @type (url: string, responseUrl: string) => TypeError */
-export const refusedResponse = (url, responseUrl) => networkError(`Fetching '${relativeFileUrl(url)}' led to '${relativeFileUrl(responseUrl)}', which isn't allowed. Add it to the session's 'allowRetrieval' to allow it.`, { code: "ERR_RETRIEVAL_NOT_ALLOWED" }, responseUrl);
+export const refusedResponse = (url, responseUrl) => networkError(`Fetching '${relativeFileUrl(url)}' led to '${relativeFileUrl(responseUrl)}', which isn't allowed. Add it to 'allowRetrieval' to allow it.`, { code: "ERR_RETRIEVAL_NOT_ALLOWED" }, responseUrl);

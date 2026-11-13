@@ -222,7 +222,7 @@ const retrieve = async (session, url, initiator, priority) => {
       const reason = isFile
         ? "no media type has its extension"
         : `no media type parses its 'Content-Type', which is ${response.headers.has("content-type") ? `'${response.headers.get("content-type")}'` : "missing"}`;
-      throw codedError(`'${relativeFileUrl(responseUrl.href)}' can't be used, because ${reason}. Use the session's 'mediaTypes' to add support for a media type.`, { code: "ERR_UNSUPPORTED_MEDIA_TYPE" }, responseUrl.href);
+      throw codedError(`'${relativeFileUrl(responseUrl.href)}' can't be used, because ${reason}. Use 'mediaTypes' to add support for a media type.`, { code: "ERR_UNSUPPORTED_MEDIA_TYPE" }, responseUrl.href);
     }
 
     // A response whose URL is the document's already is given as it is. A

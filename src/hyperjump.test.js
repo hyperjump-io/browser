@@ -92,7 +92,7 @@ describe("sessions", () => {
     const fetching = new Hyperjump().fetch("data/missing.json");
     await expect(fetching).rejects.toThrow("'data/missing.json' doesn't exist");
     await expect(fetching).rejects.toMatchObject({ url: pathToFileURL(join(cwd(), "data/missing.json")).href });
-    await expect(new Hyperjump().fetch("../outside.json")).rejects.toThrow("Fetching '../outside.json' isn't allowed. Add it to the session's 'allowRetrieval' to allow it.");
+    await expect(new Hyperjump().fetch("../outside.json")).rejects.toThrow("Fetching '../outside.json' isn't allowed. Add it to 'allowRetrieval' to allow it.");
   });
 
   test("state is made once per key and session", () => {

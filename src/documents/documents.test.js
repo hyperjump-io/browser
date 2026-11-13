@@ -167,7 +167,7 @@ describe("documents", () => {
     test("a response no plugin parses is an error", async () => {
       const { session } = site({ "/text": [`hi`, { "content-type": "text/plain" }], "/none": [null, {}] });
       const loading = getDocument(session, "https://a.test/text");
-      await expect(loading).rejects.toThrow("no media type parses its 'Content-Type', which is 'text/plain'. Use the session's 'mediaTypes' to add support for a media type.");
+      await expect(loading).rejects.toThrow("no media type parses its 'Content-Type', which is 'text/plain'. Use 'mediaTypes' to add support for a media type.");
       await expect(loading).rejects.toMatchObject({ cause: { code: "ERR_UNSUPPORTED_MEDIA_TYPE" }, url: "https://a.test/text" });
       await expect(getDocument(session, "https://a.test/none")).rejects.toThrow("which is missing");
       await expect(getDocument(new Hyperjump(), "README.md")).rejects.toThrow("'README.md' can't be used, because no media type has its extension");
