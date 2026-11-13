@@ -223,7 +223,10 @@ const retrieve = async (session, url, initiator, priority) => {
       throw codedError(`'${relativeFileUrl(responseUrl.href)}' can't be used, because ${reason}. Use the session's 'mediaTypes' to add support for a media type.`, { code: "ERR_UNSUPPORTED_MEDIA_TYPE" }, responseUrl.href);
     }
 
-    const document = await mediaType.parse(withUrl(response, responseUrl.href), session);
+    // A response whose URL is the document's already is given as it is. A
+    // layer can have given it one that can't be defined again.
+    const parsed = response.url === responseUrl.href ? response : withUrl(response, responseUrl.href);
+    const document = await mediaType.parse(parsed, session);
     /** @type Entry */
     const entry = { document, mediaType, record: responseMeta(response).record, embedded: embeddedIn(document) };
     for (const [embeddedUrl, embeddedDocument] of entry.embedded) {

@@ -125,6 +125,18 @@ describe("documents", () => {
       expect(trace.tree().map(({ record, depth }) => `${depth} ${new URL(record.url).pathname}`)).to.eql(["0 /a", "1 /description"]);
     });
 
+    test("a response a layer gave a URL that can't be defined again is parsed", async () => {
+      const session = new Hyperjump({
+        stack: fetcher((request) => {
+          const response = new Response(`1`, { headers: json });
+          Object.defineProperty(response, "url", { value: request.url });
+          return response;
+        }),
+        allowRetrieval: ["https://a.test/"]
+      });
+      expect((await getDocument(session, "https://a.test/a")).url).to.equal("https://a.test/a");
+    });
+
     test("a relative URL is resolved against the session's context URL", async () => {
       const session = new Hyperjump();
       const document = await getDocument(session, "package.json");
