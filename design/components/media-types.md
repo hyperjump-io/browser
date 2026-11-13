@@ -27,10 +27,17 @@ fragments identify. JSON and JRef are built in.
   first `;`, in lowercase, checked against RFC 9110's `token "/" token`. A
   parameter can't change which plugin parses a response, so parameters
   aren't parsed.
-- `parse` takes only a response's `text` and `url`, which is all the JSON
-  and JRef plugins read. A plugin that's read the text already gives them
-  the text as it is, without making a new `Response` and defining its
-  `url`, which its constructor can't set.
+- `parse` gets the response and the session. The response's `url` is the
+  document's, without a fragment, and its `headers` have its
+  `Content-Type`'s parameters, which a media type can give a meaning.
+  - The session is for a media type that needs other documents to parse
+    one, like a document that names what defines it. It gets them with
+    `getDocument(session, url, { initiator: response })`, so a trace shows
+    them under the document, and a document from the web can't make its
+    plugin read a file (see [`file:` from `file:`](file-references.md)).
+  - The JSON and JRef plugins take only a response's `text` and `url`
+    (`ParseSource`), which is all they read. A plugin that's read the text
+    already gives them the text as it is, without making a new `Response`.
 - The JSON and JRef plugins only make a document for a parse whose status
   is `success`. Anything else rejects with a `SyntaxError` whose message
   says the first error and where it is. Its `cause` is the error, which is
@@ -50,6 +57,14 @@ fragments identify. JSON and JRef are built in.
 
 Rejected:
 
+- `parse` without the session, with what else a document needs worked out
+  from the document `getDocument` returns. It moves the session to
+  whatever wraps `getDocument`, which then keeps its own documents next to
+  the session's, and the response's headers have to be carried on the
+  document to get there.
+- Plugins made for each session, which close over it. A session is made
+  from the configuration that has the plugins, so the session would be
+  given to them after it's made.
 - Classes, like `new JsonMediaTypePlugin({ quality })`. A plugin holds no
   state, so a class would only hold its options.
 - Factory functions, like `jsonMediaType({ quality })`. The only option is
@@ -65,3 +80,10 @@ Rejected:
 - A `VFileMessage` for a document with a syntax error. It would be a
   dependency for a class, and its `source`, `ruleId`, and `place` are what
   the cause already has.
+
+## Known limitations
+
+- A plugin that gets the document it's parsing, like one that defines
+  itself, waits for itself. The plugin has to see that it's the same URL.
+- What a plugin gets has the priority it asks for, not the priority of the
+  document it's parsing.

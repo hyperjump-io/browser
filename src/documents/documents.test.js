@@ -19,7 +19,7 @@ import { Trace } from "../trace.js";
 
 /**
  * @import { HyperjumpConfig } from "../hyperjump.d.ts"
- * @import { Json } from "../json/jsonast.d.ts"
+ * @import { Json, JsonNode } from "../json/jsonast.d.ts"
  * @import { DocumentNode, MediaTypePlugin } from "../media-types/media-types.d.ts"
  */
 
@@ -101,6 +101,28 @@ describe("documents", () => {
       expect(jsonValue(await get(session, "https://a.test/real"))).to.equal("the real one");
       expect(await getDocument(session, "https://a.test/claims")).to.equal(claims);
       expect(requests.map((request) => new URL(request.url).pathname)).to.eql(["/claims", "/real"]);
+    });
+
+    test("a plugin gets the response's headers, and the session to get what the document needs", async () => {
+      /** @type MediaTypePlugin */
+      const described = {
+        mediaType: "application/x-described",
+        extensions: [],
+        parse: async (response, session) => {
+          const describedBy = /describedby="([^"]*)"/.exec(response.headers.get("content-type") ?? "")?.[1] ?? "";
+          const description = await getDocument(session, new URL(describedBy, response.url), { initiator: response });
+          return { type: "described-document", children: [fromJref(await response.text(), response.url).node, ...description.children], url: response.url };
+        }
+      };
+      const { session } = site({
+        "/a": [`1`, { "content-type": `application/x-described; describedby="/description"` }],
+        "/description": [`"a number"`, json]
+      }, { mediaTypes: [...defaultMediaTypes, described] });
+      const trace = new Trace(session);
+      const document = await getDocument(session, "https://a.test/a#ignored");
+      expect(document.url).to.equal("https://a.test/a");
+      expect(document.children.map((node) => jsonValue(/** @type JsonNode */ (node)))).to.eql([1, "a number"]);
+      expect(trace.tree().map(({ record, depth }) => `${depth} ${new URL(record.url).pathname}`)).to.eql(["0 /a", "1 /description"]);
     });
 
     test("a relative URL is resolved against the session's context URL", async () => {

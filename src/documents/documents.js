@@ -3,7 +3,7 @@ import { codedError } from "../json/coded-error.js";
 import { jsonPointerGet } from "../json/jsonast-util.js";
 import { acceptHeader, defaultMediaTypes, mediaTypeForContentType, mediaTypeForExtension } from "../media-types/media-types.js";
 import { PriorityGroup, PrioritySignal } from "../priority.js";
-import { responseMeta } from "../response-meta.js";
+import { responseMeta, withUrl } from "../response-meta.js";
 
 /**
  * @import * as API from "./documents.d.ts"
@@ -223,7 +223,7 @@ const retrieve = async (session, url, initiator, priority) => {
       throw codedError(`'${relativeFileUrl(responseUrl.href)}' can't be used, because ${reason}. Use the session's 'mediaTypes' to add support for a media type.`, { code: "ERR_UNSUPPORTED_MEDIA_TYPE" }, responseUrl.href);
     }
 
-    const document = await mediaType.parse({ text: () => response.text(), url: responseUrl.href });
+    const document = await mediaType.parse(withUrl(response, responseUrl.href), session);
     /** @type Entry */
     const entry = { document, mediaType, record: responseMeta(response).record, embedded: embeddedIn(document) };
     for (const [embeddedUrl, embeddedDocument] of entry.embedded) {

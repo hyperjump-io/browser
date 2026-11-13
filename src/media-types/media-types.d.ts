@@ -1,3 +1,5 @@
+import type { DocumentSession } from "../documents/documents.d.ts";
+
 /** A parsed document. `T` is the type of its nodes. */
 export type DocumentNode<T = unknown> = {
   type: string;
@@ -18,8 +20,9 @@ export type DocumentNode<T = unknown> = {
 };
 
 /**
- * What a media type plugin parses: a response's text and its URL, without a
- * fragment. A `Response` is one, and so is text that's been read already.
+ * What the JSON and JRef plugins parse: a response's text and its URL,
+ * without a fragment. A `Response` is one, and so is text that's been read
+ * already, which is how a plugin that's read a response gives it to them.
  */
 export type ParseSource = Pick<Response, "text" | "url">;
 
@@ -50,12 +53,20 @@ export type MediaTypePlugin<T extends DocumentNode = DocumentNode> = {
   quality?: number;
 
   /**
-   * Parse a response into a document.
+   * Parse a response into a document. The response's `url` is the
+   * document's, without a fragment, and its `headers` have what its
+   * `Content-Type` says, like a parameter.
+   *
+   * A media type that needs other documents to parse one, like one that
+   * names what defines it, gets them with the session, as
+   * `getDocument(session, url, { initiator: response })`, so they're
+   * requests the document caused. Getting the document that's being parsed
+   * waits for itself.
    *
    * @throws If the response can't be a document, like one with a syntax
    * error.
    */
-  parse(response: ParseSource): Promise<T>;
+  parse(response: Response, session: DocumentSession): Promise<T>;
 
   /**
    * The JSON Pointer to the node a fragment identifies. The fragment is

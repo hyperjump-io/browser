@@ -1,5 +1,5 @@
 import type { JrefDocumentNode } from "../jref/jref-ast.d.ts";
-import type { MediaTypePlugin } from "./media-types.d.ts";
+import type { MediaTypePlugin, ParseSource } from "./media-types.d.ts";
 
 /**
  * Documents are only made for valid JRef, so their status is always
@@ -15,4 +15,4 @@ export type JrefMediaTypeDocument = JrefDocumentNode<"success">;
  * with a reference that isn't a URL. Its `cause` is the first error, with
  * the `code` `ERR_SYNTAX`, and its `url` is the document's.
  */
-export const jrefMediaType: Readonly<MediaTypePlugin<JrefMediaTypeDocument>> & Required<Pick<MediaTypePlugin<JrefMediaTypeDocument>, "fragmentPointer">>;
+export const jrefMediaType: Readonly<Omit<MediaTypePlugin<JrefMediaTypeDocument>, "parse"> & { parse(response: ParseSource): Promise<JrefMediaTypeDocument> }> & Required<Pick<MediaTypePlugin<JrefMediaTypeDocument>, "fragmentPointer">>;

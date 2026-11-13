@@ -1,5 +1,5 @@
 import type { JsonDocumentNode } from "../json/jsonast.d.ts";
-import type { MediaTypePlugin } from "./media-types.d.ts";
+import type { MediaTypePlugin, ParseSource } from "./media-types.d.ts";
 
 /**
  * Documents are only made for valid JSON, so their status is always
@@ -15,4 +15,4 @@ export type JsonMediaTypeDocument = JsonDocumentNode<"success">;
  * `cause` is the first `JsonSyntaxError`, with the `code` `ERR_SYNTAX`, and
  * its `url` is the document's.
  */
-export const jsonMediaType: Readonly<MediaTypePlugin<JsonMediaTypeDocument>>;
+export const jsonMediaType: Readonly<Omit<MediaTypePlugin<JsonMediaTypeDocument>, "parse"> & { parse(response: ParseSource): Promise<JsonMediaTypeDocument> }>;
