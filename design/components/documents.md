@@ -14,6 +14,27 @@ what makes this a hypermedia browser, and the stack is how they retrieve.
   what isn't its own. `documents.d.ts` adds `mediaTypes` to the
   `HyperjumpConfig` interface, so it's checked where a session is created
   without the session's declaration knowing documents.
+- What `get` and `getDocument` return is typed by the session's media
+  types: a document any of its plugins makes (`SessionDocument`), and a
+  node of one (`SessionNode`). A reference can lead to a document in any of
+  them, so it's the union, and the caller tells them apart by `type`.
+  - The session's type has its configuration's (`Hyperjump<C>`), which is
+    where the plugins' types are read from. `defaultMediaTypes` is typed
+    as the two plugins it is, so a list made from it keeps them.
+  - It's read from the type of the session's configuration. With
+    `mediaTypes`, it's what those plugins make. Without them, like a
+    session created without a configuration, it's what the defaults make.
+    With `mediaTypes` that might not be there, like a session that's only
+    known as a `Hyperjump` or a configuration that's only known as a
+    `HyperjumpConfig`, it's both, so nothing is assumed.
+  - The constructor is declared apart from the session's type
+    (`HyperjumpConstructor`), so `new Hyperjump()` is a session without a
+    configuration and `Hyperjump` is any session. As a class, both would
+    have one default, and either a session created without media types
+    wouldn't be known to have the defaults or any session would be taken
+    to.
+  - A plugin that doesn't say what its documents are (`MediaTypePlugin`
+    without a type argument) makes them `unknown`, and so the session's.
 - A session keeps each document it retrieves, in its state, by the
   document's URL without a fragment. The cache holds promises, so a
   document that's asked for again while it's being fetched or parsed is
@@ -119,10 +140,14 @@ Rejected:
   document code.
 - A retrieval class that `Hyperjump` extends with `get` and `getDocument`.
   It's a second class for what two functions do.
-- A `Hyperjump` that's generic over its configuration, so document code's
-  keys are allowed in it. TypeScript infers the configuration's type from
-  an object literal only when it shares a property with the session's, so
-  `new Hyperjump({ mediaTypes })` was an error.
+- A `Hyperjump` whose configuration type is whatever it's given, so
+  document code's keys are allowed in it without being declared.
+  TypeScript infers the configuration's type from an object literal only
+  when it shares a property with the session's, so
+  `new Hyperjump({ mediaTypes })` was an error. `mediaTypes` is declared on
+  `HyperjumpConfig`, which the configuration's type extends.
+- `get` typed as returning a JRef node, whatever the session's media types
+  are. It's only so for a session with the defaults.
 - A map from every node to its document, filled when a document is
   parsed. It's a walk of every tree for what one pointer lookup finds.
 - The document as an option of `get`, like the v2 prototype's

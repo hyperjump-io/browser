@@ -22,6 +22,7 @@
   "files": [
     "src/",
     "!**/*.test.js",
+    "!**/*.test-d.ts",
     "!src/test-helpers/",
     "!src/json/jsonast-util-tests/"
   ],

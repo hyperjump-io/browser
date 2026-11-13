@@ -55,8 +55,13 @@ export const jrefValue = (/** @type FollowedNode */ node) => {
  * be. `get` follows a reference to another reference too, and finds the
  * document the reference is in from the node.
  *
- * @type (session: DocumentSession, node: JrefNode) => Promise<FollowedNode>
+ * The functions take the type of the node they're given, which can be any
+ * tree's, so here a node is only what a reference needs. What comes back is
+ * a node of that tree, which the functions' types say.
+ *
+ * @type (session: DocumentSession, node: unknown) => Promise<any>
  */
-const follow = async (session, node) => node.type === "reference"
-  ? get(session, node.href, { referencedFrom: node })
-  : node;
+const follow = async (session, node) => {
+  const reference = /** @type JrefNode */ (node);
+  return reference.type === "reference" ? get(session, reference.href, { referencedFrom: reference }) : node;
+};

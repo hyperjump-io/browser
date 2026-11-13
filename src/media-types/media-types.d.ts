@@ -1,4 +1,6 @@
 import type { DocumentSession } from "../documents/documents.d.ts";
+import type { jrefMediaType } from "./jref-media-type.d.ts";
+import type { jsonMediaType } from "./json-media-type.d.ts";
 
 /** A parsed document. `T` is the type of its nodes. */
 export type DocumentNode<T = unknown> = {
@@ -75,8 +77,12 @@ export type MediaTypePlugin<T extends DocumentNode = DocumentNode> = {
   fragmentPointer?(document: T, fragment: string): string;
 };
 
-/** The media types parsed by default: JRef, then JSON */
-export const defaultMediaTypes: readonly MediaTypePlugin[];
+/**
+ * The media types parsed by default: JRef, then JSON. It's typed as the two
+ * plugins it is, so a list made from it, like
+ * `[...defaultMediaTypes, plugin]`, says what its documents are.
+ */
+export const defaultMediaTypes: readonly [typeof jrefMediaType, typeof jsonMediaType];
 
 /**
  * The `Accept` header for a list of plugins: each media type with its

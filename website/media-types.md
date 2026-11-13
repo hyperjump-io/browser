@@ -9,14 +9,15 @@ import {
   defaultMediaTypes,
   fromJs,
   type DocumentNode,
+  type JsonNode,
   type MediaTypePlugin
 } from "@hyperjump/browser";
 import { parse } from "yaml";
 
-const yamlMediaType: MediaTypePlugin = {
+const yamlMediaType: MediaTypePlugin<DocumentNode<JsonNode>> = {
   mediaType: "application/yaml",
   extensions: [".yaml", ".yml"],
-  parse: async (response): Promise<DocumentNode> => {
+  parse: async (response) => {
     const value = parse(await response.text());
     return {
       type: "yaml-document",
@@ -33,6 +34,13 @@ const session = new Hyperjump({
 
 `mediaTypes` is the whole list, so include `defaultMediaTypes` to keep JRef and
 JSON.
+
+The plugin's type says what its documents' nodes are, which here is
+`JsonNode`. A reference can lead to a document in any of a session's media
+types, so `get` and the `jref` functions return a node of any of them. With
+this session, that's a JRef node or a JSON node. If a plugin's type is only
+`MediaTypePlugin`, TypeScript doesn't know what the session's nodes are, and
+they're `unknown`.
 
 ## A plugin
 

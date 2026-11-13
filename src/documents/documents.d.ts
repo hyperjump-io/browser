@@ -1,7 +1,9 @@
 import type { FetchRecord } from "../fetch-record.d.ts";
 import type { Hyperjump } from "../hyperjump.d.ts";
 import type { JrefNode } from "../jref/jref-ast.d.ts";
-import type { DocumentNode, MediaTypePlugin } from "../media-types/media-types.d.ts";
+import type { JrefMediaTypeDocument } from "../media-types/jref-media-type.d.ts";
+import type { JsonMediaTypeDocument } from "../media-types/json-media-type.d.ts";
+import type { MediaTypePlugin } from "../media-types/media-types.d.ts";
 import type { Priority, PrioritySignal } from "../priority.d.ts";
 
 // What a session's configuration has for documents. The session doesn't
@@ -20,6 +22,37 @@ declare module "../hyperjump.d.ts" {
 
 /** What `get` and `getDocument` need of a session. A `Hyperjump` is one. */
 export type DocumentSession = Pick<Hyperjump, "fetch" | "state" | "contextUrl" | "config">;
+
+/** The documents the default media types make */
+type DefaultDocument = JrefMediaTypeDocument | JsonMediaTypeDocument;
+
+/** The documents the plugins in a list make */
+type PluginDocument<M> = M extends readonly (infer P)[]
+  ? P extends { parse(...args: any[]): Promise<infer D> } ? D : never
+  : never;
+
+/**
+ * A document of a session: one that a plugin in its `mediaTypes` makes. A
+ * reference can lead to a document in any of them, so it's all of them.
+ * It's read from the type of the session's configuration:
+ *
+ * - With `mediaTypes`, it's what those plugins make.
+ * - Without `mediaTypes`, like a session created without a configuration,
+ *   it's what the defaults make, JRef and JSON.
+ * - With `mediaTypes` that might not be there, like a session that's only
+ *   known as a `Hyperjump`, it's both, since either could be so.
+ *
+ * If a plugin doesn't say what its documents are, like one that's only
+ * known as a `MediaTypePlugin`, nothing is known about the session's.
+ */
+export type SessionDocument<S> = S extends { config: infer C }
+  ? "mediaTypes" extends keyof C
+    ? PluginDocument<C[keyof C & "mediaTypes"]> | (undefined extends C[keyof C & "mediaTypes"] ? DefaultDocument : never)
+    : DefaultDocument
+  : never;
+
+/** A node of a session's documents (see {@link SessionDocument}) */
+export type SessionNode<S> = SessionDocument<S> extends infer D ? D extends { children: readonly (infer N)[] } ? N : never : never;
 
 export type GetOptions = {
   /**
@@ -76,7 +109,7 @@ export type FollowedNode<T = JrefNode> = Exclude<T, { type: "reference" }>;
  * @throws What the plugin's `parse` rejects with, like a `SyntaxError`
  * whose `cause.code` is `ERR_SYNTAX`.
  */
-export const getDocument: (session: DocumentSession, url: string | URL, options?: GetOptions) => Promise<DocumentNode>;
+export const getDocument: <S extends DocumentSession>(session: S, url: string | URL, options?: GetOptions) => Promise<SessionDocument<S>>;
 
 /**
  * Retrieve a document like {@link getDocument} and return the node its URL's
@@ -92,4 +125,4 @@ export const getDocument: (session: DocumentSession, url: string | URL, options?
  * `chain` of URLs, if following references leads back to one that was
  * already followed.
  */
-export const get: (session: DocumentSession, url: string | URL, options?: GetOptions) => Promise<FollowedNode>;
+export const get: <S extends DocumentSession>(session: S, url: string | URL, options?: GetOptions) => Promise<FollowedNode<SessionNode<S>>>;

@@ -89,19 +89,13 @@ export type HyperjumpFetchInit = Omit<RequestInit, "cache" | "priority"> & {
  * `url`, `redirected`, and the URLs it went through as
  * `responseMeta(response).redirects`.
  */
-export class Hyperjump {
-  /**
-   * The configuration is a plain value, so another session with the same one
-   * is `new Hyperjump(config)`
-   */
-  constructor(config?: HyperjumpConfig);
-
+export interface Hyperjump<C extends HyperjumpConfig = HyperjumpConfig> {
   /**
    * The configuration it was created with. It can have more than the session
    * reads, for what's built on a session, like the `mediaTypes` that `get`
    * parses documents with.
    */
-  readonly config: Readonly<HyperjumpConfig>;
+  readonly config: Readonly<C>;
 
   readonly stack: Fetcher;
 
@@ -113,9 +107,9 @@ export class Hyperjump {
   readonly contextUrl: string | undefined;
 
   /** Aborts when the session is closed */
-  get signal(): AbortSignal;
+  readonly signal: AbortSignal;
 
-  get closed(): boolean;
+  readonly closed: boolean;
 
   /**
    * State for a layer, or anything else, that lives as long as the session.
@@ -146,3 +140,22 @@ export class Hyperjump {
   /** Abort everything the session started, and refuse new requests */
   close(reason?: unknown): void;
 }
+
+/**
+ * Creates a session. The constructor is declared apart from the session's
+ * type so the two can say different things about a configuration that isn't
+ * given: a session created without one has none, and a session that's only
+ * known as a `Hyperjump` could have any.
+ */
+export type HyperjumpConstructor = {
+  /**
+   * The configuration is a plain value, so another session with the same one
+   * is `new Hyperjump(config)`. The session has the type of the
+   * configuration it's given, so what's built on a session can tell what it
+   * was configured with, like the media types its documents are in.
+   */
+  new<C extends HyperjumpConfig = {}>(config?: C): Hyperjump<C>;
+  readonly prototype: Hyperjump;
+};
+
+export const Hyperjump: HyperjumpConstructor;

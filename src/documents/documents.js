@@ -59,7 +59,8 @@ const documentsKey = {};
 export const getDocument = async (session, url, options = {}) => {
   const { documentUrl } = parseUrl(session, url);
   const { document } = await load(session, documentUrl, options.initiator, prioritySignal(options.priority));
-  return document;
+  // The session's type says what its documents are
+  return /** @type never */ (document);
 };
 
 /** @type typeof API.get */
@@ -81,7 +82,8 @@ export const get = async (session, url, options = {}) => {
     const pointer = entry.mediaType.fragmentPointer?.(entry.document, fragment) ?? "";
     const node = jsonPointerGet(pointer, /** @type JrefNode */ (entry.document.children[0]));
     if (node.type !== "reference") {
-      return node;
+      // The session's type says what its nodes are
+      return /** @type never */ (node);
     }
 
     ({ documentUrl, fragment } = parseUrl(session, node.href));

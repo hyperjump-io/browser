@@ -13,6 +13,7 @@ import { Trace } from "../trace.js";
  * @import { FollowedNode } from "./documents.d.ts"
  * @import { HyperjumpConfig } from "../hyperjump.d.ts"
  * @import { Json } from "../json/jsonast.d.ts"
+ * @import { JrefNode } from "../jref/jref-ast.d.ts"
  * @import { DocumentNode, MediaTypePlugin } from "../media-types/media-types.d.ts"
  */
 
@@ -150,19 +151,22 @@ describe("browsing", () => {
   });
 });
 
+/** @type (value: Json, url: string) => JrefNode */
+const jrefNode = (value, url) => /** @type JrefNode */ (fromJref(JSON.stringify(value), url).node);
+
 /**
  * A made-up format with embedded documents: JSON with a `main` JRef value
  * and the JRef values it contains by URL
  *
- * @type MediaTypePlugin
+ * @type MediaTypePlugin<DocumentNode<JrefNode>>
  */
 const bundleMediaType = {
   mediaType: "application/x-bundle",
   extensions: [],
   parse: async (response) => {
     const { main, embedded } = /** @type {{ main: Json, embedded: Record<string, Json> }} */ (JSON.parse(await response.text()));
-    /** @type (value: Json, url: string) => DocumentNode */
-    const document = (value, url) => ({ type: "bundle-document", children: [fromJref(JSON.stringify(value), url).node], url });
+    /** @type (value: Json, url: string) => DocumentNode<JrefNode> */
+    const document = (value, url) => ({ type: "bundle-document", children: [jrefNode(value, url)], url });
     return {
       ...document(main, response.url),
       embedded: Object.fromEntries(Object.entries(embedded).map(([url, value]) => [url, document(value, url)]))
@@ -176,7 +180,7 @@ const bundleMediaType = {
  * with a JRef document, or a bundle for a path that has "bundle", "one", or
  * "two" in it, and keeps the paths that were requested
  *
- * @type (pages: Record<string, Json>, config?: HyperjumpConfig) => { session: Hyperjump, requests: string[] }
+ * @type (pages: Record<string, Json>, config?: Omit<HyperjumpConfig, "mediaTypes">) => { session: Hyperjump<{ mediaTypes: (typeof defaultMediaTypes[number] | typeof bundleMediaType)[] }>, requests: string[] }
  */
 const site = (pages, config = {}) => {
   /** @type string[] */
@@ -191,7 +195,7 @@ const site = (pages, config = {}) => {
     return new Response(JSON.stringify(pages[path]), { headers: { "content-type": isBundle ? "application/x-bundle" : "application/reference+json" } });
   });
   return {
-    session: new Hyperjump({ stack, allowRetrieval: ["https://a.test/"], mediaTypes: [...defaultMediaTypes, bundleMediaType], ...config }),
+    session: new Hyperjump({ stack, allowRetrieval: ["https://a.test/"], ...config, mediaTypes: [...defaultMediaTypes, bundleMediaType] }),
     requests
   };
 };

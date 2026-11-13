@@ -16,7 +16,10 @@ import { defaultStack } from "#default-stack";
  * @import { UrlEntries } from "./url-entries.js"
  */
 
-/** @implements API.Hyperjump */
+/**
+ * @template {API.HyperjumpConfig} [C=API.HyperjumpConfig]
+ * @implements {API.Hyperjump<C>}
+ */
 export class Hyperjump {
   /** @type AbortController */
   #controller = new AbortController();
@@ -62,8 +65,8 @@ export class Hyperjump {
    */
   #observers = new Map();
 
-  /** @param {API.HyperjumpConfig} [config] */
-  constructor(config = {}) {
+  /** @param {C} [config] */
+  constructor(config = /** @type C */ ({})) {
     this.config = config;
     /** @type Fetcher */
     this.stack = config.stack ?? defaultStack();

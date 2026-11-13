@@ -83,6 +83,12 @@ reference that it didn't follow, so TypeScript doesn't let you pass it to a
 `jref` function until you check that its `type` isn't `"reference"`. A node from
 `get` or a `jref` function is never a reference, so it works with both.
 
+A reference can lead to a document in any of the session's media types. So in
+TypeScript, a node from `get` or a `jref` function is a node of any of them. A
+session with the default media types gives JRef and JSON nodes. If you add a
+media type with nodes of its own, check a node's `type` to tell which it is.
+For more information, see [Media types](media-types.md).
+
 ## Fragments
 
 The fragment of the URL you give `get` identifies a value within the document.

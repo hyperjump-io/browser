@@ -58,3 +58,18 @@ follow references with.
   - Following a reference a `jref*` function is given, instead of refusing
     it, was rejected. The synchronous functions can't, so the family would
     behave two ways.
+- They take a node of any tree, like the `json*` functions do, and not
+  only a JRef one. All they need of a node is what a reference is: a
+  `reference` node with an `href`. So what's built on browser browses its
+  own trees with them, like a tree with more kinds of node.
+- What they return is typed by where a node can come from. A value or an
+  item that isn't a reference is a node of the tree it's in. A reference
+  can lead to a document in any of the session's media types, so it's a
+  node of any of those (`SessionNode`, see [Documents](documents.md)). The
+  caller tells them apart by `type`.
+  - The type of the node that was given, for what's returned, was
+    rejected. It says a reference leads to a document like the one it's
+    in, which isn't so: a document can refer to one in another media type.
+  - A node with only `type: string`, which is all that's certain without
+    the session, was rejected. It can't be narrowed to a kind of node, so
+    every caller would cast.

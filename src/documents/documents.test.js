@@ -20,6 +20,7 @@ import { Trace } from "../trace.js";
 /**
  * @import { HyperjumpConfig } from "../hyperjump.d.ts"
  * @import { Json, JsonNode } from "../json/jsonast.d.ts"
+ * @import { JrefNode } from "../jref/jref-ast.d.ts"
  * @import { DocumentNode, MediaTypePlugin } from "../media-types/media-types.d.ts"
  */
 
@@ -82,14 +83,15 @@ describe("documents", () => {
     });
 
     test("a document is kept under its response's URL, not the URL it says it has", async () => {
-      /** @type MediaTypePlugin */
+      /** @type MediaTypePlugin<DocumentNode<JrefNode>> */
       const selfIdentified = {
         mediaType: "application/x-self-identified",
         extensions: [],
         parse: async (response) => {
           const text = await response.text();
           const url = /** @type {{ id: string }} */ (JSON.parse(text)).id;
-          return { type: "self-identified-document", children: [fromJref(text, url).node], url };
+          const node = /** @type JrefNode */ (fromJref(text, url).node);
+          return { type: "self-identified-document", children: [node], url };
         }
       };
       const { session, requests } = site({
@@ -442,14 +444,17 @@ describe("documents", () => {
  */
 const bundle = (main, embedded) => JSON.stringify({ main, embedded });
 
-/** @type MediaTypePlugin */
+/** @type (value: Json, url: string) => JrefNode */
+const jrefNode = (value, url) => /** @type JrefNode */ (fromJref(JSON.stringify(value), url).node);
+
+/** @type MediaTypePlugin<DocumentNode<JrefNode>> */
 const bundleMediaType = {
   mediaType: "application/x-bundle",
   extensions: [],
   parse: async (response) => {
     const { main, embedded } = /** @type {{ main: Json, embedded: Record<string, Json> }} */ (JSON.parse(await response.text()));
-    /** @type (value: Json, url: string) => DocumentNode */
-    const document = (value, url) => ({ type: "bundle-document", children: [fromJref(JSON.stringify(value), url).node], url });
+    /** @type (value: Json, url: string) => DocumentNode<JrefNode> */
+    const document = (value, url) => ({ type: "bundle-document", children: [jrefNode(value, url)], url });
     return {
       ...document(main, response.url),
       embedded: Object.fromEntries(Object.entries(embedded).map(([url, value]) => [url, document(value, URL.parse(url)?.href.split("#")[0] ?? "https://invalid.test/")]))
@@ -462,12 +467,15 @@ const bundleMediaType = {
  * A session on a pretend site at `https://a.test`, which answers each path
  * with a body, headers, and a status, and keeps the requests it got
  *
- * @type (
- *   pages: Record<string, [string | null, Record<string, string>, number?]>,
- *   config?: HyperjumpConfig
- * ) => { session: Hyperjump, config: HyperjumpConfig, requests: Request[] }
+ * The session has the type of the configuration it's given, so the tests'
+ * documents are what its media types make.
+ *
+ * @template {HyperjumpConfig} [C={}]
+ * @param {Record<string, [string | null, Record<string, string>, number?]>} pages
+ * @param {C} [extra]
+ * @returns {{ session: Hyperjump<C>, config: C, requests: Request[] }}
  */
-const site = (pages, extra = {}) => {
+const site = (pages, extra) => {
   /** @type Request[] */
   const requests = [];
   const stack = fetcher((request) => {
@@ -479,6 +487,6 @@ const site = (pages, extra = {}) => {
     const [body, headers, status = 200] = page;
     return new Response(body, { status, headers });
   });
-  const config = { stack, allowRetrieval: ["https://a.test/"], ...extra };
+  const config = /** @type C */ ({ stack, allowRetrieval: ["https://a.test/"], ...extra });
   return { session: new Hyperjump(config), config, requests };
 };
