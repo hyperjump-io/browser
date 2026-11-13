@@ -66,7 +66,7 @@ priority.set("high");
 
 A request that already started keeps its priority.
 
-`get` takes a `priority` too. For more information, see
+`get` and `getDocument` take a `priority` too. For more information, see
 [Get documents](documents.md#priority).
 
 ## Hold back low-priority requests

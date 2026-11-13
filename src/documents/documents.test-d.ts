@@ -1,5 +1,5 @@
 // What a session's type says about its documents. It's only type-checked.
-import { defaultMediaTypes, documentOf, get, Hyperjump, jrefMediaType, jrefObjectEntries, jrefObjectHas, jrefStep, jrefValue } from "../index.js";
+import { defaultMediaTypes, get, getDocument, Hyperjump, jrefMediaType, jrefObjectEntries, jrefObjectHas, jrefStep, jrefValue } from "../index.js";
 import type { DocumentNode, FollowedNode, HyperjumpConfig, JrefMediaTypeDocument, JrefNode, JsonMediaTypeDocument, JsonNode, MediaTypePlugin } from "../index.js";
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
@@ -9,8 +9,8 @@ const yes = <T extends true>(_is?: T) => {};
 const defaults = new Hyperjump({ allowRetrieval: [] });
 const node = await get(defaults, "https://example.com/");
 yes<Equal<typeof node, FollowedNode<JrefNode | JsonNode>>>();
-const fromNone = await documentOf(new Hyperjump(), await get(new Hyperjump(), "https://example.com/", { follow: false }));
-yes<Equal<typeof fromNone, JrefMediaTypeDocument | JsonMediaTypeDocument | undefined>>();
+const fromNone = await getDocument(new Hyperjump(), "https://example.com/");
+yes<Equal<typeof fromNone, JrefMediaTypeDocument | JsonMediaTypeDocument>>();
 const fromUndefined = await get(new Hyperjump({ mediaTypes: undefined }), "https://example.com/");
 yes<Equal<typeof fromUndefined, FollowedNode<JrefNode | JsonNode>>>();
 
@@ -25,8 +25,8 @@ yes<Equal<typeof fromConfig, unknown>>();
 
 // Media types that might not be there are theirs or the defaults
 declare const maybe: { mediaTypes?: [typeof jrefMediaType] };
-const fromMaybe = await documentOf(new Hyperjump(maybe), await get(new Hyperjump(maybe), "https://example.com/", { follow: false }));
-yes<Equal<typeof fromMaybe, JrefMediaTypeDocument | JsonMediaTypeDocument | undefined>>();
+const fromMaybe = await getDocument(new Hyperjump(maybe), "https://example.com/");
+yes<Equal<typeof fromMaybe, JrefMediaTypeDocument | JsonMediaTypeDocument>>();
 
 // A reference can lead to a document in any of a session's media types
 type OtherNode = JsonNode<{ type: "other" } | { type: "reference"; href: string }>;
@@ -34,12 +34,8 @@ declare const otherMediaType: MediaTypePlugin<DocumentNode<OtherNode>>;
 const both = new Hyperjump({ mediaTypes: [...defaultMediaTypes, otherMediaType] });
 const either = await get(both, "https://example.com/");
 yes<Equal<typeof either, FollowedNode<JrefNode | JsonNode | OtherNode>>>();
-const document = await documentOf(both, await get(both, "https://example.com/", { follow: false }));
-yes<Equal<typeof document, JrefMediaTypeDocument | JsonMediaTypeDocument | DocumentNode<OtherNode> | undefined>>();
-
-// A node that isn't followed can be a reference
-const asWritten = await get(both, "https://example.com/", { follow: false });
-yes<Equal<typeof asWritten, JrefNode | JsonNode | OtherNode>>();
+const document = await getDocument(both, "https://example.com/");
+yes<Equal<typeof document, JrefMediaTypeDocument | JsonMediaTypeDocument | DocumentNode<OtherNode>>>();
 
 // A plugin that doesn't say what its documents are
 declare const loose: MediaTypePlugin;

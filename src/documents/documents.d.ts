@@ -20,7 +20,7 @@ declare module "../hyperjump.d.ts" {
   }
 }
 
-/** What `get` and `documentOf` need of a session. A `Hyperjump` is one. */
+/** What `get` and `getDocument` need of a session. A `Hyperjump` is one. */
 export type DocumentSession = Pick<Hyperjump, "fetch" | "state" | "contextUrl" | "config">;
 
 /** The documents the default media types make */
@@ -78,30 +78,18 @@ export type GetOptions = {
    * instead of `initiator`. A node the session doesn't have is ignored.
    */
   referencedFrom?: { location: string };
-
-  /**
-   * Whether a reference is followed. It's `true` by default. With `false`,
-   * the node the URL identifies is returned even if it's a reference, so
-   * it's a node of the document at the URL.
-   */
-  follow?: boolean;
 };
 
 /**
  * A node that isn't a reference. `get` follows every reference it reaches,
- * unless it's told not to, so the node it returns is one.
+ * so the node it returns is one.
  */
 export type FollowedNode<T = JrefNode> = Exclude<T, { type: "reference" }>;
 
 /**
- * Retrieve the document at a URL, parse it with the media type plugin for
- * its response, and return the node the URL's fragment identifies, which is
- * the document's root without one. What a fragment identifies is its media
- * type's. A relative URL is resolved against the session's context URL.
- *
- * If the node is a reference, it's followed, and so is any reference that
- * leads to, until there's a value. With `follow: false`, the node is
- * returned as it is. {@link documentOf} gives the document a node is in.
+ * Retrieve the document at a URL and parse it with the media type plugin
+ * for its response. A relative URL is resolved against the session's
+ * context URL. The fragment is ignored and references aren't followed.
  *
  * A session keeps each document it retrieves, by its URL, so asking again
  * gives the same document without fetching it, even while it's still being
@@ -120,32 +108,21 @@ export type FollowedNode<T = JrefNode> = Exclude<T, { type: "reference" }>;
  * is the URL that failed.
  * @throws What the plugin's `parse` rejects with, like a `SyntaxError`
  * whose `cause.code` is `ERR_SYNTAX`.
+ */
+export const getDocument: <S extends DocumentSession>(session: S, url: string | URL, options?: GetOptions) => Promise<SessionDocument<S>>;
+
+/**
+ * Retrieve a document like {@link getDocument} and return the node its URL's
+ * fragment identifies, which is the document's root without one. What a
+ * fragment identifies is its media type's. If the node is a reference, it's
+ * followed, and so is any reference that leads to, until there's a value.
+ *
+ * @throws What {@link getDocument} throws, for the document and for each one
+ * a reference leads to.
  * @throws What `jsonPointerGet` throws if a fragment doesn't identify a
  * value, like an `Error` whose `cause.code` is `ERR_POINTER_NOT_FOUND`.
  * @throws An `Error` whose `cause.code` is `ERR_REFERENCE_CYCLE`, with the
  * `chain` of URLs, if following references leads back to one that was
  * already followed.
  */
-export const get: <S extends DocumentSession, O extends GetOptions = GetOptions>(session: S, url: string | URL, options?: O) => Promise<GetNode<S, O>>;
-
-/**
- * What `get` returns: a node that isn't a reference, unless `follow` is, or
- * could be, `false`
- */
-export type GetNode<S, O> = O extends { follow: true } ? FollowedNode<SessionNode<S>>
-  : O extends { follow: boolean } ? SessionNode<S>
-    : FollowedNode<SessionNode<S>>;
-
-/**
- * The document a node is in, which can be one that another document
- * contains. It's found from the node's location, so it's `undefined` for a
- * node that isn't in a document the session has, like one an application
- * parsed itself.
- *
- * The document at a URL is the one its root is in:
- * `documentOf(session, await get(session, url, { follow: false }))`.
- *
- * It takes what `get` returns, which is `unknown` for a session whose
- * plugins don't say what their documents are.
- */
-export const documentOf: <S extends DocumentSession>(session: S, node: SessionNode<S> | { location: string }) => Promise<SessionDocument<S> | undefined>;
+export const get: <S extends DocumentSession>(session: S, url: string | URL, options?: GetOptions) => Promise<FollowedNode<SessionNode<S>>>;

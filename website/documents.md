@@ -44,30 +44,19 @@ A document can refer to anything, so a session only retrieves the URLs its
 `allowRetrieval` allows, and only a file can refer to a file. For more
 information, see [What a session can fetch](allow-retrieval.md).
 
-To get a reference as it's written, pass `follow: false`. Then `get` gives you
-the node the URL identifies, even when it's a reference:
-
-```typescript
-const node = await get(session, url, { follow: false });
-```
-
 ## The whole document
 
-`documentOf` gives you the document a node is in. To get the document at a URL,
-get its root with `follow: false`, so that a root that's a reference doesn't
-lead to another document:
+`getDocument` retrieves a document the same way and gives you the document
+itself. It ignores the fragment and doesn't follow references:
 
 ```typescript
-import { documentOf, get } from "@hyperjump/browser";
+import { getDocument } from "@hyperjump/browser";
 
 const url = "https://swapi.hyperjump.io/api/films/1";
-const root = await get(session, url, { follow: false });
-const document = await documentOf(session, root);
-document?.url; // "https://swapi.hyperjump.io/api/films/1"
+const document = await getDocument(session, url);
+document.url; // "https://swapi.hyperjump.io/api/films/1"
+document.children[0]; // The root node
 ```
-
-`documentOf` gives you `undefined` for a node that isn't from the session, like
-one from a document you parsed yourself.
 
 ## A session keeps its documents
 
@@ -81,7 +70,8 @@ URL that redirects and the URL it redirects to give you the same document.
 
 ## Priority
 
-`get` takes a `priority`, which works like `fetchpriority` in a browser. The references that `get` follows have the same priority:
+`get` and `getDocument` take a `priority`, which works like `fetchpriority` in a
+browser. The references that `get` follows have the same priority:
 
 ```typescript
 await get(session, url, { priority: "low" });
@@ -94,7 +84,8 @@ now. For more information, see [Priorities](priorities.md).
 
 ## Errors
 
-`get` rejects with whatever kept it from giving you a value:
+`get` and `getDocument` reject with whatever kept them from giving you a
+value:
 
 | Error | When |
 | --- | --- |

@@ -42,7 +42,7 @@ for users is in [`website/`](../website/README.md).
 - [Tracing](components/tracing.md): what a session fetched, as a waterfall
 - [HAR export](components/har.md): traces that open in browser devtools
 - [The JSON AST](components/json-ast.md): parsing JSON and JRef to trees with positions, and never failing
-- [Documents](components/documents.md): `get` and `documentOf`, the documents a session keeps, and following references
+- [Documents](components/documents.md): `get` and `getDocument`, the documents a session keeps, and following references
 - [Browsing](components/browsing.md): the `jref*` functions, which read nodes and follow references
 - [Media types](components/media-types.md): plugins that parse a response into a document, and how one is chosen
 - [Local paths in errors](components/file-urls.md): a `file:` URL in a message is relative to the working directory

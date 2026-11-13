@@ -18,7 +18,7 @@ follow references with.
 - The functions that return nodes are async and follow references,
   because following one can retrieve a document. They're for browsing,
   where what's needed next isn't known until a node is read. Code that
-  computes over documents uses `get` and `documentOf` to gather them and
+  computes over documents uses `get` and `getDocument` to gather them and
   the `json*` functions to read them, which are synchronous. Only that
   code knows what it will need, so it can retrieve it all at once.
   - Synchronous browsing functions that return references as they are,

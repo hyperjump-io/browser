@@ -21,7 +21,7 @@ handles every failure the same way.
 | `ERR_INVALID_VALUE` | A value that couldn't be parsed, which JSON can't say | `toJson` |
 | `ERR_STRUCTURED_VALUE` | The value of an object or an array | `jrefValue` ([Browsing](browsing.md)) |
 | `ERR_SYNTAX` | A document with a syntax error. The error is a `SyntaxError`, and the cause is the syntax error, with its `source`, `ruleId`, and `place`. | the JSON and JRef plugins ([Media types](media-types.md)) |
-| `ERR_HTTP_STATUS`, `ERR_UNSUPPORTED_MEDIA_TYPE`, `ERR_ABSOLUTE_FILE_URL`, `ERR_REFERENCE_CYCLE` | A document that can't be used | `get` ([Documents](documents.md)) |
+| `ERR_HTTP_STATUS`, `ERR_UNSUPPORTED_MEDIA_TYPE`, `ERR_ABSOLUTE_FILE_URL`, `ERR_REFERENCE_CYCLE` | A document that can't be used | `get` and `getDocument` ([Documents](documents.md)) |
 
 What isn't a failure to handle doesn't have a code:
 

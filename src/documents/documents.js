@@ -40,10 +40,9 @@ import { responseMeta, withUrl } from "../response-meta.js";
  * one, and what its media types work out to.
  *
  * `contained` is the entries of the documents that documents contain, by
- * the URL each says it has, and of the documents that say they have another
- * URL than the one they're kept under. Nothing is found there by its URL
- * alone, since two documents can say they contain the same one. It's where
- * the document a node is in is looked for.
+ * the URL each says it has. Nothing is found there by its URL alone, since
+ * two documents can say they contain the same one. It's where the document
+ * a node is in is looked for.
  *
  * @typedef {{
  *   mediaTypes: readonly MediaTypePlugin[],
@@ -56,14 +55,20 @@ import { responseMeta, withUrl } from "../response-meta.js";
 /** The key of a session's documents in its state */
 const documentsKey = {};
 
+/** @type typeof API.getDocument */
+export const getDocument = async (session, url, options = {}) => {
+  const { documentUrl } = parseUrl(session, url);
+  const { document } = await load(session, documentUrl, options.initiator, prioritySignal(options.priority));
+  // The session's type says what its documents are
+  return /** @type never */ (document);
+};
+
 /** @type typeof API.get */
-export const get = async (session, url, options) => {
-  /** @type API.GetOptions */
-  const { initiator, referencedFrom, follow = true } = options ?? {};
+export const get = async (session, url, options = {}) => {
   let { documentUrl, fragment } = parseUrl(session, url);
-  const priority = prioritySignal(options?.priority);
-  const from = referencedFrom && await entryOf(session, referencedFrom);
-  let entry = from ? await referenced(session, documentUrl, from, priority) : await load(session, documentUrl, initiator, priority);
+  const priority = prioritySignal(options.priority);
+  const from = options.referencedFrom && await entryOf(session, options.referencedFrom);
+  let entry = from ? await referenced(session, documentUrl, from, priority) : await load(session, documentUrl, options.initiator, priority);
   /** @type string[] */
   const chain = [];
 
@@ -76,7 +81,7 @@ export const get = async (session, url, options) => {
 
     const pointer = entry.mediaType.fragmentPointer?.(entry.document, fragment) ?? "";
     const node = jsonPointerGet(pointer, /** @type JrefNode */ (entry.document.children[0]));
-    if (node.type !== "reference" || !follow) {
+    if (node.type !== "reference") {
       // The session's type says what its nodes are
       return /** @type never */ (node);
     }
@@ -84,13 +89,6 @@ export const get = async (session, url, options) => {
     ({ documentUrl, fragment } = parseUrl(session, node.href));
     entry = await referenced(session, documentUrl, entry, priority);
   }
-};
-
-/** @type typeof API.documentOf */
-export const documentOf = async (session, node) => {
-  const entry = await entryOf(session, /** @type {{ location: string }} */ (node));
-  // The session's type says what its documents are
-  return /** @type never */ (entry?.document);
 };
 
 /**
@@ -235,14 +233,6 @@ const retrieve = async (session, url, initiator, priority) => {
     const entry = { document, mediaType, record: responseMeta(response).record, embedded: embeddedIn(document) };
     for (const [embeddedUrl, embeddedDocument] of entry.embedded) {
       contained.set(embeddedUrl, [...contained.get(embeddedUrl) ?? [], { ...entry, document: embeddedDocument }]);
-    }
-
-    // A document that says it has another URL than its response's isn't
-    // kept under it, so its nodes find it here
-    const ownUrl = new URL(document.url);
-    ownUrl.hash = "";
-    if (ownUrl.href !== responseUrl.href && !entry.embedded.has(ownUrl.href)) {
-      contained.set(ownUrl.href, [...contained.get(ownUrl.href) ?? [], entry]);
     }
     return { entry, responseUrl: responseUrl.href };
   } catch (error) {

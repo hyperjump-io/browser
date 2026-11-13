@@ -3,7 +3,7 @@ import { mkdtemp, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { documentOf, get } from "./documents.js";
+import { get, getDocument } from "./documents.js";
 import { Hyperjump } from "../hyperjump.js";
 import { fetcher } from "../layers.js";
 import { jsonValue } from "../json/jsonast-util.js";
@@ -22,43 +22,42 @@ import { Trace } from "../trace.js";
  * @import { Json, JsonNode } from "../json/jsonast.d.ts"
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
  * @import { DocumentNode, MediaTypePlugin } from "../media-types/media-types.d.ts"
- * @import { DocumentSession, GetOptions, SessionDocument } from "./documents.d.ts"
  */
 
 const jref = { "content-type": "application/reference+json" };
 const json = { "content-type": "application/json" };
 
 describe("documents", () => {
-  describe("the document at a URL", () => {
+  describe("getDocument", () => {
     test("retrieves a document and parses it with the plugin for its Content-Type", async () => {
       const { session } = site({ "/a": [`{ "b": { "$ref": "/b" } }`, jref] });
-      const document = await documentAt(session, "https://a.test/a#/b");
+      const document = await getDocument(session, "https://a.test/a#/b");
       expect(document).to.include({ type: "jref-document", url: "https://a.test/a" });
       expect(document.children[0]).to.include({ location: "https://a.test/a#" });
     });
 
     test("the request's Accept header lists the session's media types", async () => {
       const { session, requests } = site({ "/a": [`1`, json] });
-      await documentAt(session, "https://a.test/a");
+      await getDocument(session, "https://a.test/a");
       expect(requests[0].headers.get("accept")).to.equal("application/reference+json, application/json, */*; q=0.001");
 
       const other = site({ "/a": [`1`, jref] }, { mediaTypes: [{ ...jrefMediaType, quality: 0.5 }] });
-      await documentAt(other.session, "https://a.test/a");
+      await getDocument(other.session, "https://a.test/a");
       expect(other.requests[0].headers.get("accept")).to.equal("application/reference+json; q=0.5, */*; q=0.001");
     });
 
     test("a session keeps a document, so it's fetched once, even when it's asked for at the same time", async () => {
       const { session, requests } = site({ "/a": [`1`, json] });
-      const [first, second] = await Promise.all([documentAt(session, "https://a.test/a"), documentAt(session, "https://a.test/a#/x")]);
+      const [first, second] = await Promise.all([getDocument(session, "https://a.test/a"), getDocument(session, "https://a.test/a#/x")]);
       expect(second).to.equal(first);
-      expect(await documentAt(session, "https://a.test/a")).to.equal(first);
+      expect(await getDocument(session, "https://a.test/a")).to.equal(first);
       expect(requests.length).to.equal(1);
     });
 
     test("another session fetches it again", async () => {
       const { config, requests } = site({ "/a": [`1`, json] });
-      const first = await documentAt(new Hyperjump(config), "https://a.test/a");
-      const second = await documentAt(new Hyperjump(config), "https://a.test/a");
+      const first = await getDocument(new Hyperjump(config), "https://a.test/a");
+      const second = await getDocument(new Hyperjump(config), "https://a.test/a");
       expect(second).not.to.equal(first);
       expect(requests.length).to.equal(2);
     });
@@ -68,9 +67,9 @@ describe("documents", () => {
         "/old": [null, { location: "/new" }, 302],
         "/new": [`1`, json]
       });
-      const moved = await documentAt(session, "https://a.test/old");
+      const moved = await getDocument(session, "https://a.test/old");
       expect(moved.url).to.equal("https://a.test/new");
-      expect(await documentAt(session, "https://a.test/new")).to.equal(moved);
+      expect(await getDocument(session, "https://a.test/new")).to.equal(moved);
       expect(requests.map((request) => new URL(request.url).pathname)).to.eql(["/old", "/new"]);
     });
 
@@ -79,8 +78,8 @@ describe("documents", () => {
         "/old": [null, { location: "/new" }, 302],
         "/new": [`1`, json]
       });
-      const direct = await documentAt(session, "https://a.test/new");
-      expect(await documentAt(session, "https://a.test/old")).to.equal(direct);
+      const direct = await getDocument(session, "https://a.test/new");
+      expect(await getDocument(session, "https://a.test/old")).to.equal(direct);
     });
 
     test("a document is kept under its response's URL, not the URL it says it has", async () => {
@@ -99,10 +98,10 @@ describe("documents", () => {
         "/claims": [`{ "id": "https://a.test/real" }`, { "content-type": "application/x-self-identified" }],
         "/real": [`"the real one"`, json]
       }, { mediaTypes: [...defaultMediaTypes, selfIdentified] });
-      const claims = await documentAt(session, "https://a.test/claims");
+      const claims = await getDocument(session, "https://a.test/claims");
       expect(claims.url).to.equal("https://a.test/real");
       expect(jsonValue(await get(session, "https://a.test/real"))).to.equal("the real one");
-      expect(await documentAt(session, "https://a.test/claims")).to.equal(claims);
+      expect(await getDocument(session, "https://a.test/claims")).to.equal(claims);
       expect(requests.map((request) => new URL(request.url).pathname)).to.eql(["/claims", "/real"]);
     });
 
@@ -113,7 +112,7 @@ describe("documents", () => {
         extensions: [],
         parse: async (response, session) => {
           const describedBy = /describedby="([^"]*)"/.exec(response.headers.get("content-type") ?? "")?.[1] ?? "";
-          const description = await documentAt(session, new URL(describedBy, response.url), { initiator: response });
+          const description = await getDocument(session, new URL(describedBy, response.url), { initiator: response });
           return { type: "described-document", children: [fromJref(await response.text(), response.url).node, ...description.children], url: response.url };
         }
       };
@@ -122,7 +121,7 @@ describe("documents", () => {
         "/description": [`"a number"`, json]
       }, { mediaTypes: [...defaultMediaTypes, described] });
       const trace = new Trace(session);
-      const document = await documentAt(session, "https://a.test/a#ignored");
+      const document = await getDocument(session, "https://a.test/a#ignored");
       expect(document.url).to.equal("https://a.test/a");
       expect(document.children.map((node) => jsonValue(/** @type JsonNode */ (node)))).to.eql([1, "a number"]);
       expect(trace.tree().map(({ record, depth }) => `${depth} ${new URL(record.url).pathname}`)).to.eql(["0 /a", "1 /description"]);
@@ -137,12 +136,12 @@ describe("documents", () => {
         }),
         allowRetrieval: ["https://a.test/"]
       });
-      expect((await documentAt(session, "https://a.test/a")).url).to.equal("https://a.test/a");
+      expect((await getDocument(session, "https://a.test/a")).url).to.equal("https://a.test/a");
     });
 
     test("a relative URL is resolved against the session's context URL", async () => {
       const session = new Hyperjump();
-      const document = await documentAt(session, "package.json");
+      const document = await getDocument(session, "package.json");
       expect(document.url).to.equal(new URL("package.json", session.contextUrl).href);
       expect(document.type).to.equal("json-document");
     });
@@ -153,32 +152,32 @@ describe("documents", () => {
       await symlink(join(directory, "a.jref"), join(directory, "link.json"));
       const session = new Hyperjump({ stack: nodeTransport(), allowRetrieval: [pathToFileURL(directory + "/").href] });
 
-      const document = await documentAt(session, pathToFileURL(join(directory, "link.json")));
+      const document = await getDocument(session, pathToFileURL(join(directory, "link.json")));
       expect(document).to.include({ type: "jref-document", url: pathToFileURL(join(directory, "a.jref")).href });
-      expect(await documentAt(session, pathToFileURL(join(directory, "a.jref")))).to.equal(document);
+      expect(await getDocument(session, pathToFileURL(join(directory, "a.jref")))).to.equal(document);
     });
 
     test("a response that isn't a success is an error with its status", async () => {
       const { session } = site({ "/missing": [`{}`, json, 404] });
-      const loading = documentAt(session, "https://a.test/missing");
+      const loading = getDocument(session, "https://a.test/missing");
       await expect(loading).rejects.toThrow("'https://a.test/missing' can't be used, because its response's status is 404");
       await expect(loading).rejects.toMatchObject({ cause: { code: "ERR_HTTP_STATUS", status: 404 }, url: "https://a.test/missing" });
     });
 
     test("a response no plugin parses is an error", async () => {
       const { session } = site({ "/text": [`hi`, { "content-type": "text/plain" }], "/none": [null, {}] });
-      const loading = documentAt(session, "https://a.test/text");
+      const loading = getDocument(session, "https://a.test/text");
       await expect(loading).rejects.toThrow("no media type parses its 'Content-Type', which is 'text/plain'. Use 'mediaTypes' to add support for a media type.");
       await expect(loading).rejects.toMatchObject({ cause: { code: "ERR_UNSUPPORTED_MEDIA_TYPE" }, url: "https://a.test/text" });
-      await expect(documentAt(session, "https://a.test/none")).rejects.toThrow("which is missing");
-      await expect(documentAt(new Hyperjump(), "README.md")).rejects.toThrow("'README.md' can't be used, because no media type has its extension");
+      await expect(getDocument(session, "https://a.test/none")).rejects.toThrow("which is missing");
+      await expect(getDocument(new Hyperjump(), "README.md")).rejects.toThrow("'README.md' can't be used, because no media type has its extension");
     });
 
     test("a network error and a syntax error are as they are", async () => {
       const { session } = site({ "/bad": [`{ "a": 1, }`, json] });
-      await expect(documentAt(session, "https://b.test/a")).rejects.toMatchObject({ cause: { code: "ERR_RETRIEVAL_NOT_ALLOWED" } });
-      await expect(documentAt(session, "https://a.test/bad")).rejects.toThrow(SyntaxError);
-      await expect(documentAt(session, "https://a.test/bad")).rejects.toThrow(coded("ERR_SYNTAX", "https://a.test/bad"));
+      await expect(getDocument(session, "https://b.test/a")).rejects.toMatchObject({ cause: { code: "ERR_RETRIEVAL_NOT_ALLOWED" } });
+      await expect(getDocument(session, "https://a.test/bad")).rejects.toThrow(SyntaxError);
+      await expect(getDocument(session, "https://a.test/bad")).rejects.toThrow(coded("ERR_SYNTAX", "https://a.test/bad"));
     });
 
     test("a document that fails isn't kept, and its body isn't left open", async () => {
@@ -194,15 +193,15 @@ describe("documents", () => {
         }),
         allowRetrieval: ["https://a.test/"]
       });
-      await expect(documentAt(session, "https://a.test/a")).rejects.toMatchObject({ cause: { code: "ERR_UNSUPPORTED_MEDIA_TYPE" } });
+      await expect(getDocument(session, "https://a.test/a")).rejects.toMatchObject({ cause: { code: "ERR_UNSUPPORTED_MEDIA_TYPE" } });
       expect(cancelled).to.equal(true);
-      await expect(documentAt(session, "https://a.test/a")).rejects.toThrow();
+      await expect(getDocument(session, "https://a.test/a")).rejects.toThrow();
       expect(attempts).to.equal(2);
     });
 
     test("a quality that isn't one throws when the session first gets a document", async () => {
       const { session } = site({}, { mediaTypes: [{ ...jrefMediaType, quality: 2 }] });
-      await expect(documentAt(session, "https://a.test/a")).rejects.toThrow(RangeError);
+      await expect(getDocument(session, "https://a.test/a")).rejects.toThrow(RangeError);
     });
   });
 
@@ -293,39 +292,6 @@ describe("documents", () => {
     });
   });
 
-  describe("follow: false", () => {
-    test("a reference is returned as it is, and nothing it leads to is fetched", async () => {
-      const { session, requests } = site({ "/a": [`{ "b": { "$ref": "/b" } }`, jref] });
-      expect(await get(session, "https://a.test/a#/b", { follow: false })).to.include({ type: "reference", href: "https://a.test/b" });
-      expect(requests.length).to.equal(1);
-    });
-  });
-
-  describe("documentOf", () => {
-    test("is the document a node is in, including one a reference led to", async () => {
-      const { session } = site({ "/a": [`{ "b": { "$ref": "/b#/c" } }`, jref], "/b": [`{ "c": 1 }`, jref] });
-      const node = await get(session, "https://a.test/a#/b");
-      const document = await documentOf(session, node);
-      expect(document?.url).to.equal("https://a.test/b");
-      expect(document).to.equal(await documentAt(session, "https://a.test/b"));
-    });
-
-    test("is undefined for a node the session doesn't have", async () => {
-      const { session } = site({ "/a": [`1`, json] });
-      await get(session, "https://a.test/a");
-      expect(await documentOf(session, jrefNode(1, "https://a.test/a"))).to.equal(undefined);
-      expect(await documentOf(session, jrefNode(1, "https://a.test/never"))).to.equal(undefined);
-    });
-
-    test("is the embedded document for a node of one", async () => {
-      const { session } = site({
-        "/bundle": [bundle({ $ref: "https://elsewhere.test/b#/c" }, { "https://elsewhere.test/b": { c: 42 } }), { "content-type": "application/x-bundle" }]
-      }, { mediaTypes: [...defaultMediaTypes, bundleMediaType] });
-      const document = await documentOf(session, await get(session, "https://a.test/bundle"));
-      expect(document?.url).to.equal("https://elsewhere.test/b");
-    });
-  });
-
   describe("priority", () => {
     test("a document is fetched with the priority it's asked for, and so are the references that are followed", async () => {
       /** @type string[] */
@@ -339,7 +305,7 @@ describe("documents", () => {
         allowRetrieval: ["https://a.test/"]
       });
       await get(session, "https://a.test/a", { priority: "low" });
-      await documentAt(session, "https://a.test/c", { priority: "high" });
+      await getDocument(session, "https://a.test/c", { priority: "high" });
       await get(session, "https://a.test/d");
       expect(seen).to.eql(["/a low", "/b low", "/c high", "/d auto"]);
     });
@@ -348,12 +314,12 @@ describe("documents", () => {
       const net = controlled();
       const session = new Hyperjump({ stack: scheduler({ perKey: 1 })(net.transport), allowRetrieval: ["https://a.test/"] });
       const blocker = session.fetch("https://a.test/blocker");
-      const preloaded = documentAt(session, "https://a.test/preloaded", { priority: "low" });
+      const preloaded = getDocument(session, "https://a.test/preloaded", { priority: "low" });
       const other = session.fetch("https://a.test/other");
       await tick();
       expect(net.started, "both wait for the one connection").to.eql(["a.test/blocker"]);
 
-      const needed = documentAt(session, "https://a.test/preloaded", { priority: "high" });
+      const needed = getDocument(session, "https://a.test/preloaded", { priority: "high" });
       await tick();
       net.answer("a.test/blocker");
       await (await blocker).text();
@@ -372,7 +338,7 @@ describe("documents", () => {
       const session = new Hyperjump({ stack: scheduler({ perKey: 1 })(net.transport), allowRetrieval: ["https://a.test/"] });
       const blocker = session.fetch("https://a.test/blocker");
       const priority = new PriorityController("low");
-      const document = documentAt(session, "https://a.test/a", { priority: priority.signal });
+      const document = getDocument(session, "https://a.test/a", { priority: priority.signal });
       const other = session.fetch("https://a.test/other");
       await tick();
       priority.set("high");
@@ -427,7 +393,7 @@ describe("documents", () => {
       const { session } = site({
         "/bundle": [bundle(1, { "file:///project/a.json": { $ref: "secret.json" } }), bundled]
       }, { mediaTypes, allowRetrieval: ["https://a.test/", "file:///project/"] });
-      const loading = documentAt(session, "https://a.test/bundle");
+      const loading = getDocument(session, "https://a.test/bundle");
       await expect(loading).rejects.toThrow("'https://a.test/bundle' can't be used, because it says it contains a document with an absolute file: URL");
       await expect(loading).rejects.toMatchObject({ cause: { code: "ERR_ABSOLUTE_FILE_URL" }, url: "https://a.test/bundle" });
     });
@@ -465,23 +431,10 @@ describe("documents", () => {
 
     test("a document that says it contains something that isn't a URL can't be used", async () => {
       const { session } = site({ "/bundle": [bundle(1, { "not a url": 2 }), bundled] }, { mediaTypes });
-      await expect(documentAt(session, "https://a.test/bundle")).rejects.toThrow(TypeError);
+      await expect(getDocument(session, "https://a.test/bundle")).rejects.toThrow(TypeError);
     });
   });
 });
-
-/**
- * The document at a URL, which is the one its root is in
- *
- * @type <S extends DocumentSession>(session: S, url: string | URL, options?: GetOptions) => Promise<SessionDocument<S>>
- */
-const documentAt = async (session, url, options) => {
-  const document = await documentOf(session, await get(session, url, { ...options, follow: false }));
-  if (document === undefined) {
-    throw Error(`The session doesn't have the document at '${url}'`);
-  }
-  return document;
-};
 
 /**
  * A made-up format with embedded documents: JSON with a `main` JRef value

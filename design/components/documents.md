@@ -1,9 +1,8 @@
 # Documents (`src/documents/`)
 
-`get` retrieves a document through a session, parses it, and returns the
-node a URL identifies in it, following references. `documentOf` gives the
-document a node is in. They're what makes this a hypermedia browser, and
-the stack is how they retrieve.
+`getDocument` retrieves a document through a session and parses it, and
+`get` returns the node a URL identifies in it, following references. They're
+what makes this a hypermedia browser, and the stack is how they retrieve.
 
 - They're functions of a session, `get(session, url)`, not methods of one.
   A session is retrieval, and retrieval never imports document code (see
@@ -15,7 +14,7 @@ the stack is how they retrieve.
   what isn't its own. `documents.d.ts` adds `mediaTypes` to the
   `HyperjumpConfig` interface, so it's checked where a session is created
   without the session's declaration knowing documents.
-- What `get` and `documentOf` return is typed by the session's media
+- What `get` and `getDocument` return is typed by the session's media
   types: a document any of its plugins makes (`SessionDocument`), and a
   node of one (`SessionNode`). A reference can lead to a document in any of
   them, so it's the union, and the caller tells them apart by `type`.
@@ -53,8 +52,8 @@ the stack is how they retrieve.
     document finds itself by that URL when its plugin lists it in its own
     `embedded`.
 - A document that fails isn't kept, so it can be asked for again.
-- `get` takes a `priority`, which is the request's, and the references it
-  follows have it too. Whoever waits for a document
+- `get` and `getDocument` take a `priority`, which is the request's, and
+  the references `get` follows have it too. Whoever waits for a document
   adds its priority to the document's (`PriorityGroup`) until its wait is
   over, so the request has the most urgent priority of whoever is waiting.
   A tool that preloads documents at `low` doesn't hold up one that's
@@ -77,8 +76,8 @@ the stack is how they retrieve.
     container, or from a document contained with it, finds it. A document
     can say it contains a document with any URL, so what it says can't
     change what another document's reference finds.
-  - The first document of a `get` is always retrieved, unless it has
-    `referencedFrom`. Only a reference finds an embedded document.
+  - `getDocument` and the first document of a `get` are always
+    retrieved. Only a reference finds an embedded document.
   - It isn't retrieved, so `allowRetrieval` doesn't apply to it.
   - Its URL is parsed, without a fragment, when its container is loaded.
     One that isn't a URL keeps the container from being used.
@@ -100,21 +99,6 @@ the stack is how they retrieve.
   (see [`file:` from `file:`](file-references.md)).
 - Following a reference that leads back to one already followed is an
   error, with the chain of URLs.
-- `get` with `follow: false` returns the node its URL identifies as it's
-  written, even if it's a reference. It's for code that needs a node of
-  the document at the URL, like its root, where following would lead to
-  another document. Its type says the node can be a reference.
-- There's one function that retrieves, `get`, and `documentOf(session,
-  node)` gives the document a node is in. The document at a URL is the one
-  its root is in: `documentOf(session, await get(session, url, { follow:
-  false }))`.
-  - It finds the document the way `referencedFrom` does, described next,
-    so it's the embedded document for a node of one, and `undefined` for a
-    node the session doesn't have.
-  - A document that says it has another URL than its response's, and
-    doesn't list itself in its `embedded`, is kept with the contained
-    documents under the URL it says it has, so its nodes find it. Nothing
-    is found there by URL alone, so it still can't answer for that URL.
 - `get` with `referencedFrom`, a node, follows a reference from the
   document the node is in, which is how the browsing functions follow one
   (see [Browsing](browsing.md)). The document is found from the node's
@@ -148,26 +132,13 @@ file or connection is released.
 
 Rejected:
 
-- `getDocument(session, url)`, a second function that retrieved a document
-  and returned it, ignoring the fragment and not following references. It
-  was `get` without its last two steps, and neither was enough: code with
-  a document that needed a node resolved the fragment itself, and code
-  with a node from `get` that needed its document looked it up again.
-- `get` returning the node with its document, like `{ node, document }`.
-  Every caller would destructure, and the browsing functions would take
-  and return both, for the few callers that need the document.
-- A node that refers to its document. It would be the simplest, since
-  nothing would be looked up, but the trees are unist ASTs, which are
-  JSON-serializable, and a tree whose nodes refer to their document is
-  cyclic.
-- `get` and a function for documents as methods of `Hyperjump`. The class
-  would import the media types and the parsers, so retrieval would depend
-  on documents.
+- `get` and `getDocument` as methods of `Hyperjump`. The class would import
+  the media types and the parsers, so retrieval would depend on documents.
 - Methods, with the stack's code depending on a narrower type than
   `Hyperjump` for `ctx.session`. The session's own code, like
   `allowRetrieval` and redirects, would still be in a class that imports
   document code.
-- A retrieval class that `Hyperjump` extends with `get` and `documentOf`.
+- A retrieval class that `Hyperjump` extends with `get` and `getDocument`.
   It's a second class for what two functions do.
 - A `Hyperjump` whose configuration type is whatever it's given, so
   document code's keys are allowed in it without being declared.
