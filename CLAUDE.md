@@ -9,7 +9,7 @@ a retrieval feature stays only if it serves loading documents. Documents
 (`get`, media types, and the parsers) are built on the session, and
 retrieval code never imports them. It replaces
 `@hyperjump/browser` v1, a client for JRef documents, and the v2 prototype
-on `main`, which won't be released.
+on the `v2-prototype` branch, which won't be released.
 
 ## Docs
 
