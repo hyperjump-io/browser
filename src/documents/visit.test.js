@@ -2,15 +2,12 @@ import { describe, test, expect } from "vitest";
 import { visit } from "unist-util-visit";
 import { CONTINUE, EXIT, SKIP, jrefValue, jrefVisit } from "./browsing.js";
 import { get, getDocument } from "./documents.js";
-import { Hyperjump } from "../hyperjump.js";
-import { fetcher } from "../layers.js";
-import { defaultMediaTypes } from "../media-types/media-types.js";
 import { fromJref } from "../jref/jref-util.js";
 import { toJson } from "../json/jsonast-util.js";
+import { jrefSite as site } from "../test-helpers/jref-site.js";
 
 /**
  * @import { FollowedNode } from "./documents.d.ts"
- * @import { Json } from "../json/jsonast.d.ts"
  */
 
 describe("jrefVisit", () => {
@@ -236,23 +233,3 @@ describe("unist utilities", () => {
     expect(requests).to.eql(["/doc"]);
   });
 });
-
-/**
- * A session for JRef documents at `https://a.test/`, and the paths it
- * requests
- *
- * @type (pages: Record<string, Json>) => { session: Hyperjump<{ mediaTypes: typeof defaultMediaTypes }>, requests: string[] }
- */
-const site = (pages) => {
-  /** @type string[] */
-  const requests = [];
-  const stack = fetcher((request) => {
-    const path = new URL(request.url).pathname;
-    requests.push(path);
-    return path in pages
-      ? new Response(JSON.stringify(pages[path]), { headers: { "content-type": "application/reference+json" } })
-      : new Response(null, { status: 404 });
-  });
-
-  return { session: new Hyperjump({ stack, allowRetrieval: ["https://a.test/"], mediaTypes: defaultMediaTypes }), requests };
-};

@@ -131,6 +131,52 @@ await jrefVisit(session, luke, { jsonType: "number" }, (node, key) => {
 The walk still goes through the values that don't match and follows their
 references to find what's under them.
 
+## Select values
+
+*Coming soon*
+
+`jrefSelect` and `jrefSelectAll` find values with a selector like `select` and
+`selectAll` from `unist-util-select` do, following references along the way.
+`jrefSelect` gives you the first value that matches, or `undefined` if none
+does. `jrefSelectAll` gives you all of them in the order it reaches them.
+
+```typescript
+import { jrefSelect, jrefSelectAll } from "@hyperjump/browser";
+
+const film = await get(session, "https://swapi.hyperjump.io/api/films/1");
+
+const director = await jrefSelect(session, "> [key=director]", film);
+const names = await jrefSelectAll(session, "> [key=characters] > * > [key=name]", film);
+```
+
+Each character is a reference to another document. The second selector steps
+into each one and gets its name, which takes a `jrefStep` for each step and a
+`jrefArrayIter` for the characters without a selector.
+
+| Selector | Matches |
+| --- | --- |
+| `[key=name]` | The value of the property `name`, or the item at index `name` of an array, such as `[key=0]` |
+| `[jsonType=object]` | A value whose property has that value. They're compared as text, so `[value=42]` matches `42` and `"42"`. |
+| `[value]` | A value that has the property. Strings, numbers, booleans, and null have a `value`. |
+| `json` or `*` | A value whose `type` is `json`, or any value |
+| `:root` or `:scope` | The value you start from |
+| `a b` | A `b` anywhere under an `a` |
+| `a > b` | A `b` directly in an `a` |
+| `> b` | A `b` directly in the value you start from |
+| `a, b` | An `a` or a `b` |
+
+Quote a value that has characters other than letters, digits, `_`, `-`, and
+`$`, such as `[key="first name"]`. A selector that isn't one of these, such as
+`:has()` or `a + b`, throws a `SyntaxError` that says what's supported.
+
+The session only follows a reference if the selector could match the value it
+leads to or something inside it. `> [key=director]` doesn't retrieve any
+characters because none of them can be the film's `director`, and `jrefSelect`
+stops at the first match. A selector without `>` like `[key=name]` can match
+at any depth, so it follows every reference under the value you start from. On
+an API like this one that could be the whole API, so start a selector with `>`
+unless you mean to search everything.
+
 ## The tree as it's written
 
 Documents are [unist](https://github.com/syntax-tree/unist) trees, so the

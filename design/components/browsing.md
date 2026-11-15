@@ -15,6 +15,7 @@ follow references with.
 | `jsonObjectKeys(node)` | `jrefObjectKeys(node)` |
 | `jsonValue(node)` | `jrefValue(node)` |
 | `visit(tree, test, visitor)` (`unist-util-visit`) | `jrefVisit(session, node, test, visitor)` |
+| `selectAll(selector, tree)` (`unist-util-select`) | `jrefSelectAll(session, selector, node)` |
 
 - The functions that return nodes are async and follow references,
   because following one can retrieve a document. They're for browsing,
@@ -134,3 +135,74 @@ follow references with.
 - What the visitor's node is typed as is what a walk can reach
   (`Reachable`): the node it starts at, or what's under it once it's
   followed, the same as what `jrefStep` returns.
+
+## Selecting
+
+- `jrefSelect` and `jrefSelectAll` are `unist-util-select`'s `select` and
+  `selectAll` for the tree with its references followed. They take the
+  session first and then `unist-util-select`'s arguments like the other
+  `jref*` functions. They're for reaching values by a path or a pattern in
+  one call. `jrefStep` stays for one step, which is clearer and can't
+  follow more than one reference.
+  - Using `unist-util-select` was rejected. Following a reference is
+    async, and it matches against the tree as written, where a reference
+    is the object and a value has no key.
+  - Replacing the browsing functions with selectors was rejected. A
+    descendant selector follows every reference under a node, so a
+    function for one step is the safe way to write the common case.
+- A value doesn't have its key, because the key is on the property's name
+  node, so `[key=...]` is a pseudo-attribute that matches the property
+  name or array index the value is at. It takes the place of a property
+  called `key`, which no JSON or JRef node has. A media type shouldn't
+  annotate its nodes with one.
+  - A pseudo-class like `:key(director)` was rejected. It can't collide
+    with a property, but it's longer for the most common selector, and an
+    attribute already says "a value that's at this name".
+- Selectors are matched top down with every selector of a list at once,
+  so a member is only followed if a selector could still match it or
+  something under it, and `jrefSelect` stops at the first match. A child
+  selector's `[key=...]` rules out a member before it's followed, so
+  `> [key=director]` doesn't retrieve a film's characters. A descendant
+  selector can match anywhere, so it follows everything under the node.
+- A selector that starts with `>` starts at the node like a relative
+  selector in `querySelector`, so a path from the node doesn't need
+  `:root`.
+- `jrefSelectAll` gives each node once in the order they're reached. A
+  reference back to a node that's being walked can match, and what's under
+  it is walked again only for what it could match that the node it leads
+  back to couldn't. In `{ "y": 1, "x": { "$ref": "#" } }`, `[key=x] [key=y]`
+  matches `/x/y`, which the root's walk couldn't match. The states a node
+  is walked with are finite, so a cycle still ends.
+  - Not walking under a reference back to a node that's being walked, as
+    `jrefVisit` doesn't, was rejected. A visit's node is the same wherever
+    it's reached, but a selector's partial matches aren't, so it would miss
+    matches.
+- `[name]` matches a node that has the property, whatever its value, like
+  `[children]` for objects and arrays. `[name=value]` only matches a
+  string, number, boolean, or null.
+- What's supported is a `type` or `*`, `[name]`, `[name=value]`, `:root`
+  and `:scope`, the descendant and child combinators, and lists. Anything
+  else is a `SyntaxError` that says what's supported, as `querySelector`'s
+  is. A selector that isn't one is a mistake in the call and not a failure
+  to handle, so it doesn't have a code (see
+  [Errors with codes](coded-errors.md)).
+  - Values are compared as strings like CSS attributes, so `[value=42]`
+    matches the number `42` and the string `"42"`. Comparing unquoted
+    values as JSON was rejected. Keys and properties like `jsonType` are
+    strings, so the common selectors would need quotes.
+  - `:has()` was rejected for now. Deciding whether a node matches would
+    follow references under it, even for `jrefSelect`, which otherwise
+    stops at the first match.
+  - Sibling combinators (`+`, `~`) and `:nth-child()` were rejected. An
+    object's members aren't ordered in JSON, and an array's are reached by
+    `[key=...]`.
+  - `:not()` and the other attribute operators (`^=`, `$=`, `*=`) aren't
+    supported yet. They could be added without changing what's supported.
+- Selectors aren't cached. Parsing one takes microseconds, and a walk that
+  follows references takes far longer.
+- The nodes returned aren't narrowed by the selector. Parsing a selector
+  in TypeScript's types would be slow to check, and it wouldn't know what
+  a media type's types are.
+- To find references without following them, use `unist-util-select` or
+  `unist-util-visit` on the tree as written. The nodes a walk reaches are
+  followed, so `[type=reference]` never matches.
