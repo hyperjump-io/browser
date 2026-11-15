@@ -164,11 +164,39 @@ type HasProperties<N, O> = N extends unknown
  * To find the references in a tree without following them, use
  * `unist-util-visit` with the `"reference"` type.
  *
+ * @throws An `Error` whose `cause.code` is `ERR_MAX_DEPTH` if it would go
+ * more than {@link WalkOptions.maxDepth} levels below the node. The cause
+ * has the `maxDepth`, and its `url` is the node it would go under.
  * @throws What `get` throws, if it follows a reference.
  * @throws A `TypeError` if a test isn't `null`, `undefined`, a string, an
  * object, a function, or an array of strings, objects, and functions.
+ * @throws A `RangeError` if `maxDepth` isn't a whole number that isn't
+ * negative, or `Infinity`.
  */
 export const jrefVisit: {
-  <S extends DocumentSession, N extends AnyJsonNode, const C extends JrefTest<Reachable<S, N>>>(session: S, node: N & Browsable<N>, test: C, visitor: JrefVisitor<Reachable<S, N>, JrefTestedNode<Reachable<S, N>, C>>): Promise<void>;
-  <S extends DocumentSession, N extends AnyJsonNode>(session: S, node: N & Browsable<N>, visitor: JrefVisitor<Reachable<S, N>>): Promise<void>;
+  <S extends DocumentSession, N extends AnyJsonNode, const C extends JrefTest<Reachable<S, N>>>(session: S, node: N & Browsable<N>, test: C, visitor: JrefVisitor<Reachable<S, N>, JrefTestedNode<Reachable<S, N>, C>>, options?: WalkOptions): Promise<void>;
+  <S extends DocumentSession, N extends AnyJsonNode>(session: S, node: N & Browsable<N>, visitor: JrefVisitor<Reachable<S, N>>, options?: WalkOptions): Promise<void>;
+};
+
+/**
+ * Options for the functions that walk everything under a node, following
+ * references: {@link jrefVisit}, `jrefSelect`, and `jrefSelectAll`.
+ */
+export type WalkOptions = {
+  /**
+   * How many levels below the node a walk can go before it's an `Error`
+   * whose `cause.code` is `ERR_MAX_DEPTH`. The node is at depth 0, and its
+   * members are at 1. It's a guard against references that lead to new
+   * documents without end, like a `next` link on every page of results,
+   * and not a way to choose how deep to go. To walk less, return
+   * {@link SKIP} from a visitor at a `depth`, or write a selector of child
+   * combinators, like `> [key=next] > [key=next]`.
+   *
+   * It's only an error if the walk would go under a node at `maxDepth`:
+   * the visitor didn't skip it, it isn't a reference back to a node that's
+   * being walked, it has members, and for a selector, one of them could
+   * match or have a match under it. It's 1000 by default, the deepest a
+   * parsed document can nest. `Infinity` doesn't limit the depth.
+   */
+  maxDepth?: number;
 };

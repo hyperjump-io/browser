@@ -177,6 +177,38 @@ at any depth, so it follows every reference under the value you start from. On
 an API like this one that could be the whole API, so start a selector with `>`
 unless you mean to search everything.
 
+## How deep a walk goes
+
+*Coming soon*
+
+`jrefVisit`, `jrefSelect`, and `jrefSelectAll` can't go more than 1000 levels
+below the value you start from. If one would, it throws an error whose
+`cause.code` is `"ERR_MAX_DEPTH"`, so references that lead to new documents
+without end, like a `next` link on every page of results, can't keep it going.
+The error's `url` is the value it would go inside. If you expect a walk to go
+that deep, pass a bigger `maxDepth` or `Infinity` as the last argument:
+
+```typescript
+await jrefVisit(session, node, visitor, { maxDepth: 2000 });
+```
+
+It's only an error if the walk would actually go deeper. A value at the limit is
+fine if the walk skips it, it has nothing inside it, or nothing inside it can
+match.
+
+The limit is a safeguard, so to stop at a depth on purpose, say so in the walk.
+A visitor returns `SKIP` at the `depth` it gets as its fourth argument:
+
+```typescript
+await jrefVisit(session, firstPage, (node, key, parent, depth) => {
+  // The first page and the next two
+  return depth === 2 ? SKIP : CONTINUE;
+});
+```
+
+A selector made of `>` steps only goes as deep as it's written, like
+`> [key=next] > [key=next]` for the next two pages.
+
 ## The tree as it's written
 
 Documents are [unist](https://github.com/syntax-tree/unist) trees, so the

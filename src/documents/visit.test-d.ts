@@ -47,6 +47,12 @@ declare const name: JsonPropertyNameNode;
 // @ts-expect-error A property name node isn't a node a walk starts at
 await jrefVisit(session, name, () => {});
 
+// Options go after the visitor, with or without a test
+await jrefVisit(session, node, () => {}, { maxDepth: 10 });
+await jrefVisit(session, node, "json", () => {}, { maxDepth: Infinity });
+// @ts-expect-error A walk's options don't have a `depth`
+await jrefVisit(session, node, () => {}, { depth: 10 });
+
 // A null test passes every node, so it doesn't narrow
 await jrefVisit(session, node, null, (visited) => {
   yes<Equal<typeof visited, FollowedNode<JrefNode | JsonNode>>>();

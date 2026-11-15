@@ -1,7 +1,8 @@
-import { follow, memberEntries } from "./walk.js";
+import { follow, maxDepth, maxDepthError, memberEntries } from "./walk.js";
 
 /**
  * @import * as API from "./select.d.ts"
+ * @import { WalkOptions } from "./browsing.d.ts"
  * @import { DocumentSession } from "./documents.d.ts"
  * @import { Walked } from "./walk.js"
  */
@@ -34,11 +35,12 @@ import { follow, memberEntries } from "./walk.js";
 export const jrefSelect = /** @type typeof API.jrefSelect */ (async (
   /** @type DocumentSession */ session,
   /** @type string */ selector,
-  /** @type Walked */ node
+  /** @type Walked */ node,
+  /** @type WalkOptions | undefined */ options
 ) => {
   /** @type Walked | undefined */
   let found;
-  await select(session, parseSelector(selector), node, (matchedNode) => {
+  await select(session, parseSelector(selector), node, maxDepth(options), (matchedNode) => {
     found = matchedNode;
     return true;
   });
@@ -50,11 +52,12 @@ export const jrefSelect = /** @type typeof API.jrefSelect */ (async (
 export const jrefSelectAll = /** @type typeof API.jrefSelectAll */ (async (
   /** @type DocumentSession */ session,
   /** @type string */ selector,
-  /** @type Walked */ node
+  /** @type Walked */ node,
+  /** @type WalkOptions | undefined */ options
 ) => {
   /** @type Set<Walked> */
   const found = new Set();
-  await select(session, parseSelector(selector), node, (matchedNode) => {
+  await select(session, parseSelector(selector), node, maxDepth(options), (matchedNode) => {
     found.add(matchedNode);
     return false;
   });
@@ -67,24 +70,36 @@ export const jrefSelectAll = /** @type typeof API.jrefSelectAll */ (async (
  * selector at once. A member is only followed if some selector could match
  * it or what's under it, which for a child combinator is known from its key.
  *
- * @type (session: DocumentSession, selectors: Complex[], node: Walked, onMatch: (node: Walked) => boolean) => Promise<void>
+ * @type (session: DocumentSession, selectors: Complex[], node: Walked, maxDepth: number, onMatch: (node: Walked) => boolean) => Promise<void>
  */
-const select = async (session, selectors, node, onMatch) => {
+const select = async (session, selectors, node, maxDepth, onMatch) => {
   const states = selectors.map((complex) => ({ complex, index: 0, descendant: true }));
-  await selectNode(session, node, undefined, 0, states, new Map(), onMatch);
+  await selectNode({ session, maxDepth, ancestors: new Map(), onMatch }, node, undefined, 0, states);
 };
 
 /**
- * `ancestors` is the nodes being walked, each with the states it's being
- * walked with. A node is walked again only with states it isn't being
- * walked with, so a reference back to it walks what it could match that its
- * ancestor couldn't, and a cycle ends because there are only so many
- * states. They're the nodes and not their locations, because two documents
- * can say they have the same URL.
+ * What stays the same for every node of a selection. `ancestors` is the
+ * nodes being walked, each with the states it's being walked with. A node
+ * is walked again only with states it isn't being walked with, so a
+ * reference back to it walks what it could match that its ancestor
+ * couldn't, and a cycle ends because there are only so many states.
+ * They're the nodes and not their locations, because two documents can say
+ * they have the same URL. `onMatch` returns `true` to stop.
  *
- * @type (session: DocumentSession, node: Walked, key: string | undefined, depth: number, states: State[], ancestors: Map<Walked, Set<string>>, onMatch: (node: Walked) => boolean) => Promise<boolean>
+ * @typedef {{
+ *   session: DocumentSession;
+ *   maxDepth: number;
+ *   ancestors: Map<Walked, Set<string>>;
+ *   onMatch: (node: Walked) => boolean;
+ * }} Selection
  */
-const selectNode = async (session, node, key, depth, states, ancestors, onMatch) => {
+
+/**
+ * Whether to stop
+ *
+ * @type (selection: Selection, node: Walked, key: string | undefined, depth: number, states: State[]) => Promise<boolean>
+ */
+const selectNode = async (selection, node, key, depth, states) => {
   /** @type Map<string, State> */
   const next = new Map();
   let isMatch = false;
@@ -108,8 +123,7 @@ const selectNode = async (session, node, key, depth, states, ancestors, onMatch)
     }
   }
 
-  // `true` stops the walk
-  if (isMatch && onMatch(node)) {
+  if (isMatch && selection.onMatch(node)) {
     return true;
   }
 
@@ -120,14 +134,14 @@ const selectNode = async (session, node, key, depth, states, ancestors, onMatch)
   // A reference back to a node that's being walked with the same states is
   // matched, but what's under it is already being walked
   const signature = [...next.keys()].sort().join(",");
-  const walking = ancestors.get(node) ?? new Set();
+  const walking = selection.ancestors.get(node) ?? new Set();
   if (walking.has(signature)) {
     return false;
   }
 
   const nextStates = [...next.values()];
   walking.add(signature);
-  ancestors.set(node, walking);
+  selection.ancestors.set(node, walking);
   try {
     for (const [memberKey, memberNode] of memberEntries(node)) {
       // A state that has to match a child can rule it out by its key, before
@@ -137,15 +151,21 @@ const selectNode = async (session, node, key, depth, states, ancestors, onMatch)
         continue;
       }
 
-      const followedNode = /** @type Walked */ (await follow(session, memberNode));
-      if (await selectNode(session, followedNode, memberKey, depth + 1, memberStates, ancestors, onMatch)) {
+      // Only a member that could match, or have a match under it, is too
+      // deep, and it's checked before it's followed
+      if (depth >= selection.maxDepth) {
+        throw maxDepthError(selection.maxDepth, node.location);
+      }
+
+      const followedNode = /** @type Walked */ (await follow(selection.session, memberNode));
+      if (await selectNode(selection, followedNode, memberKey, depth + 1, memberStates)) {
         return true;
       }
     }
   } finally {
     walking.delete(signature);
     if (walking.size === 0) {
-      ancestors.delete(node);
+      selection.ancestors.delete(node);
     }
   }
 

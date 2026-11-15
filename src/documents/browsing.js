@@ -1,4 +1,4 @@
-import { follow, memberEntries } from "./walk.js";
+import { follow, maxDepth, maxDepthError, memberEntries } from "./walk.js";
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
 import { jsonArrayIter, jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonObjectValues, jsonStep, jsonValue } from "../json/jsonast-util.js";
@@ -57,21 +57,24 @@ export const SKIP = "skip";
 export const EXIT = false;
 
 // The overloads type the function, and the visitor is the third argument,
-// or the fourth after a test, so they're read by what they are
+// or the fourth after a test, with the options after it, so they're read by
+// what they are
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefVisit = /** @type typeof API.jrefVisit */ (
   /**
    * @param {DocumentSession} session
    * @param {Walked} node
    * @param {API.JrefTest<any> | API.JrefVisitor<any>} testOrVisitor
-   * @param {API.JrefVisitor<any>} [visitor]
+   * @param {API.JrefVisitor<any> | API.WalkOptions} [visitorOrOptions]
+   * @param {API.WalkOptions} [options]
    */
-  async (session, node, testOrVisitor, visitor) => {
-    const [check, visit] = visitor === undefined
-      ? [() => true, /** @type API.JrefVisitor<any> */ (testOrVisitor)]
-      : [convertTest(/** @type API.JrefTest<any> */ (testOrVisitor)), visitor];
+  async (session, node, testOrVisitor, visitorOrOptions, options) => {
+    const [check, visit, walkOptions] = typeof visitorOrOptions === "function"
+      ? [convertTest(/** @type API.JrefTest<any> */ (testOrVisitor)), visitorOrOptions, options]
+      : [() => true, /** @type API.JrefVisitor<any> */ (testOrVisitor), visitorOrOptions];
 
-    await visitNode(session, node, undefined, undefined, 0, new Set(), check, visit);
+    const walk = { session, maxDepth: maxDepth(walkOptions), ancestors: new Set(), check, visitor: visit };
+    await visitNode(walk, node, undefined, undefined, 0);
   }
 );
 
@@ -80,35 +83,53 @@ export const jrefVisit = /** @type typeof API.jrefVisit */ (
  */
 
 /**
+ * What stays the same for every node of a visit. `ancestors` is the nodes
+ * being visited, so a reference back to one of them is visited but not
+ * descended into. They're the nodes and not their locations, because two
+ * documents can say they have the same URL.
+ *
+ * @typedef {{
+ *   session: DocumentSession;
+ *   maxDepth: number;
+ *   ancestors: Set<Walked>;
+ *   check: Check;
+ *   visitor: API.JrefVisitor<any>;
+ * }} Visit
+ */
+
+/**
  * Visit a node, then its members in document order, following each one
  * just before it's visited, so a skipped node's references aren't
- * followed. `ancestors` is the nodes being visited above it, so a
- * reference back to one of them is visited but not descended into. They're
- * the nodes and not their locations, because two documents can say they
- * have the same URL.
+ * followed. Going under a node at `maxDepth` throws.
  *
- * @type (session: DocumentSession, node: Walked, key: string | undefined, parent: Walked | undefined, depth: number, ancestors: Set<Walked>, check: Check, visitor: API.JrefVisitor<any>) => Promise<API.VisitAction>
+ * @type (walk: Visit, node: Walked, key: string | undefined, parent: Walked | undefined, depth: number) => Promise<API.VisitAction>
  */
-const visitNode = async (session, node, key, parent, depth, ancestors, check, visitor) => {
-  const action = check(node, key, parent) ? await visitor(node, key, parent, depth) : CONTINUE;
+const visitNode = async (walk, node, key, parent, depth) => {
+  const action = walk.check(node, key, parent) ? await walk.visitor(node, key, parent, depth) : CONTINUE;
   if (action === EXIT) {
     return EXIT;
   }
 
-  if (action === SKIP || ancestors.has(node)) {
+  if (action === SKIP || walk.ancestors.has(node)) {
     return CONTINUE;
   }
 
-  ancestors.add(node);
+  walk.ancestors.add(node);
   try {
     for (const [memberKey, memberNode] of memberEntries(node)) {
-      const followedNode = /** @type Walked */ (await follow(session, memberNode));
-      if (await visitNode(session, followedNode, memberKey, node, depth + 1, ancestors, check, visitor) === EXIT) {
+      // It's checked before a member is followed, so a walk that's too deep
+      // doesn't retrieve anything under the limit
+      if (depth >= walk.maxDepth) {
+        throw maxDepthError(walk.maxDepth, node.location);
+      }
+
+      const followedNode = /** @type Walked */ (await follow(walk.session, memberNode));
+      if (await visitNode(walk, followedNode, memberKey, node, depth + 1) === EXIT) {
         return EXIT;
       }
     }
   } finally {
-    ancestors.delete(node);
+    walk.ancestors.delete(node);
   }
 
   return CONTINUE;

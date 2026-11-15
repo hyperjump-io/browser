@@ -4,10 +4,12 @@ import { CONTINUE, EXIT, SKIP, jrefValue, jrefVisit } from "./browsing.js";
 import { get, getDocument } from "./documents.js";
 import { fromJref } from "../jref/jref-util.js";
 import { toJson } from "../json/jsonast-util.js";
+import { coded } from "../test-helpers/errors.js";
 import { jrefSite as site } from "../test-helpers/jref-site.js";
 
 /**
  * @import { FollowedNode } from "./documents.d.ts"
+ * @import { Json } from "../json/jsonast.d.ts"
  */
 
 describe("jrefVisit", () => {
@@ -121,6 +123,75 @@ describe("jrefVisit", () => {
     });
 
     expect(visited.filter((location) => location === "https://a.test/subject#/shared/x")).to.have.length(3);
+  });
+
+  describe("maxDepth", () => {
+    /** @type Record<string, Json> */
+    const pages = {};
+    for (let page = 1; page <= 2000; page++) {
+      pages[`/pages/${page}`] = { next: { $ref: `${page + 1}` } };
+    }
+
+    test("going under a node at maxDepth is an error with a code and the node's location", async () => {
+      const { session } = site({ "/subject": { a: { b: { c: 1 } } } });
+      const subject = await get(session, "https://a.test/subject");
+
+      const visit = jrefVisit(session, subject, () => {}, { maxDepth: 2 });
+
+      await expect(visit).rejects.toThrow(coded("ERR_MAX_DEPTH", "https://a.test/subject#/a/b"));
+      await expect(visit).rejects.toMatchObject({ cause: { maxDepth: 2 } });
+    });
+
+    test("a reference under a node at maxDepth isn't followed", async () => {
+      const { session, requests } = site(pages);
+      const subject = await get(session, "https://a.test/pages/1");
+
+      // A page's `next` is the next page, so each page is a level deeper
+      await expect(jrefVisit(session, subject, () => {}, { maxDepth: 1 })).rejects.toThrow(coded("ERR_MAX_DEPTH", "https://a.test/pages/2#"));
+      expect(requests).to.eql(["/pages/1", "/pages/2"]);
+    });
+
+    test("it isn't an error when nothing would be walked under a node at maxDepth", async () => {
+      const { session } = site({ "/subject": { empty: [], scalar: 1, cycle: { $ref: "#" }, skipped: { a: 1 } } });
+      const subject = await get(session, "https://a.test/subject");
+
+      let count = 0;
+      await jrefVisit(session, subject, (_node, key) => {
+        count++;
+        return key === "skipped" ? SKIP : CONTINUE;
+      }, { maxDepth: 1 });
+
+      expect(count).to.equal(5);
+    });
+
+    test("it's after a test", async () => {
+      const { session } = site({ "/subject": { a: { b: 1 } } });
+      const subject = await get(session, "https://a.test/subject");
+
+      await expect(jrefVisit(session, subject, "json", () => {}, { maxDepth: 1 })).rejects.toThrow(coded("ERR_MAX_DEPTH"));
+    });
+
+    test("the default is 1000, and Infinity doesn't limit it", async () => {
+      const { session } = site(pages);
+      const subject = await get(session, "https://a.test/pages/1");
+
+      await expect(jrefVisit(session, subject, () => {})).rejects.toThrow(coded("ERR_MAX_DEPTH", "https://a.test/pages/1001#"));
+
+      let count = 0;
+      const infinite = jrefVisit(session, subject, () => {
+        count++;
+      }, { maxDepth: Infinity });
+      // The last page's `next` is a page that doesn't exist
+      await expect(infinite).rejects.toThrow(coded("ERR_HTTP_STATUS", "https://a.test/pages/2001"));
+      expect(count).to.equal(2000);
+    });
+
+    test.each([[-1], [1.5], [Number.NaN]])("%s is a RangeError", async (maxDepth) => {
+      const { session } = site({ "/subject": 1 });
+      const subject = await get(session, "https://a.test/subject");
+
+      await expect(jrefVisit(session, subject, () => {}, { maxDepth })).rejects.toThrow(RangeError);
+    });
   });
 
   describe("tests", () => {

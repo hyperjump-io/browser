@@ -1,4 +1,4 @@
-import type { Browsable, Reachable } from "./browsing.d.ts";
+import type { Browsable, Reachable, WalkOptions } from "./browsing.d.ts";
 import type { DocumentSession } from "./documents.d.ts";
 import type { AnyJsonNode } from "../json/jsonast-util.d.ts";
 
@@ -27,11 +27,15 @@ import type { AnyJsonNode } from "../json/jsonast-util.d.ts";
  * reference back to a node that's being walked can match, but what's under
  * it isn't walked again.
  *
+ * @throws An `Error` whose `cause.code` is `ERR_MAX_DEPTH` if something
+ * more than {@link WalkOptions.maxDepth} levels below `node` could match.
+ * Its `url` is the node the walk would go under.
  * @throws A `SyntaxError` if the selector isn't one, or uses something that
  * isn't supported, like `:has()` or `+`.
+ * @throws A `RangeError` if `maxDepth` isn't valid.
  * @throws What `get` throws, if it follows a reference.
  */
-export const jrefSelect: <S extends DocumentSession, N extends AnyJsonNode>(session: S, selector: string, node: N & Browsable<N>) => Promise<Reachable<S, N> | undefined>;
+export const jrefSelect: <S extends DocumentSession, N extends AnyJsonNode>(session: S, selector: string, node: N & Browsable<N>, options?: WalkOptions) => Promise<Reachable<S, N> | undefined>;
 
 /**
  * Every node under `node`, and `node` itself, that matches a selector, like
@@ -39,8 +43,12 @@ export const jrefSelect: <S extends DocumentSession, N extends AnyJsonNode>(sess
  * each once even if it's reached through more than one reference.
  * Selectors are {@link jrefSelect}'s.
  *
+ * @throws An `Error` whose `cause.code` is `ERR_MAX_DEPTH` if something
+ * more than {@link WalkOptions.maxDepth} levels below `node` could match.
+ * Its `url` is the node the walk would go under.
  * @throws A `SyntaxError` if the selector isn't one, or uses something that
  * isn't supported, like `:has()` or `+`.
+ * @throws A `RangeError` if `maxDepth` isn't valid.
  * @throws What `get` throws, if it follows a reference.
  */
-export const jrefSelectAll: <S extends DocumentSession, N extends AnyJsonNode>(session: S, selector: string, node: N & Browsable<N>) => Promise<Reachable<S, N>[]>;
+export const jrefSelectAll: <S extends DocumentSession, N extends AnyJsonNode>(session: S, selector: string, node: N & Browsable<N>, options?: WalkOptions) => Promise<Reachable<S, N>[]>;

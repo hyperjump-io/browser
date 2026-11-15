@@ -4,6 +4,7 @@ import { jrefValue } from "./browsing.js";
 import { get } from "./documents.js";
 import { fromJref } from "../jref/jref-util.js";
 import { toJson } from "../json/jsonast-util.js";
+import { coded } from "../test-helpers/errors.js";
 import { jrefSite as site } from "../test-helpers/jref-site.js";
 
 /**
@@ -133,6 +134,39 @@ describe("jrefSelect", () => {
     const subject = await get(session, "https://a.test/subject");
 
     expect(await jrefSelectAll(session, "[key=child]", subject)).to.eql([subject]);
+  });
+
+  describe("maxDepth", () => {
+    const pages = {
+      "/pages/1": { next: { $ref: "2" } },
+      "/pages/2": { next: { $ref: "3" } },
+      "/pages/3": { next: { $ref: "4" } }
+    };
+
+    test("a selector that could match under a node at maxDepth is an error", async () => {
+      const { session, requests } = site(pages);
+      const subject = await get(session, "https://a.test/pages/1");
+
+      await expect(jrefSelectAll(session, "[key=next]", subject, { maxDepth: 1 })).rejects.toThrow(coded("ERR_MAX_DEPTH", "https://a.test/pages/2#"));
+      expect(requests).to.eql(["/pages/1", "/pages/2"]);
+    });
+
+    test("a selector that can't match under a node at maxDepth isn't", async () => {
+      const { session, requests } = site(pages);
+      const subject = await get(session, "https://a.test/pages/1");
+
+      const next = await jrefSelectAll(session, "> [key=next]", subject, { maxDepth: 1 });
+
+      expect(next.map((node) => node.location)).to.eql(["https://a.test/pages/2#"]);
+      expect(requests).to.eql(["/pages/1", "/pages/2"]);
+    });
+
+    test("a maxDepth that isn't valid is a RangeError", async () => {
+      const { session } = site({ "/subject": 1 });
+      const subject = await get(session, "https://a.test/subject");
+
+      await expect(jrefSelect(session, ":root", subject, { maxDepth: -1 })).rejects.toThrow(RangeError);
+    });
   });
 
   test.each([

@@ -1,7 +1,11 @@
 import { get } from "./documents.js";
+import { relativeFileUrl } from "../file-urls.js";
+import { codedError } from "../json/coded-error.js";
+import { MAX_DEPTH } from "../json/json-parser.js";
 import { jsonArrayIter, jsonObjectEntries } from "../json/jsonast-util.js";
 
 /**
+ * @import { WalkOptions } from "./browsing.d.ts"
  * @import { DocumentSession, FollowedNode } from "./documents.d.ts"
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
  * @import { JsonNode } from "../json/jsonast.d.ts"
@@ -58,3 +62,29 @@ export const memberEntries = function* (node) {
     }
   }
 };
+
+/**
+ * The `maxDepth` of a walk's options, or the default, which is how deep a
+ * parsed document can nest
+ *
+ * @type (options: WalkOptions | undefined) => number
+ */
+export const maxDepth = (options) => {
+  const depth = options?.maxDepth ?? MAX_DEPTH;
+  if (depth !== Infinity && (!Number.isInteger(depth) || depth < 0)) {
+    throw RangeError(`'maxDepth' has to be a whole number that isn't negative, or Infinity, not ${depth}`);
+  }
+
+  return depth;
+};
+
+/**
+ * A walk would go under a node at its `maxDepth`
+ *
+ * @type (maxDepth: number, location: string) => Error
+ */
+export const maxDepthError = (maxDepth, location) => codedError(
+  `Walking more than ${maxDepth} levels deep, under ${relativeFileUrl(location)}. If that's expected, use a bigger 'maxDepth', or Infinity.`,
+  { code: "ERR_MAX_DEPTH", maxDepth },
+  location
+);

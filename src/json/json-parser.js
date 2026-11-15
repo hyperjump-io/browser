@@ -72,8 +72,9 @@ const MESSAGES = {
 };
 
 // RFC 8259 allows a limit on nesting depth. Without one, deeply nested input
-// would overflow the call stack.
-const MAX_DEPTH = 1000;
+// would overflow the call stack. A walk that follows references is limited
+// to it too, by default.
+export const MAX_DEPTH = 1000;
 
 const NUMBER = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?$/;
 

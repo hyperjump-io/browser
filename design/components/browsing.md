@@ -136,6 +136,44 @@ follow references with.
   (`Reachable`): the node it starts at, or what's under it once it's
   followed, the same as what `jrefStep` returns.
 
+## How deep a walk goes
+
+- `jrefVisit`, `jrefSelect`, and `jrefSelectAll` throw an `ERR_MAX_DEPTH`
+  if they'd go more than `maxDepth` levels below the node (`WalkOptions`).
+  A reference back to a node that's being walked already ends a walk, but
+  references can lead to new documents without end, like a `next` link on
+  every page of results. Each document is finite, so only depth through
+  references can be unbounded.
+- It's a guard and not a way to choose how deep to go. A walk that reaches
+  it is almost always a mistake, so it throws instead of returning what it
+  found, which would look like everything. A walk that's meant to stop at
+  a depth says so: a visitor returns `SKIP` at a `depth`, which it's given
+  for that, and a selector of child combinators is only as deep as it's
+  written.
+  - Stopping at `maxDepth` and going on with the rest of the tree was
+    rejected. Results that are missing what's deeper are wrong without
+    looking wrong.
+  - Returning whether the walk stopped, like `{ nodes, truncated }`, was
+    rejected. Every caller would have to check it, and one that doesn't
+    has the same wrong results.
+- It's only an error if the walk would go under a node at `maxDepth`: the
+  visitor didn't skip it, it isn't a reference back to a node that's being
+  walked, it has members, and for a selector, one of them could match or
+  have a match under it. It's checked before a member is followed, so a
+  walk that's too deep doesn't retrieve anything past `maxDepth`.
+- The error's `url` is the node the walk would go under, because that's
+  where to look for what leads deeper, and its cause has the `maxDepth`.
+  `jrefSelectAll` loses what it found when it throws, because it wouldn't
+  be everything.
+- Limiting the references followed or the documents retrieved was rejected
+  for now. They bound the cost of a walk, but not a broad one that's
+  shallow, like every person in a film, which is correct to retrieve.
+- The default is the parser's nesting limit, 1000 (`MAX_DEPTH` in
+  `json-parser.js`), so a walk of one document is never too deep, and a
+  walk through references can go as deep as the deepest document.
+  `Infinity` turns it off. Any other `maxDepth` that isn't a whole number
+  from 0 is a `RangeError`, because it's a mistake in the call.
+
 ## Selecting
 
 - `jrefSelect` and `jrefSelectAll` are `unist-util-select`'s `select` and
