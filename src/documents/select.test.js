@@ -1,6 +1,5 @@
 import { describe, test, expect } from "vitest";
 import { jrefSelect, jrefSelectAll } from "./select.js";
-import { jrefValue } from "./browsing.js";
 import { get } from "./documents.js";
 import { fromJref } from "../jref/jref-util.js";
 import { toJson } from "../json/jsonast-util.js";
@@ -29,7 +28,7 @@ describe("jrefSelect", () => {
 
     const director = await jrefSelect(session, ":root > [key=director]", film);
 
-    expect(director && jrefValue(director)).to.equal("George Lucas");
+    expect(director && toJson(director)).to.equal(`"George Lucas"`);
     expect(requests).to.eql(["/films/1"]);
   });
 
@@ -39,7 +38,7 @@ describe("jrefSelect", () => {
 
     const director = await jrefSelect(session, "> [key=director]", film);
 
-    expect(director && jrefValue(director)).to.equal("George Lucas");
+    expect(director && toJson(director)).to.equal(`"George Lucas"`);
   });
 
   test("a path follows the references on it and nothing else", async () => {
@@ -68,7 +67,7 @@ describe("jrefSelect", () => {
 
     const name = await jrefSelect(session, "[key=name]", film);
 
-    expect(name && jrefValue(name)).to.equal("Luke Skywalker");
+    expect(name && toJson(name)).to.equal(`"Luke Skywalker"`);
     expect(requests).to.eql(["/films/1", "/people/1"]);
   });
 

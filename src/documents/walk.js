@@ -37,8 +37,8 @@ export const follow = async (session, node) => {
 };
 
 /**
- * The members of an array or an object with their keys, like `jrefStep`
- * takes them: an item's index or a property's name. A value that's missing
+ * The members of an array or an object with their keys, like `[key=...]`
+ * matches them: an item's index or a property's name. A value that's missing
  * from a parse that failed isn't a member.
  *
  * @param {Walked} node

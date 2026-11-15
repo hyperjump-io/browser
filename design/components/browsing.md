@@ -1,29 +1,40 @@
 # Browsing (`src/documents/browsing.js`)
 
 Browsing is reading nodes and stepping into them while following
-references. It's done with the `jref*` functions, which take the session to
-follow references with.
+references. It's done with the `jref*` functions, which are the unist
+utilities for a tree with its references followed. They take the session
+to follow references with.
 
-| JSON (as written) | JRef (follows references) |
+| unist (as written) | JRef (follows references) |
 | --- | --- |
-| `jsonPointerGet(pointer, node)` | `get(session, url)` |
-| `jsonStep(key, node)` | `jrefStep(session, key, node)` |
-| `jsonArrayIter(node)` | `jrefArrayIter(session, node)` |
-| `jsonObjectValues(node)` | `jrefObjectValues(session, node)` |
-| `jsonObjectEntries(node)` | `jrefObjectEntries(session, node)` |
-| `jsonObjectHas(key, node)` | `jrefObjectHas(key, node)` |
-| `jsonObjectKeys(node)` | `jrefObjectKeys(node)` |
-| `jsonValue(node)` | `jrefValue(node)` |
 | `visit(tree, test, visitor)` (`unist-util-visit`) | `jrefVisit(session, node, test, visitor)` |
 | `find(tree, test)` (`unist-util-find`) | `jrefFind(session, node, test)`, `jrefFindAll(session, node, test)` |
+| `select(selector, tree)` (`unist-util-select`) | `jrefSelect(session, selector, node)` |
 | `selectAll(selector, tree)` (`unist-util-select`) | `jrefSelectAll(session, selector, node)` |
 
-- The functions that return nodes are async and follow references,
-  because following one can retrieve a document. They're for browsing,
-  where what's needed next isn't known until a node is read. Code that
-  computes over documents uses `get` and `getDocument` to gather them and
-  the `json*` functions to read them, which are synchronous. Only that
-  code knows what it will need, so it can retrieve it all at once.
+- A step is a selector: `> [key=title]` is the title, and
+  `> [key=characters] > *` is each character. A string, number, boolean,
+  or null node has its value in `value`, like any unist literal, and a
+  selector's `[jsonType=...]` narrows a node to one that has it (see
+  Selecting).
+  - A family of functions for one step at a time, each named for a
+    `json*` function, was rejected: `jrefStep`, `jrefArrayIter`,
+    `jrefObjectValues`, `jrefObjectEntries`, `jrefObjectHas`,
+    `jrefObjectKeys`, and `jrefValue`. They'd be a second way to browse
+    beside the walks, and a selector made of `>` steps retrieves no
+    more than they would, because its `[key=...]` rules out a member
+    before it's followed. Their iterators would retrieve an item only when
+    a loop reached it, so a loop that stops early retrieves less.
+    `jrefSelectAll` retrieves every match before it returns, and a walk
+    that stops early is `jrefVisit` returning `EXIT`. `jrefValue` would
+    have to throw for an object or an array, which `value` doesn't need,
+    because those nodes don't have one.
+- They're async and follow references, because following one can
+  retrieve a document. They're for browsing, where what's needed next
+  isn't known until a node is read. Code that computes over documents uses
+  `get` and `getDocument` to gather them and the `json*` functions to read
+  them, which are synchronous. Only that code knows what it will need, so
+  it can retrieve it all at once.
   - Synchronous browsing functions that return references as they are,
     with an async `follow` for a reference, were rejected. Browsing would
     take as many `await`s with a `follow` after every step, and one that's
@@ -33,26 +44,9 @@ follow references with.
 - They follow references with `get`, the same way an application's own
   function would, giving it the reference as `referencedFrom` (see
   [Documents](documents.md)).
-- Each one is named for its `json*` counterpart, so the prefix says what it
-  does with references: `json*` reads the tree as written, and `jref*`
-  follows references. The session comes first and the rest are the
-  counterpart's arguments.
-  - `jrefObjectHas` and `jrefObjectKeys` are `jsonObjectHas` and
-    `jsonObjectKeys`, typed to take a node that isn't a reference. Nothing
-    needs following to read a property name, but with them browsing is one
-    family of functions. Otherwise a browse would switch between `jref*`
-    and `json*` and the user would have to know which is safe.
-  - `jrefValue` throws for an object or an array (`ERR_STRUCTURED_VALUE`),
-    which `jsonValue` doesn't. Getting their value would mean following every reference in
-    them, which could retrieve any number of documents. A reference node is
-    an object, so it throws for one too.
-  - Its return type is the value of the node's `jsonType` from
-    `JsonTypeValue`, as `jsonValue`'s is, so a node narrowed to several
-    scalar types has a value of one of theirs. A node that could be an
-    object or an array has a scalar value, because it throws for those.
-  - There's no `jrefPointerGet`. A JSON Pointer in a JRef fragment doesn't
-    go through references, so `get` with a fragment does the one correct
-    thing, which is to follow the reference the pointer ends at.
+- There's no `jrefPointerGet`. A JSON Pointer in a JRef fragment doesn't go
+  through references, so `get` with a fragment does the one correct thing,
+  which is to follow the reference the pointer ends at.
 - The `jref*` functions only take a node that isn't a reference
   (`FollowedNode`), and that's checked by types, not at runtime. `get` and
   the `jref*` functions return followed nodes. A node from a `json*`
@@ -62,9 +56,6 @@ follow references with.
   as.
   - A runtime check in every `jref*` function was rejected. It would only
     help code that isn't type-checked, and it would be in every call.
-  - Following a reference a `jref*` function is given, instead of refusing
-    it, was rejected. The synchronous functions can't, so the family would
-    behave two ways.
 - They take a node of any tree, like the `json*` functions do, and not
   only a JRef one. All they need of a node is what a reference is: a
   `reference` node with an `href`. So what's built on browser browses its
@@ -91,7 +82,7 @@ follow references with.
   computes over documents needs before it retrieves. `CONTINUE`, `SKIP`,
   and `EXIT` are the same values as `unist-util-visit`'s.
 - It visits values with the key they're at and the value that has them,
-  the same keys `jrefStep` takes. It doesn't visit `json-property` or
+  the same keys `[key=...]` matches. It doesn't visit `json-property` or
   `json-property-name` nodes. A reference's value isn't in the document
   the reference is in, so a unist `index` into its parent's `children`
   wouldn't find it, and the browsing functions deal in values.
@@ -135,7 +126,7 @@ follow references with.
     node can pass it.
 - What the visitor's node is typed as is what a walk can reach
   (`Reachable`): the node it starts at, or what's under it once it's
-  followed, the same as what `jrefStep` returns.
+  followed.
 
 ## Finding
 
@@ -203,15 +194,11 @@ follow references with.
 - `jrefSelect` and `jrefSelectAll` are `unist-util-select`'s `select` and
   `selectAll` for the tree with its references followed. They take the
   session first and then `unist-util-select`'s arguments like the other
-  `jref*` functions. They're for reaching values by a path or a pattern in
-  one call. `jrefStep` stays for one step, which is clearer and can't
-  follow more than one reference.
+  `jref*` functions. They're for reaching values by a path, one step or
+  many, or by a pattern.
   - Using `unist-util-select` was rejected. Following a reference is
     async, and it matches against the tree as written, where a reference
     is the object and a value has no key.
-  - Replacing the browsing functions with selectors was rejected. A
-    descendant selector follows every reference under a node, so a
-    function for one step is the safe way to write the common case.
 - A value doesn't have its key, because the key is on the property's name
   node, so `[key=...]` is a pseudo-attribute that matches the property
   name or array index the value is at. It takes the place of a property

@@ -1,5 +1,5 @@
 // What jrefVisit's types say about the nodes it visits. It's only type-checked.
-import { get, Hyperjump, jrefFind, jrefFindAll, jrefValue, jrefVisit } from "../index.js";
+import { get, Hyperjump, jrefFind, jrefFindAll, jrefVisit } from "../index.js";
 import type { FollowedNode, JrefNode, JsonNode, JsonPropertyNameNode } from "../index.js";
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
@@ -25,8 +25,7 @@ await jrefVisit(session, node, { jsonType: "number" }, (visited) => {
 // An array test narrows to the nodes any of its tests can pass
 await jrefVisit(session, node, [{ jsonType: "string" }, { jsonType: "boolean" }], (visited) => {
   yes<Equal<typeof visited.jsonType, "string" | "boolean">>();
-  const value = jrefValue(visited);
-  yes<Equal<typeof value, string | boolean>>();
+  yes<Equal<typeof visited.value, string | boolean>>();
 });
 
 // A type predicate narrows, and a function that isn't one doesn't
@@ -59,8 +58,7 @@ yes<Equal<NonNullable<typeof found>["jsonType"], "number">>();
 yes<Equal<undefined extends typeof found ? true : false, true>>();
 const foundAll = await jrefFindAll(session, node, [{ jsonType: "string" }, { jsonType: "boolean" }]);
 for (const each of foundAll) {
-  const value = jrefValue(each);
-  yes<Equal<typeof value, string | boolean>>();
+  yes<Equal<typeof each.value, string | boolean>>();
 }
 
 // A null test passes every node, so it doesn't narrow

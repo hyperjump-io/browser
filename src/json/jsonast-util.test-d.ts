@@ -1,6 +1,6 @@
-// What jsonValue's and jrefValue's types say a node's value is. It's only
+// What jsonValue's types say a node's value is. It's only
 // type-checked.
-import { fromJs, get, Hyperjump, jrefValue, jsonValue } from "../index.js";
+import { fromJs, jsonValue } from "../index.js";
 import type { Json, JsonPropertyNameNode } from "../index.js";
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
@@ -32,18 +32,3 @@ if (node.jsonType !== "object") {
 declare const name: JsonPropertyNameNode;
 const nameValue = jsonValue(name);
 yes<Equal<typeof nameValue, string>>();
-
-// jrefValue is the same for the values it takes, and an object or an array
-// is the scalars, because it throws for them
-const session = new Hyperjump({ allowRetrieval: [] });
-const followed = await get(session, "https://example.com/");
-if (followed.jsonType === "null") {
-  const value = jrefValue(followed);
-  yes<Equal<typeof value, null>>();
-}
-if (followed.jsonType === "string" || followed.jsonType === "number") {
-  const value = jrefValue(followed);
-  yes<Equal<typeof value, string | number>>();
-}
-const anyValue = jrefValue(followed);
-yes<Equal<typeof anyValue, string | number | boolean | null>>();

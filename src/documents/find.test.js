@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { jrefFind, jrefFindAll, jrefValue } from "./browsing.js";
+import { jrefFind, jrefFindAll } from "./browsing.js";
 import { get } from "./documents.js";
 import { toJson } from "../json/jsonast-util.js";
 import { coded } from "../test-helpers/errors.js";
@@ -23,7 +23,7 @@ describe("jrefFind", () => {
 
     const number = await jrefFind(session, film, { jsonType: "number" });
 
-    expect(number && jrefValue(number)).to.equal(172);
+    expect(number?.value).to.equal(172);
     expect(requests).to.eql(["/films/1", "/people/1"]);
   });
 

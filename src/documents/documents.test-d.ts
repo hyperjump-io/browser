@@ -1,5 +1,5 @@
 // What a session's type says about its documents. It's only type-checked.
-import { defaultMediaTypes, get, getDocument, Hyperjump, jrefMediaType, jrefObjectEntries, jrefObjectHas, jrefStep, jrefValue } from "../index.js";
+import { defaultMediaTypes, get, getDocument, Hyperjump, jrefMediaType, jrefSelect, jrefSelectAll } from "../index.js";
 import type { DocumentNode, FollowedNode, HyperjumpConfig, JrefMediaTypeDocument, JrefNode, JsonMediaTypeDocument, JsonNode, MediaTypePlugin } from "../index.js";
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
@@ -45,26 +45,18 @@ yes<Equal<typeof unknownNode, unknown>>();
 // Browsing takes a node of any tree, and gives a node of that tree or of
 // any of the session's
 declare const other: FollowedNode<OtherNode>;
-const stepped = await jrefStep(both, "a", other);
-yes<Equal<typeof stepped, FollowedNode<JrefNode | JsonNode | OtherNode>>>();
-const fromDefaults = await jrefStep(defaults, "a", other);
-yes<Equal<typeof fromDefaults, FollowedNode<JrefNode | JsonNode | OtherNode>>>();
+const selected = await jrefSelect(both, "> [key=a]", other);
+yes<Equal<typeof selected, FollowedNode<JrefNode | JsonNode | OtherNode> | undefined>>();
+const fromDefaults = await jrefSelect(defaults, "> [key=a]", other);
+yes<Equal<typeof fromDefaults, FollowedNode<JrefNode | JsonNode | OtherNode> | undefined>>();
 if (other.jsonType === "object") {
   // A narrowed node's values are any node of its tree
-  for await (const [, value] of jrefObjectEntries(both, other)) {
+  for (const value of await jrefSelectAll(both, "> *", other)) {
     yes<Equal<typeof value, FollowedNode<JrefNode | JsonNode | OtherNode>>>();
   }
-}
-if (other.jsonType === "string") {
-  const text = jrefValue(other);
-  yes<Equal<typeof text, string>>();
 }
 
 // A node that could be a reference has to be followed first
 declare const unfollowed: OtherNode;
 // @ts-expect-error
-await jrefStep(both, "a", unfollowed);
-// @ts-expect-error
-jrefObjectHas("a", unfollowed);
-// @ts-expect-error
-jrefValue(unfollowed);
+await jrefSelect(both, "> [key=a]", unfollowed);

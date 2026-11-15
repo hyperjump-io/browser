@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { visit } from "unist-util-visit";
-import { CONTINUE, EXIT, SKIP, jrefValue, jrefVisit } from "./browsing.js";
+import { CONTINUE, EXIT, SKIP, jrefVisit } from "./browsing.js";
 import { get, getDocument } from "./documents.js";
 import { fromJref } from "../jref/jref-util.js";
 import { toJson } from "../json/jsonast-util.js";
@@ -207,7 +207,7 @@ describe("jrefVisit", () => {
       /** @type number[] */
       const numbers = [];
       await jrefVisit(session, subject, { jsonType: "number" }, (node) => {
-        numbers.push(jrefValue(node));
+        numbers.push(node.value);
       });
 
       // 2 is under a reference, which the walk follows to look for numbers
@@ -221,7 +221,7 @@ describe("jrefVisit", () => {
       /** @type (string | boolean)[] */
       const values = [];
       await jrefVisit(session, subject, [{ jsonType: "string" }, { jsonType: "boolean" }], (node) => {
-        values.push(jrefValue(node));
+        values.push(node.value);
       });
 
       expect(values).to.eql([true, "x"]);

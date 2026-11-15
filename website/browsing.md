@@ -2,8 +2,8 @@
 
 Browsing is reading a value and stepping to the values inside it. `get` gives
 you a node for the value a URL identifies, and from there the `jref` functions
-read the node and step into it. The ones that can reach a reference take the
-session so they can follow it.
+step into it. They take the session so they can follow the references they
+reach.
 
 ```typescript
 import { Hyperjump, get } from "@hyperjump/browser";
@@ -26,58 +26,37 @@ luke.jsonType; // "object"
 luke.location; // "https://swapi.hyperjump.io/api/people/1#"
 ```
 
-## Read nodes
+A string, number, boolean, or null node has its value as plain JavaScript in
+`value`, like a literal in any [unist](https://github.com/syntax-tree/unist)
+tree. An object or an array node doesn't have one. You step into it instead.
 
-Following a reference can mean retrieving a document, so the functions that can
-follow a reference are asynchronous and take the session. The others don't
-need either.
+## Follow references
 
-```typescript
-import {
-  jrefArrayIter,
-  jrefObjectEntries,
-  jrefObjectHas,
-  jrefObjectKeys,
-  jrefObjectValues,
-  jrefStep,
-  jrefValue
-} from "@hyperjump/browser";
-```
+*Coming soon*
 
-| Function | Returns |
-| --- | --- |
-| `await jrefStep(session, key, node)` | The property `key` of an object or the item at index `key` of an array |
-| `jrefArrayIter(session, node)` | An async iterator over the items of an array |
-| `jrefObjectValues(session, node)` | An async iterator over the property values of an object |
-| `jrefObjectEntries(session, node)` | An async iterator over `[name, node]` pairs of an object |
-| `jrefObjectKeys(node)` | An iterator over the property names of an object |
-| `jrefObjectHas(key, node)` | Whether an object has a property |
-| `jrefValue(node)` | The value of a string, number, boolean, or null as JavaScript |
-
-None of these functions give you a reference. Every function that returns nodes
-follows any reference it reaches and returns the referenced value instead. If
-that value is another reference, the function follows that one too. This
-example steps from Luke to his homeworld and prints the homeworld's properties
-that aren't objects or arrays:
+Following a reference can mean retrieving a document, so the `jref` functions
+are asynchronous and take the session. You step into a node with a selector,
+which [Select values](#select-values) says more about. This one steps from Luke
+to his homeworld and then to its name:
 
 ```typescript
-const homeworld = await jrefStep(session, "homeworld", luke);
+import { jrefSelect } from "@hyperjump/browser";
 
-for await (const [name, value] of jrefObjectEntries(session, homeworld)) {
-  if (value.jsonType !== "object" && value.jsonType !== "array") {
-    console.log(name, jrefValue(value));
-  }
-}
+const name = await jrefSelect(
+  session,
+  "> [key=homeworld] > [key=name][jsonType=string]",
+  luke
+);
+name?.value; // "Tatooine"
 ```
 
-The example skips objects and arrays because `jrefValue` throws an error for
-them, whose `cause.code` is `"ERR_STRUCTURED_VALUE"`.
-Getting the whole value would mean following every reference inside it. That
-could retrieve any number of documents and possibly the entire API. To read an
-object or an array, step into it.
+None of the `jref` functions give you a reference. Each one follows any
+reference it reaches and gives you the referenced value instead. If that value
+is another reference, the function follows that one too.
 
-Each `jref` function has a `json` counterpart, such as `jsonStep` for
-`jrefStep`, that reads the AST as it's written. For more information, see
+The unified ecosystem's utilities and the `json` functions, such as `jsonStep`,
+read the AST as it's written. For more information, see
+[The tree as it's written](#the-tree-as-its-written) and
 [Parse JSON and JRef](parsing.md). A node from a `json` function can be a
 reference that it didn't follow, so TypeScript doesn't let you pass it to a
 `jref` function until you check that its `type` isn't `"reference"`. A node from
@@ -124,7 +103,7 @@ including the ones in the documents that Luke's references lead to:
 
 ```typescript
 await jrefVisit(session, luke, { jsonType: "number" }, (node, key) => {
-  console.log(key, jrefValue(node));
+  console.log(key, node.value);
 });
 ```
 
@@ -152,7 +131,7 @@ const strings = await jrefFindAll(session, luke, { jsonType: "string" });
 retrieve anything after it. `jrefFindAll` looks everywhere under the node, and
 it gives you each value once even if more than one reference leads to it. In
 TypeScript, what they find has the type of the values that can pass the test,
-so `jrefValue(number)` is a `number`.
+so `number?.value` is a `number`.
 
 ## Select values
 
@@ -173,8 +152,7 @@ const names = await jrefSelectAll(session, "> [key=characters] > * > [key=name]"
 ```
 
 Each character is a reference to another document. The second selector steps
-into each one and gets its name, which takes a `jrefStep` for each step and a
-`jrefArrayIter` for the characters without a selector.
+into each one and gets its name.
 
 | Selector | Matches |
 | --- | --- |
@@ -281,7 +259,7 @@ references. `#/homeworld` works because the reference is the last thing the
 pointer reaches. `get` follows that reference and gives you the homeworld.
 `#/homeworld/name` doesn't work because the pointer can't go through the
 reference. It looks for `name` in Luke's document, which doesn't have one. To
-get the name, get the homeworld first. Then step into it.
+get the name, get the homeworld first. Then select its name.
 
 ## Follow a reference yourself
 

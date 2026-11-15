@@ -1,53 +1,10 @@
 import { follow, maxDepth, maxDepthError, memberEntries } from "./walk.js";
-import { relativeFileUrl } from "../file-urls.js";
-import { codedError } from "../json/coded-error.js";
-import { jsonArrayIter, jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonObjectValues, jsonStep, jsonValue } from "../json/jsonast-util.js";
 
 /**
  * @import * as API from "./browsing.d.ts"
- * @import { DocumentSession, FollowedNode } from "./documents.d.ts"
+ * @import { DocumentSession } from "./documents.d.ts"
  * @import { Walked } from "./walk.js"
  */
-
-/** @type typeof API.jrefStep */
-export const jrefStep = async (session, key, node) => follow(session, jsonStep(key, node));
-
-/** @type typeof API.jrefArrayIter */
-export const jrefArrayIter = async function* (session, node) {
-  for (const itemNode of jsonArrayIter(node)) {
-    yield follow(session, itemNode);
-  }
-};
-
-/** @type typeof API.jrefObjectValues */
-export const jrefObjectValues = async function* (session, node) {
-  for (const valueNode of jsonObjectValues(node)) {
-    yield follow(session, valueNode);
-  }
-};
-
-/** @type typeof API.jrefObjectEntries */
-export const jrefObjectEntries = async function* (session, node) {
-  for (const [key, valueNode] of jsonObjectEntries(node)) {
-    yield [key, await follow(session, valueNode)];
-  }
-};
-
-// The same functions as the JSON ones, typed to take a node that isn't a
-// reference
-/** @type typeof API.jrefObjectHas */
-export const jrefObjectHas = jsonObjectHas;
-/** @type typeof API.jrefObjectKeys */
-export const jrefObjectKeys = jsonObjectKeys;
-
-/** @type typeof API.jrefValue */
-export const jrefValue = (/** @type FollowedNode */ node) => {
-  if (node.jsonType === "object" || node.jsonType === "array") {
-    throw codedError(`Can't get the value of an ${node.jsonType} at ${relativeFileUrl(node.location)}. Step into it instead.`, { code: "ERR_STRUCTURED_VALUE" }, node.location);
-  }
-
-  return /** @type never */ (jsonValue(node));
-};
 
 /** @type typeof API.CONTINUE */
 export const CONTINUE = true;
