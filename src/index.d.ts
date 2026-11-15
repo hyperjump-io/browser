@@ -5,6 +5,7 @@
 export * from "./hyperjump.js";
 export * from "./default-stack.js";
 export * from "./layers.js";
+export * from "./registry.js";
 export * from "./priority.js";
 export { FetchRecord } from "./fetch-record.js";
 export type { FetchRecordJson, Mark, Observer, TraceEvent } from "./fetch-record.js";

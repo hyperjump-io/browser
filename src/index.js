@@ -1,6 +1,7 @@
 export * from "./hyperjump.js";
 export * from "#default-stack";
 export * from "./layers.js";
+export * from "./registry.js";
 export * from "./priority.js";
 export { FetchRecord } from "./fetch-record.js";
 export * from "./response-meta.js";

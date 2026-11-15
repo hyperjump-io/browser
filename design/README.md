@@ -34,6 +34,7 @@ for users is in [`website/`](../website/README.md).
 - [HTTP cache](components/http-cache.md): RFC 9111, with the Fetch standard's cache modes
 - [Request headers](components/request-headers.md): headers by URL, so a credential goes only where it's for
 - [What a session can fetch](components/allow-retrieval.md): `allowRetrieval`, so a document can't make a session fetch whatever it names
+- [The registry](components/registry.md): documents the application has, answered before `allowRetrieval` and the stack
 - [`file:` from `file:`](components/file-references.md): only a file can refer to a file, so a document from the web can't read them
 - [Redirects](components/redirects.md): followed by the session one at a time, through the stack
 - [The file cache store](components/file-cache-store.md): the HTTP cache on disk

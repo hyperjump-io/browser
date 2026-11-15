@@ -1,6 +1,7 @@
 import type { Fetcher } from "./layers.d.ts";
 import type { Priority, PrioritySignal } from "./priority.d.ts";
 import type { FetchRecord, Observer } from "./fetch-record.d.ts";
+import type { Registry } from "./registry.d.ts";
 
 /**
  * A session's configuration. It's an interface so what's built on a session
@@ -35,6 +36,15 @@ export interface HyperjumpConfig {
    * a redirect to one, or a response from one, is a network error.
    */
   allowRetrieval?: string[];
+
+  /**
+   * Documents the application already has, answered before `allowRetrieval`
+   * and the stack, like a copy of a document bundled with it. They aren't fetched, so
+   * `allowRetrieval` doesn't apply to them. Only a `GET` or `HEAD` is asked
+   * of it, by the URL without its fragment. A redirect to a URL it has is
+   * fetched. Its answers are in traces, with the source `"registry"`.
+   */
+  registry?: Registry;
 
   /** More redirects than this is a network error. Default 20, the Fetch standard's. */
   maxRedirects?: number;

@@ -54,7 +54,8 @@ a trace shows it as a request that failed. For more information, see
 The session checks a URL before any layer gets the request, so a URL that the
 [HTTP cache](http-caching.md) or a layer of your own answers has to be in the
 list too. If a layer has a copy of a document from another origin, add that URL
-to the list.
+to the list. A document in the session's [registry](registries.md) isn't
+fetched, so it doesn't have to be in the list.
 
 ## What it protects against
 

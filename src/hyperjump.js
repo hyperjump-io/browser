@@ -1,4 +1,4 @@
-import { responseMeta, setResponseMeta, trackBody } from "./response-meta.js";
+import { responseMeta, setResponseMeta, trackBody, withUrl } from "./response-meta.js";
 import { PrioritySignal } from "./priority.js";
 import { recordChunk, recordEnd, recordResponse, startRecord } from "./fetch-record.js";
 import { follow, sentHeaders } from "./redirects.js";
@@ -116,10 +116,19 @@ export class Hyperjump {
       ? new Request(input, { ...requestInit, signal })
       : new Request(new URL(input, this.#contextUrl), { ...requestInit, signal });
     const initiatorRecord = initiator instanceof Response ? responseMeta(initiator).record : initiator;
+    // The registry's documents aren't fetched, so they're answered before
+    // `allowRetrieval`. What it throws is recorded, like a failed fetch.
+    let registered;
+    let registryError;
+    try {
+      registered = await this.#registered(request);
+    } catch (error) {
+      registryError = error;
+    }
     // A refused URL gets none of the session's headers, but it's recorded, like
     // a request a browser blocks
-    const refusal = await this.#refusal(request.url, referrerOf(initiatorRecord));
-    const added = refusal ? new Headers() : await this.#policy.headers(request.url);
+    const refusal = registered || registryError ? undefined : await this.#refusal(request.url, referrerOf(initiatorRecord));
+    const added = registered || registryError || refusal ? new Headers() : await this.#policy.headers(request.url);
     signal.throwIfAborted();
 
     const record = startRecord({
@@ -143,10 +152,12 @@ export class Hyperjump {
     this.#notify({ type: "start", record });
     let response;
     try {
-      if (refusal) {
+      if (registryError) {
+        throw registryError;
+      } else if (refusal) {
         throw refusal;
       }
-      response = await follow(this.stack, request, ctx, this.#policy, added);
+      response = registered ?? await follow(this.stack, request, ctx, this.#policy, added);
     } catch (error) {
       recordEnd(record, error);
       throw error;
@@ -174,6 +185,28 @@ export class Hyperjump {
   /** @type API.Hyperjump["close"] */
   close(reason = new DOMException("The session was closed", "AbortError")) {
     this.#controller.abort(reason);
+  }
+
+  /**
+   * What the registry has for a request, if it has one. Only a `GET` or a
+   * `HEAD` is asked of it, without the URL's fragment, and a response a
+   * registry made without a URL gets the request's.
+   *
+   * @type (request: Request) => Promise<Response | undefined>
+   */
+  async #registered(request) {
+    const registry = this.config.registry;
+    if (registry === undefined || (request.method !== "GET" && request.method !== "HEAD")) {
+      return;
+    }
+
+    const url = new URL(request.url);
+    url.hash = "";
+    const response = await registry.get(url.href, { session: /** @type any */ (this) });
+    if (response === undefined) {
+      return;
+    }
+    return setResponseMeta(response.url ? response : withUrl(response, url.href), { source: "registry" });
   }
 
   /**

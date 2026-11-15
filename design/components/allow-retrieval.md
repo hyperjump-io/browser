@@ -76,7 +76,9 @@ Rejected:
   for documents an application already has. It would make "resolved
   locally" a concept here. A layer that answers URLs itself goes on the
   stack like any other, and the application lists its URLs in
-  `allowRetrieval`.
+  `allowRetrieval`. A session's `registry` isn't a layer: it's asked for
+  documents the application has, not how to fetch, so it's answered
+  before the check (see [The registry](registry.md)).
 
 ## Where it's checked
 
@@ -113,8 +115,10 @@ A refused URL is a network error, the `TypeError` `fetch` rejects with (see
 [Like a web browser](../principles/like-a-web-browser.md)). Its message
 names the URL and says to add it to the session's `allowRetrieval`.
 
-Because the session checks a URL before the stack sees it, what a layer
-answers without fetching, like the HTTP cache, has to be allowed too. A
+A session's `registry` is asked before the check, because what it has
+isn't fetched (see [The registry](registry.md)). Because the session
+checks a URL before the stack sees it, what a layer answers without
+fetching, like the HTTP cache, has to be allowed too. A
 cached response isn't a way around the list. A copy of a document that an
 application's layer answers with is listed in `allowRetrieval`, like its
 URL would be if it were fetched. The session can't know which layer will

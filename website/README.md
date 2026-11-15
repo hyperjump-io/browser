@@ -31,6 +31,7 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 - [Media types](media-types.md): formats other than JSON and JRef
 - [Sessions](sessions.md): fetch through a session, and close it
 - [What a session can fetch](allow-retrieval.md): allow only the URLs your app should fetch
+- [Registries](registries.md): documents your app already has
 - [Errors](errors.md): what a failed request rejects with, and how to tell failures apart
 - [Layers](layers.md): build a stack and write your own layers
 - [File URLs](file-urls.md): fetch `file:` URLs on a server
