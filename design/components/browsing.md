@@ -14,6 +14,7 @@ follow references with.
 | `jsonObjectHas(key, node)` | `jrefObjectHas(key, node)` |
 | `jsonObjectKeys(node)` | `jrefObjectKeys(node)` |
 | `jsonValue(node)` | `jrefValue(node)` |
+| `visit(tree, test, visitor)` (`unist-util-visit`) | `jrefVisit(session, node, test, visitor)` |
 
 - The functions that return nodes are async and follow references,
   because following one can retrieve a document. They're for browsing,
@@ -73,3 +74,59 @@ follow references with.
   - A node with only `type: string`, which is all that's certain without
     the session, was rejected. It can't be narrowed to a kind of node, so
     every caller would cast.
+
+## Visiting
+
+- `jrefVisit` is `unist-util-visit` for the tree with its references
+  followed. Its counterpart is `unist-util-visit` and not a `json*`
+  function because the tree is a unist tree and the ecosystem's utilities
+  already read it as written. `visit(document, "reference", ...)` gathers a
+  document's references without following them, which is what code that
+  computes over documents needs before it retrieves. `CONTINUE`, `SKIP`,
+  and `EXIT` are the same values as `unist-util-visit`'s.
+- It visits values with the key they're at and the value that has them,
+  the same keys `jrefStep` takes. It doesn't visit `json-property` or
+  `json-property-name` nodes. A reference's value isn't in the document
+  the reference is in, so a unist `index` into its parent's `children`
+  wouldn't find it, and the browsing functions deal in values.
+- The visitor also gets the node's depth below the node the visit starts
+  at, so returning `SKIP` at a depth is how a visit goes only so deep.
+- Each member is followed just before it's visited and not all of a
+  node's members first, so `SKIP` and `EXIT` keep the session from
+  retrieving what isn't visited.
+- A value reached through two references is visited each time because
+  it's in the tree twice. A reference back to a value that's being visited
+  is visited, but its members aren't, so a recursive definition ends the
+  walk instead of making it infinite. What's being visited is told by the
+  node and not its location, because two documents can say they have the
+  same URL, like two that say they contain the same document.
+  - An `ERR_REFERENCE_CYCLE` was rejected. A recursive definition, like a
+    tree whose children are trees, is a valid document whose references
+    all resolve.
+  - Visiting each location once was rejected. A visitor that keeps state
+    by its key or parent, like one that builds a value, would miss every
+    place a shared value is used after the first.
+- The visitor can be async, so it can retrieve what it needs, and it's
+  awaited before the walk goes on.
+- A test before the visitor picks the nodes the visitor gets, as
+  `unist-util-visit`'s does, with `unist-util-is`'s kinds of test: a
+  `type`, an object of properties that are `===`, a function, or an array
+  of those. `null` or `undefined` passes every node, as it does in
+  `unist-util-is`. The visitor's node is narrowed to what can pass it, so
+  `{ jsonType: "number" }` gives a number node.
+  - The walk still goes through nodes that don't pass and follows their
+    references, because what passes can be under them. A node that
+    doesn't pass can't be skipped, because the visitor doesn't get it.
+  - A function test gets the key and the parent instead of an index, the
+    same as the visitor.
+  - Converting tests with `unist-util-is` was rejected. Its function tests
+    take an index, and it throws for a key that isn't a number.
+  - An array of tests can't have arrays in it. A recursive test type makes
+    TypeScript's inference too deep for a function test, and
+    `unist-util-is`'s arrays are one level too.
+  - A function test that isn't a type predicate doesn't narrow. An object
+    test with a property no node type has narrows to `never`, because no
+    node can pass it.
+- What the visitor's node is typed as is what a walk can reach
+  (`Reachable`): the node it starts at, or what's under it once it's
+  followed, the same as what `jrefStep` returns.

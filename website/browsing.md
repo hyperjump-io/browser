@@ -89,6 +89,65 @@ session with the default media types gives JRef and JSON nodes. If you add a
 media type with nodes of its own, check a node's `type` to tell which it is.
 For more information, see [Media types](media-types.md).
 
+## Visit every value
+
+*Coming soon*
+
+`jrefVisit` walks a node and every value under it depth first in document
+order, following references along the way. It works like `visit` from
+`unist-util-visit`, and its visitor returns the same `CONTINUE`, `SKIP`, and
+`EXIT` values. The visitor gets each node with the key it's at, the node that
+has it, and its depth below the node you started from:
+
+```typescript
+import { CONTINUE, jrefVisit, SKIP } from "@hyperjump/browser";
+
+await jrefVisit(session, luke, (node, key, parent, depth) => {
+  console.log(depth, key, node.location);
+  return key === "films" ? SKIP : CONTINUE;
+});
+```
+
+The session follows a reference just before the visitor gets its value, so
+returning `SKIP` keeps the session from retrieving the documents under that
+node. That's also how you stop at a depth: return `SKIP` when `depth` is as
+deep as you want to go. If a reference leads back to a value that the walk is
+inside, like a recursive definition, the visitor gets that value but not the
+values inside it again, so the walk ends.
+
+To visit only some nodes, put a test before the visitor like you would with
+`unist-util-visit`. A string matches a node's `type`, an object matches nodes
+with the same properties, a function matches nodes it returns `true` for, and an
+array matches nodes that match any test in it. In TypeScript, the visitor's
+node has the type of the nodes that match. This example prints every number,
+including the ones in the documents that Luke's references lead to:
+
+```typescript
+await jrefVisit(session, luke, { jsonType: "number" }, (node, key) => {
+  console.log(key, jrefValue(node));
+});
+```
+
+The walk still goes through the values that don't match and follows their
+references to find what's under them.
+
+## The tree as it's written
+
+Documents are [unist](https://github.com/syntax-tree/unist) trees, so the
+unified ecosystem's utilities work on them too. They read a tree as it's
+written, without following references. For example, `visit` from
+`unist-util-visit` finds every reference in a document:
+
+```typescript
+import { visit } from "unist-util-visit";
+import { getDocument } from "@hyperjump/browser";
+
+const document = await getDocument(session, "https://swapi.hyperjump.io/api/films/1");
+visit(document, "reference", (node) => {
+  console.log(node.href);
+});
+```
+
 ## Fragments
 
 The fragment of the URL you give `get` identifies a value within the document.

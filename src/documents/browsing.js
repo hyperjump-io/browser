@@ -1,4 +1,4 @@
-import { get } from "./documents.js";
+import { follow, memberEntries } from "./walk.js";
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
 import { jsonArrayIter, jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonObjectValues, jsonStep, jsonValue } from "../json/jsonast-util.js";
@@ -6,7 +6,7 @@ import { jsonArrayIter, jsonObjectEntries, jsonObjectHas, jsonObjectKeys, jsonOb
 /**
  * @import * as API from "./browsing.d.ts"
  * @import { DocumentSession, FollowedNode } from "./documents.d.ts"
- * @import { JrefNode } from "../jref/jref-ast.d.ts"
+ * @import { Walked } from "./walk.js"
  */
 
 /** @type typeof API.jrefStep */
@@ -49,19 +49,105 @@ export const jrefValue = (/** @type FollowedNode */ node) => {
   return /** @type never */ (jsonValue(node));
 };
 
+/** @type typeof API.CONTINUE */
+export const CONTINUE = true;
+/** @type typeof API.SKIP */
+export const SKIP = "skip";
+/** @type typeof API.EXIT */
+export const EXIT = false;
+
+// The overloads type the function, and the visitor is the third argument,
+// or the fourth after a test, so they're read by what they are
+// eslint-disable-next-line @stylistic/no-extra-parens
+export const jrefVisit = /** @type typeof API.jrefVisit */ (
+  /**
+   * @param {DocumentSession} session
+   * @param {Walked} node
+   * @param {API.JrefTest<any> | API.JrefVisitor<any>} testOrVisitor
+   * @param {API.JrefVisitor<any>} [visitor]
+   */
+  async (session, node, testOrVisitor, visitor) => {
+    const [check, visit] = visitor === undefined
+      ? [() => true, /** @type API.JrefVisitor<any> */ (testOrVisitor)]
+      : [convertTest(/** @type API.JrefTest<any> */ (testOrVisitor)), visitor];
+
+    await visitNode(session, node, undefined, undefined, 0, new Set(), check, visit);
+  }
+);
+
 /**
- * A reference's value, or the node if it isn't a reference. It uses `get`,
- * so these functions are built on a session the way an application's would
- * be. `get` follows a reference to another reference too, and finds the
- * document the reference is in from the node.
- *
- * The functions take the type of the node they're given, which can be any
- * tree's, so here a node is only what a reference needs. What comes back is
- * a node of that tree, which the functions' types say.
- *
- * @type (session: DocumentSession, node: unknown) => Promise<any>
+ * @typedef {(node: Walked, key: string | undefined, parent: Walked | undefined) => boolean} Check
  */
-const follow = async (session, node) => {
-  const reference = /** @type JrefNode */ (node);
-  return reference.type === "reference" ? get(session, reference.href, { referencedFrom: reference }) : node;
+
+/**
+ * Visit a node, then its members in document order, following each one
+ * just before it's visited, so a skipped node's references aren't
+ * followed. `ancestors` is the nodes being visited above it, so a
+ * reference back to one of them is visited but not descended into. They're
+ * the nodes and not their locations, because two documents can say they
+ * have the same URL.
+ *
+ * @type (session: DocumentSession, node: Walked, key: string | undefined, parent: Walked | undefined, depth: number, ancestors: Set<Walked>, check: Check, visitor: API.JrefVisitor<any>) => Promise<API.VisitAction>
+ */
+const visitNode = async (session, node, key, parent, depth, ancestors, check, visitor) => {
+  const action = check(node, key, parent) ? await visitor(node, key, parent, depth) : CONTINUE;
+  if (action === EXIT) {
+    return EXIT;
+  }
+
+  if (action === SKIP || ancestors.has(node)) {
+    return CONTINUE;
+  }
+
+  ancestors.add(node);
+  try {
+    for (const [memberKey, memberNode] of memberEntries(node)) {
+      const followedNode = /** @type Walked */ (await follow(session, memberNode));
+      if (await visitNode(session, followedNode, memberKey, node, depth + 1, ancestors, check, visitor) === EXIT) {
+        return EXIT;
+      }
+    }
+  } finally {
+    ancestors.delete(node);
+  }
+
+  return CONTINUE;
+};
+
+/**
+ * A test as a function, the way `unist-util-is` converts one: `null` or
+ * `undefined` passes every node, a string is a `type`, an object is
+ * properties that have to be equal, and an array is tests any one of which
+ * passes. An array's tests can't be arrays, as `unist-util-is`'s types say.
+ *
+ * @type (test: API.JrefTest<any>) => Check
+ */
+const convertTest = (test) => {
+  if (test === null || test === undefined) {
+    return () => true;
+  } else if (Array.isArray(test)) {
+    const checks = test.map((check) => {
+      if (Array.isArray(check) || check === null || check === undefined) {
+        throw TypeError("An array's tests have to be strings, objects, or functions");
+      }
+      return convertCheck(check);
+    });
+    return (node, key, parent) => checks.some((check) => check(node, key, parent));
+  } else {
+    return convertCheck(/** @type API.JrefCheck<any> */ (test));
+  }
+};
+
+/** @type (check: API.JrefCheck<any>) => Check */
+const convertCheck = (check) => {
+  if (typeof check === "string") {
+    return (node) => node.type === check;
+  } else if (typeof check === "function") {
+    return (node, key, parent) => Boolean(check(node, key, parent));
+  } else if (typeof check === "object" && check !== null) {
+    const entries = Object.entries(check);
+    return (node) => entries.every(([name, value]) => /** @type Record<string, unknown> */ (node)[name] === value);
+  } else {
+    throw TypeError("A test has to be null, a string, an object, a function, or an array of tests");
+  }
 };

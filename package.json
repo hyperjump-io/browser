@@ -79,6 +79,7 @@
     "oxlint": "*",
     "oxlint-tsgolint": "*",
     "typescript": "*",
+    "unist-util-visit": "*",
     "vfile-message": "^4.0.4",
     "vite": "*",
     "vitest": "*"
