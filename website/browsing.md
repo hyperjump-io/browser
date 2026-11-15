@@ -263,9 +263,19 @@ get the name, get the homeworld first. Then select its name.
 
 ## Follow a reference yourself
 
-To follow a reference node with `get`, pass the node as `referencedFrom`. The
-session then knows which document the reference is in. That document causes the
-request, and `get` finds a document that it contains without retrieving it:
+A walk that starts at a reference starts at the value it leads to. So `:scope`
+follows a reference node, and gives you any other node as it is:
+
+```typescript
+import { jrefSelect, jsonStep } from "@hyperjump/browser";
+
+const homeworld = await jrefSelect(session, ":scope", jsonStep("homeworld", luke));
+```
+
+Code that doesn't walk can follow a reference node with `get`. Pass the node as
+`referencedFrom` so the session knows which document the reference is in. That
+document causes the request, and `get` finds a document that it contains
+without retrieving it:
 
 ```typescript
 import { get, jsonStep } from "@hyperjump/browser";
