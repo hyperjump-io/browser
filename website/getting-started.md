@@ -39,13 +39,7 @@ anything anywhere, so a session doesn't retrieve anything from the network until
 you say where it may go. This one can only access the Star Wars API:
 
 ```typescript
-import {
-  Hyperjump,
-  get,
-  jrefArrayIter,
-  jrefStep,
-  jrefValue
-} from "@hyperjump/browser";
+import { Hyperjump, get, jrefSelect, jrefSelectAll } from "@hyperjump/browser";
 
 const session = new Hyperjump({
   allowRetrieval: ["https://swapi.hyperjump.io/"]
@@ -62,25 +56,42 @@ const aNewHope = await get(
 ```
 
 `get` returns a JRef abstract syntax tree (AST) node for the value that URL
-identifies. You reach the film's properties by stepping into it with `jrefStep`,
-which takes the session so it can follow references. When you get to a value
-that isn't an object or an array, `jrefValue` returns it as plain JavaScript:
+identifies. The tree is a [unist](https://github.com/syntax-tree/unist) tree, and
+you find nodes in it with selectors, like you'd find elements in a web page with
+CSS. `jrefSelect` takes the session so it can follow references, and it returns
+the first node that matches. A selector that starts with `>` matches what's
+directly inside the node you give it, and `[key=title]` matches the value of the
+`title` property. A node's `jsonType` is the kind of JSON value it holds, so
+`[jsonType=string]` says the title is a string. A string, number, boolean, or
+null node has its value as plain JavaScript in `value`:
 
 ```typescript
-const title = await jrefStep(session, "title", aNewHope);
-jrefValue(title); // "A New Hope"
+const title = await jrefSelect(
+  session,
+  "> [key=title][jsonType=string]",
+  aNewHope
+);
+title?.value; // "A New Hope"
 ```
 
-The film's `characters` property is where the references come in. Iterating over
-the array follows each reference as you reach it, so the session retrieves every
-character you get back from its own URL:
+`jrefSelect` returns `undefined` if nothing matches, like when the film doesn't
+have a title or its title isn't a string. TypeScript knows from the selector that
+a node it returns is a string node.
+
+The film's `characters` property is where the references come in. Each `>` in a
+selector steps one level deeper, and `*` matches any value. `jrefSelectAll`
+returns every node that matches, so this selector finds the name of every
+character in the film:
 
 ```typescript
-const characters = await jrefStep(session, "characters", aNewHope);
+const names = await jrefSelectAll(
+  session,
+  "> [key=characters] > * > [key=name][jsonType=string]",
+  aNewHope
+);
 
-for await (const character of jrefArrayIter(session, characters)) {
-  const name = await jrefStep(session, "name", character);
-  console.log(jrefValue(name));
+for (const name of names) {
+  console.log(name.value);
 }
 ```
 
@@ -91,9 +102,10 @@ R2-D2
 ...
 ```
 
-Notice that the loop never mentions a `$ref` or a URL. The session followed each
-reference for you and retrieved each document the first time the loop needed
-it.
+Notice that the selector never mentions a `$ref` or a URL. The session followed
+each reference in `characters` for you and retrieved each character's document.
+It only follows references a selector could match in, so it doesn't retrieve
+what the film's other properties refer to.
 
 The session also keeps every document it retrieves. If another film refers to
 Luke, the session uses the copy of his document it already has instead of
@@ -122,9 +134,12 @@ you don't need to configure anything:
 const session = new Hyperjump();
 
 const luke = await get(session, "./api/people/1.jref");
-const homeworld = await jrefStep(session, "homeworld", luke);
-const name = await jrefStep(session, "name", homeworld);
-jrefValue(name); // "Tatooine"
+const name = await jrefSelect(
+  session,
+  "> [key=homeworld] > [key=name][jsonType=string]",
+  luke
+);
+name?.value; // "Tatooine"
 ```
 
 Everything after `get` is the same code you used for the API. Keep in mind that

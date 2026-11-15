@@ -192,6 +192,20 @@ Quote a value that has characters other than letters, digits, `_`, `-`, and
 `$`, such as `[key="first name"]`. A selector that isn't one of these, such as
 `:has()` or `a + b`, throws a `SyntaxError` that says what's supported.
 
+TypeScript knows what kind of value a selector selects from a
+`[jsonType=...]` in its last part, after its last `>` or space.
+`> [key=director][jsonType=string]` gives you a string node, so its `value` is a
+`string`. Without one, check a node's `jsonType` before you read its `value`.
+
+```typescript
+const director = await jrefSelect(
+  session,
+  "> [key=director][jsonType=string]",
+  film
+);
+director?.value; // "George Lucas"
+```
+
 The session only follows a reference if the selector could match the value it
 leads to or something inside it. `> [key=director]` doesn't retrieve any
 characters because none of them can be the film's `director`, and `jrefSelect`

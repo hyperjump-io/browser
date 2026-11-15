@@ -262,9 +262,25 @@ follow references with.
     supported yet. They could be added without changing what's supported.
 - Selectors aren't cached. Parsing one takes microseconds, and a walk that
   follows references takes far longer.
-- The nodes returned aren't narrowed by the selector. Parsing a selector
-  in TypeScript's types would be slow to check, and it wouldn't know what
-  a media type's types are.
+- What's returned is narrowed by the `[jsonType=...]` attributes in the
+  last compound of each selector in the list (`Selected`), so
+  `> [key=title][jsonType=string]` returns a string node whose `value` is
+  a `string`. Reading a scalar is the most common thing a selection is for,
+  and without it every `value` needs a `jsonType` check first. A list is
+  narrowed to what any of its selectors selects, and one that isn't
+  narrowed makes the list the whole `Reachable`. A selector that isn't a
+  string literal isn't narrowed.
+  - The types only find the attributes of each last compound, without
+    checking the rest of the selector. That takes a step for each attribute
+    and for each character of a quoted value, so it's quick to check. An
+    invalid selector throws when it's called, so its type doesn't matter,
+    but where the types can't read one they don't narrow it.
+  - Narrowing by `type` too was rejected for now. A `type` is a media
+    type's, and `jsonType` is the one property whose values are known for
+    every media type's nodes.
+  - Parsing the whole selector in the types, to narrow by `:root` and by
+    other properties, was rejected. It would be slow to check, and the
+    other properties don't say what kind of value a node is.
 - To find references without following them, use `unist-util-select` or
   `unist-util-visit` on the tree as written. The nodes a walk reaches are
   followed, so `[type=reference]` never matches.
