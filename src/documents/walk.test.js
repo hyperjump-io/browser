@@ -1,10 +1,11 @@
 import { describe, test, expect } from "vitest";
 import { get } from "./documents.js";
 import { jrefSelect } from "./select.js";
+import { jrefFind, jrefVisit } from "./visit.js";
 import { Hyperjump } from "../hyperjump.js";
 import { fetcher } from "../layers.js";
 import { fromJref } from "../jref/jref-util.js";
-import { toJson } from "../json/jsonast-util.js";
+import { jsonStep, toJson } from "../json/jsonast-util.js";
 import { defaultMediaTypes } from "../media-types/media-types.js";
 import { Trace } from "../trace.js";
 
@@ -41,6 +42,53 @@ describe("following references", () => {
     const { session } = site({ "/b": 1 });
     const { node } = fromJref(`{ "b": { "$ref": "/b" } }`, "https://a.test/mine");
     expect(toJson(await child(session, "b", /** @type FollowedNode */ (node)))).to.equal(`1`);
+  });
+
+  describe("a walk that starts at a reference", () => {
+    test("a visit starts at what it leads to", async () => {
+      const { session, requests } = site({
+        "/a": { b: { $ref: "/b" } },
+        "/b": { c: 1 }
+      });
+      const reference = jsonStep("b", await get(session, "https://a.test/a"));
+      /** @type string[] */
+      const visited = [];
+      await jrefVisit(session, reference, (node, key, parent, depth) => {
+        visited.push(`${depth} ${key} ${parent === undefined} ${toJson(node)}`);
+      });
+      expect(visited).to.eql([`0 undefined true {"c":1}`, `1 c false 1`]);
+      expect(requests).to.eql(["/a", "/b"]);
+    });
+
+    test("a selection and a find start at what it leads to", async () => {
+      const { session } = site({
+        "/a": { b: { $ref: "/b" } },
+        "/b": { $ref: "/c" },
+        "/c": { name: "c" }
+      });
+      const reference = jsonStep("b", await get(session, "https://a.test/a"));
+      const name = await jrefSelect(session, "> [key=name]", reference);
+      expect(name && toJson(name)).to.equal(`"c"`);
+      const root = await jrefSelect(session, ":root", reference);
+      expect(root?.location).to.equal("https://a.test/c#");
+      const found = await jrefFind(session, reference, { jsonType: "string" });
+      expect(found && toJson(found)).to.equal(`"c"`);
+    });
+
+    test("it's caused by the document it's in", async () => {
+      const { session } = site({ "/a": { b: { $ref: "/b" } }, "/b": 1 });
+      const trace = new Trace(session);
+      await jrefSelect(session, ":root", jsonStep("b", await get(session, "https://a.test/a")));
+      expect(trace.tree().map(({ record, depth }) => `${depth} ${new URL(record.url).pathname}`)).to.eql(["0 /a", "1 /b"]);
+    });
+
+    test("a selector that isn't one throws before it's followed", async () => {
+      const { session, requests } = site({ "/a": { b: { $ref: "/b" } }, "/b": 1 });
+      const reference = jsonStep("b", await get(session, "https://a.test/a"));
+      await expect(jrefSelect(session, ":has(a)", reference)).rejects.toThrow(SyntaxError);
+      await expect(jrefVisit(session, reference, () => {}, { maxDepth: -1 })).rejects.toThrow(RangeError);
+      expect(requests).to.eql(["/a"]);
+    });
   });
 
   describe("embedded documents", () => {

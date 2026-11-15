@@ -31,7 +31,9 @@ export const jrefVisit = /** @type typeof API.jrefVisit */ (
       : [() => true, /** @type API.JrefVisitor<any> */ (testOrVisitor), visitorOrOptions];
 
     const walk = { session, maxDepth: maxDepth(walkOptions), ancestors: new Set(), check, visitor: visit };
-    await visitNode(walk, node, undefined, undefined, 0);
+    // A walk that starts at a reference starts at what it leads to, like a
+    // walk that reaches one
+    await visitNode(walk, await follow(session, node), undefined, undefined, 0);
   }
 );
 

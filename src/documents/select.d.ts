@@ -1,4 +1,4 @@
-import type { Browsable, JrefTestedNode, Reachable, WalkOptions } from "./visit.d.ts";
+import type { JrefTestedNode, Reachable, WalkOptions } from "./visit.d.ts";
 import type { DocumentSession } from "./documents.d.ts";
 import type { AnyJsonNode } from "../json/jsonast-util.d.ts";
 
@@ -24,9 +24,10 @@ import type { AnyJsonNode } from "../json/jsonast-util.d.ts";
  * selector, like `> [key=title][jsonType=string]`, so it's a string node
  * whose `value` is a string (see {@link Selected}).
  *
- * Only what a selector could match is followed. A member that a child
- * selector's `[key=...]` rules out isn't retrieved, and `jrefSelect` stops
- * at the first match. A descendant selector, like `[key=name]` on its own,
+ * If `node` is a reference, the selection starts at what it leads to, so
+ * `:root` is that value. Only what a selector could match is followed
+ * under it. A member that a child selector's `[key=...]` rules out isn't
+ * retrieved, and `jrefSelect` stops at the first match. A descendant selector, like `[key=name]` on its own,
  * can match anywhere, so it follows every reference under `node`. A
  * reference back to a node that's being walked can match, but what's under
  * it isn't walked again.
@@ -39,7 +40,7 @@ import type { AnyJsonNode } from "../json/jsonast-util.d.ts";
  * @throws A `RangeError` if `maxDepth` isn't valid.
  * @throws What `get` throws, if it follows a reference.
  */
-export const jrefSelect: <S extends DocumentSession, N extends AnyJsonNode, L extends string>(session: S, selector: L, node: N & Browsable<N>, options?: WalkOptions) => Promise<Selected<Reachable<S, N>, L> | undefined>;
+export const jrefSelect: <S extends DocumentSession, N extends AnyJsonNode, L extends string>(session: S, selector: L, node: N, options?: WalkOptions) => Promise<Selected<Reachable<S, N>, L> | undefined>;
 
 /**
  * Every node under `node`, and `node` itself, that matches a selector, like
@@ -55,7 +56,7 @@ export const jrefSelect: <S extends DocumentSession, N extends AnyJsonNode, L ex
  * @throws A `RangeError` if `maxDepth` isn't valid.
  * @throws What `get` throws, if it follows a reference.
  */
-export const jrefSelectAll: <S extends DocumentSession, N extends AnyJsonNode, L extends string>(session: S, selector: L, node: N & Browsable<N>, options?: WalkOptions) => Promise<Selected<Reachable<S, N>, L>[]>;
+export const jrefSelectAll: <S extends DocumentSession, N extends AnyJsonNode, L extends string>(session: S, selector: L, node: N, options?: WalkOptions) => Promise<Selected<Reachable<S, N>, L>[]>;
 
 /**
  * The nodes of type `N` that selector list `L` can select. A selector is

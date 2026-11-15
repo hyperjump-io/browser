@@ -47,15 +47,19 @@ to follow references with.
 - There's no `jrefPointerGet`. A JSON Pointer in a JRef fragment doesn't go
   through references, so `get` with a fragment does the one correct thing,
   which is to follow the reference the pointer ends at.
-- The `jref*` functions only take a node that isn't a reference
-  (`FollowedNode`), and that's checked by types, not at runtime. `get` and
-  the `jref*` functions return followed nodes. A node from a `json*`
-  function can be a reference, so passing one to a `jref*` function doesn't
-  type-check until it's narrowed with `node.type !== "reference"`. Given a
-  reference anyway, a `jref*` function reads it as the object it's written
-  as.
-  - A runtime check in every `jref*` function was rejected. It would only
-    help code that isn't type-checked, and it would be in every call.
+- A walk that starts at a reference starts at what it leads to, following
+  it the way it follows every member. So a node from a `json*` function,
+  which can be a reference, is passed as it is, and `get` and the `jref*`
+  functions return followed nodes (`FollowedNode`). The starting node is
+  followed after the selector and the options are checked, so a call
+  that's a mistake doesn't retrieve anything.
+  - Taking only a node that isn't a reference, checked by types, was
+    rejected. Every caller with a node from a `json*` function would
+    narrow it with `node.type !== "reference"` first, and code that isn't
+    type-checked would get a walk of the reference as the object it's
+    written as, which looks like an answer and isn't one.
+  - Throwing for a reference was rejected. The caller would follow it by
+    hand, which is what the walk does for every other reference.
 - They take a node of any tree, like the `json*` functions do, and not
   only a JRef one. All they need of a node is what a reference is: a
   `reference` node with an `href`. So what's built on browser browses its
@@ -125,7 +129,7 @@ to follow references with.
     test with a property no node type has narrows to `never`, because no
     node can pass it.
 - What the visitor's node is typed as is what a walk can reach
-  (`Reachable`): the node it starts at, or what's under it once it's
+  (`Reachable`): the node it starts at or what's under it, once each is
   followed.
 
 ## Finding

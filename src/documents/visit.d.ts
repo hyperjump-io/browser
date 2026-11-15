@@ -2,13 +2,6 @@ import type { DocumentSession, FollowedNode, SessionNode } from "./documents.d.t
 import type { AnyJsonNode, JsonMemberValue } from "../json/jsonast-util.d.ts";
 
 /**
- * A node that isn't a reference, of any tree whose references are
- * `reference` nodes with an `href`, like a JRef tree. A node whose type says
- * it could be a reference has to be followed first.
- */
-export type Browsable<N> = [Extract<N, { type: "reference" }>] extends [never] ? N : never;
-
-/**
  * What a value of an object node or an item of an array node is once it's
  * followed. One that isn't a reference is a node of the same tree, and a
  * reference can lead to a document in any of the session's media types (see
@@ -18,11 +11,11 @@ export type Followed<S, N> = FollowedNode<NonNullable<JsonMemberValue<N>>> | Fol
 
 /**
  * A node a walk from a node of type `N` can reach in session `S`: the node,
- * or what's under it once it's followed. A value that isn't a reference is
- * a node of the same tree, and a reference can lead to a document in any of
- * the session's media types.
+ * or what's under it, once each is followed. A value that isn't a reference
+ * is a node of the same tree, and a reference, including one the walk
+ * starts at, can lead to a document in any of the session's media types.
  */
-export type Reachable<S, N> = N | Followed<S, N>;
+export type Reachable<S, N> = FollowedNode<N> | Followed<S, N>;
 
 export const CONTINUE: true;
 export const SKIP: "skip";
@@ -106,7 +99,8 @@ type HasProperties<N, O> = N extends unknown
  * visitor gets the same nodes the other `jref*` functions return.
  *
  * A reference is followed just before its value is visited, so a member of
- * a node the visitor skips isn't retrieved. A value that's reached again
+ * a node the visitor skips isn't retrieved. If `node` is a reference, the
+ * visit starts at what it leads to. A value that's reached again
  * through two references is visited each time. A reference back to a node
  * that's being visited, like a recursive definition, is visited, but its
  * members aren't, because they're already being visited.
@@ -128,8 +122,8 @@ type HasProperties<N, O> = N extends unknown
  * negative, or `Infinity`.
  */
 export const jrefVisit: {
-  <S extends DocumentSession, N extends AnyJsonNode, const C extends JrefTest<Reachable<S, N>>>(session: S, node: N & Browsable<N>, test: C, visitor: JrefVisitor<Reachable<S, N>, JrefTestedNode<Reachable<S, N>, C>>, options?: WalkOptions): Promise<void>;
-  <S extends DocumentSession, N extends AnyJsonNode>(session: S, node: N & Browsable<N>, visitor: JrefVisitor<Reachable<S, N>>, options?: WalkOptions): Promise<void>;
+  <S extends DocumentSession, N extends AnyJsonNode, const C extends JrefTest<Reachable<S, N>>>(session: S, node: N, test: C, visitor: JrefVisitor<Reachable<S, N>, JrefTestedNode<Reachable<S, N>, C>>, options?: WalkOptions): Promise<void>;
+  <S extends DocumentSession, N extends AnyJsonNode>(session: S, node: N, visitor: JrefVisitor<Reachable<S, N>>, options?: WalkOptions): Promise<void>;
 };
 
 /**
@@ -141,7 +135,7 @@ export const jrefVisit: {
  *
  * @throws What {@link jrefVisit} throws.
  */
-export const jrefFind: <S extends DocumentSession, N extends AnyJsonNode, const C extends JrefTest<Reachable<S, N>>>(session: S, node: N & Browsable<N>, test: C, options?: WalkOptions) => Promise<JrefTestedNode<Reachable<S, N>, C> | undefined>;
+export const jrefFind: <S extends DocumentSession, N extends AnyJsonNode, const C extends JrefTest<Reachable<S, N>>>(session: S, node: N, test: C, options?: WalkOptions) => Promise<JrefTestedNode<Reachable<S, N>, C> | undefined>;
 
 /**
  * Every node under `node`, and `node` itself, that passes a
@@ -150,7 +144,7 @@ export const jrefFind: <S extends DocumentSession, N extends AnyJsonNode, const 
  *
  * @throws What {@link jrefVisit} throws.
  */
-export const jrefFindAll: <S extends DocumentSession, N extends AnyJsonNode, const C extends JrefTest<Reachable<S, N>>>(session: S, node: N & Browsable<N>, test: C, options?: WalkOptions) => Promise<JrefTestedNode<Reachable<S, N>, C>[]>;
+export const jrefFindAll: <S extends DocumentSession, N extends AnyJsonNode, const C extends JrefTest<Reachable<S, N>>>(session: S, node: N, test: C, options?: WalkOptions) => Promise<JrefTestedNode<Reachable<S, N>, C>[]>;
 
 /**
  * Options for the functions that walk everything under a node, following

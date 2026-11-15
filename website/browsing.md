@@ -58,9 +58,9 @@ The unified ecosystem's utilities and the `json` functions, such as `jsonStep`,
 read the AST as it's written. For more information, see
 [The tree as it's written](#the-tree-as-its-written) and
 [Parse JSON and JRef](parsing.md). A node from a `json` function can be a
-reference that it didn't follow, so TypeScript doesn't let you pass it to a
-`jref` function until you check that its `type` isn't `"reference"`. A node from
-`get` or a `jref` function is never a reference, so it works with both.
+reference that it didn't follow. If you pass one to a `jref` function, it starts
+from the value the reference leads to. A node from `get` or a `jref` function is
+never a reference.
 
 A reference can lead to a document in any of the session's media types. So in
 TypeScript, a node from `get` or a `jref` function is a node of any of them. A

@@ -74,7 +74,9 @@ export const jrefSelectAll = /** @type typeof API.jrefSelectAll */ (async (
  */
 const select = async (session, selectors, node, maxDepth, onMatch) => {
   const states = selectors.map((complex) => ({ complex, index: 0, descendant: true }));
-  await selectNode({ session, maxDepth, ancestors: new Map(), onMatch }, node, undefined, 0, states);
+  // A selection that starts at a reference starts at what it leads to, like
+  // a walk that reaches one
+  await selectNode({ session, maxDepth, ancestors: new Map(), onMatch }, await follow(session, node), undefined, 0, states);
 };
 
 /**

@@ -56,7 +56,8 @@ if (other.jsonType === "object") {
   }
 }
 
-// A node that could be a reference has to be followed first
+// A walk follows a reference it starts at, so a node that could be one
+// gives what its tree's values and the session's documents are
 declare const unfollowed: OtherNode;
-// @ts-expect-error
-await jrefSelect(both, "> [key=a]", unfollowed);
+const fromUnfollowed = await jrefSelect(both, ":root", unfollowed);
+yes<Equal<typeof fromUnfollowed, FollowedNode<JrefNode | JsonNode | OtherNode> | undefined>>();
