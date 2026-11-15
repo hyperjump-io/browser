@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { jrefFind, jrefFindAll } from "./browsing.js";
+import { jrefFind, jrefFindAll } from "./visit.js";
 import { get } from "./documents.js";
 import { toJson } from "../json/jsonast-util.js";
 import { coded } from "../test-helpers/errors.js";

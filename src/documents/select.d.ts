@@ -1,4 +1,4 @@
-import type { Browsable, JrefTestedNode, Reachable, WalkOptions } from "./browsing.d.ts";
+import type { Browsable, JrefTestedNode, Reachable, WalkOptions } from "./visit.d.ts";
 import type { DocumentSession } from "./documents.d.ts";
 import type { AnyJsonNode } from "../json/jsonast-util.d.ts";
 

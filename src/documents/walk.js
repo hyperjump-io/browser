@@ -5,7 +5,7 @@ import { MAX_DEPTH } from "../json/json-parser.js";
 import { jsonArrayIter, jsonObjectEntries } from "../json/jsonast-util.js";
 
 /**
- * @import { WalkOptions } from "./browsing.d.ts"
+ * @import { WalkOptions } from "./visit.d.ts"
  * @import { DocumentSession, FollowedNode } from "./documents.d.ts"
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
  * @import { JsonNode } from "../json/jsonast.d.ts"

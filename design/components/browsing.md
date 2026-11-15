@@ -1,4 +1,4 @@
-# Browsing (`src/documents/browsing.js`)
+# Browsing (`src/documents/visit.js`, `select.js`, and `walk.js`)
 
 Browsing is reading nodes and stepping into them while following
 references. It's done with the `jref*` functions, which are the unist

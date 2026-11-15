@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { visit } from "unist-util-visit";
-import { CONTINUE, EXIT, SKIP, jrefVisit } from "./browsing.js";
+import { CONTINUE, EXIT, SKIP, jrefVisit } from "./visit.js";
 import { get, getDocument } from "./documents.js";
 import { fromJref } from "../jref/jref-util.js";
 import { toJson } from "../json/jsonast-util.js";

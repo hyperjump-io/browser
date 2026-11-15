@@ -1,7 +1,7 @@
 import { follow, maxDepth, maxDepthError, memberEntries } from "./walk.js";
 
 /**
- * @import * as API from "./browsing.d.ts"
+ * @import * as API from "./visit.d.ts"
  * @import { DocumentSession } from "./documents.d.ts"
  * @import { Walked } from "./walk.js"
  */
