@@ -78,6 +78,40 @@ export const jrefVisit = /** @type typeof API.jrefVisit */ (
   }
 );
 
+// eslint-disable-next-line @stylistic/no-extra-parens
+export const jrefFind = /** @type typeof API.jrefFind */ (async (
+  /** @type DocumentSession */ session,
+  /** @type Walked */ node,
+  /** @type API.JrefTest<any> */ test,
+  /** @type API.WalkOptions | undefined */ options
+) => {
+  /** @type Walked | undefined */
+  let found;
+  await jrefVisit(session, node, test, (foundNode) => {
+    found = /** @type Walked */ (foundNode);
+    return EXIT;
+  }, options);
+
+  return found;
+});
+
+// eslint-disable-next-line @stylistic/no-extra-parens
+export const jrefFindAll = /** @type typeof API.jrefFindAll */ (async (
+  /** @type DocumentSession */ session,
+  /** @type Walked */ node,
+  /** @type API.JrefTest<any> */ test,
+  /** @type API.WalkOptions | undefined */ options
+) => {
+  // A node reached through more than one reference is found once
+  /** @type Set<Walked> */
+  const found = new Set();
+  await jrefVisit(session, node, test, (foundNode) => {
+    found.add(/** @type Walked */ (foundNode));
+  }, options);
+
+  return [...found];
+});
+
 /**
  * @typedef {(node: Walked, key: string | undefined, parent: Walked | undefined) => boolean} Check
  */

@@ -131,6 +131,29 @@ await jrefVisit(session, luke, { jsonType: "number" }, (node, key) => {
 The walk still goes through the values that don't match and follows their
 references to find what's under them.
 
+## Find values
+
+*Coming soon*
+
+`jrefFind` gives you the first value under a node that passes a test, or
+`undefined` if none does. `jrefFindAll` gives you every value that passes. They
+take the same tests as `jrefVisit` and look in the same order it visits, so
+they follow references along the way. This finds Luke's first number and every
+string in the documents that his references lead to:
+
+```typescript
+import { jrefFind, jrefFindAll } from "@hyperjump/browser";
+
+const number = await jrefFind(session, luke, { jsonType: "number" });
+const strings = await jrefFindAll(session, luke, { jsonType: "string" });
+```
+
+`jrefFind` stops at the first value that passes, so the session doesn't
+retrieve anything after it. `jrefFindAll` looks everywhere under the node, and
+it gives you each value once even if more than one reference leads to it. In
+TypeScript, what they find has the type of the values that can pass the test,
+so `jrefValue(number)` is a `number`.
+
 ## Select values
 
 *Coming soon*
@@ -181,10 +204,11 @@ unless you mean to search everything.
 
 *Coming soon*
 
-`jrefVisit`, `jrefSelect`, and `jrefSelectAll` can't go more than 1000 levels
-below the value you start from. If one would, it throws an error whose
-`cause.code` is `"ERR_MAX_DEPTH"`, so references that lead to new documents
-without end, like a `next` link on every page of results, can't keep it going.
+`jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` can't
+go more than 1000 levels below the value you start from. If one would, it
+throws an error whose `cause.code` is `"ERR_MAX_DEPTH"`, so references that lead
+to new documents without end, like a `next` link on every page of results,
+can't keep it going.
 The error's `url` is the value it would go inside. If you expect a walk to go
 that deep, pass a bigger `maxDepth` or `Infinity` as the last argument:
 

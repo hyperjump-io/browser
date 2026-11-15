@@ -15,6 +15,7 @@ follow references with.
 | `jsonObjectKeys(node)` | `jrefObjectKeys(node)` |
 | `jsonValue(node)` | `jrefValue(node)` |
 | `visit(tree, test, visitor)` (`unist-util-visit`) | `jrefVisit(session, node, test, visitor)` |
+| `find(tree, test)` (`unist-util-find`) | `jrefFind(session, node, test)`, `jrefFindAll(session, node, test)` |
 | `selectAll(selector, tree)` (`unist-util-select`) | `jrefSelectAll(session, selector, node)` |
 
 - The functions that return nodes are async and follow references,
@@ -136,9 +137,32 @@ follow references with.
   (`Reachable`): the node it starts at, or what's under it once it's
   followed, the same as what `jrefStep` returns.
 
+## Finding
+
+- `jrefFind` is `unist-util-find` for the tree with its references
+  followed, and `jrefFindAll` is the same for every node that passes. They
+  take the session, the node, and a test, in `jrefVisit`'s order, and
+  they're `jrefVisit` with a visitor that keeps what it gets. So they find
+  in the order a visit does, follow a reference just before its value is
+  tested, and take a walk's options. `jrefFind` stops at the first node
+  that passes, so nothing after it is retrieved.
+- A test is `jrefVisit`'s, so a string is a `type`, as `unist-util-is`
+  has it, and what's found is narrowed to what can pass it.
+  - `unist-util-find`'s conditions were rejected. Its string matches a
+    node whose `value` contains it, so the same string would mean
+    something else to `jrefFind` than to `jrefVisit`.
+- `jrefFindAll` has each node once, like `jrefSelectAll`, even if it's
+  reached through more than one reference. A visit has it each time,
+  because a visitor can keep state by where a node is, but a list of what
+  was found would only repeat it.
+- They're for finding by what a node is. A selector finds by where a node
+  is, and it can rule out a member by its key before following it, so
+  `jrefSelect` retrieves less for a path.
+
 ## How deep a walk goes
 
-- `jrefVisit`, `jrefSelect`, and `jrefSelectAll` throw an `ERR_MAX_DEPTH`
+- `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and
+  `jrefSelectAll` throw an `ERR_MAX_DEPTH`
   if they'd go more than `maxDepth` levels below the node (`WalkOptions`).
   A reference back to a node that's being walked already ends a walk, but
   references can lead to new documents without end, like a `next` link on

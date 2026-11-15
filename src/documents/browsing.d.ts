@@ -179,8 +179,29 @@ export const jrefVisit: {
 };
 
 /**
+ * The first node under `node`, or `node` itself, that passes a
+ * {@link JrefTest}, in the order {@link jrefVisit} visits them, like
+ * `unist-util-find`. It's `undefined` if none does. The walk stops at the
+ * first that passes, so nothing after it is retrieved. It's narrowed to
+ * what can pass the test.
+ *
+ * @throws What {@link jrefVisit} throws.
+ */
+export const jrefFind: <S extends DocumentSession, N extends AnyJsonNode, const C extends JrefTest<Reachable<S, N>>>(session: S, node: N & Browsable<N>, test: C, options?: WalkOptions) => Promise<JrefTestedNode<Reachable<S, N>, C> | undefined>;
+
+/**
+ * Every node under `node`, and `node` itself, that passes a
+ * {@link JrefTest}, in the order {@link jrefVisit} visits them. Each is
+ * there once, even if it's reached through more than one reference.
+ *
+ * @throws What {@link jrefVisit} throws.
+ */
+export const jrefFindAll: <S extends DocumentSession, N extends AnyJsonNode, const C extends JrefTest<Reachable<S, N>>>(session: S, node: N & Browsable<N>, test: C, options?: WalkOptions) => Promise<JrefTestedNode<Reachable<S, N>, C>[]>;
+
+/**
  * Options for the functions that walk everything under a node, following
- * references: {@link jrefVisit}, `jrefSelect`, and `jrefSelectAll`.
+ * references: {@link jrefVisit}, {@link jrefFind}, {@link jrefFindAll},
+ * `jrefSelect`, and `jrefSelectAll`.
  */
 export type WalkOptions = {
   /**
