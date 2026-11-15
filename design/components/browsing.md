@@ -44,6 +44,10 @@ follow references with.
     which `jsonValue` doesn't. Getting their value would mean following every reference in
     them, which could retrieve any number of documents. A reference node is
     an object, so it throws for one too.
+  - Its return type is the value of the node's `jsonType` from
+    `JsonTypeValue`, as `jsonValue`'s is, so a node narrowed to several
+    scalar types has a value of one of theirs. A node that could be an
+    object or an array has a scalar value, because it throws for those.
   - There's no `jrefPointerGet`. A JSON Pointer in a JRef fragment doesn't
     go through references, so `get` with a fragment does the one correct
     thing, which is to follow the reference the pointer ends at.

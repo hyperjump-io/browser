@@ -1,5 +1,5 @@
 import type { DocumentSession, FollowedNode, SessionNode } from "./documents.d.ts";
-import type { AnyJsonNode, JsonMemberValue } from "../json/jsonast-util.d.ts";
+import type { AnyJsonNode, JsonMemberValue, JsonTypeValue } from "../json/jsonast-util.d.ts";
 
 /**
  * A node that isn't a reference, of any tree whose references are
@@ -58,10 +58,7 @@ export const jrefObjectKeys: <N extends AnyJsonNode>(node: N & Browsable<N>) => 
  * in them. Its `url` is the node's location.
  */
 export const jrefValue: {
-  <N extends AnyJsonNode & { jsonType: "null" }>(node: N & Browsable<N>): null;
-  <N extends AnyJsonNode & { jsonType: "boolean" }>(node: N & Browsable<N>): boolean;
-  <N extends AnyJsonNode & { jsonType: "number" }>(node: N & Browsable<N>): number;
-  <N extends AnyJsonNode & { jsonType: "string" }>(node: N & Browsable<N>): string;
+  <N extends AnyJsonNode & { jsonType: "null" | "boolean" | "number" | "string" }>(node: N & Browsable<N>): JsonTypeValue[N["jsonType"]];
   <N extends AnyJsonNode>(node: N & Browsable<N>): string | number | boolean | null;
 };
 

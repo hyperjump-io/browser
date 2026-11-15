@@ -1,17 +1,13 @@
 import type { Position } from "unist";
 import type {
   Json,
-  JsonBooleanNode,
   JsonCommentNode,
   JsonDocumentNode,
   JsonErrorNode,
   JsonMissingNode,
   JsonNode,
-  JsonNullNode,
-  JsonNumberNode,
   JsonPropertyNameNode,
   JsonParseStatus,
-  JsonStringNode,
   JsonTolerantNode,
   ReadonlyJson
 } from "./jsonast.d.ts";
@@ -203,15 +199,23 @@ export const jsonPointerGet: <N extends AnyJsonNode>(pointer: string, tree: N) =
  * parsed ({@link JsonErrorNode}) is left out when it's a property value and is
  * `null` when it's an array item, so the items after it keep their positions.
  * That's how {@link toJson} treats a missing value.
+ *
+ * A property's name ({@link JsonPropertyNameNode}) is a string.
  */
-export const jsonValue: {
-  (node: JsonNullNode): null;
-  (node: JsonBooleanNode): boolean;
-  (node: JsonNumberNode): number;
-  (node: JsonStringNode): string;
-  (node: AnyJsonNode & { jsonType: "array" }): Json[];
-  (node: AnyJsonNode & { jsonType: "object" }): Record<string, Json>;
-  (node: AnyJsonNode): Json;
+export const jsonValue: <N extends AnyJsonNode | JsonPropertyNameNode>(node: N) => JsonTypeValue[N["jsonType"]];
+
+/**
+ * The JavaScript value of a node of each `jsonType`. A node whose `jsonType`
+ * is one of several, like a node that's a string or a boolean, has a value
+ * of one of their types.
+ */
+export type JsonTypeValue = {
+  null: null;
+  boolean: boolean;
+  number: number;
+  string: string;
+  array: Json[];
+  object: Record<string, Json>;
 };
 
 export const jsonObjectHas: (key: string, node: AnyJsonNode) => boolean;

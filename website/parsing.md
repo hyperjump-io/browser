@@ -124,7 +124,7 @@ These are the functions for reading the AST:
 | --- | --- |
 | `jsonPointerGet(pointer, node)` | The node a JSON Pointer points to |
 | `jsonStep(key, node)` | A property or item of a node |
-| `jsonValue(node)` | The node's value as JavaScript |
+| `jsonValue(node)` | The node's value as JavaScript, or a property name node's name |
 | `jsonObjectHas`, `jsonObjectKeys`, `jsonObjectValues`, `jsonObjectEntries`, `jsonArrayIter` | Read objects and arrays |
 | `toJson(node, options)` | The node as JSON text. The `space` option indents it like the `space` of `JSON.stringify`. |
 | `fromJs(value, location)` | An AST from a JavaScript value, whose root has the `location`. A URL without a fragment is a document's, so its root is `#`. |

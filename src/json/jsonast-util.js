@@ -116,7 +116,7 @@ export const jsonPointerGet = (pointer, tree) => {
 };
 
 // eslint-disable-next-line @stylistic/no-extra-parens
-export const jsonValue = /** @type typeof API.jsonValue */ ((/** @type JsonNode<unknown, JsonErrorNode> */ node) => {
+export const jsonValue = /** @type typeof API.jsonValue */ ((/** @type JsonNode<unknown, JsonErrorNode> | JsonPropertyNameNode */ node) => {
   switch (node.jsonType) {
     case "array":
       return node.children.map((itemNode) => isErrorNode(itemNode) ? null : jsonValue(itemNode));

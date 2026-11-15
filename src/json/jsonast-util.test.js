@@ -84,6 +84,14 @@ describe("jsonast-util", async () => {
       expect(subject).to.eql({ foo: { bar: 42 } });
     });
 
+    test("a property name", () => {
+      const node = parse(`{ "foo": 42 }`);
+      if (node.jsonType !== "object") {
+        throw Error("Expected an object");
+      }
+      expect(jsonValue(node.children[0].children[0])).to.equal("foo");
+    });
+
     test("a '__proto__' property is an own property, not the prototype", () => {
       const node = parse(`{ "__proto__": { "isAdmin": true } }`);
       const subject = /** @type Record<string, unknown> */ (jsonValue(node));

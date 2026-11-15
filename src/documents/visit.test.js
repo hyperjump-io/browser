@@ -150,7 +150,7 @@ describe("jrefVisit", () => {
       const { session } = site(pages);
       const subject = await get(session, "https://a.test/subject");
 
-      /** @type unknown[] */
+      /** @type (string | boolean)[] */
       const values = [];
       await jrefVisit(session, subject, [{ jsonType: "string" }, { jsonType: "boolean" }], (node) => {
         values.push(jrefValue(node));

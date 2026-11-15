@@ -1,5 +1,5 @@
 // What jrefVisit's types say about the nodes it visits. It's only type-checked.
-import { get, Hyperjump, jrefVisit } from "../index.js";
+import { get, Hyperjump, jrefValue, jrefVisit } from "../index.js";
 import type { FollowedNode, JrefNode, JsonNode, JsonPropertyNameNode } from "../index.js";
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
@@ -25,6 +25,8 @@ await jrefVisit(session, node, { jsonType: "number" }, (visited) => {
 // An array test narrows to the nodes any of its tests can pass
 await jrefVisit(session, node, [{ jsonType: "string" }, { jsonType: "boolean" }], (visited) => {
   yes<Equal<typeof visited.jsonType, "string" | "boolean">>();
+  const value = jrefValue(visited);
+  yes<Equal<typeof value, string | boolean>>();
 });
 
 // A type predicate narrows, and a function that isn't one doesn't

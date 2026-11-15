@@ -115,6 +115,14 @@ status with it:
   own properties. Assigning them would make a `"__proto__"` key the
   object's prototype, so a document could choose what any property it
   doesn't have reads as.
+- `jsonValue`'s return type is the value of the node's `jsonType`
+  (`JsonTypeValue`), so a node narrowed to several types, like a string or
+  a boolean, has a value of one of theirs.
+  - An overload for each `jsonType` was rejected. It only types a node
+    narrowed to one, and every other node falls back to `Json`.
+- `jsonValue` takes a property's name node too, and its value is the name.
+  It's a string node without a `location`, because a name isn't a value a
+  pointer can identify.
 
 ## Locations
 
