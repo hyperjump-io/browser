@@ -199,7 +199,11 @@ import { jrefSelect, jrefSelectAll } from "@hyperjump/browser";
 const film = await get(session, "https://swapi.hyperjump.io/api/films/1");
 
 const director = await jrefSelect(session, "> [key=director]", film);
-const names = await jrefSelectAll(session, "> [key=characters] > * > [key=name]", film);
+const names = await jrefSelectAll(
+  session,
+  "> [key=characters] > * > [key=name]",
+  film
+);
 ```
 
 Each character is a reference to another document. The second selector steps
@@ -409,16 +413,24 @@ utilities, which give it nodes. To follow a reference that one of them finds,
 pass the tree as `referencedFrom`:
 
 ```typescript
-import { get, type JrefDocumentNode } from "@hyperjump/browser";
-import { selectAll } from "unist-util-select";
+import {
+  get,
+  type Hyperjump,
+  type JrefDocumentNode
+} from "@hyperjump/browser";
+import { visit } from "unist-util-visit";
 
-const followReferences = (session) => async (tree: JrefDocumentNode) => {
-  for (const reference of selectAll("reference", tree)) {
-    const target = await get(session, reference.href, {
-      referencedFrom: tree
+const followReferences = (session: Hyperjump) =>
+  async (tree: JrefDocumentNode) => {
+    const hrefs: string[] = [];
+    visit(tree, "reference", (reference) => {
+      hrefs.push(reference.href);
     });
-  }
-};
+
+    for (const href of hrefs) {
+      await get(session, href, { referencedFrom: tree });
+    }
+  };
 ```
 
 A tree can have any parse status. The `jref` functions browse what a tree whose
@@ -428,6 +440,30 @@ couldn't be parsed is a `json-invalid` node.
 The `jref` functions don't take a node on its own, because a node doesn't say
 which document it's in. To browse from a value inside a tree, start at the
 tree and step or select to the value.
+
+## Functions
+
+Each `target` can also be a document, which starts at its root.
+
+| Function | Description |
+| --- | --- |
+| `jrefStep(session, key, target, options)` | The member at a property name or an array index |
+| `jrefValue(target)` | The value of a string, number, boolean, or null as JavaScript |
+| `jrefArrayIter(session, target, options)` | The items of an array, as an async iterator |
+| `jrefObjectValues(session, target, options)` | The values of an object's properties, as an async iterator |
+| `jrefObjectEntries(session, target, options)` | An object's property names and values, as an async iterator |
+| `jrefObjectKeys(target)` | An object's property names |
+| `jrefObjectHas(key, target)` | Whether an object has a property |
+| `jrefVisit(session, target, test, visitor, options)` | Visits the target and every value under it. The `test` is optional. |
+| `jrefFind(session, target, test, options)` | The first value that passes the test, or `undefined` |
+| `jrefFindAll(session, target, test, options)` | Every value that passes the test |
+| `jrefSelect(session, selector, target, options)` | The first value that matches the selector, or `undefined` |
+| `jrefSelectAll(session, selector, target, options)` | Every value that matches the selector |
+
+| Option | Description |
+| --- | --- |
+| `reference` | `"follow"`, the default, follows references. `"manual"` reads the tree as it's written. For more information, see [The tree as it's written](#the-tree-as-its-written). |
+| `maxDepth` | How many levels below the target a walk can go. The default is 1000. Only `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it. For more information, see [How deep a walk goes](#how-deep-a-walk-goes). |
 
 When these functions follow a reference, they throw what `get` throws. For
 more information, see [Get documents](documents.md#errors). For the errors of

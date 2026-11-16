@@ -88,6 +88,17 @@ request gets the more urgent of the two priorities. That way an app can load
 documents ahead of time at `"low"` without holding up a document that it needs
 now. For more information, see [Priorities](priorities.md).
 
+## Options
+
+`get(session, url, options)` takes these options:
+
+| Option | Description |
+| --- | --- |
+| `priority` | `"high"`, `"auto"`, or `"low"`, or a `PriorityController`'s signal. The references that `get` follows have it too. For more information, see [Priority](#priority). |
+| `reference` | `"follow"`, the default, follows a reference to the value it leads to. `"manual"` gives you the target as it's written. For more information, see [A document as it's written](#a-document-as-its-written). |
+| `referencedFrom` | The target or the document that has the reference you're following. `get` finds a document that it contains without retrieving it. For more information, see [Follow a reference yourself](browsing.md#follow-a-reference-yourself). |
+| `initiator` | The response of the request that caused this one, or its record. Only a `file:` document can refer to a `file:` URL. For more information, see [File URLs](file-urls.md#documents-from-the-web). |
+
 ## Errors
 
 `get` rejects with whatever kept it from giving you a value:

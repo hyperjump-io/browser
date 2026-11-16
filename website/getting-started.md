@@ -39,7 +39,12 @@ anything anywhere, so a session doesn't retrieve anything from the network until
 you say where it may go. This one can only access the Star Wars API:
 
 ```typescript
-import { Hyperjump, get, jrefSelect, jrefSelectAll } from "@hyperjump/browser";
+import {
+  Hyperjump,
+  get,
+  jrefSelect,
+  jrefSelectAll
+} from "@hyperjump/browser";
 
 const session = new Hyperjump({
   allowRetrieval: ["https://swapi.hyperjump.io/"]

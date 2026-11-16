@@ -4,10 +4,18 @@ The `httpCache` layer caches responses according to their caching headers the
 way a browser's cache does:
 
 ```typescript
-import { Hyperjump, compose, httpCache, nodeTransport } from "@hyperjump/browser";
+import {
+  Hyperjump,
+  compose,
+  httpCache,
+  nodeTransport
+} from "@hyperjump/browser";
 
 const stack = compose(httpCache())(nodeTransport());
-const session = new Hyperjump({ stack, allowRetrieval: ["https://example.com/"] });
+const session = new Hyperjump({
+  stack,
+  allowRetrieval: ["https://example.com/"]
+});
 ```
 
 The cache is for a server. A browser caches responses itself, so in a browser,
@@ -71,11 +79,11 @@ httpCache({
 | --- | --- |
 | `store` | Where the cache keeps responses. The default is a new `MemoryCacheStore`. |
 | `shared` | `true` for a shared cache, like a proxy's, which uses `s-maxage` and doesn't store `private` responses |
-| `heuristic` | A lifetime in seconds for a response that doesn't say one |
+| `heuristic` | A function that gives a lifetime in seconds for a response that doesn't say one. It gets `{ url, status, headers }` and returns a number, or `undefined` to leave the response to the rules in [Responses without a lifetime](#responses-without-a-lifetime). |
 | `permanentRedirectLifetime` | Seconds that a 301 or 308 without a lifetime is fresh for. The default is a day. `0` leaves them to `heuristicFraction`. |
 | `heuristicFraction` | The part of the time since `Last-Modified` that a response is fresh for. The default is 0.1. |
 | `maxBodySize` | Responses bigger than this many bytes aren't stored |
-| `onStoreError` | Called when the store fails. The request still succeeds, as if the cache had nothing. |
+| `onStoreError` | A function that the cache calls when the store fails, with the error, the method that failed (`"match"`, `"put"`, or `"delete"`), and the URL. The request still succeeds, as if the cache had nothing. |
 
 ## Where the cache keeps responses
 
@@ -88,6 +96,10 @@ import { MemoryCacheStore } from "@hyperjump/browser";
 httpCache({ store: new MemoryCacheStore({ maxUrls: 5000 }) });
 ```
 
+| Option | Description |
+| --- | --- |
+| `maxUrls` | How many URLs the store keeps responses for. The default is 1,000. |
+
 On a server, `FileCacheStore` keeps responses on disk, so they outlive the
 process:
 
@@ -95,13 +107,21 @@ process:
 import { FileCacheStore } from "@hyperjump/browser";
 
 httpCache({
-  store: new FileCacheStore({ directory: ".cache/http", maxSize: 200 * 1024 * 1024 })
+  store: new FileCacheStore({
+    directory: ".cache/http",
+    maxSize: 200 * 1024 * 1024
+  })
 });
 ```
 
+| Option | Description |
+| --- | --- |
+| `directory` | The directory that the store keeps responses in. It's required. |
+| `maxSize` | How many bytes the store keeps on disk. There's no limit by default. |
+
 `FileCacheStore` writes each file under a temporary name and then renames it,
 so processes that share the directory never see part of a file. With
-`maxSize`, in bytes, it removes the least recently used responses when the cache
+`maxSize`, it removes the least recently used responses when the cache
 grows past it. When several processes write to the same directory, the limit is
 only approximate. `FileCacheStore` treats a damaged file as a miss and removes it.
 `clear()` removes everything, and `size()` says how many bytes are on disk.
@@ -116,7 +136,16 @@ cache does all the HTTP, so a store only keeps entries by URL:
 | `delete(url)` | Removes every entry for a URL |
 
 The methods can be asynchronous. An entry is plain data, so you can store it
-anywhere.
+anywhere:
+
+| Property | Description |
+| --- | --- |
+| `url` | The URL of the response |
+| `status`, `statusText` | The response's status |
+| `headers` | The response's headers, as `[name, value]` pairs |
+| `body` | The response's body, as a `Uint8Array` |
+| `requestHeaders` | The headers of the request it was for, as `[name, value]` pairs, to match a `Vary` |
+| `requestTime`, `responseTime` | When the request was sent and when its response came, in milliseconds since the epoch |
 
 ## Remove a response
 

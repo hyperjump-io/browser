@@ -26,9 +26,8 @@ have is fetched as usual, if it's allowed.
 
 ## Entries
 
-`registry` takes entries by URL. A relative URL is resolved against the
-`base` option, or the working directory in Node.js or the page in a
-browser. An entry can be:
+`registry(entries, options)` takes an object of entries by URL. An iterable
+of `[url, entry]` pairs such as a `Map` works too. An entry can be:
 
 - A body: a string, a `Uint8Array`, an `ArrayBuffer`, or a `Blob`.
 - The parts of a response: `{ body, status, statusText, headers }`.
@@ -41,6 +40,10 @@ a [media type](media-types.md) can parse it.
 
 The entries are copied, so changing them later doesn't change the registry.
 
+| Option | Description |
+| --- | --- |
+| `base` | The URL that a relative entry URL resolves against. The default is the working directory in Node.js and the page in a browser. |
+
 ## Your own registry
 
 A registry is any object with a `get` method. The session calls it with
@@ -49,11 +52,15 @@ or `undefined` for a URL it doesn't have. It can throw, to say the URL is
 the registry's but can't be used:
 
 ```typescript
+import { Hyperjump, type Registry } from "@hyperjump/browser";
+
 const bundled = {
   get: (url) => url.startsWith("https://example.com/bundled/")
-    ? new Response(readBundled(url), { headers: { "content-type": "application/json" } })
+    ? new Response(readBundled(url), {
+      headers: { "content-type": "application/json" }
+    })
     : undefined
-};
+} satisfies Registry;
 
 const session = new Hyperjump({ registry: bundled });
 ```

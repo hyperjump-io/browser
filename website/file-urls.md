@@ -6,7 +6,9 @@ On a server, a session can fetch `file:` URLs the way a browser opens files. Use
 ```typescript
 import { Hyperjump, nodeTransport } from "@hyperjump/browser";
 
-const session = new Hyperjump({ stack: nodeTransport({ file: { root: "./site" } }) });
+const session = new Hyperjump({
+  stack: nodeTransport({ file: { root: "./site" } })
+});
 
 const page = await session.fetch("site/index.html");
 ```
@@ -65,7 +67,9 @@ redirect can't take a document from the web to a file either.
 const page = await session.fetch("https://example.com/page.json");
 
 // Rejects with a TypeError
-await session.fetch("file:///home/me/project/secret.json", { initiator: page });
+await session.fetch("file:///home/me/project/secret.json", {
+  initiator: page
+});
 ```
 
 A request without an `initiator` is your app's own, so it can fetch any file
@@ -96,3 +100,13 @@ not where the link is.
 To fetch only `http:`, `https:`, and `data:` URLs on a server, use
 `nodeTransport({ file: false })`, or `defaultTransport()`, which also works in
 browsers.
+
+## Options
+
+`nodeTransport(options)` takes these options:
+
+| Option | Description |
+| --- | --- |
+| `file` | The options for `file:` URLs, or `false` to leave them out |
+| `file.root` | The directory that the session can read files in. The default is the whole filesystem. |
+| `schemes` | Fetchers for more schemes, or to replace one, by scheme, such as `"s3:"` |

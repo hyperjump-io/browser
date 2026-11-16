@@ -13,7 +13,10 @@ so it gets each request first:
 import { Hyperjump, compose, defaultTransport } from "@hyperjump/browser";
 
 const stack = compose(first(), second())(defaultTransport());
-const session = new Hyperjump({ stack, allowRetrieval: ["https://example.com/"] });
+const session = new Hyperjump({
+  stack,
+  allowRetrieval: ["https://example.com/"]
+});
 ```
 
 That's the same as wrapping each layer by hand:

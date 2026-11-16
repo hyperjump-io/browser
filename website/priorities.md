@@ -6,10 +6,21 @@ and the `throttle` layer holds back a page's low-priority requests while its
 important ones load:
 
 ```typescript
-import { Hyperjump, compose, httpCache, throttle, scheduler, nodeTransport } from "@hyperjump/browser";
+import {
+  Hyperjump,
+  compose,
+  httpCache,
+  nodeTransport,
+  scheduler,
+  throttle
+} from "@hyperjump/browser";
 
-const stack = compose(httpCache(), throttle(), scheduler())(nodeTransport());
-const session = new Hyperjump({ stack, allowRetrieval: ["https://example.com/"] });
+const layers = compose(httpCache(), throttle(), scheduler());
+const stack = layers(nodeTransport());
+const session = new Hyperjump({
+  stack,
+  allowRetrieval: ["https://example.com/"]
+});
 
 await session.fetch("https://example.com/hero.jpg", { priority: "high" });
 ```
@@ -39,7 +50,8 @@ the way a browser's tabs share its connections.
 ```typescript
 import { findLayer, Scheduler } from "@hyperjump/browser";
 
-findLayer(stack, Scheduler)?.stats(); // { active: 6, queued: 2, byKey: { ... } }
+findLayer(stack, Scheduler)?.stats();
+// { active: 6, queued: 2, byKey: { ... } }
 ```
 
 ## Priority
@@ -58,7 +70,9 @@ view. Pass a `PriorityController`'s signal instead of a string:
 import { PriorityController } from "@hyperjump/browser";
 
 const priority = new PriorityController("low");
-const image = session.fetch("https://example.com/photo.jpg", { priority: priority.signal });
+const image = session.fetch("https://example.com/photo.jpg", {
+  priority: priority.signal
+});
 
 // Later, when the image scrolls into view
 priority.set("high");

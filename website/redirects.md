@@ -50,7 +50,8 @@ URL it went through:
 import { responseMeta } from "@hyperjump/browser";
 
 const response = await session.fetch("https://example.com/old");
-responseMeta(response).redirects; // ["https://example.com/old", "https://example.com/new"]
+responseMeta(response).redirects;
+// ["https://example.com/old", "https://example.com/new"]
 ```
 
 ## In a browser

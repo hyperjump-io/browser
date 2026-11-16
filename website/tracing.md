@@ -10,7 +10,10 @@ import { Hyperjump, Trace } from "@hyperjump/browser";
 const trace = new Trace(session);
 
 const page = await session.fetch("https://example.com/index.html");
-await session.fetch(new URL("main.css", page.url), { priority: "high", initiator: page });
+await session.fetch(new URL("main.css", page.url), {
+  priority: "high",
+  initiator: page
+});
 // ...
 
 console.log(trace.waterfall());
@@ -58,16 +61,18 @@ Your own layers can add marks with `ctx.record.mark(name, detail)`.
 
 ## Options
 
+`new Trace(session, options)` takes these options:
+
 | Option | Description |
 | --- | --- |
-| `bodies` | `true` to keep response bodies on the records |
+| `bodies` | `true` to keep response bodies on the records. The default is `false`. |
 
 To stop recording, call `trace.stop()`. `trace.toJSON()` gives the records as
 plain data.
 
 ## Open a trace in devtools
 
-`trace.toHar()` makes a HAR file, the format browser devtools import and
+`trace.toHar()` makes an HTTP Archive (HAR) file, the format browser devtools import and
 export, so you can open a trace in Chrome's or Firefox's network panel:
 
 ```typescript
@@ -75,7 +80,8 @@ import { writeFile } from "node:fs/promises";
 
 const trace = new Trace(session, { bodies: true });
 // ...
-await writeFile("load.har", JSON.stringify(trace.toHar({ title: "Page load" })));
+const har = trace.toHar({ title: "Page load" });
+await writeFile("load.har", JSON.stringify(har));
 ```
 
 The HAR has every request's headers, status, and size, and its body if the

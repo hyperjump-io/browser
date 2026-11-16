@@ -92,7 +92,9 @@ refresh a token. The session calls it for each request:
 const session = new Hyperjump({
   stack,
   headers: {
-    "https://api.example.com/": async () => ({ "Authorization": `Bearer ${await getToken()}` })
+    "https://api.example.com/": async () => ({
+      "Authorization": `Bearer ${await getToken()}`
+    })
   }
 });
 ```
