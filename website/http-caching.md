@@ -72,7 +72,7 @@ httpCache({
 | `store` | Where the cache keeps responses. The default is a new `MemoryCacheStore`. |
 | `shared` | `true` for a shared cache, like a proxy's, which uses `s-maxage` and doesn't store `private` responses |
 | `heuristic` | A lifetime in seconds for a response that doesn't say one |
-| `permanentRedirectLifetime` | Seconds that a 301 or 308 without a lifetime is fresh for. The default is a day. `0` turns it off. |
+| `permanentRedirectLifetime` | Seconds that a 301 or 308 without a lifetime is fresh for. The default is a day. `0` leaves them to `heuristicFraction`. |
 | `heuristicFraction` | The part of the time since `Last-Modified` that a response is fresh for. The default is 0.1. |
 | `maxBodySize` | Responses bigger than this many bytes aren't stored |
 | `onStoreError` | Called when the store fails. The request still succeeds, as if the cache had nothing. |
