@@ -1,4 +1,4 @@
-import { startOf } from "./start.js";
+import { hasValue, startOf } from "./start.js";
 import { follow, isManual, maxDepth, maxDepthError, memberEntries } from "./walk.js";
 
 /**
@@ -79,6 +79,10 @@ export const jrefSelectAll = /** @type typeof API.jrefSelectAll */ (async (
  */
 const select = async (session, selectors, from, maxDepth, manual, onMatch) => {
   const target = startOf(from);
+  // A document with nothing in it has nothing to select
+  if (!hasValue(target)) {
+    return;
+  }
   const states = selectors.map((complex) => ({ complex, index: 0, descendant: true }));
   // A selection that starts at a reference starts at what it leads to, like
   // a walk that reaches one

@@ -1,4 +1,4 @@
-import { startOf } from "./start.js";
+import { hasValue, startOf } from "./start.js";
 import { follow, isManual, maxDepth, maxDepthError, memberEntries } from "./walk.js";
 
 /**
@@ -38,6 +38,10 @@ export const jrefVisit = /** @type typeof API.jrefVisit */ (
     // A walk that starts at a reference starts at what it leads to, like a
     // walk that reaches one
     const target = startOf(from);
+    // A document with nothing in it has nothing to visit
+    if (!hasValue(target)) {
+      return;
+    }
     await visitTarget(walk, await follow(session, target, target.node, manual), undefined, undefined, 0);
   }
 );

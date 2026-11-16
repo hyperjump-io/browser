@@ -1,7 +1,7 @@
 import type { FetchRecord } from "../fetch-record.d.ts";
 import type { Hyperjump } from "../hyperjump.d.ts";
 import type { JrefNode } from "../jref/jref-ast.d.ts";
-import type { JsonErrorNode } from "../json/jsonast.d.ts";
+import type { JsonErrorNode, JsonMissingNode } from "../json/jsonast.d.ts";
 import type { JrefMediaTypeDocument } from "../media-types/jref-media-type.d.ts";
 import type { JsonMediaTypeDocument } from "../media-types/json-media-type.d.ts";
 import type { DocumentNode, MediaTypePlugin } from "../media-types/media-types.d.ts";
@@ -120,14 +120,19 @@ export type Target<D = unknown, N = unknown> = {
  * keep the document, and it doesn't answer for any URL.
  *
  * A document can have any parse status, like a tree from unified's
- * `parse`, so its root can be a value that couldn't be parsed. A target's
- * node is a value.
+ * `parse`, so its root can be a value that couldn't be parsed. A document
+ * with nothing in it has no value, so a walk of it visits nothing. A
+ * target's node is a value.
  */
 export type Start<N = unknown> = Target<unknown, N> | DocumentNode<N | JsonErrorNode>;
 
-/** The target a browse from `T` starts at (see {@link Start}) */
+/**
+ * The target a browse from `T` starts at (see {@link Start}). The root of
+ * a document with nothing in it is missing, which isn't a value, so
+ * there's no target of it.
+ */
 export type StartTarget<T> = T extends Target ? T
-  : T extends { children: readonly (infer N)[] } ? Target<T, N> : never;
+  : T extends { children: readonly (infer N)[] } ? Target<T, Exclude<N, JsonMissingNode>> : never;
 
 /**
  * A target of a session's documents (see {@link SessionDocument}). If

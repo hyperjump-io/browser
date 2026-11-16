@@ -84,13 +84,13 @@ jrefObjectHas("a", document);
 await jrefVisit(session, document, () => {});
 
 // So is a tree from a unified pipeline, whatever its parse status. What's
-// reached can be a value that couldn't be parsed, and a walk can start at
-// a root that's missing.
+// reached can be a value that couldn't be parsed, but not one that's
+// missing, which isn't a value.
 declare const tree: JrefDocumentNode;
 const inTree = await jrefStep(session, "a", tree);
 yes<Equal<typeof inTree.node.type, "json" | "invalid-reference" | "json-invalid">>();
 const foundInTree = await jrefFind(session, tree, null);
-yes<Equal<NonNullable<typeof foundInTree>["node"]["type"], "json" | "invalid-reference" | "json-invalid" | "json-missing">>();
+yes<Equal<NonNullable<typeof foundInTree>["node"]["type"], "json" | "invalid-reference" | "json-invalid">>();
 const stringInTree = await jrefSelect(session, "> [key=a][jsonType=string]", tree);
 yes<Equal<NonNullable<typeof stringInTree>["node"]["value"], string>>();
 await jrefVisit(session, tree, () => {});

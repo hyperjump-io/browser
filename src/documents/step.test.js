@@ -116,6 +116,26 @@ describe("stepping", () => {
       expect(toJson((await jrefStep(session, "b", tree)).node)).to.equal(`1`);
     });
 
+    test("a tree with nothing in it has no value, so a walk of it visits nothing", async () => {
+      const { session } = site({});
+      const tree = unified()
+        .use(jrefParse, { url: "https://a.test/mine", accept: "failure" })
+        .parse(``);
+      expect(tree.children.map(({ type }) => type)).to.eql(["json-missing"]);
+
+      /** @type unknown[] */
+      const visited = [];
+      await jrefVisit(session, tree, (target) => {
+        visited.push(target);
+      });
+      expect(visited).to.eql([]);
+      expect(await jrefFind(session, tree, null)).to.equal(undefined);
+      expect(await jrefFindAll(session, tree, null)).to.eql([]);
+      expect(await jrefSelect(session, ":root", tree)).to.equal(undefined);
+      expect(await jrefSelectAll(session, "*", tree)).to.eql([]);
+      await expect(get(session, "https://a.test/mine", { referencedFrom: tree })).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#"));
+    });
+
     test("a value that's missing from a parse that failed isn't there to step to or to get", async () => {
       const { session } = site({});
       const tree = unified()

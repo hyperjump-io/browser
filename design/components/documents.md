@@ -30,6 +30,13 @@ a hypermedia browser, and the stack is how it retrieves.
     can be a value that couldn't be parsed, and what's returned is typed
     with it. A target's node is still a value, as a `json*` function's
     node is.
+  - A document with nothing in it has a root that's missing, which isn't
+    a value, so there's no target of it: a walk of it visits nothing, and
+    `get` for it is an `ERR_POINTER_NOT_FOUND`. A member that's missing
+    isn't one either (see [Browsing](browsing.md)).
+    - Rejected: visiting the missing root, as the node the walk was
+      started at. A walk would give a target that `get` says isn't
+      there, and the only target whose node isn't a value.
     - Rejected: only a document whose status isn't `failure`
       (`hasStatus`). A tree that failed with a root that's a value
       couldn't be browsed without a cast, and a walk already leaves out

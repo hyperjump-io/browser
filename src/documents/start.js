@@ -23,3 +23,12 @@ export const startOf = (from) => "node" in from ? from : { document: from, node:
  * @type (location: string) => Error
  */
 export const missingValueError = (location) => codedError(`There's no value at ${relativeFileUrl(location)}`, { code: "ERR_POINTER_NOT_FOUND" }, location);
+
+/**
+ * Whether there's a value to start a walk at. The root of a document with
+ * nothing in it is missing, which isn't a value, as a member that's
+ * missing isn't one.
+ *
+ * @type (target: Target) => boolean
+ */
+export const hasValue = (target) => /** @type {{ type?: string }} */ (target.node).type !== "json-missing";
