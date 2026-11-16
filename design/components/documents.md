@@ -138,6 +138,13 @@ a hypermedia browser, and the stack is how it retrieves.
   - A target whose document the session didn't retrieve, like a tree an
     application parsed itself, is followed without a document: nothing
     caused the request, and nothing embedded is found.
+  - With `referencedFromMediaType`, such a document's references find
+    what it contains. The document has what it contains, and the session
+    doesn't know its media type, which says what the fragments of those
+    documents identify, so the application says it. Nothing caused the
+    request, since the document wasn't retrieved. It doesn't change what
+    the session has: the document isn't kept, and it doesn't answer for
+    any URL.
 
 ## Errors
 
@@ -191,6 +198,12 @@ Rejected:
   searches for what `get` had when it found the node, and it needs the
   entries of contained documents kept by URL, since two documents can say
   they contain a document with the same URL.
+- Giving the session a document it didn't retrieve, to keep with the
+  ones it did. A document would answer for a URL without being retrieved
+  from it, and the session's documents would be changed from outside.
+- The media type of a document it didn't retrieve on the target. A
+  target is what a URL identifies, and every other target's media type
+  is the session's to know.
 - A map from every node to its document, filled when a document is
   parsed. It's a walk of every tree for what a target already has.
 - A node that refers to its document. The trees are unist trees, which

@@ -75,9 +75,19 @@ export type GetOptions = {
    * Where the reference that's being followed is: a target whose document
    * it's in. A document that one contains is found before anything is
    * retrieved, and it's what caused the request, instead of `initiator`. A
-   * target whose document the session didn't retrieve is ignored.
+   * target whose document the session didn't retrieve is ignored, unless
+   * its media type is given as `referencedFromMediaType`.
    */
   referencedFrom?: Target;
+
+  /**
+   * The media type of `referencedFrom`'s document, if the session didn't
+   * retrieve it, like a document an application parsed itself. It says
+   * what the fragments of the documents it contains identify, so a
+   * document it contains is found. The session knows the media type of a
+   * document it retrieved, so it's ignored for one.
+   */
+  referencedFromMediaType?: MediaTypePlugin;
 
   /**
    * What to do if the node the URL identifies is a reference, like

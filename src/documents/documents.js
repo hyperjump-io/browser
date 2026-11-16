@@ -104,8 +104,22 @@ const targetIn = async (session, entry, documentUrl, fragment, priority, follow)
  * @type (session: API.DocumentSession, url: string, options: API.GetOptions, priority: PrioritySignal) => Promise<Entry>
  */
 const entryFor = (session, url, options, priority) => {
-  const from = options.referencedFrom && documentsOf(session).retrieved.get(/** @type DocumentNode */ (options.referencedFrom.document));
+  const from = options.referencedFrom && entryOf(session, /** @type DocumentNode */ (options.referencedFrom.document), options.referencedFromMediaType);
   return from ? referenced(session, url, from, priority) : load(session, url, options.initiator, priority);
+};
+
+/**
+ * The entry of a document a reference is followed from. A document the
+ * session didn't retrieve, like one an application parsed itself, has one
+ * if its media type is given, which says what the fragments of the
+ * documents it contains identify. Nothing caused it, so it has no record.
+ *
+ * @type (session: API.DocumentSession, document: DocumentNode, mediaType: MediaTypePlugin | undefined) => Entry | undefined
+ */
+const entryOf = (session, document, mediaType) => {
+  const { retrieved } = documentsOf(session);
+  return retrieved.get(document)
+    ?? (mediaType && { document, mediaType, record: undefined, embedded: embeddedIn(document), container: document });
 };
 
 /**

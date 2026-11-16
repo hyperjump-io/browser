@@ -298,5 +298,17 @@ const homeworld = node.type === "reference"
   : { ...luke, node };
 ```
 
+A document that you parsed yourself isn't one the session retrieved, so the
+session doesn't know its media type. If it contains other documents, give
+`get` its media type plugin as `referencedFromMediaType`, and a reference in
+it finds what it contains:
+
+```typescript
+await get(session, node.href, {
+  referencedFrom: { document: mine, node },
+  referencedFromMediaType: myMediaType
+});
+```
+
 For the errors that these functions throw, see
 [Get documents](documents.md#errors).

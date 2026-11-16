@@ -63,6 +63,18 @@ describe("targets", () => {
     expect(jsonValue(target.node)).to.equal("the real one");
     expect(requests).to.eql(["/x"]);
   });
+
+  test("with its media type, a document the session didn't retrieve finds what it contains", async () => {
+    const { session, requests } = site({ "/x": [`"the real one"`, jref] });
+    const document = bundleDocument({ a: { $ref: "/x#/b" } }, "https://a.test/mine");
+    const mine = { document: { ...document, embedded: { "https://a.test/x": bundleDocument({ b: "mine" }, "https://a.test/x") } }, node: document.children[0] };
+    const [reference] = referencesIn(mine);
+    const target = await get(session, reference.href, { referencedFrom: mine, referencedFromMediaType: bundleMediaType });
+    expect(jsonValue(target.node)).to.equal("mine");
+    expect(target.document, "its document is the container").to.equal(mine.document);
+    expect(requests).to.eql([]);
+    expect(jsonValue((await get(session, "https://a.test/x")).node), "and it doesn't answer for the URL").to.equal("the real one");
+  });
 });
 
 /** @typedef {JrefNode & { type: "reference" }} JrefReferenceNode */
