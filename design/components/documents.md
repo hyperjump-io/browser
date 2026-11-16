@@ -101,9 +101,11 @@ what makes this a hypermedia browser, and the stack is how they retrieve.
   error, with the chain of URLs.
 - `get` with `referencedFrom`, a node, follows a reference from the
   document the node is in, which is how the browsing functions follow one
-  (see [Browsing](browsing.md)). The document is found from the node's
-  location: the one the session has at that URL, or one that a document
-  contains under it.
+  (see [Browsing](browsing.md)). `getDocument` takes it the same way, so
+  an application that needs the document a reference leads to finds one
+  the node's document contains, like `get` does. The document is found
+  from the node's location: the one the session has at that URL, or one
+  that a document contains under it.
   - Two documents can say they contain a document with the same URL, so
     the session keeps the entries of contained documents by URL, and the
     one the node is in is the one where the location's pointer leads to
@@ -163,5 +165,21 @@ Rejected:
 
 ## Known limitations
 
+- There are two functions, `get` and `getDocument`, that retrieve the
+  same way and only differ in what they return. One would be better, but
+  no way to have one has been found yet. Each is needed for what the
+  other doesn't give:
+  - `get` resolves a fragment with the plugin that parsed the document,
+    which only the session knows, and follows references, so linked values
+    are worked with as if they were one. Without it, an application would
+    write that loop itself.
+  - `getDocument` gives what a plugin puts on the document, like the base
+    URI, anchors, and dialect of a JSON Schema resource. That's about the
+    document, not about a value in it. Putting it on the root value's node
+    instead means putting the document's identity on nodes too, so a
+    message can say which document a node is in.
+  - `get` returning the document with the node, without following
+    references, would be one function, but it returns two things, and
+    references wouldn't be followed for you.
 - `get` takes the nodes of a document to be a JSON AST, with references
   as `reference` nodes that have an `href`.

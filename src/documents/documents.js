@@ -58,7 +58,7 @@ const documentsKey = {};
 /** @type typeof API.getDocument */
 export const getDocument = async (session, url, options = {}) => {
   const { documentUrl } = parseUrl(session, url);
-  const { document } = await load(session, documentUrl, options.initiator, prioritySignal(options.priority));
+  const { document } = await entryFor(session, documentUrl, options, prioritySignal(options.priority));
   // The session's type says what its documents are
   return /** @type never */ (document);
 };
@@ -67,8 +67,7 @@ export const getDocument = async (session, url, options = {}) => {
 export const get = async (session, url, options = {}) => {
   let { documentUrl, fragment } = parseUrl(session, url);
   const priority = prioritySignal(options.priority);
-  const from = options.referencedFrom && await entryOf(session, options.referencedFrom);
-  let entry = from ? await referenced(session, documentUrl, from, priority) : await load(session, documentUrl, options.initiator, priority);
+  let entry = await entryFor(session, documentUrl, options, priority);
   /** @type string[] */
   const chain = [];
 
@@ -89,6 +88,18 @@ export const get = async (session, url, options = {}) => {
     ({ documentUrl, fragment } = parseUrl(session, node.href));
     entry = await referenced(session, documentUrl, entry, priority);
   }
+};
+
+/**
+ * The entry for the document at a URL that `get` or `getDocument` is asked
+ * for. With `referencedFrom`, it's the document a reference in that node's
+ * document leads to. A node the session doesn't have is ignored.
+ *
+ * @type (session: API.DocumentSession, url: string, options: API.GetOptions, priority: PrioritySignal) => Promise<Entry>
+ */
+const entryFor = async (session, url, options, priority) => {
+  const from = options.referencedFrom && await entryOf(session, options.referencedFrom);
+  return from ? referenced(session, url, from, priority) : load(session, url, options.initiator, priority);
 };
 
 /**

@@ -422,6 +422,30 @@ describe("documents", () => {
       expect(requests.map((request) => new URL(request.url).pathname)).to.eql(["/bundle", "/other", "/x"]);
     });
 
+    test("getDocument from a node finds a document the node's document contains", async () => {
+      const { session, requests } = site({
+        "/bundle": [bundle({ a: 1 }, { "https://a.test/x": { b: 2 } }), bundled],
+        "/x": [`"the real one"`, json]
+      }, { mediaTypes });
+      const node = await get(session, "https://a.test/bundle#/a");
+      const document = await getDocument(session, "https://a.test/x", { referencedFrom: node });
+      expect(document.url).to.equal("https://a.test/x");
+      expect(jsonValue(/** @type JrefNode */ (document.children[0]))).to.eql({ b: 2 });
+      expect(requests.map((request) => new URL(request.url).pathname)).to.eql(["/bundle"]);
+      expect(jsonValue(/** @type JsonNode */ ((await getDocument(session, "https://a.test/x")).children[0])), "without it, it's the document at the URL").to.equal("the real one");
+    });
+
+    test("what getDocument from a node retrieves is caused by the node's document", async () => {
+      const { session } = site({
+        "/a": [`{ "b": 1 }`, jref],
+        "/other": [`1`, json]
+      });
+      const trace = new Trace(session);
+      const node = await get(session, "https://a.test/a#/b");
+      await getDocument(session, "https://a.test/other", { referencedFrom: node });
+      expect(trace.tree().map(({ record, depth }) => `${depth} ${new URL(record.url).pathname}`)).to.eql(["0 /a", "1 /other"]);
+    });
+
     test("its URL is compared as a URL, without a fragment", async () => {
       const { session } = site({
         "/bundle": [bundle({ $ref: "/docs/../x#/a" }, { "HTTPS://a.test/x#ignored": { a: 1 } }), bundled]

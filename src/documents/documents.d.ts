@@ -93,7 +93,9 @@ export type FollowedNode<T = JrefNode> = Exclude<T, { type: "reference" }>;
  *
  * A session keeps each document it retrieves, by its URL, so asking again
  * gives the same document without fetching it, even while it's still being
- * fetched. To see changes, use a new session.
+ * fetched. To see changes, use a new session. With `referencedFrom`, a
+ * document that the node's document contains is the document at its URL,
+ * like it is for a reference there.
  *
  * The plugin is the one for the response's `Content-Type`, or for a `file:`
  * response, the one for its URL's extension. The request's `Accept` header
