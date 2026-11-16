@@ -1,7 +1,5 @@
 # Registries
 
-*Coming soon*
-
 A registry has documents your app already has, like a copy of a document
 bundled with it. A session answers them from the registry instead of
 fetching them:

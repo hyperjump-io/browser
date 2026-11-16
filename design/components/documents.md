@@ -175,9 +175,9 @@ Rejected:
     write that loop itself.
   - `getDocument` gives what a plugin puts on the document, like the base
     URI, anchors, and dialect of a JSON Schema resource. That's about the
-    document, not about a value in it. Putting it on the root value's node
-    instead means putting the document's identity on nodes too, so a
-    message can say which document a node is in.
+    document, not about a value in it. Moving it to the root value's node
+    means putting the document's identity on nodes too, so a message can
+    say which document a node is in.
   - `get` returning the document with the node, without following
     references, would be one function, but it returns two things, and
     references wouldn't be followed for you.

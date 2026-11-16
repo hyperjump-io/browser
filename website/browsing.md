@@ -32,8 +32,6 @@ tree. An object or an array node doesn't have one. You step into it instead.
 
 ## Follow references
 
-*Coming soon*
-
 Following a reference can mean retrieving a document, so the `jref` functions
 are asynchronous and take the session. You step into a node with a selector,
 which [Select values](#select-values) says more about. This one steps from Luke
@@ -65,12 +63,11 @@ never a reference.
 A reference can lead to a document in any of the session's media types. So in
 TypeScript, a node from `get` or a `jref` function is a node of any of them. A
 session with the default media types gives JRef and JSON nodes. If you add a
-media type with nodes of its own, check a node's `type` to tell which it is.
+media type with nodes of its own, check a node's `type` to tell which media
+type it's from.
 For more information, see [Media types](media-types.md).
 
 ## Visit every value
-
-*Coming soon*
 
 `jrefVisit` walks a node and every value under it depth first in document
 order, following references along the way. It works like `visit` from
@@ -112,8 +109,6 @@ references to find what's under them.
 
 ## Find values
 
-*Coming soon*
-
 `jrefFind` gives you the first value under a node that passes a test, or
 `undefined` if none does. `jrefFindAll` gives you every value that passes. They
 take the same tests as `jrefVisit` and look in the same order it visits, so
@@ -134,8 +129,6 @@ TypeScript, what they find has the type of the values that can pass the test,
 so `number?.value` is a `number`.
 
 ## Select values
-
-*Coming soon*
 
 `jrefSelect` and `jrefSelectAll` find values with a selector like `select` and
 `selectAll` from `unist-util-select` do, following references along the way.
@@ -193,8 +186,6 @@ an API like this one that could be the whole API, so start a selector with `>`
 unless you mean to search everything.
 
 ## How deep a walk goes
-
-*Coming soon*
 
 `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` can't
 go more than 1000 levels below the value you start from. If one would, it
@@ -264,7 +255,7 @@ get the name, get the homeworld first. Then select its name.
 ## Follow a reference yourself
 
 A walk that starts at a reference starts at the value it leads to. So `:scope`
-follows a reference node, and gives you any other node as it is:
+follows a reference node, and gives you any other node unchanged:
 
 ```typescript
 import { jrefSelect, jsonStep } from "@hyperjump/browser";
