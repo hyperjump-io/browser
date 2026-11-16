@@ -43,6 +43,11 @@ on a stack it's given and gives the stack what the stack can't know.
   [Request headers](request-headers.md)).
 - It follows redirects, each step as a new request down the stack, so every
   layer sees each URL (see [Redirects](redirects.md)).
+- Every response it gives has a URL, as a fetched one does. One that was
+  made, by a fetcher or the registry, gets the request's, without its
+  fragment, because `new Response` can't set one. So a fetcher doesn't
+  have to, and a fetcher that does, like the `file:` scheme's for a
+  symbolic link, keeps the URL it gave.
 - Every request's signal is the session's and the caller's together
   (`AbortSignal.any`), so closing the session aborts what it started, like
   navigating away, and a closed session refuses new requests with its

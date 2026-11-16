@@ -23,7 +23,8 @@ with it, are a session's `registry`. The session asks it before
   [What a session can fetch](allow-retrieval.md)).
 - Only a `GET` or a `HEAD` is asked, by the URL without its fragment, which
   isn't part of what's fetched. A response without a URL, like one made
-  with `new Response`, gets the request's.
+  with `new Response`, gets the request's from the session (see
+  [Sessions](sessions.md)).
 - Its answers are in traces, with the source `"registry"` and no request
   headers, because none were sent. What it throws is recorded too, like a
   failed fetch. Whether a document came from the registry is the first

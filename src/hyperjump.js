@@ -164,6 +164,14 @@ export class Hyperjump {
       recordEnd(record, error);
       throw error;
     }
+    // A response that was made, not fetched, has no URL, because the
+    // `Response` constructor can't set one. A fetched response always has
+    // one, without its fragment.
+    if (!response.url) {
+      const url = new URL(request.url);
+      url.hash = "";
+      withUrl(response, url.href);
+    }
     setResponseMeta(response, { record });
     recordResponse(record, response);
 
@@ -191,8 +199,7 @@ export class Hyperjump {
 
   /**
    * What the registry has for a request, if it has one. Only a `GET` or a
-   * `HEAD` is asked of it, without the URL's fragment, and a response a
-   * registry made without a URL gets the request's.
+   * `HEAD` is asked of it, without the URL's fragment.
    *
    * @type (request: Request) => Promise<Response | undefined>
    */
@@ -208,7 +215,7 @@ export class Hyperjump {
     if (response === undefined) {
       return;
     }
-    return setResponseMeta(response.url ? response : withUrl(response, url.href), { source: "registry" });
+    return setResponseMeta(response, { source: "registry" });
   }
 
   /**

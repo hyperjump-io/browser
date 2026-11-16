@@ -154,7 +154,8 @@ a hypermedia browser, and the stack is how it retrieves.
 - A URL is parsed where it comes in, against the session's context URL,
   and the document's URL is its response's (see
   [Identifiers are URLs](../principles/identifiers-are-urls.md)). A
-  response a layer made without a URL has the URL that was asked for.
+  response a layer made without a URL has the URL that was asked for,
+  from the session (see [Sessions](sessions.md)).
 - A request has the `Accept` header for the session's media types
   (`acceptHeader`), as a request header, which wins over the session's
   `headers`. It's worked out once for a session, when it first gets a

@@ -257,9 +257,8 @@ const retrieve = async (session, url, cause, priority) => {
   const response = await session.fetch(url, { ...cause, headers: { accept }, priority });
 
   try {
-    // A response a layer made can have no URL, and one a redirect led to
-    // has the request's fragment
-    const responseUrl = new URL(response.url || url);
+    // A response a redirect led to has the request's fragment
+    const responseUrl = new URL(response.url);
     responseUrl.hash = "";
 
     if (!response.ok) {

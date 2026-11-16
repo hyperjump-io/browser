@@ -4,7 +4,7 @@ import { cwd } from "node:process";
 import { pathToFileURL } from "node:url";
 import { fetcher } from "./layers.js";
 import { PriorityController } from "./priority.js";
-import { responseMeta } from "./response-meta.js";
+import { responseMeta, withUrl } from "./response-meta.js";
 import { startServer } from "./test-helpers/server.js";
 import { Hyperjump } from "./hyperjump.js";
 import { testHyperjump } from "./test-helpers/hyperjump.js";
@@ -93,6 +93,14 @@ describe("sessions", () => {
     await expect(fetching).rejects.toThrow("'data/missing.json' doesn't exist");
     await expect(fetching).rejects.toMatchObject({ url: pathToFileURL(join(cwd(), "data/missing.json")).href });
     await expect(new Hyperjump().fetch("../outside.json")).rejects.toThrow("Fetching '../outside.json' isn't allowed. Add it to 'allowRetrieval' to allow it.");
+  });
+
+  test("a response a fetcher made has the request's URL, without its fragment, as a fetched one does", async () => {
+    const made = testHyperjump(fetcher(() => new Response("made")));
+    expect((await made.fetch("https://a.test/doc#/a")).url).to.equal("https://a.test/doc");
+
+    const given = testHyperjump(fetcher(() => withUrl(new Response("given"), "https://a.test/real")));
+    expect((await given.fetch("https://a.test/doc")).url, "one with a URL keeps it").to.equal("https://a.test/real");
   });
 
   test("state is made once per key and session", () => {
