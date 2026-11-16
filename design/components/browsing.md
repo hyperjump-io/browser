@@ -73,6 +73,12 @@ take the session to follow references with, and a target to start from
   - `jrefObjectHas` and `jrefObjectKeys` don't take the session. Nothing
     needs following to read a property name, but with them a browse
     doesn't switch between targets and nodes.
+  - A document's root can be a value that couldn't be parsed, which a
+    `json*` function doesn't take. `jrefStep` into one is an
+    `ERR_POINTER_NOT_INDEXABLE`, as `jsonPointerGet` has for a pointer
+    that goes into one. `jrefValue` of a missing one is an
+    `ERR_POINTER_NOT_FOUND`, as `get` has, and of an invalid one an
+    `ERR_INVALID_VALUE`, as `toJson` has.
   - `jrefValue` throws for an object or an array
     (`ERR_STRUCTURED_VALUE`), which `jsonValue` doesn't. Getting their
     value would mean following every reference in them, which could

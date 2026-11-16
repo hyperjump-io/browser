@@ -18,7 +18,7 @@ import { Trace } from "../trace.js";
 /**
  * @import { HyperjumpConfig } from "../hyperjump.d.ts"
  * @import { Json } from "../json/jsonast.d.ts"
- * @import { JrefNode } from "../jref/jref-ast.d.ts"
+ * @import { JrefDocumentNode, JrefNode } from "../jref/jref-ast.d.ts"
  * @import { DocumentNode, MediaTypePlugin } from "../media-types/media-types.d.ts"
  */
 
@@ -134,6 +134,25 @@ describe("stepping", () => {
       expect(await jrefSelect(session, ":root", tree)).to.equal(undefined);
       expect(await jrefSelectAll(session, "*", tree)).to.eql([]);
       await expect(get(session, "https://a.test/mine", { referencedFrom: tree })).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#"));
+    });
+
+    test("a root that couldn't be parsed can't be stepped into, and has no value", async () => {
+      const { session } = site({});
+      /** @type (text: string) => JrefDocumentNode */
+      const parse = (text) => unified()
+        .use(jrefParse, { url: "https://a.test/mine", accept: "failure" })
+        .parse(text);
+
+      const empty = parse(``);
+      await expect(jrefStep(session, "a", empty)).rejects.toThrow(coded("ERR_POINTER_NOT_INDEXABLE", "https://a.test/mine#"));
+      await expect(jrefStep(session, "a", empty)).rejects.toThrow("Can't index into a missing value at https://a.test/mine#");
+      expect(() => jrefValue(empty)).toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#"));
+
+      const invalid = parse(`@`);
+      await expect(jrefStep(session, "a", invalid)).rejects.toThrow(coded("ERR_POINTER_NOT_INDEXABLE", "https://a.test/mine#"));
+      await expect(jrefStep(session, "a", invalid)).rejects.toThrow("Can't index into an invalid value at https://a.test/mine#");
+      expect(() => jrefValue(invalid)).toThrow(coded("ERR_INVALID_VALUE", "https://a.test/mine#"));
+      expect(() => jrefValue(invalid)).toThrow("Can't get the value of an invalid value: '@' at https://a.test/mine#");
     });
 
     test("a value that's missing from a parse that failed isn't there to step to or to get", async () => {

@@ -29,6 +29,13 @@ export const jrefStep = /** @type typeof API.jrefStep */ (async (
 ) => {
   const target = startOf(from);
   const node = /** @type Walked */ (target.node);
+  // A document's root can be a value that couldn't be parsed, which
+  // `jsonStep` doesn't take. It's the error `jsonPointerGet` has for a
+  // pointer that goes into one.
+  const unparsed = unparsedKind(node);
+  if (unparsed !== undefined) {
+    throw codedError(`Can't index into ${unparsed} value at ${relativeFileUrl(node.location)}`, { code: "ERR_POINTER_NOT_INDEXABLE" }, node.location);
+  }
   const member = jsonStep(key, node);
   // A value that's missing from a parse that failed isn't a member
   if (member === undefined) {
@@ -36,6 +43,23 @@ export const jrefStep = /** @type typeof API.jrefStep */ (async (
   }
   return follow(session, target, member, isManual(options));
 });
+
+/**
+ * What to call a node that's in place of a value that couldn't be parsed,
+ * which only the root of a document whose parse failed can be here
+ *
+ * @type (node: { type: string }) => "a missing" | "an invalid" | undefined
+ */
+const unparsedKind = (node) => {
+  switch (node.type) {
+    case "json-missing":
+      return "a missing";
+    case "json-invalid":
+      return "an invalid";
+    default:
+      return undefined;
+  }
+};
 
 /**
  * The members of a target's node as targets, each followed when it's
@@ -130,6 +154,15 @@ export const jrefObjectKeys = (from) => jsonObjectKeys(/** @type Walked */ (star
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefValue = /** @type typeof API.jrefValue */ ((/** @type From */ from) => {
   const node = /** @type Walked */ (startOf(from).node);
+  // A document's root can be a value that couldn't be parsed. A missing
+  // one isn't there, as it isn't for `get`, and an invalid one has no
+  // value to give, as it has no JSON for `toJson`.
+  if (node.type === "json-missing") {
+    throw missingValueError(node.location);
+  }
+  if (node.type === "json-invalid") {
+    throw codedError(`Can't get the value of an invalid value: '${/** @type {{ raw: string }} */ (/** @type unknown */ (node)).raw}' at ${relativeFileUrl(node.location)}`, { code: "ERR_INVALID_VALUE" }, node.location);
+  }
   if (node.jsonType === "object" || node.jsonType === "array") {
     throw codedError(`Can't get the value of an ${node.jsonType} at ${relativeFileUrl(node.location)}. Step into it instead.`, { code: "ERR_STRUCTURED_VALUE" }, node.location);
   }

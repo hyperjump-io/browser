@@ -36,7 +36,8 @@ export type MemberTarget<S, T, O = StepOptions> = T extends Target<infer D, infe
  * @throws What `jsonStep` throws, like an `Error` whose `cause.code` is
  * `ERR_POINTER_NOT_FOUND` if the property or item doesn't exist. It's the
  * same error if its value is missing from a parse that failed, where
- * `jsonStep` gives `undefined`, because a target is a value's.
+ * `jsonStep` gives `undefined`, because a target is a value's. A document
+ * whose root couldn't be parsed is an `ERR_POINTER_NOT_INDEXABLE`.
  * @throws What `get` throws, if it follows a reference.
  */
 export const jrefStep: <S extends DocumentSession, T extends Start<AnyJsonNode>, const O extends StepOptions = StepOptions>(session: S, key: string, target: T, options?: O) => Promise<MemberTarget<S, StartTarget<T>, O>>;
@@ -81,6 +82,9 @@ export const jrefObjectKeys: (target: Start<AnyJsonNode>) => IteratorObject<stri
  * @throws An `Error` whose `cause.code` is `ERR_STRUCTURED_VALUE` for an
  * array or object. Getting their value would need to follow the references
  * in them. Its `url` is the node's location.
+ * @throws An `Error` whose `cause.code` is `ERR_POINTER_NOT_FOUND` for a
+ * document with nothing in it, or `ERR_INVALID_VALUE` for one whose root
+ * couldn't be parsed.
  */
 export const jrefValue: {
   <N extends AnyJsonNode & { jsonType: "null" | "boolean" | "number" | "string" }>(target: Start<N>): JsonTypeValue[N["jsonType"]];
