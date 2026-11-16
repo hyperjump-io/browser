@@ -3,7 +3,8 @@ import { follow, maxDepth, maxDepthError, memberEntries } from "./walk.js";
 /**
  * @import * as API from "./visit.d.ts"
  * @import { DocumentSession } from "./documents.d.ts"
- * @import { Walked } from "./walk.js"
+ * @import { Target } from "./documents.d.ts"
+ * @import { Walked, WalkedTarget } from "./walk.js"
  */
 
 /** @type typeof API.CONTINUE */
@@ -20,12 +21,12 @@ export const EXIT = false;
 export const jrefVisit = /** @type typeof API.jrefVisit */ (
   /**
    * @param {DocumentSession} session
-   * @param {Walked} node
+   * @param {Target} target
    * @param {API.JrefTest<any> | API.JrefVisitor<any>} testOrVisitor
    * @param {API.JrefVisitor<any> | API.WalkOptions} [visitorOrOptions]
    * @param {API.WalkOptions} [options]
    */
-  async (session, node, testOrVisitor, visitorOrOptions, options) => {
+  async (session, target, testOrVisitor, visitorOrOptions, options) => {
     const [check, visit, walkOptions] = typeof visitorOrOptions === "function"
       ? [convertTest(/** @type API.JrefTest<any> */ (testOrVisitor)), visitorOrOptions, options]
       : [() => true, /** @type API.JrefVisitor<any> */ (testOrVisitor), visitorOrOptions];
@@ -33,21 +34,21 @@ export const jrefVisit = /** @type typeof API.jrefVisit */ (
     const walk = { session, maxDepth: maxDepth(walkOptions), ancestors: new Set(), check, visitor: visit };
     // A walk that starts at a reference starts at what it leads to, like a
     // walk that reaches one
-    await visitNode(walk, await follow(session, node), undefined, undefined, 0);
+    await visitTarget(walk, await follow(session, target, target.node), undefined, undefined, 0);
   }
 );
 
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefFind = /** @type typeof API.jrefFind */ (async (
   /** @type DocumentSession */ session,
-  /** @type Walked */ node,
+  /** @type Target */ target,
   /** @type API.JrefTest<any> */ test,
   /** @type API.WalkOptions | undefined */ options
 ) => {
-  /** @type Walked | undefined */
+  /** @type WalkedTarget | undefined */
   let found;
-  await jrefVisit(session, node, test, (foundNode) => {
-    found = /** @type Walked */ (foundNode);
+  await jrefVisit(session, /** @type never */ (target), test, (foundTarget) => {
+    found = /** @type WalkedTarget */ (foundTarget);
     return EXIT;
   }, options);
 
@@ -57,22 +58,24 @@ export const jrefFind = /** @type typeof API.jrefFind */ (async (
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefFindAll = /** @type typeof API.jrefFindAll */ (async (
   /** @type DocumentSession */ session,
-  /** @type Walked */ node,
+  /** @type Target */ target,
   /** @type API.JrefTest<any> */ test,
   /** @type API.WalkOptions | undefined */ options
 ) => {
   // A node reached through more than one reference is found once
-  /** @type Set<Walked> */
-  const found = new Set();
-  await jrefVisit(session, node, test, (foundNode) => {
-    found.add(/** @type Walked */ (foundNode));
+  /** @type Map<Walked, WalkedTarget> */
+  const found = new Map();
+  await jrefVisit(session, /** @type never */ (target), test, (/** @type WalkedTarget */ foundTarget) => {
+    if (!found.has(foundTarget.node)) {
+      found.set(foundTarget.node, foundTarget);
+    }
   }, options);
 
-  return [...found];
+  return [...found.values()];
 });
 
 /**
- * @typedef {(node: Walked, key: string | undefined, parent: Walked | undefined) => boolean} Check
+ * @typedef {(target: WalkedTarget, key: string | undefined, parent: WalkedTarget | undefined) => boolean} Check
  */
 
 /**
@@ -91,18 +94,19 @@ export const jrefFindAll = /** @type typeof API.jrefFindAll */ (async (
  */
 
 /**
- * Visit a node, then its members in document order, following each one
- * just before it's visited, so a skipped node's references aren't
+ * Visit a target, then its node's members in document order, following
+ * each one just before it's visited, so a skipped node's references aren't
  * followed. Going under a node at `maxDepth` throws.
  *
- * @type (walk: Visit, node: Walked, key: string | undefined, parent: Walked | undefined, depth: number) => Promise<API.VisitAction>
+ * @type (walk: Visit, target: WalkedTarget, key: string | undefined, parent: WalkedTarget | undefined, depth: number) => Promise<API.VisitAction>
  */
-const visitNode = async (walk, node, key, parent, depth) => {
-  const action = walk.check(node, key, parent) ? await walk.visitor(node, key, parent, depth) : CONTINUE;
+const visitTarget = async (walk, target, key, parent, depth) => {
+  const action = walk.check(target, key, parent) ? await walk.visitor(target, key, parent, depth) : CONTINUE;
   if (action === EXIT) {
     return EXIT;
   }
 
+  const { node } = target;
   if (action === SKIP || walk.ancestors.has(node)) {
     return CONTINUE;
   }
@@ -116,8 +120,8 @@ const visitNode = async (walk, node, key, parent, depth) => {
         throw maxDepthError(walk.maxDepth, node.location);
       }
 
-      const followedNode = /** @type Walked */ (await follow(walk.session, memberNode));
-      if (await visitNode(walk, followedNode, memberKey, node, depth + 1) === EXIT) {
+      const member = await follow(walk.session, target, memberNode);
+      if (await visitTarget(walk, member, memberKey, target, depth + 1) === EXIT) {
         return EXIT;
       }
     }
@@ -132,7 +136,8 @@ const visitNode = async (walk, node, key, parent, depth) => {
  * A test as a function, the way `unist-util-is` converts one: `null` or
  * `undefined` passes every node, a string is a `type`, an object is
  * properties that have to be equal, and an array is tests any one of which
- * passes. An array's tests can't be arrays, as `unist-util-is`'s types say.
+ * passes. A string and an object are about the target's node, and a
+ * function gets the target. An array's tests can't be arrays, as `unist-util-is`'s types say.
  *
  * @type (test: API.JrefTest<any>) => Check
  */
@@ -146,7 +151,7 @@ const convertTest = (test) => {
       }
       return convertCheck(check);
     });
-    return (node, key, parent) => checks.some((check) => check(node, key, parent));
+    return (target, key, parent) => checks.some((check) => check(target, key, parent));
   } else {
     return convertCheck(/** @type API.JrefCheck<any> */ (test));
   }
@@ -155,12 +160,12 @@ const convertTest = (test) => {
 /** @type (check: API.JrefCheck<any>) => Check */
 const convertCheck = (check) => {
   if (typeof check === "string") {
-    return (node) => node.type === check;
+    return ({ node }) => node.type === check;
   } else if (typeof check === "function") {
-    return (node, key, parent) => Boolean(check(node, key, parent));
+    return (target, key, parent) => Boolean(check(target, key, parent));
   } else if (typeof check === "object" && check !== null) {
     const entries = Object.entries(check);
-    return (node) => entries.every(([name, value]) => /** @type Record<string, unknown> */ (node)[name] === value);
+    return ({ node }) => entries.every(([name, value]) => /** @type Record<string, unknown> */ (node)[name] === value);
   } else {
     throw TypeError("A test has to be null, a string, an object, a function, or an array of tests");
   }

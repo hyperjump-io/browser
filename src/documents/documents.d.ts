@@ -20,7 +20,7 @@ declare module "../hyperjump.d.ts" {
   }
 }
 
-/** What `get` and `getDocument` need of a session. A `Hyperjump` is one. */
+/** What `get` needs of a session. A `Hyperjump` is one. */
 export type DocumentSession = Pick<Hyperjump, "fetch" | "state" | "contextUrl" | "config">;
 
 /** The documents the default media types make */
@@ -72,30 +72,71 @@ export type GetOptions = {
   initiator?: FetchRecord | Response;
 
   /**
-   * The reference that's being followed, or any node of the document it's
-   * in, when that's a document the session has. A document it contains is
-   * found before anything is retrieved, and it's what caused the request,
-   * instead of `initiator`. A node the session doesn't have is ignored.
+   * Where the reference that's being followed is: a target whose document
+   * it's in. A document that one contains is found before anything is
+   * retrieved, and it's what caused the request, instead of `initiator`. A
+   * target whose document the session didn't retrieve is ignored.
    */
-  referencedFrom?: { location: string };
+  referencedFrom?: Target;
+
+  /**
+   * What to do if the node the URL identifies is a reference, like
+   * `redirect` for a request. `"follow"`, the default, follows it, and any
+   * reference that leads to, until there's a value. `"manual"` doesn't, so
+   * the target is the node as it's written and the document at the URL.
+   */
+  reference?: "follow" | "manual";
 };
 
 /**
- * A node that isn't a reference. `get` follows every reference it reaches,
- * so the node it returns is one.
+ * A node that isn't a reference. `get` follows every reference it reaches
+ * unless it's told not to, so the node of the target it returns is one.
  */
 export type FollowedNode<T = JrefNode> = Exclude<T, { type: "reference" }>;
 
 /**
- * Retrieve the document at a URL and parse it with the media type plugin
- * for its response. A relative URL is resolved against the session's
- * context URL. The fragment is ignored and references aren't followed.
+ * What a URL identifies: a node, and the document it's in. The document is
+ * the one that was retrieved, so a node of a document that one contains
+ * has its container. A reference only means something in its document,
+ * which is what a target has that a node doesn't: a reference in it is
+ * followed from there, as `referencedFrom`.
+ */
+export type Target<D = unknown, N = unknown> = {
+  document: D;
+  node: N;
+};
+
+/**
+ * A target of a session's documents (see {@link SessionDocument}). If
+ * nothing is known about the session's documents, nothing is known about
+ * the target's document and node.
+ */
+export type SessionTarget<S> = unknown extends SessionNode<S> ? Target : Target<SessionDocument<S>, FollowedNode<SessionNode<S>>>;
+
+/**
+ * What `get` returns for its options: a target whose node isn't a
+ * reference, unless `reference` is, or could be, `"manual"`
+ */
+export type GetTarget<S, O> = unknown extends SessionNode<S> ? Target
+  : O extends { reference: infer R }
+    ? "manual" extends R ? Target<SessionDocument<S>, SessionNode<S>> : SessionTarget<S>
+    : SessionTarget<S>;
+
+/**
+ * Retrieve the document at a URL, parse it with the media type plugin for
+ * its response, and return the target the URL identifies: the node its
+ * fragment identifies, which is the document's root without one, and the
+ * document it's in. What a fragment identifies is its media type's. A
+ * relative URL is resolved against the session's context URL.
+ *
+ * If the node is a reference, it's followed, and so is any reference that
+ * leads to, until there's a value, so the target's document is the one the
+ * value is in. With `reference: "manual"`, the target is the one in the
+ * document at the URL, as it's written.
  *
  * A session keeps each document it retrieves, by its URL, so asking again
  * gives the same document without fetching it, even while it's still being
- * fetched. To see changes, use a new session. With `referencedFrom`, a
- * document that the node's document contains is the document at its URL,
- * like it is for a reference there.
+ * fetched. To see changes, use a new session.
  *
  * The plugin is the one for the response's `Content-Type`, or for a `file:`
  * response, the one for its URL's extension. The request's `Accept` header
@@ -110,21 +151,10 @@ export type FollowedNode<T = JrefNode> = Exclude<T, { type: "reference" }>;
  * is the URL that failed.
  * @throws What the plugin's `parse` rejects with, like a `SyntaxError`
  * whose `cause.code` is `ERR_SYNTAX`.
- */
-export const getDocument: <S extends DocumentSession>(session: S, url: string | URL, options?: GetOptions) => Promise<SessionDocument<S>>;
-
-/**
- * Retrieve a document like {@link getDocument} and return the node its URL's
- * fragment identifies, which is the document's root without one. What a
- * fragment identifies is its media type's. If the node is a reference, it's
- * followed, and so is any reference that leads to, until there's a value.
- *
- * @throws What {@link getDocument} throws, for the document and for each one
- * a reference leads to.
  * @throws What `jsonPointerGet` throws if a fragment doesn't identify a
  * value, like an `Error` whose `cause.code` is `ERR_POINTER_NOT_FOUND`.
  * @throws An `Error` whose `cause.code` is `ERR_REFERENCE_CYCLE`, with the
  * `chain` of URLs, if following references leads back to one that was
  * already followed.
  */
-export const get: <S extends DocumentSession>(session: S, url: string | URL, options?: GetOptions) => Promise<FollowedNode<SessionNode<S>>>;
+export const get: <S extends DocumentSession, const O extends GetOptions = GetOptions>(session: S, url: string | URL, options?: O) => Promise<GetTarget<S, O>>;

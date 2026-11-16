@@ -32,7 +32,7 @@ fragments identify. JSON and JRef are built in.
   `Content-Type`'s parameters, which a media type can give a meaning.
   - The session is for a media type that needs other documents to parse
     one, like a document that names what defines it. It gets them with
-    `getDocument(session, url, { initiator: response })`, so a trace shows
+    `get(session, url, { initiator: response, reference: "manual" })`, so a trace shows
     them under the document, and a document from the web can't make its
     plugin read a file (see [`file:` from `file:`](file-references.md)).
   - The JSON and JRef plugins take only a response's `text` and `url`
@@ -52,14 +52,14 @@ fragments identify. JSON and JRef are built in.
   Pointers. A media type without it, like JSON, identifies the whole
   document.
 - Nothing in the stack knows media types. They're for what reads a
-  response, not for what fetches it: `getDocument` chooses the plugin and
+  response, not for what fetches it: `get` chooses the plugin and
   sets `Accept` (see [Documents](documents.md)).
 
 Rejected:
 
 - `parse` without the session, with what else a document needs worked out
-  from the document `getDocument` returns. It moves the session to
-  whatever wraps `getDocument`, which then keeps its own documents next to
+  from the document `get` returns. It moves the session to
+  whatever wraps `get`, which then keeps its own documents next to
   the session's, and the response's headers have to be carried on the
   document to get there.
 - Plugins made for each session, which close over it. A session is made

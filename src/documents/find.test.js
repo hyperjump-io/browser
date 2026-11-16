@@ -23,7 +23,7 @@ describe("jrefFind", () => {
 
     const number = await jrefFind(session, film, { jsonType: "number" });
 
-    expect(number?.value).to.equal(172);
+    expect(number?.node.value).to.equal(172);
     expect(requests).to.eql(["/films/1", "/people/1"]);
   });
 
@@ -48,16 +48,16 @@ describe("jrefFind", () => {
     const numbers = await jrefFindAll(session, film, { jsonType: "number" });
 
     // Tatooine is reached from both people
-    expect(numbers.map((node) => toJson(node))).to.eql([`172`, `10465`, `167`, `4`]);
+    expect(numbers.map(({ node }) => toJson(node))).to.eql([`172`, `10465`, `167`, `4`]);
   });
 
   test("a function test gets the key", async () => {
     const { session } = site(swapi);
     const film = await get(session, "https://a.test/films/1");
 
-    const names = await jrefFindAll(session, film, (_node, key) => key === "name");
+    const names = await jrefFindAll(session, film, (_target, key) => key === "name");
 
-    expect(names.map((node) => toJson(node))).to.eql([`"Luke Skywalker"`, `"Tatooine"`, `"C-3PO"`]);
+    expect(names.map(({ node }) => toJson(node))).to.eql([`"Luke Skywalker"`, `"Tatooine"`, `"C-3PO"`]);
   });
 
   test("takes a walk's options", async () => {

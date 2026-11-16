@@ -1,6 +1,6 @@
 # Browse documents
 
-Browsing is reading a value and the values under it. `get` gives you a node
+Browsing is reading a value and the values under it. `get` gives you a target
 for the value a URL identifies, and from there the `jref` functions visit,
 find, and select the values under it. They take the session so they can follow
 the references they reach.
@@ -14,16 +14,26 @@ const session = new Hyperjump({
 const luke = await get(session, "https://swapi.hyperjump.io/api/people/1");
 ```
 
-## Nodes
+## Targets
 
-A node is a JRef abstract syntax tree (AST) node for a value in a document. Its
+A target is what a URL identifies: a value's node and the document that the
+node is in. A reference only means something in the document it's in, so the
+`jref` functions take a target, which says where to follow references from,
+and they give you targets back.
+
+```typescript
+luke.node; // The node for Luke
+luke.document.url; // "https://swapi.hyperjump.io/api/people/1"
+```
+
+A target's `node` is a JRef abstract syntax tree (AST) node for the value. Its
 `jsonType` is the kind of JSON value it holds, such as `"object"`. Its
 `location` is the URL that identifies the value. The URL's fragment is a JSON
 Pointer to where the value is in its document.
 
 ```typescript
-luke.jsonType; // "object"
-luke.location; // "https://swapi.hyperjump.io/api/people/1#"
+luke.node.jsonType; // "object"
+luke.node.location; // "https://swapi.hyperjump.io/api/people/1#"
 ```
 
 A string, number, boolean, or null node has its value as plain JavaScript in
@@ -33,7 +43,7 @@ tree. An object or an array node doesn't have one. You step into it instead.
 ## Follow references
 
 Following a reference can mean retrieving a document, so the `jref` functions
-are asynchronous and take the session. You step into a node with a selector,
+are asynchronous and take the session. You step into a target with a selector,
 which [Select values](#select-values) says more about. This one steps from Luke
 to his homeworld and then to its name:
 
@@ -45,8 +55,11 @@ const name = await jrefSelect(
   "> [key=homeworld] > [key=name][jsonType=string]",
   luke
 );
-name?.value; // "Tatooine"
+name?.node.value; // "Tatooine"
+name?.document.url; // "https://swapi.hyperjump.io/api/planets/1"
 ```
+
+The name is in another document than Luke, and its target says which one.
 
 None of the `jref` functions give you a reference. Each one follows any
 reference it reaches and gives you the referenced value instead. If that value
@@ -56,50 +69,54 @@ The unified ecosystem's utilities and the `json` functions, such as `jsonStep`,
 read the AST as it's written. For more information, see
 [The tree as it's written](#the-tree-as-its-written) and
 [Parse JSON and JRef](parsing.md). A node from a `json` function can be a
-reference that it didn't follow. If you pass one to a `jref` function, it starts
-from the value the reference leads to. A node from `get` or a `jref` function is
-never a reference.
+reference that it didn't follow. It's in the same document as the node you got
+it from, so its target is that node's target with the new node, like
+`{ ...luke, node }`. If you pass a target whose node is a reference to a `jref`
+function, it starts from the value the reference leads to. The node of a target
+from `get` or a `jref` function is never a reference.
 
 A reference can lead to a document in any of the session's media types. So in
-TypeScript, a node from `get` or a `jref` function is a node of any of them. A
-session with the default media types gives JRef and JSON nodes. If you add a
+TypeScript, the node of a target from `get` or a `jref` function is a node of
+any of them. A session with the default media types gives JRef and JSON nodes.
+If you add a
 media type with nodes of its own, check a node's `type` to tell which media
 type it's from.
 For more information, see [Media types](media-types.md).
 
 ## Visit every value
 
-`jrefVisit` walks a node and every value under it depth first in document
+`jrefVisit` walks a target and every value under it depth first in document
 order, following references along the way. It works like `visit` from
 `unist-util-visit`, and its visitor returns the same `CONTINUE`, `SKIP`, and
-`EXIT` values. The visitor gets each node with the key it's at, the node that
-has it, and its depth below the node you started from:
+`EXIT` values. The visitor gets each value's target with the key it's at, the
+target that has it, and its depth below the target you started from:
 
 ```typescript
 import { CONTINUE, jrefVisit, SKIP } from "@hyperjump/browser";
 
-await jrefVisit(session, luke, (node, key, parent, depth) => {
-  console.log(depth, key, node.location);
+await jrefVisit(session, luke, (target, key, parent, depth) => {
+  console.log(depth, key, target.node.location);
   return key === "films" ? SKIP : CONTINUE;
 });
 ```
 
 The session follows a reference just before the visitor gets its value, so
 returning `SKIP` keeps the session from retrieving the documents under that
-node. That's also how you stop at a depth: return `SKIP` when `depth` is as
+value. That's also how you stop at a depth: return `SKIP` when `depth` is as
 deep as you want to go. If a reference leads back to a value that the walk is
 inside, like a recursive definition, the visitor gets that value but not the
 values inside it again, so the walk ends.
 
-To visit only some nodes, put a test before the visitor like you would with
+To visit only some values, put a test before the visitor like you would with
 `unist-util-visit`. A string matches a node's `type`, an object matches nodes
-with the same properties, a function matches nodes it returns `true` for, and an
-array matches nodes that match any test in it. In TypeScript, the visitor's
-node has the type of the nodes that match. This example prints every number,
-including the ones in the documents that Luke's references lead to:
+with the same properties, a function gets the target and matches the ones it
+returns `true` for, and an array matches what any test in it matches. In
+TypeScript, the node of the visitor's target has the type of the nodes that
+match. This example prints every number, including the ones in the documents
+that Luke's references lead to:
 
 ```typescript
-await jrefVisit(session, luke, { jsonType: "number" }, (node, key) => {
+await jrefVisit(session, luke, { jsonType: "number" }, ({ node }, key) => {
   console.log(key, node.value);
 });
 ```
@@ -109,7 +126,7 @@ references to find what's under them.
 
 ## Find values
 
-`jrefFind` gives you the first value under a node that passes a test, or
+`jrefFind` gives you the first value under a target that passes a test, or
 `undefined` if none does. `jrefFindAll` gives you every value that passes. They
 take the same tests as `jrefVisit` and look in the same order it visits, so
 they follow references along the way. This finds Luke's first number and every
@@ -123,10 +140,10 @@ const strings = await jrefFindAll(session, luke, { jsonType: "string" });
 ```
 
 `jrefFind` stops at the first value that passes, so the session doesn't
-retrieve anything after it. `jrefFindAll` looks everywhere under the node, and
-it gives you each value once even if more than one reference leads to it. In
-TypeScript, what they find has the type of the values that can pass the test,
-so `number?.value` is a `number`.
+retrieve anything after it. `jrefFindAll` looks everywhere under the target,
+and it gives you each value once even if more than one reference leads to it.
+In TypeScript, the node of what they find has the type of the values that can
+pass the test, so `number?.node.value` is a `number`.
 
 ## Select values
 
@@ -165,8 +182,9 @@ Quote a value that has characters other than letters, digits, `_`, `-`, and
 
 TypeScript knows what kind of value a selector selects from a
 `[jsonType=...]` in its last part, after its last `>` or space.
-`> [key=director][jsonType=string]` gives you a string node, so its `value` is a
-`string`. Without one, check a node's `jsonType` before you read its `value`.
+`> [key=director][jsonType=string]` gives you a target with a string node, so
+its `value` is a `string`. Without one, check a node's `jsonType` before you
+read its `value`.
 
 ```typescript
 const director = await jrefSelect(
@@ -174,7 +192,7 @@ const director = await jrefSelect(
   "> [key=director][jsonType=string]",
   film
 );
-director?.value; // "George Lucas"
+director?.node.value; // "George Lucas"
 ```
 
 The session only follows a reference if the selector could match the value it
@@ -196,7 +214,7 @@ The error's `url` is the value it would go inside. If you expect a walk to go
 that deep, pass a bigger `maxDepth` or `Infinity` as the last argument:
 
 ```typescript
-await jrefVisit(session, node, visitor, { maxDepth: 2000 });
+await jrefVisit(session, target, visitor, { maxDepth: 2000 });
 ```
 
 It's only an error if the walk would actually go deeper. A value at the limit is
@@ -207,7 +225,7 @@ The limit is a safeguard, so to stop at a depth on purpose, say so in the walk.
 A visitor returns `SKIP` at the `depth` it gets as its fourth argument:
 
 ```typescript
-await jrefVisit(session, firstPage, (node, key, parent, depth) => {
+await jrefVisit(session, firstPage, (target, key, parent, depth) => {
   // The first page and the next two
   return depth === 2 ? SKIP : CONTINUE;
 });
@@ -225,9 +243,10 @@ written, without following references. For example, `visit` from
 
 ```typescript
 import { visit } from "unist-util-visit";
-import { getDocument } from "@hyperjump/browser";
+import { get } from "@hyperjump/browser";
 
-const document = await getDocument(session, "https://swapi.hyperjump.io/api/films/1");
+const url = "https://swapi.hyperjump.io/api/films/1";
+const { document } = await get(session, url, { reference: "manual" });
 visit(document, "reference", (node) => {
   console.log(node.href);
 });
@@ -255,26 +274,28 @@ get the name, get the homeworld first. Then select its name.
 ## Follow a reference yourself
 
 A walk that starts at a reference starts at the value it leads to. So `:scope`
-follows a reference node, and gives you any other node unchanged:
+follows a target whose node is a reference, and gives you any other target
+unchanged:
 
 ```typescript
 import { jrefSelect, jsonStep } from "@hyperjump/browser";
 
-const homeworld = await jrefSelect(session, ":scope", jsonStep("homeworld", luke));
+const node = jsonStep("homeworld", luke.node);
+const homeworld = await jrefSelect(session, ":scope", { ...luke, node });
 ```
 
-Code that doesn't walk can follow a reference node with `get`. Pass the node as
-`referencedFrom` so the session knows which document the reference is in. That
-document causes the request, and `get` finds a document that it contains
-without retrieving it:
+Code that doesn't walk can follow a reference node with `get`. Pass the target
+that the reference is in as `referencedFrom` so the session knows which
+document the reference is in. That document causes the request, and `get`
+finds a document that it contains without retrieving it:
 
 ```typescript
 import { get, jsonStep } from "@hyperjump/browser";
 
-const node = jsonStep("homeworld", luke);
+const node = jsonStep("homeworld", luke.node);
 const homeworld = node.type === "reference"
-  ? await get(session, node.href, { referencedFrom: node })
-  : node;
+  ? await get(session, node.href, { referencedFrom: luke })
+  : { ...luke, node };
 ```
 
 For the errors that these functions throw, see

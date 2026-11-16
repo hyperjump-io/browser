@@ -1,16 +1,28 @@
 # Browsing (`src/documents/visit.js`, `select.js`, and `walk.js`)
 
-Browsing is reading nodes and stepping into them while following
+Browsing is reading values and stepping into them while following
 references. It's done with the `jref*` functions, which are the unist
 utilities for a tree with its references followed. They take the session
-to follow references with.
+to follow references with, and a target to start from (see
+[Documents](documents.md)).
 
 | unist (as written) | JRef (follows references) |
 | --- | --- |
-| `visit(tree, test, visitor)` (`unist-util-visit`) | `jrefVisit(session, node, test, visitor)` |
-| `find(tree, test)` (`unist-util-find`) | `jrefFind(session, node, test)`, `jrefFindAll(session, node, test)` |
-| `select(selector, tree)` (`unist-util-select`) | `jrefSelect(session, selector, node)` |
-| `selectAll(selector, tree)` (`unist-util-select`) | `jrefSelectAll(session, selector, node)` |
+| `visit(tree, test, visitor)` (`unist-util-visit`) | `jrefVisit(session, target, test, visitor)` |
+| `find(tree, test)` (`unist-util-find`) | `jrefFind(session, target, test)`, `jrefFindAll(session, target, test)` |
+| `select(selector, tree)` (`unist-util-select`) | `jrefSelect(session, selector, target)` |
+| `selectAll(selector, tree)` (`unist-util-select`) | `jrefSelectAll(session, selector, target)` |
+
+- They take a target and give targets. A reference is followed from the
+  document it's in, which a node doesn't say, and what's found is given
+  with its document so it can be browsed from in turn. A member that isn't
+  a reference is in its parent's document, so its target is its parent's
+  with its node.
+  - Tests and selectors are about what kind of node a value is, so a
+    `type`, an object of properties, and a selector match a target's
+    node. A function gets the target, since it can ask anything.
+  - Nodes, with a node's document found from its location, was rejected
+    (see [Documents](documents.md)).
 
 - A step is a selector: `> [key=title]` is the title, and
   `> [key=characters] > *` is each character. A string, number, boolean,
@@ -32,7 +44,7 @@ to follow references with.
 - They're async and follow references, because following one can
   retrieve a document. They're for browsing, where what's needed next
   isn't known until a node is read. Code that computes over documents uses
-  `get` and `getDocument` to gather them and the `json*` functions to read
+  `get` to gather them and the `json*` functions to read
   them, which are synchronous. Only that code knows what it will need, so
   it can retrieve it all at once.
   - Synchronous browsing functions that return references as they are,
@@ -42,17 +54,19 @@ to follow references with.
     over documents doesn't use the browsing functions, so it wouldn't gain
     anything, and `follow` would be `get` again.
 - They follow references with `get`, the same way an application's own
-  function would, giving it the reference as `referencedFrom` (see
-  [Documents](documents.md)).
+  function would, giving it the target the reference is in as
+  `referencedFrom` (see [Documents](documents.md)).
 - There's no `jrefPointerGet`. A JSON Pointer in a JRef fragment doesn't go
   through references, so `get` with a fragment does the one correct thing,
   which is to follow the reference the pointer ends at.
 - A walk that starts at a reference starts at what it leads to, following
-  it the way it follows every member. So a node from a `json*` function,
-  which can be a reference, is passed as it is, and `get` and the `jref*`
-  functions return followed nodes (`FollowedNode`). The starting node is
-  followed after the selector and the options are checked, so a call
-  that's a mistake doesn't retrieve anything.
+  it the way it follows every member. So a target with a node from a
+  `json*` function, which can be a reference, is passed as it is, and the
+  nodes of the targets `get` and the `jref*` functions return are
+  followed (`FollowedNode`). The starting target is followed after the
+  selector and the options are checked, so a call that's a mistake doesn't
+  retrieve anything. A target that isn't followed is returned as it is,
+  not as a copy.
   - Taking only a node that isn't a reference, checked by types, was
     rejected. Every caller with a node from a `json*` function would
     narrow it with `node.type !== "reference"` first, and code that isn't
@@ -60,15 +74,19 @@ to follow references with.
     written as, which looks like an answer and isn't one.
   - Throwing for a reference was rejected. The caller would follow it by
     hand, which is what the walk does for every other reference.
-- They take a node of any tree, like the `json*` functions do, and not
-  only a JRef one. All they need of a node is what a reference is: a
-  `reference` node with an `href`. So what's built on browser browses its
-  own trees with them, like a tree with more kinds of node.
+- They take a target with a node of any tree, like the `json*` functions
+  take a node of one, and not only a JRef one. All they need of a node is
+  what a reference is: a `reference` node with an `href`. So what's built
+  on browser browses its own trees with them, like a tree with more kinds
+  of node. A tree the session didn't retrieve is browsed from a target
+  with its node, and its references are followed without a document.
 - What they return is typed by where a node can come from. A value or an
   item that isn't a reference is a node of the tree it's in. A reference
   can lead to a document in any of the session's media types, so it's a
   node of any of those (`SessionNode`, see [Documents](documents.md)). The
-  caller tells them apart by `type`.
+  caller tells them apart by `type`. A target's document is the one the
+  walk started in or any of the session's, and its type isn't tied to its
+  node's, so narrowing a node by its `jsonType` stays simple.
   - The type of the node that was given, for what's returned, was
     rejected. It says a reference leads to a document like the one it's
     in, which isn't so: a document can refer to one in another media type.
@@ -85,8 +103,8 @@ to follow references with.
   document's references without following them, which is what code that
   computes over documents needs before it retrieves. `CONTINUE`, `SKIP`,
   and `EXIT` are the same values as `unist-util-visit`'s.
-- It visits values with the key they're at and the value that has them,
-  the same keys `[key=...]` matches. It doesn't visit `json-property` or
+- It visits values, as targets, with the key they're at and the target of
+  the value that has them, the same keys `[key=...]` matches. It doesn't visit `json-property` or
   `json-property-name` nodes. A reference's value isn't in the document
   the reference is in, so a unist `index` into its parent's `children`
   wouldn't find it, and the browsing functions deal in values.
@@ -113,13 +131,14 @@ to follow references with.
   `unist-util-visit`'s does, with `unist-util-is`'s kinds of test: a
   `type`, an object of properties that are `===`, a function, or an array
   of those. `null` or `undefined` passes every node, as it does in
-  `unist-util-is`. The visitor's node is narrowed to what can pass it, so
-  `{ jsonType: "number" }` gives a number node.
+  `unist-util-is`. The node of the visitor's target is narrowed to what
+  can pass it, so `{ jsonType: "number" }` gives a number node.
   - The walk still goes through nodes that don't pass and follows their
     references, because what passes can be under them. A node that
     doesn't pass can't be skipped, because the visitor doesn't get it.
-  - A function test gets the key and the parent instead of an index, the
-    same as the visitor.
+  - A function test gets the target, the key, and the parent's target
+    instead of a node and an index, the same as the visitor. One that's a
+    type predicate is a predicate on the target.
   - Converting tests with `unist-util-is` was rejected. Its function tests
     take an index, and it throws for a key that isn't a number.
   - An array of tests can't have arrays in it. A recursive test type makes
@@ -128,15 +147,15 @@ to follow references with.
   - A function test that isn't a type predicate doesn't narrow. An object
     test with a property no node type has narrows to `never`, because no
     node can pass it.
-- What the visitor's node is typed as is what a walk can reach
-  (`Reachable`): the node it starts at or what's under it, once each is
-  followed.
+- What the visitor's target is typed as is what a walk can reach
+  (`ReachableTarget`): the target it starts at or what's under it, once
+  each is followed. Its node is a `Reachable`.
 
 ## Finding
 
 - `jrefFind` is `unist-util-find` for the tree with its references
   followed, and `jrefFindAll` is the same for every node that passes. They
-  take the session, the node, and a test, in `jrefVisit`'s order, and
+  take the session, the target, and a test, in `jrefVisit`'s order, and
   they're `jrefVisit` with a visitor that keeps what it gets. So they find
   in the order a visit does, follow a reference just before its value is
   tested, and take a walk's options. `jrefFind` stops at the first node
@@ -147,7 +166,7 @@ to follow references with.
     node whose `value` contains it, so the same string would mean
     something else to `jrefFind` than to `jrefVisit`.
 - `jrefFindAll` has each node once, like `jrefSelectAll`, even if it's
-  reached through more than one reference. A visit has it each time,
+  reached through more than one reference, and so one target for it. A visit has it each time,
   because a visitor can keep state by where a node is, but a list of what
   was found would only repeat it.
 - They're for finding by what a node is. A selector finds by where a node

@@ -28,7 +28,7 @@ describe("jrefSelect", () => {
 
     const director = await jrefSelect(session, ":root > [key=director]", film);
 
-    expect(director && toJson(director)).to.equal(`"George Lucas"`);
+    expect(director && toJson(director.node)).to.equal(`"George Lucas"`);
     expect(requests).to.eql(["/films/1"]);
   });
 
@@ -38,7 +38,7 @@ describe("jrefSelect", () => {
 
     const director = await jrefSelect(session, "> [key=director]", film);
 
-    expect(director && toJson(director)).to.equal(`"George Lucas"`);
+    expect(director && toJson(director.node)).to.equal(`"George Lucas"`);
   });
 
   test("a path follows the references on it and nothing else", async () => {
@@ -47,7 +47,7 @@ describe("jrefSelect", () => {
 
     const names = await jrefSelectAll(session, "> [key=characters] > * > [key=name]", film);
 
-    expect(names.map((node) => toJson(node))).to.eql([`"Luke Skywalker"`, `"C-3PO"`]);
+    expect(names.map(({ node }) => toJson(node))).to.eql([`"Luke Skywalker"`, `"C-3PO"`]);
     expect(requests).to.eql(["/films/1", "/people/1", "/people/2"]);
   });
 
@@ -57,7 +57,7 @@ describe("jrefSelect", () => {
 
     const names = await jrefSelectAll(session, "[key=name]", film);
 
-    expect(names.map((node) => toJson(node))).to.eql([`"Luke Skywalker"`, `"Tatooine"`, `"C-3PO"`]);
+    expect(names.map(({ node }) => toJson(node))).to.eql([`"Luke Skywalker"`, `"Tatooine"`, `"C-3PO"`]);
     expect(requests).to.eql(["/films/1", "/people/1", "/planets/1", "/people/2"]);
   });
 
@@ -67,7 +67,7 @@ describe("jrefSelect", () => {
 
     const name = await jrefSelect(session, "[key=name]", film);
 
-    expect(name && toJson(name)).to.equal(`"Luke Skywalker"`);
+    expect(name && toJson(name.node)).to.equal(`"Luke Skywalker"`);
     expect(requests).to.eql(["/films/1", "/people/1"]);
   });
 
@@ -76,7 +76,7 @@ describe("jrefSelect", () => {
     const subject = await get(session, "https://a.test/subject");
 
     /** @type (selector: string) => Promise<string[]> */
-    const selected = async (selector) => (await jrefSelectAll(session, selector, subject)).map((node) => toJson(node));
+    const selected = async (selector) => (await jrefSelectAll(session, selector, subject)).map(({ node }) => toJson(node));
     expect(await selected("[jsonType=number]")).to.eql([`42`]);
     expect(await selected("[value=42]")).to.eql([`42`]);
     expect(await selected("json[jsonType=boolean]")).to.eql([`true`]);
@@ -94,7 +94,7 @@ describe("jrefSelect", () => {
 
     const selected = await jrefSelectAll(session, "> [key=director], > [key=title]", film);
 
-    expect(selected.map((node) => toJson(node))).to.eql([`"A New Hope"`, `"George Lucas"`]);
+    expect(selected.map(({ node }) => toJson(node))).to.eql([`"A New Hope"`, `"George Lucas"`]);
   });
 
   test(":root is the node", async () => {
@@ -111,7 +111,7 @@ describe("jrefSelect", () => {
     const subject = await get(session, "https://a.test/subject");
 
     const descendant = await jrefSelectAll(session, "[key=x] [key=y]", subject);
-    expect(descendant.map((node) => node.location)).to.eql(["https://a.test/subject#/y"]);
+    expect(descendant.map(({ node }) => node.location)).to.eql(["https://a.test/subject#/y"]);
 
     const child = await jrefSelectAll(session, "[key=x] > [key=x]", subject);
     expect(child).to.eql([subject]);
@@ -123,9 +123,9 @@ describe("jrefSelect", () => {
     // session retrieves from there
     const { node } = fromJref(`{ "a": { "$ref": "/doc" } }`, "https://a.test/doc");
 
-    const selected = await jrefSelectAll(session, "[key=b]", /** @type FollowedNode */ (node));
+    const selected = await jrefSelectAll(session, "[key=b]", { document: undefined, node: /** @type FollowedNode */ (node) });
 
-    expect(selected.map((selectedNode) => toJson(selectedNode))).to.eql([`1`]);
+    expect(selected.map(({ node }) => toJson(node))).to.eql([`1`]);
   });
 
   test("a reference back to an ancestor is selected but not walked again", async () => {
@@ -156,7 +156,7 @@ describe("jrefSelect", () => {
 
       const next = await jrefSelectAll(session, "> [key=next]", subject, { maxDepth: 1 });
 
-      expect(next.map((node) => node.location)).to.eql(["https://a.test/pages/2#"]);
+      expect(next.map(({ node }) => node.location)).to.eql(["https://a.test/pages/2#"]);
       expect(requests).to.eql(["/pages/1", "/pages/2"]);
     });
 

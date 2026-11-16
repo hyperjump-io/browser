@@ -1,4 +1,4 @@
-import type { DocumentSession, FollowedNode, SessionNode } from "./documents.d.ts";
+import type { DocumentSession, FollowedNode, SessionDocument, SessionNode, Target } from "./documents.d.ts";
 import type { AnyJsonNode, JsonMemberValue } from "../json/jsonast-util.d.ts";
 
 /**
@@ -17,6 +17,13 @@ export type Followed<S, N> = FollowedNode<NonNullable<JsonMemberValue<N>>> | Fol
  */
 export type Reachable<S, N> = FollowedNode<N> | Followed<S, N>;
 
+/**
+ * A target a walk from target `T` can reach in session `S`. Its node is
+ * what the walk can reach from `T`'s (see {@link Reachable}), and its
+ * document is `T`'s or, through a reference, any of the session's.
+ */
+export type ReachableTarget<S, T> = T extends Target<infer D, infer N> ? Target<D | SessionDocument<S>, Reachable<S, N>> : never;
+
 export const CONTINUE: true;
 export const SKIP: "skip";
 export const EXIT: false;
@@ -30,35 +37,36 @@ export const EXIT: false;
 export type VisitAction = typeof CONTINUE | typeof SKIP | typeof EXIT;
 
 /**
- * Called with each node {@link jrefVisit} visits. `key` and `parent` are
- * where the node is in the tree with its references followed: the property
- * name or array index it's at, and the node that has it. They're
- * `undefined` for the node the visit starts at. A node reached through a
- * reference is somewhere else, which its `location` says. `depth` is how
- * many levels below the node the visit starts at it is, so returning
- * {@link SKIP} at a depth limits how deep the visit goes.
+ * Called with each target {@link jrefVisit} visits. `key` and `parent` are
+ * where its node is in the tree with its references followed: the property
+ * name or array index it's at, and the target that has it. They're
+ * `undefined` for the target the visit starts at. A node reached through a
+ * reference is somewhere else, which its `location` and the target's
+ * `document` say. `depth` is how many levels below the node the visit
+ * starts at it is, so returning {@link SKIP} at a depth limits how deep the
+ * visit goes.
  *
- * `T` is the nodes the visit can reach, and `V` is the ones the visitor
+ * `T` is the targets the visit can reach, and `V` is the ones the visitor
  * gets, which a test narrows.
  */
 export type JrefVisitor<T, V = T> = (
-  node: V,
+  target: V,
   key: string | undefined,
   parent: T | undefined,
   depth: number
 ) => VisitAction | void | Promise<VisitAction | void>;
 
 /**
- * Which nodes {@link jrefVisit} gives its visitor, the way
+ * Which targets {@link jrefVisit} gives its visitor, the way
  * `unist-util-is` tests a node:
  *
- * - `null` or `undefined` passes every node.
- * - A string is a `type`, like `"json"`.
- * - An object is properties the node has to have, each equal (`===`) to
+ * - `null` or `undefined` passes every target.
+ * - A string is its node's `type`, like `"json"`.
+ * - An object is properties its node has to have, each equal (`===`) to
  *   the node's, like `{ jsonType: "object" }`.
- * - A function is called with the node, its key, and its parent, and
+ * - A function is called with the target, its key, and its parent, and
  *   passes if it returns something truthy. A type predicate narrows the
- *   visitor's node.
+ *   visitor's target.
  * - An array passes if any of its tests does. Its tests can't be arrays,
  *   like `unist-util-is`'s.
  */
@@ -70,11 +78,25 @@ export type JrefTest<T> = JrefCheck<T> | readonly JrefCheck<T>[] | null | undefi
 export type JrefCheck<T>
   = string
     | { readonly [property: string]: unknown }
-    | ((node: T, key: string | undefined, parent: T | undefined) => unknown);
+    | ((target: T, key: string | undefined, parent: T | undefined) => unknown);
 
 /**
- * The nodes of type `N` that can pass the test `C`, for a
- * {@link JrefVisitor}'s node
+ * The targets of type `T` that can pass the test `C`, for a
+ * {@link JrefVisitor}'s target. A string or an object narrows the target's
+ * node, and a type predicate narrows the target.
+ */
+export type JrefTestedTarget<T, C> = C extends null | undefined ? T
+  : C extends (target: any, ...rest: any[]) => target is infer M ? Extract<T, M> extends never ? M : Extract<T, M>
+    : C extends (...args: any[]) => unknown ? T
+      : C extends readonly (infer U)[] ? JrefTestedTarget<T, U>
+        : T extends Target<infer D, infer N> ? TargetOf<D, JrefTestedNode<N, C>> : never;
+
+/** A target with a node of type `N`, or nothing if there's no such node */
+export type TargetOf<D, N> = [N] extends [never] ? never : Target<D, N>;
+
+/**
+ * The nodes of type `N` that can pass the test `C`, for the node of a
+ * {@link JrefVisitor}'s target
  */
 export type JrefTestedNode<N, C> = C extends null | undefined ? N
   : C extends (node: any, ...rest: any[]) => node is infer M ? Extract<N, M> extends never ? M : Extract<N, M>
@@ -93,21 +115,24 @@ type HasProperties<N, O> = N extends unknown
   : never;
 
 /**
- * Visit a node and every value under it, depth first in document order,
- * following references, like `unist-util-visit` does for a tree as it's
- * written. It visits the values, not the `json-property` nodes, so the
- * visitor gets the same nodes the other `jref*` functions return.
+ * Visit a target and every value under its node, depth first in document
+ * order, following references, like `unist-util-visit` does for a tree as
+ * it's written. It visits the values, not the `json-property` nodes, so the
+ * visitor gets the same targets the other `jref*` functions return.
  *
  * A reference is followed just before its value is visited, so a member of
- * a node the visitor skips isn't retrieved. If `node` is a reference, the
- * visit starts at what it leads to. A value that's reached again
- * through two references is visited each time. A reference back to a node
- * that's being visited, like a recursive definition, is visited, but its
- * members aren't, because they're already being visited.
+ * a node the visitor skips isn't retrieved. It's followed from the document
+ * of the target it's in, and a value that isn't a reference has that
+ * document. If the target's node is a reference, the visit starts at what
+ * it leads to. A value that's reached again through two references is
+ * visited each time. A reference back to a node that's being visited, like
+ * a recursive definition, is visited, but its members aren't, because
+ * they're already being visited.
  *
- * With a {@link JrefTest}, the visitor only gets the nodes that pass it,
- * and its node is narrowed to them. The walk still goes through the nodes
- * that don't, and follows their references, to find what's under them.
+ * With a {@link JrefTest}, the visitor only gets the targets that pass it,
+ * and its target is narrowed to them. The walk still goes through the
+ * nodes that don't, and follows their references, to find what's under
+ * them.
  *
  * To find the references in a tree without following them, use
  * `unist-util-visit` with the `"reference"` type.
@@ -122,12 +147,12 @@ type HasProperties<N, O> = N extends unknown
  * negative, or `Infinity`.
  */
 export const jrefVisit: {
-  <S extends DocumentSession, N extends AnyJsonNode, const C extends JrefTest<Reachable<S, N>>>(session: S, node: N, test: C, visitor: JrefVisitor<Reachable<S, N>, JrefTestedNode<Reachable<S, N>, C>>, options?: WalkOptions): Promise<void>;
-  <S extends DocumentSession, N extends AnyJsonNode>(session: S, node: N, visitor: JrefVisitor<Reachable<S, N>>, options?: WalkOptions): Promise<void>;
+  <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const C extends JrefTest<ReachableTarget<S, T>>>(session: S, target: T, test: C, visitor: JrefVisitor<ReachableTarget<S, T>, JrefTestedTarget<ReachableTarget<S, T>, C>>, options?: WalkOptions): Promise<void>;
+  <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>>(session: S, target: T, visitor: JrefVisitor<ReachableTarget<S, T>>, options?: WalkOptions): Promise<void>;
 };
 
 /**
- * The first node under `node`, or `node` itself, that passes a
+ * The first target under `target`, or `target` itself, that passes a
  * {@link JrefTest}, in the order {@link jrefVisit} visits them, like
  * `unist-util-find`. It's `undefined` if none does. The walk stops at the
  * first that passes, so nothing after it is retrieved. It's narrowed to
@@ -135,16 +160,16 @@ export const jrefVisit: {
  *
  * @throws What {@link jrefVisit} throws.
  */
-export const jrefFind: <S extends DocumentSession, N extends AnyJsonNode, const C extends JrefTest<Reachable<S, N>>>(session: S, node: N, test: C, options?: WalkOptions) => Promise<JrefTestedNode<Reachable<S, N>, C> | undefined>;
+export const jrefFind: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const C extends JrefTest<ReachableTarget<S, T>>>(session: S, target: T, test: C, options?: WalkOptions) => Promise<JrefTestedTarget<ReachableTarget<S, T>, C> | undefined>;
 
 /**
- * Every node under `node`, and `node` itself, that passes a
- * {@link JrefTest}, in the order {@link jrefVisit} visits them. Each is
- * there once, even if it's reached through more than one reference.
+ * Every target under `target`, and `target` itself, that passes a
+ * {@link JrefTest}, in the order {@link jrefVisit} visits them. Each node
+ * is there once, even if it's reached through more than one reference.
  *
  * @throws What {@link jrefVisit} throws.
  */
-export const jrefFindAll: <S extends DocumentSession, N extends AnyJsonNode, const C extends JrefTest<Reachable<S, N>>>(session: S, node: N, test: C, options?: WalkOptions) => Promise<JrefTestedNode<Reachable<S, N>, C>[]>;
+export const jrefFindAll: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const C extends JrefTest<ReachableTarget<S, T>>>(session: S, target: T, test: C, options?: WalkOptions) => Promise<JrefTestedTarget<ReachableTarget<S, T>, C>[]>;
 
 /**
  * Options for the functions that walk everything under a node, following

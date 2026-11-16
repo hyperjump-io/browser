@@ -6,7 +6,7 @@ import { jsonArrayIter, jsonObjectEntries } from "../json/jsonast-util.js";
 
 /**
  * @import { WalkOptions } from "./visit.d.ts"
- * @import { DocumentSession, FollowedNode } from "./documents.d.ts"
+ * @import { DocumentSession, FollowedNode, Target } from "./documents.d.ts"
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
  * @import { JsonNode } from "../json/jsonast.d.ts"
  * @import { JsonMemberValue } from "../json/jsonast-util.d.ts"
@@ -20,20 +20,32 @@ import { jsonArrayIter, jsonObjectEntries } from "../json/jsonast-util.js";
  */
 
 /**
- * A reference's value, or the node if it isn't a reference. It uses `get`,
- * so the browsing functions are built on a session the way an
- * application's would be. `get` follows a reference to another reference
- * too, and finds the document the reference is in from the node.
+ * A target a walk reaches: a node it can walk, with its document
  *
- * The functions take the type of the node they're given, which can be any
- * tree's, so here a node is only what a reference needs. What comes back is
- * a node of that tree, which the functions' types say.
- *
- * @type (session: DocumentSession, node: unknown) => Promise<any>
+ * @typedef {Target<unknown, Walked>} WalkedTarget
  */
-export const follow = async (session, node) => {
+
+/**
+ * The target of a node in a target's document. A reference's is what it
+ * leads to, which `get` finds from the document the reference is in, and
+ * follows to a value. Any other node is in the same document. It uses
+ * `get`, so the browsing functions are built on a session the way an
+ * application's would be.
+ *
+ * The functions take the type of the target they're given, whose node can
+ * be any tree's, so here a node is only what a reference needs. What comes
+ * back is typed by the functions.
+ *
+ * @type (session: DocumentSession, from: Target, node: unknown) => Promise<WalkedTarget>
+ */
+export const follow = async (session, from, node) => {
   const reference = /** @type JrefNode */ (node);
-  return reference.type === "reference" ? get(session, reference.href, { referencedFrom: reference }) : node;
+  if (reference.type === "reference") {
+    return /** @type WalkedTarget */ (await get(session, reference.href, { referencedFrom: from }));
+  }
+
+  // The target a walk starts at is the one that was given
+  return /** @type WalkedTarget */ (node === from.node ? from : { document: from.document, node });
 };
 
 /**

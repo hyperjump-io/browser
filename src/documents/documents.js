@@ -17,13 +17,15 @@ import { responseMeta, withUrl } from "../response-meta.js";
  * says what its fragments identify, its response's record, which is the
  * initiator of the requests its references cause, and the documents it
  * contains, by URL. A document found in another has its container's plugin,
- * record, and set.
+ * record, and set. `container` is the document that was retrieved: the
+ * document itself, or the one it was found in.
  *
  * @typedef {{
  *   document: DocumentNode,
  *   mediaType: MediaTypePlugin,
  *   record: FetchRecord | undefined,
- *   embedded: ReadonlyMap<string, DocumentNode>
+ *   embedded: ReadonlyMap<string, DocumentNode>,
+ *   container: DocumentNode
  * }} Entry
  */
 
@@ -39,35 +41,39 @@ import { responseMeta, withUrl } from "../response-meta.js";
  * document that's asked for again while it's fetched or parsed is the same
  * one, and what its media types work out to.
  *
- * `contained` is the entries of the documents that documents contain, by
- * the URL each says it has. Nothing is found there by its URL alone, since
- * two documents can say they contain the same one. It's where the document
- * a node is in is looked for.
+ * `retrieved` is the entry of each document that was retrieved, by the
+ * document, which is how a target's document is known to the session.
  *
  * @typedef {{
  *   mediaTypes: readonly MediaTypePlugin[],
  *   accept: string,
  *   entries: Map<string, Kept>,
- *   contained: Map<string, Entry[]>
+ *   retrieved: WeakMap<DocumentNode, Entry>
  * }} Documents
  */
 
 /** The key of a session's documents in its state */
 const documentsKey = {};
 
-/** @type typeof API.getDocument */
-export const getDocument = async (session, url, options = {}) => {
-  const { documentUrl } = parseUrl(session, url);
-  const { document } = await entryFor(session, documentUrl, options, prioritySignal(options.priority));
-  // The session's type says what its documents are
-  return /** @type never */ (document);
+/** @type typeof API.get */
+export const get = async (session, url, given) => {
+  /** @type API.GetOptions */
+  const options = given ?? {};
+  const { documentUrl, fragment } = parseUrl(session, url);
+  const priority = prioritySignal(options.priority);
+  const entry = await entryFor(session, documentUrl, options, priority);
+  // The session's type says what its documents and nodes are
+  return /** @type never */ (await targetIn(session, entry, documentUrl, fragment, priority, options.reference !== "manual"));
 };
 
-/** @type typeof API.get */
-export const get = async (session, url, options = {}) => {
-  let { documentUrl, fragment } = parseUrl(session, url);
-  const priority = prioritySignal(options.priority);
-  let entry = await entryFor(session, documentUrl, options, priority);
+/**
+ * What a fragment identifies in a document, as a target. To `follow`, a
+ * reference is followed, and so is any that leads to, until there's a
+ * value.
+ *
+ * @type (session: API.DocumentSession, entry: Entry, documentUrl: string, fragment: string, priority: PrioritySignal, follow: boolean) => Promise<API.Target<DocumentNode, JrefNode>>
+ */
+const targetIn = async (session, entry, documentUrl, fragment, priority, follow) => {
   /** @type string[] */
   const chain = [];
 
@@ -80,9 +86,8 @@ export const get = async (session, url, options = {}) => {
 
     const pointer = entry.mediaType.fragmentPointer?.(entry.document, fragment) ?? "";
     const node = jsonPointerGet(pointer, /** @type JrefNode */ (entry.document.children[0]));
-    if (node.type !== "reference") {
-      // The session's type says what its nodes are
-      return /** @type never */ (node);
+    if (!follow || node.type !== "reference") {
+      return { document: entry.container, node };
     }
 
     ({ documentUrl, fragment } = parseUrl(session, node.href));
@@ -91,14 +96,15 @@ export const get = async (session, url, options = {}) => {
 };
 
 /**
- * The entry for the document at a URL that `get` or `getDocument` is asked
- * for. With `referencedFrom`, it's the document a reference in that node's
- * document leads to. A node the session doesn't have is ignored.
+ * The entry for the document at a URL that `get` is asked
+ * for. With `referencedFrom`, it's the document a reference in that
+ * target's document leads to. A target whose document the session didn't
+ * retrieve is ignored.
  *
  * @type (session: API.DocumentSession, url: string, options: API.GetOptions, priority: PrioritySignal) => Promise<Entry>
  */
-const entryFor = async (session, url, options, priority) => {
-  const from = options.referencedFrom && await entryOf(session, options.referencedFrom);
+const entryFor = (session, url, options, priority) => {
+  const from = options.referencedFrom && documentsOf(session).retrieved.get(/** @type DocumentNode */ (options.referencedFrom.document));
   return from ? referenced(session, url, from, priority) : load(session, url, options.initiator, priority);
 };
 
@@ -118,32 +124,6 @@ const referenced = async (session, url, from, priority) => {
 const prioritySignal = (priority) => priority instanceof PrioritySignal ? priority : PrioritySignal.of(priority ?? "auto");
 
 /**
- * The entry of the document a node is in, if the session has it: the
- * document at the node's location, or one that a document contains under
- * that URL. Which one is checked by finding the node in it, since two
- * documents can say they contain a document with the same URL.
- *
- * @type (session: API.DocumentSession, node: { location: string }) => Promise<Entry | undefined>
- */
-const entryOf = async (session, node) => {
-  const { entries, contained } = documentsOf(session);
-  const { documentUrl, fragment } = parseUrl(session, node.location);
-  const pointer = decodeURIComponent(fragment);
-
-  const kept = await entries.get(documentUrl)?.loading.catch(() => undefined);
-  for (const entry of [...kept ? [kept] : [], ...contained.get(documentUrl) ?? []]) {
-    try {
-      if (jsonPointerGet(pointer, /** @type JrefNode */ (entry.document.children[0])) === node) {
-        return entry;
-      }
-    } catch {
-      // The location isn't in this document
-    }
-  }
-  return undefined;
-};
-
-/**
  * A URL as a document's URL and a fragment, which stays percent-encoded
  *
  * @type (session: API.DocumentSession, url: string | URL) => { documentUrl: string, fragment: string }
@@ -158,7 +138,7 @@ const parseUrl = (session, url) => {
 /** @type (session: API.DocumentSession) => Documents */
 const documentsOf = (session) => session.state(documentsKey, () => {
   const mediaTypes = session.config.mediaTypes ?? defaultMediaTypes;
-  return { mediaTypes, accept: acceptHeader(mediaTypes), entries: new Map(), contained: new Map() };
+  return { mediaTypes, accept: acceptHeader(mediaTypes), entries: new Map(), retrieved: new WeakMap() };
 });
 
 /**
@@ -211,7 +191,7 @@ const load = (session, url, initiator, priority) => {
  * @type (session: API.DocumentSession, url: string, initiator: API.GetOptions["initiator"], priority: PrioritySignal) => Promise<{ entry: Entry, responseUrl: string }>
  */
 const retrieve = async (session, url, initiator, priority) => {
-  const { mediaTypes, accept, contained } = documentsOf(session);
+  const { mediaTypes, accept, retrieved } = documentsOf(session);
   const response = await session.fetch(url, { headers: { accept }, initiator, priority });
 
   try {
@@ -241,10 +221,8 @@ const retrieve = async (session, url, initiator, priority) => {
     const parsed = response.url === responseUrl.href ? response : withUrl(response, responseUrl.href);
     const document = await mediaType.parse(parsed, session);
     /** @type Entry */
-    const entry = { document, mediaType, record: responseMeta(response).record, embedded: embeddedIn(document) };
-    for (const [embeddedUrl, embeddedDocument] of entry.embedded) {
-      contained.set(embeddedUrl, [...contained.get(embeddedUrl) ?? [], { ...entry, document: embeddedDocument }]);
-    }
+    const entry = { document, mediaType, record: responseMeta(response).record, embedded: embeddedIn(document), container: document };
+    retrieved.set(document, entry);
     return { entry, responseUrl: responseUrl.href };
   } catch (error) {
     // A body that wasn't read holds its file or connection

@@ -61,7 +61,7 @@ export type MediaTypePlugin<T extends DocumentNode = DocumentNode> = {
    *
    * A media type that needs other documents to parse one, like one that
    * names what defines it, gets them with the session, as
-   * `getDocument(session, url, { initiator: response })`, so they're
+   * `get(session, url, { initiator: response, reference: "manual" })`, so they're
    * requests the document caused. Getting the document that's being parsed
    * waits for itself.
    *

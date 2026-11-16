@@ -55,13 +55,15 @@ const aNewHope = await get(
 );
 ```
 
-`get` returns a JRef abstract syntax tree (AST) node for the value that URL
-identifies. The tree is a [unist](https://github.com/syntax-tree/unist) tree, and
-you find nodes in it with selectors, like you'd find elements in a web page with
-CSS. `jrefSelect` takes the session so it can follow references, and it returns
-the first node that matches. A selector that starts with `>` matches what's
-directly inside the node you give it, and `[key=title]` matches the value of the
-`title` property. A node's `jsonType` is the kind of JSON value it holds, so
+`get` returns a target for the value that URL identifies. A target has the
+value's `node`, which is a JRef abstract syntax tree (AST) node, and the
+`document` that the node is in. The tree is a
+[unist](https://github.com/syntax-tree/unist) tree, and you find values in it
+with selectors, like you'd find elements in a web page with CSS. `jrefSelect`
+takes the session so it can follow references, and it returns a target for the
+first value that matches. A selector that starts with `>` matches what's
+directly inside the target you give it, and `[key=title]` matches the value of
+the `title` property. A node's `jsonType` is the kind of JSON value it holds, so
 `[jsonType=string]` says the title is a string. A string, number, boolean, or
 null node has its value as plain JavaScript in `value`:
 
@@ -71,17 +73,17 @@ const title = await jrefSelect(
   "> [key=title][jsonType=string]",
   aNewHope
 );
-title?.value; // "A New Hope"
+title?.node.value; // "A New Hope"
 ```
 
 `jrefSelect` returns `undefined` if nothing matches, like when the film doesn't
 have a title or its title isn't a string. TypeScript knows from the selector that
-a node it returns is a string node.
+the node of a target it returns is a string node.
 
 The film's `characters` property is where the references come in. Each `>` in a
 selector steps one level deeper, and `*` matches any value. `jrefSelectAll`
-returns every node that matches, so this selector finds the name of every
-character in the film:
+returns a target for every value that matches, so this selector finds the name
+of every character in the film:
 
 ```typescript
 const names = await jrefSelectAll(
@@ -91,7 +93,7 @@ const names = await jrefSelectAll(
 );
 
 for (const name of names) {
-  console.log(name.value);
+  console.log(name.node.value);
 }
 ```
 
@@ -139,7 +141,7 @@ const name = await jrefSelect(
   "> [key=homeworld] > [key=name][jsonType=string]",
   luke
 );
-name?.value; // "Tatooine"
+name?.node.value; // "Tatooine"
 ```
 
 Everything after `get` is the same code you used for the API. Keep in mind that
@@ -150,7 +152,7 @@ because a URL reads `C:` as a scheme.
 
 ## What's next
 
-- [Browse documents](browsing.md) for every way to read a node
+- [Browse documents](browsing.md) for every way to read a target
 - [What a session can fetch](allow-retrieval.md) before you use documents you
   don't control
 - [Sessions](sessions.md) for a session's options, and the stack it retrieves

@@ -37,10 +37,10 @@ JSON.
 
 The plugin's type says what its documents' nodes are, which here is
 `JsonNode`. A reference can lead to a document in any of a session's media
-types, so `get` and the `jref` functions return a node of any of them. With
-this session, that's a JRef node or a JSON node. If a plugin's type is only
-`MediaTypePlugin`, TypeScript doesn't know what the session's nodes are, and
-they're `unknown`.
+types, so `get` and the `jref` functions return a target whose node is a node of
+any of them. With this session, that's a JRef node or a JSON node. If a
+plugin's type is only `MediaTypePlugin`, TypeScript doesn't know what the
+session's documents and nodes are, and they're `unknown`.
 
 ## A plugin
 
@@ -51,7 +51,7 @@ A plugin is a plain object:
 | `mediaType` | The media type, such as `application/yaml`, or a range such as `text/*` |
 | `extensions` | The names that files of this media type have. An extension starts with `.`, such as `.yaml`. A whole filename starts with `/`, such as `/.bowerrc`. |
 | `quality` | The media type's quality in the `Accept` header, from 0 to 1. Without it, servers take the quality to be 1. |
-| `parse(response, session)` | Parses a response into a document. The response's `url` is the document's URL, and the document it returns has that `url`. If the response can't be a document, it throws. The session is for a format that needs other documents to parse one, which it gets with `getDocument(session, url, { initiator: response })`. |
+| `parse(response, session)` | Parses a response into a document. The response's `url` is the document's URL, and the document it returns has that `url`. If the response can't be a document, it throws. The session is for a format that needs other documents to parse one, which it gets with `get(session, url, { initiator: response, reference: "manual" })`. |
 | `fragmentPointer(document, fragment)` | The JSON Pointer to the node that a fragment identifies. Without it, a fragment identifies the whole document. |
 
 If a document contains other documents that have URLs of their own, return them

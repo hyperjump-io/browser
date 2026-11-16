@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { visit } from "unist-util-visit";
 import { CONTINUE, EXIT, SKIP, jrefVisit } from "./visit.js";
-import { get, getDocument } from "./documents.js";
+import { get } from "./documents.js";
 import { fromJref } from "../jref/jref-util.js";
 import { toJson } from "../json/jsonast-util.js";
 import { coded } from "../test-helpers/errors.js";
@@ -22,8 +22,8 @@ describe("jrefVisit", () => {
 
     /** @type [string | undefined, string, string | undefined, number][] */
     const visited = [];
-    await jrefVisit(session, subject, (node, key, parent, depth) => {
-      visited.push([key, node.location, parent?.location, depth]);
+    await jrefVisit(session, subject, ({ node }, key, parent, depth) => {
+      visited.push([key, node.location, parent?.node.location, depth]);
     });
 
     expect(visited).to.eql([
@@ -43,7 +43,7 @@ describe("jrefVisit", () => {
 
     /** @type string[] */
     const visited = [];
-    await jrefVisit(session, subject, (node, key) => {
+    await jrefVisit(session, subject, ({ node }, key) => {
       visited.push(toJson(node));
       return key === "skipped" ? SKIP : CONTINUE;
     });
@@ -58,7 +58,7 @@ describe("jrefVisit", () => {
 
     /** @type string[] */
     const visited = [];
-    await jrefVisit(session, subject, async (node) => {
+    await jrefVisit(session, subject, async ({ node }) => {
       visited.push(toJson(node));
       return toJson(node) === "2" ? EXIT : CONTINUE;
     });
@@ -85,7 +85,7 @@ describe("jrefVisit", () => {
 
     /** @type string[] */
     const visited = [];
-    await jrefVisit(session, subject, (node) => {
+    await jrefVisit(session, subject, ({ node }) => {
       visited.push(node.location);
     });
 
@@ -105,8 +105,8 @@ describe("jrefVisit", () => {
 
     /** @type string[] */
     const visited = [];
-    await jrefVisit(session, /** @type FollowedNode */ (node), (visitedNode, key) => {
-      visited.push(`${key} ${toJson(visitedNode)}`);
+    await jrefVisit(session, { document: undefined, node: /** @type FollowedNode */ (node) }, (target, key) => {
+      visited.push(`${key} ${toJson(target.node)}`);
     });
 
     expect(visited).to.eql([`undefined {"a":{"$ref":"/doc"}}`, `a {"b":1}`, `b 1`]);
@@ -118,7 +118,7 @@ describe("jrefVisit", () => {
 
     /** @type string[] */
     const visited = [];
-    await jrefVisit(session, subject, (node) => {
+    await jrefVisit(session, subject, ({ node }) => {
       visited.push(node.location);
     });
 
@@ -206,7 +206,7 @@ describe("jrefVisit", () => {
 
       /** @type number[] */
       const numbers = [];
-      await jrefVisit(session, subject, { jsonType: "number" }, (node) => {
+      await jrefVisit(session, subject, { jsonType: "number" }, ({ node }) => {
         numbers.push(node.value);
       });
 
@@ -220,7 +220,7 @@ describe("jrefVisit", () => {
 
       /** @type (string | boolean)[] */
       const values = [];
-      await jrefVisit(session, subject, [{ jsonType: "string" }, { jsonType: "boolean" }], (node) => {
+      await jrefVisit(session, subject, [{ jsonType: "string" }, { jsonType: "boolean" }], ({ node }) => {
         values.push(node.value);
       });
 
@@ -249,7 +249,7 @@ describe("jrefVisit", () => {
 
       /** @type (string | undefined)[] */
       const keys = [];
-      await jrefVisit(session, subject, (_node, key, parent) => parent?.jsonType === "array" || key === "b", (_node, key) => {
+      await jrefVisit(session, subject, (_target, key, parent) => parent?.node.jsonType === "array" || key === "b", (_node, key) => {
         keys.push(key);
       });
 
@@ -292,7 +292,7 @@ describe("jrefVisit", () => {
 describe("unist utilities", () => {
   test("unist-util-visit finds the references in a document as it's written", async () => {
     const { session, requests } = site({ "/doc": { a: { $ref: "#/b" }, b: [{ $ref: "other#/x" }] } });
-    const document = await getDocument(session, "https://a.test/doc");
+    const document = (await get(session, "https://a.test/doc", { reference: "manual" })).document;
 
     /** @type string[] */
     const hrefs = [];

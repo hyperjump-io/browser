@@ -1,11 +1,12 @@
-import type { JrefTestedNode, Reachable, WalkOptions } from "./visit.d.ts";
-import type { DocumentSession } from "./documents.d.ts";
+import type { JrefTestedNode, ReachableTarget, TargetOf, WalkOptions } from "./visit.d.ts";
+import type { DocumentSession, Target } from "./documents.d.ts";
 import type { AnyJsonNode } from "../json/jsonast-util.d.ts";
 
 /**
- * The first node under `node`, or `node` itself, that matches a selector in
- * the tree with its references followed, like `unist-util-select`'s
- * `select`. It's `undefined` if nothing matches.
+ * The first target under `target`, or `target` itself, whose node matches
+ * a selector in the tree with its references followed, like
+ * `unist-util-select`'s `select`. It's `undefined` if nothing matches. Here
+ * `node` is the target's node.
  *
  * A selector is a comma-separated list of selectors made of these, joined
  * by ` ` (a descendant) or `>` (a child):
@@ -21,8 +22,8 @@ import type { AnyJsonNode } from "../json/jsonast-util.d.ts";
  *   at `node`, so `> [key=director]` is `:root > [key=director]`.
  *
  * What's selected is narrowed by a `[jsonType=...]` in the last part of a
- * selector, like `> [key=title][jsonType=string]`, so it's a string node
- * whose `value` is a string (see {@link Selected}).
+ * selector, like `> [key=title][jsonType=string]`, so its node is a string
+ * node whose `value` is a string (see {@link Selected}).
  *
  * If `node` is a reference, the selection starts at what it leads to, so
  * `:root` is that value. Only what a selector could match is followed
@@ -40,12 +41,13 @@ import type { AnyJsonNode } from "../json/jsonast-util.d.ts";
  * @throws A `RangeError` if `maxDepth` isn't valid.
  * @throws What `get` throws, if it follows a reference.
  */
-export const jrefSelect: <S extends DocumentSession, N extends AnyJsonNode, L extends string>(session: S, selector: L, node: N, options?: WalkOptions) => Promise<Selected<Reachable<S, N>, L> | undefined>;
+export const jrefSelect: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, L extends string>(session: S, selector: L, target: T, options?: WalkOptions) => Promise<SelectedTarget<ReachableTarget<S, T>, L> | undefined>;
 
 /**
- * Every node under `node`, and `node` itself, that matches a selector, like
- * `unist-util-select`'s `selectAll`. They're in the order they're reached,
- * each once even if it's reached through more than one reference.
+ * Every target under `target`, and `target` itself, whose node matches a
+ * selector, like `unist-util-select`'s `selectAll`. They're in the order
+ * they're reached, each node once even if it's reached through more than
+ * one reference.
  * Selectors are {@link jrefSelect}'s.
  *
  * @throws An `Error` whose `cause.code` is `ERR_MAX_DEPTH` if something
@@ -56,7 +58,13 @@ export const jrefSelect: <S extends DocumentSession, N extends AnyJsonNode, L ex
  * @throws A `RangeError` if `maxDepth` isn't valid.
  * @throws What `get` throws, if it follows a reference.
  */
-export const jrefSelectAll: <S extends DocumentSession, N extends AnyJsonNode, L extends string>(session: S, selector: L, node: N, options?: WalkOptions) => Promise<Selected<Reachable<S, N>, L>[]>;
+export const jrefSelectAll: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, L extends string>(session: S, selector: L, target: T, options?: WalkOptions) => Promise<SelectedTarget<ReachableTarget<S, T>, L>[]>;
+
+/**
+ * The targets of type `T` whose node selector list `L` can select (see
+ * {@link Selected})
+ */
+export type SelectedTarget<T, L extends string> = T extends Target<infer D, infer N> ? TargetOf<D, Selected<N, L>> : never;
 
 /**
  * The nodes of type `N` that selector list `L` can select. A selector is

@@ -3,8 +3,8 @@ import { follow, maxDepth, maxDepthError, memberEntries } from "./walk.js";
 /**
  * @import * as API from "./select.d.ts"
  * @import { WalkOptions } from "./visit.d.ts"
- * @import { DocumentSession } from "./documents.d.ts"
- * @import { Walked } from "./walk.js"
+ * @import { DocumentSession, Target } from "./documents.d.ts"
+ * @import { Walked, WalkedTarget } from "./walk.js"
  */
 
 /**
@@ -35,13 +35,13 @@ import { follow, maxDepth, maxDepthError, memberEntries } from "./walk.js";
 export const jrefSelect = /** @type typeof API.jrefSelect */ (async (
   /** @type DocumentSession */ session,
   /** @type string */ selector,
-  /** @type Walked */ node,
+  /** @type Target */ target,
   /** @type WalkOptions | undefined */ options
 ) => {
-  /** @type Walked | undefined */
+  /** @type WalkedTarget | undefined */
   let found;
-  await select(session, parseSelector(selector), node, maxDepth(options), (matchedNode) => {
-    found = matchedNode;
+  await select(session, parseSelector(selector), target, maxDepth(options), (matched) => {
+    found = matched;
     return true;
   });
 
@@ -52,17 +52,20 @@ export const jrefSelect = /** @type typeof API.jrefSelect */ (async (
 export const jrefSelectAll = /** @type typeof API.jrefSelectAll */ (async (
   /** @type DocumentSession */ session,
   /** @type string */ selector,
-  /** @type Walked */ node,
+  /** @type Target */ target,
   /** @type WalkOptions | undefined */ options
 ) => {
-  /** @type Set<Walked> */
-  const found = new Set();
-  await select(session, parseSelector(selector), node, maxDepth(options), (matchedNode) => {
-    found.add(matchedNode);
+  // A node reached through more than one reference is selected once
+  /** @type Map<Walked, WalkedTarget> */
+  const found = new Map();
+  await select(session, parseSelector(selector), target, maxDepth(options), (matched) => {
+    if (!found.has(matched.node)) {
+      found.set(matched.node, matched);
+    }
     return false;
   });
 
-  return [...found];
+  return [...found.values()];
 });
 
 /**
@@ -70,13 +73,13 @@ export const jrefSelectAll = /** @type typeof API.jrefSelectAll */ (async (
  * selector at once. A member is only followed if some selector could match
  * it or what's under it, which for a child combinator is known from its key.
  *
- * @type (session: DocumentSession, selectors: Complex[], node: Walked, maxDepth: number, onMatch: (node: Walked) => boolean) => Promise<void>
+ * @type (session: DocumentSession, selectors: Complex[], target: Target, maxDepth: number, onMatch: (target: WalkedTarget) => boolean) => Promise<void>
  */
-const select = async (session, selectors, node, maxDepth, onMatch) => {
+const select = async (session, selectors, target, maxDepth, onMatch) => {
   const states = selectors.map((complex) => ({ complex, index: 0, descendant: true }));
   // A selection that starts at a reference starts at what it leads to, like
   // a walk that reaches one
-  await selectNode({ session, maxDepth, ancestors: new Map(), onMatch }, await follow(session, node), undefined, 0, states);
+  await selectTarget({ session, maxDepth, ancestors: new Map(), onMatch }, await follow(session, target, target.node), undefined, 0, states);
 };
 
 /**
@@ -92,16 +95,17 @@ const select = async (session, selectors, node, maxDepth, onMatch) => {
  *   session: DocumentSession;
  *   maxDepth: number;
  *   ancestors: Map<Walked, Set<string>>;
- *   onMatch: (node: Walked) => boolean;
+ *   onMatch: (target: WalkedTarget) => boolean;
  * }} Selection
  */
 
 /**
  * Whether to stop
  *
- * @type (selection: Selection, node: Walked, key: string | undefined, depth: number, states: State[]) => Promise<boolean>
+ * @type (selection: Selection, target: WalkedTarget, key: string | undefined, depth: number, states: State[]) => Promise<boolean>
  */
-const selectNode = async (selection, node, key, depth, states) => {
+const selectTarget = async (selection, target, key, depth, states) => {
+  const { node } = target;
   /** @type Map<string, State> */
   const next = new Map();
   let isMatch = false;
@@ -125,7 +129,7 @@ const selectNode = async (selection, node, key, depth, states) => {
     }
   }
 
-  if (isMatch && selection.onMatch(node)) {
+  if (isMatch && selection.onMatch(target)) {
     return true;
   }
 
@@ -159,8 +163,8 @@ const selectNode = async (selection, node, key, depth, states) => {
         throw maxDepthError(selection.maxDepth, node.location);
       }
 
-      const followedNode = /** @type Walked */ (await follow(selection.session, memberNode));
-      if (await selectNode(selection, followedNode, memberKey, depth + 1, memberStates)) {
+      const member = await follow(selection.session, target, memberNode);
+      if (await selectTarget(selection, member, memberKey, depth + 1, memberStates)) {
         return true;
       }
     }

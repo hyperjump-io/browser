@@ -1,8 +1,9 @@
 # Get documents
 
-`get` retrieves a document through a session and gives you the value its URL
-identifies. A document can refer to values in other documents, and `get`
-follows those references for you:
+`get` retrieves a document through a session and gives you a target for the
+value its URL identifies: the value's node and the document that the node is
+in. A document can refer to values in other documents, and `get` follows those
+references for you:
 
 ```typescript
 import { Hyperjump, get, jsonValue } from "@hyperjump/browser";
@@ -13,12 +14,14 @@ const session = new Hyperjump({
 
 const url = "https://swapi.hyperjump.io/api/films/1#/director";
 const director = await get(session, url);
-jsonValue(director); // "George Lucas"
+jsonValue(director.node); // "George Lucas"
+director.document.url; // "https://swapi.hyperjump.io/api/films/1"
 ```
 
-The value is a node of a JSON abstract syntax tree (AST), which has its
-`location` and its `position` in the document. To read a node and step into it,
-see [Browse documents](browsing.md).
+A target's `node` is a node of a JSON abstract syntax tree (AST), which has its
+`location` and its `position` in the document. Its `document` is the document
+that the node is in, which is where a reference in the node is followed from.
+To read a target and step into it, see [Browse documents](browsing.md).
 
 `get` resolves a relative URL the way the session does. In Node.js, that's
 against the working directory, so `get(session, "data/film.json")` reads a file.
@@ -37,23 +40,26 @@ identifies depends on the document's media type:
 
 A JRef document is JSON with references such as `{ "$ref": "../people/1" }`.
 When the value a URL identifies is a reference, `get` retrieves what it refers
-to, and it keeps going until it reaches a value that isn't a reference. In a
-JSON document, an object with a `$ref` property is an ordinary object.
+to, and it keeps going until it reaches a value that isn't a reference. The
+target's `document` is then the document that value is in, which can be another
+one than the URL's. In a JSON document, an object with a `$ref` property is an
+ordinary object.
 
 A document can refer to anything, so a session only retrieves the URLs its
 `allowRetrieval` allows, and only a file can refer to a file. For more
 information, see [What a session can fetch](allow-retrieval.md).
 
-## The whole document
+## A document as it's written
 
-`getDocument` retrieves a document the same way and gives you the document
-itself. It ignores the fragment and doesn't follow references:
+`get` follows a reference unless you tell it not to. With
+`reference: "manual"`, it gives you the target the URL identifies as it's
+written, even when its node is a reference. It works like `redirect: "manual"`
+does for a request. The target's `document` is then always the document at the
+URL, which is how you get a whole document:
 
 ```typescript
-import { getDocument } from "@hyperjump/browser";
-
 const url = "https://swapi.hyperjump.io/api/films/1";
-const document = await getDocument(session, url);
+const { document } = await get(session, url, { reference: "manual" });
 document.url; // "https://swapi.hyperjump.io/api/films/1"
 document.children[0]; // The root node
 ```
@@ -70,8 +76,7 @@ URL that redirects and the URL it redirects to give you the same document.
 
 ## Priority
 
-`get` and `getDocument` take a `priority`, which works like `fetchpriority` in a
-browser. The references that `get` follows have the same priority:
+`get` takes a `priority`, which works like `fetchpriority` in a browser. The references that `get` follows have the same priority:
 
 ```typescript
 await get(session, url, { priority: "low" });
@@ -84,8 +89,7 @@ now. For more information, see [Priorities](priorities.md).
 
 ## Errors
 
-`get` and `getDocument` reject with whatever kept them from giving you a
-value:
+`get` rejects with whatever kept it from giving you a value:
 
 | Error | When |
 | --- | --- |
