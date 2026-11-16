@@ -1,8 +1,9 @@
 # Layers
 
 A stack is a series of layers, each one wrapping the one below it. A request
-goes in at the top and comes out at the bottom, at a transport that retrieves
-it. Each layer can answer the request itself, change it, or pass it on.
+goes in at the top and comes out at the bottom, at a
+[transport](transports.md) that retrieves it. Each layer can answer the request
+itself, change it, or pass it on.
 
 ## Build a stack
 

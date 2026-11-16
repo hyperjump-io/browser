@@ -38,6 +38,7 @@ it by its URL scheme. On a server, that includes `file:` URLs.
   - [Registries](registries.md): documents your app already has
   - [Errors](errors.md): what a failed request rejects with, and how to tell failures apart
   - [Layers](layers.md): build a stack and write your own layers
+  - [Transports](transports.md): the schemes a stack fetches, and adding your own
   - [File URLs](file-urls.md): fetch `file:` URLs on a server
   - [Redirects](redirects.md): how a session follows redirects through the stack
   - [HTTP caching](http-caching.md): cache responses by their caching headers

@@ -109,4 +109,4 @@ browsers.
 | --- | --- |
 | `file` | The options for `file:` URLs, or `false` to leave them out |
 | `file.root` | The directory that the session can read files in. The default is the whole filesystem. |
-| `schemes` | Fetchers for more schemes, or to replace one, by scheme, such as `"s3:"` |
+| `schemes` | Fetchers for more schemes, or to replace one, by scheme, such as `"s3:"`. For more information, see [Transports](transports.md). |
