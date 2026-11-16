@@ -27,6 +27,13 @@
   `jref*` functions return. Its iterators extend the global `Iterator`,
   so it needs an engine that has one, and its `engines` says Node.js 24
   or later, so this package's does too.
+- The browsers it runs in are Chrome and Edge 126, Firefox 131, and
+  Safari 18.4, or later. The `Iterator` that pact extends sets Firefox's
+  and Safari's, and `URL.parse` sets Chrome's. pact's classes are defined
+  when it's imported, and there's one entry point, so in an older browser
+  importing the package fails, not only using an iterator. A newer API
+  that's used is checked against these, and `website/install.md` says
+  them.
 
 Rejected:
 

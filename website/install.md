@@ -4,8 +4,9 @@
 npm install @hyperjump/browser
 ```
 
-The browser is an ES module. It runs in Node.js 20.3 or later and in web
-browsers.
+The browser is an ES module. It needs Node.js 24 or later. In a web browser, it
+needs Chrome 126 or later, Edge 126 or later, Firefox 131 or later, or Safari
+18.4 or later. In an older one, importing it throws an error.
 
 ## Node.js and browsers
 
