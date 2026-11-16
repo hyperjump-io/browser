@@ -1,5 +1,6 @@
 import { pipe } from "@hyperjump/pact";
 import { filter, map } from "@hyperjump/pact/async";
+import { startOf } from "./start.js";
 import { follow, isManual } from "./walk.js";
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
@@ -8,16 +9,26 @@ import { jsonObjectHas, jsonObjectKeys, jsonStep, jsonValue } from "../json/json
 /**
  * @import * as API from "./step.d.ts"
  * @import { DocumentSession, Target } from "./documents.d.ts"
+ * @import { DocumentNode } from "../media-types/media-types.d.ts"
  * @import { Walked, WalkedTarget } from "./walk.js"
+ */
+
+/**
+ * What the step functions take: a target, or a document for its root
+ *
+ * @typedef {Target | DocumentNode} From
  */
 
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefStep = /** @type typeof API.jrefStep */ (async (
   /** @type DocumentSession */ session,
   /** @type string */ key,
-  /** @type Target */ target,
+  /** @type From */ from,
   /** @type API.StepOptions | undefined */ options
-) => follow(session, target, jsonStep(key, /** @type Walked */ (target.node)), isManual(options)));
+) => {
+  const target = startOf(from);
+  return follow(session, target, jsonStep(key, /** @type Walked */ (target.node)), isManual(options));
+});
 
 /**
  * The members of a target's node as targets, each followed when it's
@@ -76,33 +87,42 @@ const childrenOf = (target, jsonType) => {
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefArrayIter = /** @type typeof API.jrefArrayIter */ ((
   /** @type DocumentSession */ session,
-  /** @type Target */ target,
+  /** @type From */ from,
   /** @type API.StepOptions | undefined */ options
-) => /** @type any */ (members(session, target, childrenOf(target, "array"), false, isManual(options), memberOnly)));
+) => {
+  const target = startOf(from);
+  return /** @type any */ (members(session, target, childrenOf(target, "array"), false, isManual(options), memberOnly));
+});
 
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefObjectValues = /** @type typeof API.jrefObjectValues */ ((
   /** @type DocumentSession */ session,
-  /** @type Target */ target,
+  /** @type From */ from,
   /** @type API.StepOptions | undefined */ options
-) => /** @type any */ (members(session, target, childrenOf(target, "object"), true, isManual(options), memberOnly)));
+) => {
+  const target = startOf(from);
+  return /** @type any */ (members(session, target, childrenOf(target, "object"), true, isManual(options), memberOnly));
+});
 
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefObjectEntries = /** @type typeof API.jrefObjectEntries */ ((
   /** @type DocumentSession */ session,
-  /** @type Target */ target,
+  /** @type From */ from,
   /** @type API.StepOptions | undefined */ options
-) => /** @type any */ (members(session, target, childrenOf(target, "object"), true, isManual(options), withKey)));
+) => {
+  const target = startOf(from);
+  return /** @type any */ (members(session, target, childrenOf(target, "object"), true, isManual(options), withKey));
+});
 
 /** @type typeof API.jrefObjectHas */
-export const jrefObjectHas = (key, target) => jsonObjectHas(key, /** @type Walked */ (target.node));
+export const jrefObjectHas = (key, from) => jsonObjectHas(key, /** @type Walked */ (startOf(from).node));
 
 /** @type typeof API.jrefObjectKeys */
-export const jrefObjectKeys = (target) => jsonObjectKeys(/** @type Walked */ (target.node));
+export const jrefObjectKeys = (from) => jsonObjectKeys(/** @type Walked */ (startOf(from).node));
 
 // eslint-disable-next-line @stylistic/no-extra-parens
-export const jrefValue = /** @type typeof API.jrefValue */ ((/** @type Target */ target) => {
-  const node = /** @type Walked */ (target.node);
+export const jrefValue = /** @type typeof API.jrefValue */ ((/** @type From */ from) => {
+  const node = /** @type Walked */ (startOf(from).node);
   if (node.jsonType === "object" || node.jsonType === "array") {
     throw codedError(`Can't get the value of an ${node.jsonType} at ${relativeFileUrl(node.location)}. Step into it instead.`, { code: "ERR_STRUCTURED_VALUE" }, node.location);
   }

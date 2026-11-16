@@ -1,9 +1,11 @@
+import { startOf } from "./start.js";
 import { follow, isManual, maxDepth, maxDepthError, memberEntries } from "./walk.js";
 
 /**
  * @import * as API from "./select.d.ts"
  * @import { WalkOptions } from "./visit.d.ts"
  * @import { DocumentSession, Target } from "./documents.d.ts"
+ * @import { DocumentNode } from "../media-types/media-types.d.ts"
  * @import { Walked, WalkedTarget } from "./walk.js"
  */
 
@@ -35,7 +37,7 @@ import { follow, isManual, maxDepth, maxDepthError, memberEntries } from "./walk
 export const jrefSelect = /** @type typeof API.jrefSelect */ (async (
   /** @type DocumentSession */ session,
   /** @type string */ selector,
-  /** @type Target */ target,
+  /** @type Target | DocumentNode */ target,
   /** @type WalkOptions | undefined */ options
 ) => {
   /** @type WalkedTarget | undefined */
@@ -52,7 +54,7 @@ export const jrefSelect = /** @type typeof API.jrefSelect */ (async (
 export const jrefSelectAll = /** @type typeof API.jrefSelectAll */ (async (
   /** @type DocumentSession */ session,
   /** @type string */ selector,
-  /** @type Target */ target,
+  /** @type Target | DocumentNode */ target,
   /** @type WalkOptions | undefined */ options
 ) => {
   // A node reached through more than one reference is selected once
@@ -73,9 +75,10 @@ export const jrefSelectAll = /** @type typeof API.jrefSelectAll */ (async (
  * selector at once. A member is only followed if some selector could match
  * it or what's under it, which for a child combinator is known from its key.
  *
- * @type (session: DocumentSession, selectors: Complex[], target: Target, maxDepth: number, manual: boolean, onMatch: (target: WalkedTarget) => boolean) => Promise<void>
+ * @type (session: DocumentSession, selectors: Complex[], from: Target | DocumentNode, maxDepth: number, manual: boolean, onMatch: (target: WalkedTarget) => boolean) => Promise<void>
  */
-const select = async (session, selectors, target, maxDepth, manual, onMatch) => {
+const select = async (session, selectors, from, maxDepth, manual, onMatch) => {
+  const target = startOf(from);
   const states = selectors.map((complex) => ({ complex, index: 0, descendant: true }));
   // A selection that starts at a reference starts at what it leads to, like
   // a walk that reaches one

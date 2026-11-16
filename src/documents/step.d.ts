@@ -1,4 +1,4 @@
-import type { DocumentSession, SessionDocument, Target } from "./documents.d.ts";
+import type { DocumentSession, SessionDocument, Start, StartTarget, Target } from "./documents.d.ts";
 import type { Followed, IsManual } from "./visit.d.ts";
 import type { AnyJsonNode, JsonMemberValue, JsonTypeValue } from "../json/jsonast-util.d.ts";
 
@@ -37,7 +37,7 @@ export type MemberTarget<S, T, O = StepOptions> = T extends Target<infer D, infe
  * `ERR_POINTER_NOT_FOUND` if the property or item doesn't exist.
  * @throws What `get` throws, if it follows a reference.
  */
-export const jrefStep: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const O extends StepOptions = StepOptions>(session: S, key: string, target: T, options?: O) => Promise<MemberTarget<S, T, O>>;
+export const jrefStep: <S extends DocumentSession, T extends Start<AnyJsonNode>, const O extends StepOptions = StepOptions>(session: S, key: string, target: T, options?: O) => Promise<MemberTarget<S, StartTarget<T>, O>>;
 
 /**
  * The items of an array as targets, in order. Each one that's a reference
@@ -48,29 +48,29 @@ export const jrefStep: <S extends DocumentSession, T extends Target<unknown, Any
  *
  * @throws What `get` throws, from `next()`, if it follows a reference.
  */
-export const jrefArrayIter: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const O extends StepOptions = StepOptions>(session: S, target: T, options?: O) => AsyncIteratorObject<MemberTarget<S, T, O>, undefined, unknown>;
+export const jrefArrayIter: <S extends DocumentSession, T extends Start<AnyJsonNode>, const O extends StepOptions = StepOptions>(session: S, target: T, options?: O) => AsyncIteratorObject<MemberTarget<S, StartTarget<T>, O>, undefined, unknown>;
 
 /**
  * The property values of an object as targets, in order, followed like
  * {@link jrefArrayIter}'s items. It has none if the node isn't an object.
  */
-export const jrefObjectValues: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const O extends StepOptions = StepOptions>(session: S, target: T, options?: O) => AsyncIteratorObject<MemberTarget<S, T, O>, undefined, unknown>;
+export const jrefObjectValues: <S extends DocumentSession, T extends Start<AnyJsonNode>, const O extends StepOptions = StepOptions>(session: S, target: T, options?: O) => AsyncIteratorObject<MemberTarget<S, StartTarget<T>, O>, undefined, unknown>;
 
 /**
  * The `[name, target]` pairs of an object's properties, in order, with the
  * values followed like {@link jrefArrayIter}'s items. It has none if the
  * node isn't an object.
  */
-export const jrefObjectEntries: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const O extends StepOptions = StepOptions>(session: S, target: T, options?: O) => AsyncIteratorObject<[string, MemberTarget<S, T, O>], undefined, unknown>;
+export const jrefObjectEntries: <S extends DocumentSession, T extends Start<AnyJsonNode>, const O extends StepOptions = StepOptions>(session: S, target: T, options?: O) => AsyncIteratorObject<[string, MemberTarget<S, StartTarget<T>, O>], undefined, unknown>;
 
 /**
  * Whether an object has a property. Nothing needs following to read a
  * property name, so it doesn't take the session.
  */
-export const jrefObjectHas: (key: string, target: Target<unknown, AnyJsonNode>) => boolean;
+export const jrefObjectHas: (key: string, target: Start<AnyJsonNode>) => boolean;
 
 /** The property names of an object, in order. It has none if the node isn't an object. */
-export const jrefObjectKeys: (target: Target<unknown, AnyJsonNode>) => IteratorObject<string, undefined, unknown>;
+export const jrefObjectKeys: (target: Start<AnyJsonNode>) => IteratorObject<string, undefined, unknown>;
 
 /**
  * The value of a target whose node is a string, number, boolean, or null,
@@ -81,6 +81,6 @@ export const jrefObjectKeys: (target: Target<unknown, AnyJsonNode>) => IteratorO
  * in them. Its `url` is the node's location.
  */
 export const jrefValue: {
-  <N extends AnyJsonNode & { jsonType: "null" | "boolean" | "number" | "string" }>(target: Target<unknown, N>): JsonTypeValue[N["jsonType"]];
-  (target: Target<unknown, AnyJsonNode>): string | number | boolean | null;
+  <N extends AnyJsonNode & { jsonType: "null" | "boolean" | "number" | "string" }>(target: Start<N>): JsonTypeValue[N["jsonType"]];
+  (target: Start<AnyJsonNode>): string | number | boolean | null;
 };

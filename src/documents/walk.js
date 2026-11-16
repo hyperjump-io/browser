@@ -51,7 +51,7 @@ export const follow = (session, from, node, manual = false) => {
 
   // The target a walk starts at is the one that was given. Any other node
   // is in the same document, so its target has that document.
-  return /** @type WalkedTarget */ (node === from.node ? from : { document: from.document, node, mediaType: from.mediaType });
+  return /** @type WalkedTarget */ (node === from.node ? from : { document: from.document, node });
 };
 
 /**

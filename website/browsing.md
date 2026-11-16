@@ -16,10 +16,10 @@ const luke = await get(session, "https://swapi.hyperjump.io/api/people/1");
 
 ## Targets
 
-A target is what a URL identifies: a value's node, the document that the node
-is in, and the document's media type. A reference only means something in the
-document it's in, so the `jref` functions take a target, which says where to
-follow references from, and they give you targets back.
+A target is what a URL identifies: a value's node and the document that the
+node is in. A reference only means something in the document it's in, so the
+`jref` functions take a target, which says where to follow references from,
+and they give you targets back.
 
 ```typescript
 luke.node; // The node for Luke
@@ -355,21 +355,47 @@ const homeworld = written.node.type === "reference"
   : written;
 ```
 
-A document that you parsed yourself isn't one the session retrieved, so it
-doesn't have a target yet. `documentTarget` makes one for its root from the
-document and its media type plugin. You browse from it like any other target,
-and a reference in it finds a document that it contains:
+## Browse a tree you parsed
+
+A document that you parsed yourself isn't one the session retrieved, so `get`
+never gave you a target for it. The `jref` functions take the document where
+they take a target and browse from its root, the way a unist utility takes the
+tree. A reference in the document finds the document itself and the documents
+that it contains, without retrieving them:
 
 ```typescript
-import { documentTarget, jrefMediaType, jrefSelect } from "@hyperjump/browser";
+import { jrefMediaType, jrefSelect } from "@hyperjump/browser";
 
-const document = await jrefMediaType.parse({
+const mine = await jrefMediaType.parse({
   text: async () => `{ "luke": { "$ref": "/api/people/1" } }`,
   url: "https://swapi.hyperjump.io/mine"
 });
-const mine = documentTarget(document, jrefMediaType);
 const luke = await jrefSelect(session, "> [key=luke]", mine);
 ```
+
+The tree in a [unified pipeline](parsing.md#in-a-unified-pipeline) is a
+document too. A transformer reads it as it's written with the ecosystem's
+utilities, which give it nodes. To follow a reference that one of them finds,
+pass the tree as `referencedFrom`:
+
+```typescript
+import { get, hasStatus, type JrefDocumentNode } from "@hyperjump/browser";
+import { selectAll } from "unist-util-select";
+
+const followReferences = (session) => async (tree: JrefDocumentNode) => {
+  if (hasStatus(tree, "success")) {
+    for (const reference of selectAll("reference", tree)) {
+      const target = await get(session, reference.href, {
+        referencedFrom: tree
+      });
+    }
+  }
+};
+```
+
+The `jref` functions don't take a node on its own, because a node doesn't say
+which document it's in. To browse from a value inside a tree, start at the
+tree and step or select to the value.
 
 For the errors that these functions throw, see
 [Get documents](documents.md#errors).

@@ -1,4 +1,4 @@
-import type { DocumentSession, FollowedNode, SessionDocument, SessionNode, Target } from "./documents.d.ts";
+import type { DocumentSession, FollowedNode, SessionDocument, SessionNode, Start, StartTarget, Target } from "./documents.d.ts";
 import type { AnyJsonNode, JsonMemberValue } from "../json/jsonast-util.d.ts";
 
 /**
@@ -164,8 +164,8 @@ type HasProperties<N, O> = N extends unknown
  * negative, or `Infinity`.
  */
 export const jrefVisit: {
-  <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const C extends JrefTest<WalkTarget<S, T, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, visitor: JrefVisitor<WalkTarget<S, T, O>, JrefTestedTarget<WalkTarget<S, T, O>, C>>, options?: O): Promise<void>;
-  <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const O extends WalkOptions = WalkOptions>(session: S, target: T, visitor: JrefVisitor<WalkTarget<S, T, O>>, options?: O): Promise<void>;
+  <S extends DocumentSession, T extends Start<AnyJsonNode>, const C extends JrefTest<WalkTarget<S, StartTarget<T>, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, visitor: JrefVisitor<WalkTarget<S, StartTarget<T>, O>, JrefTestedTarget<WalkTarget<S, StartTarget<T>, O>, C>>, options?: O): Promise<void>;
+  <S extends DocumentSession, T extends Start<AnyJsonNode>, const O extends WalkOptions = WalkOptions>(session: S, target: T, visitor: JrefVisitor<WalkTarget<S, StartTarget<T>, O>>, options?: O): Promise<void>;
 };
 
 /**
@@ -177,7 +177,7 @@ export const jrefVisit: {
  *
  * @throws What {@link jrefVisit} throws.
  */
-export const jrefFind: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const C extends JrefTest<WalkTarget<S, T, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, options?: O) => Promise<JrefTestedTarget<WalkTarget<S, T, O>, C> | undefined>;
+export const jrefFind: <S extends DocumentSession, T extends Start<AnyJsonNode>, const C extends JrefTest<WalkTarget<S, StartTarget<T>, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, options?: O) => Promise<JrefTestedTarget<WalkTarget<S, StartTarget<T>, O>, C> | undefined>;
 
 /**
  * Every target under `target`, and `target` itself, that passes a
@@ -186,7 +186,7 @@ export const jrefFind: <S extends DocumentSession, T extends Target<unknown, Any
  *
  * @throws What {@link jrefVisit} throws.
  */
-export const jrefFindAll: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const C extends JrefTest<WalkTarget<S, T, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, options?: O) => Promise<JrefTestedTarget<WalkTarget<S, T, O>, C>[]>;
+export const jrefFindAll: <S extends DocumentSession, T extends Start<AnyJsonNode>, const C extends JrefTest<WalkTarget<S, StartTarget<T>, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, options?: O) => Promise<JrefTestedTarget<WalkTarget<S, StartTarget<T>, O>, C>[]>;
 
 /**
  * Options for the functions that walk everything under a node, following

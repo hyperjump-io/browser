@@ -1,6 +1,7 @@
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
 import { jsonPointerGet } from "../json/jsonast-util.js";
+import { startOf } from "./start.js";
 import { acceptHeader, defaultMediaTypes, mediaTypeForContentType, mediaTypeForExtension } from "../media-types/media-types.js";
 import { PriorityGroup, PrioritySignal } from "../priority.js";
 import { responseMeta, withUrl } from "../response-meta.js";
@@ -13,16 +14,14 @@ import { responseMeta, withUrl } from "../response-meta.js";
  */
 
 /**
- * A document a session has: the document, the plugin that parsed it, which
- * says what its fragments identify, its response's record, which is the
- * initiator of the requests its references cause, and the documents it
- * contains, by URL. A document found in another has its container's plugin,
- * record, and set. `container` is the document that was retrieved: the
- * document itself, or the one it was found in.
+ * A document a session has: the document, its response's record, which is
+ * the initiator of the requests its references cause, and the documents it
+ * contains, and itself, by URL. A document found in another has its
+ * container's record and set. `container` is the document that was retrieved: the document
+ * itself, or the one it was found in.
  *
  * @typedef {{
  *   document: DocumentNode,
- *   mediaType: MediaTypePlugin,
  *   record: FetchRecord | undefined,
  *   embedded: ReadonlyMap<string, DocumentNode>,
  *   container: DocumentNode
@@ -84,10 +83,9 @@ const targetIn = async (session, entry, documentUrl, fragment, priority, follow)
     }
     chain.push(href);
 
-    const pointer = entry.mediaType.fragmentPointer?.(entry.document, fragment) ?? "";
-    const node = jsonPointerGet(pointer, /** @type JrefNode */ (entry.document.children[0]));
+    const node = jsonPointerGet(fragmentPointer(entry.document, fragment), /** @type JrefNode */ (entry.document.children[0]));
     if (!follow || node.type !== "reference") {
-      return { document: entry.container, node, mediaType: entry.mediaType };
+      return { document: entry.container, node };
     }
 
     ({ documentUrl, fragment } = parseUrl(session, node.href));
@@ -96,10 +94,35 @@ const targetIn = async (session, entry, documentUrl, fragment, priority, follow)
 };
 
 /**
+ * The JSON Pointer to the node a fragment identifies in a document, which
+ * the document says with its `anchors`. Without them it has no fragments,
+ * so any fragment identifies the whole document. With them, a fragment is
+ * an anchor, or else a JSON Pointer that's percent-encoded.
+ *
+ * @type (document: DocumentNode, fragment: string) => string
+ */
+const fragmentPointer = (document, fragment) => {
+  const { anchors } = document;
+  if (!anchors) {
+    return "";
+  }
+
+  if (Object.hasOwn(anchors, fragment)) {
+    return anchors[fragment];
+  }
+
+  const pointer = decodeURIComponent(fragment);
+  if (pointer !== "" && !pointer.startsWith("/")) {
+    throw codedError(`There's no '${fragment}' anchor in '${relativeFileUrl(document.url)}'`, { code: "ERR_ANCHOR_NOT_FOUND", anchor: fragment }, document.url);
+  }
+
+  return pointer;
+};
+
+/**
  * The entry for the document at a URL that `get` is asked
  * for. With `referencedFrom`, it's the document a reference in that
- * target's document leads to. A target whose document the session didn't
- * retrieve is ignored.
+ * target's document, or in that document, leads to.
  *
  * @type (session: API.DocumentSession, url: string, options: API.GetOptions, priority: PrioritySignal) => Promise<Entry>
  */
@@ -111,22 +134,17 @@ const entryFor = (session, url, options, priority) => {
 };
 
 /**
- * The entry of the document a target is in, which a reference is followed
- * from. A document the session didn't retrieve, like one an application
- * parsed itself, has what its target says: its media type, which says
- * what the fragments of the documents it contains identify. Nothing
- * caused it, so it has no record.
+ * The entry of the document a reference is followed from: a target's, or
+ * the document itself. Nothing caused a document the session didn't
+ * retrieve, like a tree from a unified pipeline, so it has no record.
  *
- * @type (session: API.DocumentSession, target: API.Target) => Entry
+ * @type (session: API.DocumentSession, from: API.Target | DocumentNode) => Entry
  */
-const entryOf = (session, target) => {
-  const document = /** @type DocumentNode */ (target.document);
+const entryOf = (session, from) => {
+  const document = /** @type DocumentNode */ (startOf(from).document);
   return documentsOf(session).retrieved.get(document)
-    ?? { document, mediaType: target.mediaType, record: undefined, embedded: embeddedIn(document), container: document };
+    ?? { document, record: undefined, embedded: embeddedIn(document), container: document };
 };
-
-/** @type typeof API.documentTarget */
-export const documentTarget = (document, mediaType) => ({ document, node: document.children[0], mediaType });
 
 /**
  * The entry for the document a reference in `from`'s document leads to. A
@@ -241,7 +259,7 @@ const retrieve = async (session, url, initiator, priority) => {
     const parsed = response.url === responseUrl.href ? response : withUrl(response, responseUrl.href);
     const document = await mediaType.parse(parsed, session);
     /** @type Entry */
-    const entry = { document, mediaType, record: responseMeta(response).record, embedded: embeddedIn(document), container: document };
+    const entry = { document, record: responseMeta(response).record, embedded: embeddedIn(document), container: document };
     retrieved.set(document, entry);
     return { entry, responseUrl: responseUrl.href };
   } catch (error) {
@@ -254,8 +272,11 @@ const retrieve = async (session, url, initiator, priority) => {
 };
 
 /**
- * The documents a document contains, by their URLs as they're compared:
- * parsed, without fragments.
+ * The documents a document's references look in before the session's: the
+ * ones it contains, and the document itself, by their URLs as they're
+ * compared: parsed, without fragments. A reference to the document's own
+ * URL finds the document, so a tree the session didn't retrieve can refer
+ * to itself. A document it says it contains at its own URL comes first.
  *
  * A document that isn't a file can only have a `file:` URL in it that's
  * absolute, which says where files are on a machine, so it can't be used.
@@ -273,6 +294,12 @@ const embeddedIn = (document) => {
     }
     parsed.hash = "";
     embedded.set(parsed.href, contained);
+  }
+
+  const own = new URL(document.url);
+  own.hash = "";
+  if (!embedded.has(own.href)) {
+    embedded.set(own.href, document);
   }
   return embedded;
 };

@@ -73,12 +73,12 @@ export type GetOptions = {
 
   /**
    * Where the reference that's being followed is: a target whose document
-   * it's in. A document that one contains is found before anything is
-   * retrieved, and it's what caused the request, instead of `initiator`.
-   * Nothing caused the request if the session didn't retrieve the target's
-   * document (see {@link documentTarget}).
+   * it's in, or the document. A document that one contains is found before
+   * anything is retrieved, and it's what caused the request, instead of
+   * `initiator`. Nothing caused the request if the session didn't retrieve
+   * the document, like a tree from a unified pipeline.
    */
-  referencedFrom?: Target;
+  referencedFrom?: Target | DocumentNode;
 
   /**
    * What to do if the node the URL identifies is a reference, like
@@ -96,35 +96,33 @@ export type GetOptions = {
 export type FollowedNode<T = JrefNode> = Exclude<T, { type: "reference" }>;
 
 /**
- * What a URL identifies: a node, the document it's in, and the document's
- * media type. The document is the one that was retrieved, so a node of a
- * document that one contains has its container. A reference only means
- * something in its document, which is what a target has that a node
- * doesn't: a reference in it is followed from there, as `referencedFrom`.
+ * What a URL identifies: a node and the document it's in. The document is
+ * the one that was retrieved, so a node of a document that one contains
+ * has its container. A reference only means something in its document,
+ * which is what a target has that a node doesn't: a reference in it is
+ * followed from there, as `referencedFrom`.
  *
- * `get` and the `jref*` functions return targets, and
- * {@link documentTarget} makes one for a document the session didn't
- * retrieve, so one isn't made by hand.
+ * `get` and the `jref*` functions return targets, and they take a
+ * document where they take a target, so one isn't made by hand.
  */
 export type Target<D = unknown, N = unknown> = {
   document: D;
   node: N;
-
-  /**
-   * The media type of the document, which says what its fragments
-   * identify, and those of the documents it contains
-   */
-  mediaType: MediaTypePlugin;
 };
 
 /**
- * The target of a document's root, for a document the session didn't
- * retrieve, like one an application parsed itself. `mediaType` is the
- * plugin for the document's media type. A reference followed from it finds
- * what the document contains, and nothing caused the request. The session
- * doesn't keep the document, and it doesn't answer for any URL.
+ * What the `jref*` functions browse from: a target, or a document, which
+ * is browsed from its root, the way a unist utility takes the tree. A
+ * document the session didn't retrieve, like a tree from a unified
+ * pipeline, is browsed like any other: a reference in it finds what the
+ * document contains, and nothing caused the request. The session doesn't
+ * keep the document, and it doesn't answer for any URL.
  */
-export const documentTarget: <D extends DocumentNode>(document: D, mediaType: MediaTypePlugin) => Target<D, D["children"][number]>;
+export type Start<N = unknown> = Target<unknown, N> | DocumentNode<N>;
+
+/** The target a browse from `T` starts at (see {@link Start}) */
+export type StartTarget<T> = T extends Target ? T
+  : T extends { children: readonly (infer N)[] } ? Target<T, N> : never;
 
 /**
  * A target of a session's documents (see {@link SessionDocument}). If
@@ -146,7 +144,8 @@ export type GetTarget<S, O> = unknown extends SessionNode<S> ? Target
  * Retrieve the document at a URL, parse it with the media type plugin for
  * its response, and return the target the URL identifies: the node its
  * fragment identifies, which is the document's root without one, and the
- * document it's in. What a fragment identifies is its media type's. A
+ * document it's in. The document says what a fragment identifies, with its
+ * `anchors`. A
  * relative URL is resolved against the session's context URL.
  *
  * If the node is a reference, it's followed, and so is any reference that
@@ -171,6 +170,9 @@ export type GetTarget<S, O> = unknown extends SessionNode<S> ? Target
  * is the URL that failed.
  * @throws What the plugin's `parse` rejects with, like a `SyntaxError`
  * whose `cause.code` is `ERR_SYNTAX`.
+ * @throws An `Error` whose `cause.code` is `ERR_ANCHOR_NOT_FOUND`, with the
+ * `anchor`, if a fragment isn't an anchor of the document or a JSON
+ * Pointer. Its `url` is the document's.
  * @throws What `jsonPointerGet` throws if a fragment doesn't identify a
  * value, like an `Error` whose `cause.code` is `ERR_POINTER_NOT_FOUND`.
  * @throws An `Error` whose `cause.code` is `ERR_REFERENCE_CYCLE`, with the

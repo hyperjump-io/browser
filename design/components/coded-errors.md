@@ -22,7 +22,7 @@ handles every failure the same way.
 | `ERR_STRUCTURED_VALUE` | The value of an object or an array, which could have references in it. The `url` is the node's location. | `jrefValue` ([Browsing](browsing.md)) |
 | `ERR_MAX_DEPTH` | A walk that would go deeper than its `maxDepth`. The cause has the `maxDepth`, and the `url` is the node it would go under. | `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` ([Browsing](browsing.md)) |
 | `ERR_SYNTAX` | A document with a syntax error. The error is a `SyntaxError`, and the cause is the syntax error, with its `source`, `ruleId`, and `place`. | the JSON and JRef plugins ([Media types](media-types.md)) |
-| `ERR_HTTP_STATUS`, `ERR_UNSUPPORTED_MEDIA_TYPE`, `ERR_ABSOLUTE_FILE_URL`, `ERR_REFERENCE_CYCLE` | A document that can't be used | `get` ([Documents](documents.md)) |
+| `ERR_HTTP_STATUS`, `ERR_UNSUPPORTED_MEDIA_TYPE`, `ERR_ABSOLUTE_FILE_URL`, `ERR_ANCHOR_NOT_FOUND`, `ERR_REFERENCE_CYCLE` | A document that can't be used | `get` ([Documents](documents.md)) |
 
 What isn't a failure to handle doesn't have a code:
 

@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { visit } from "unist-util-visit";
-import { documentTarget, get } from "./documents.js";
+import { get } from "./documents.js";
 import { jrefStep } from "./step.js";
 import { Hyperjump } from "../hyperjump.js";
 import { fetcher } from "../layers.js";
@@ -55,30 +55,76 @@ describe("targets", () => {
     expect(requests).to.eql(["/bundle"]);
   });
 
-  test("a target has its document's media type, and so does a target for a node in it", async () => {
-    const { session } = site({
-      "/bundle": [bundle({ a: { $ref: "/x" } }, { "https://a.test/x": 1 }), bundled],
-      "/a": [`{ "b": 1 }`, jref]
-    });
+  test("a target is a node and its document, and so is a target for a node in it", async () => {
+    const { session } = site({ "/bundle": [bundle({ a: { $ref: "/x" } }, { "https://a.test/x": 1 }), bundled] });
     const start = await get(session, "https://a.test/bundle", { reference: "manual" });
-    expect(start.mediaType.mediaType).to.equal("application/x-bundle");
-    expect((await get(session, "https://a.test/a")).mediaType.mediaType).to.equal("application/reference+json");
-
     const [reference] = referencesIn(start);
-    expect(await jrefStep(session, "a", start, { reference: "manual" })).to.eql({ document: start.document, node: reference, mediaType: start.mediaType });
-    expect((await get(session, reference.href, { referencedFrom: start })).mediaType, "a contained document has its container's").to.equal(start.mediaType);
+    expect(await jrefStep(session, "a", start, { reference: "manual" })).to.eql({ document: start.document, node: reference });
   });
 
   test("a document the session didn't retrieve finds what it contains", async () => {
     const { session, requests } = site({ "/x": [`"the real one"`, jref] });
     const document = bundleDocument({ a: { $ref: "/x#/b" } }, "https://a.test/mine");
-    const mine = documentTarget({ ...document, embedded: { "https://a.test/x": bundleDocument({ b: "mine" }, "https://a.test/x") } }, bundleMediaType);
-    const [reference] = referencesIn(mine);
+    const mine = { ...document, embedded: { "https://a.test/x": bundleDocument({ b: "mine" }, "https://a.test/x") } };
+    const [reference] = referencesIn({ node: mine.children[0] });
     const target = await get(session, reference.href, { referencedFrom: mine });
     expect(jsonValue(target.node)).to.equal("mine");
-    expect(target.document, "its document is the container").to.equal(mine.document);
+    expect(target.document, "its document is the container").to.equal(mine);
     expect(requests).to.eql([]);
     expect(jsonValue((await get(session, "https://a.test/x")).node), "and it doesn't answer for the URL").to.equal("the real one");
+  });
+
+  test("a reference to a document's own URL finds the document, without retrieving it", async () => {
+    const { session, requests } = site({ "/mine": [`{ "b": "the real one" }`, jref] });
+    const mine = bundleDocument({ a: { $ref: "#/b" }, b: "mine" }, "https://a.test/mine");
+    const a = await jrefStep(session, "a", mine);
+    expect(jsonValue(a.node)).to.equal("mine");
+    expect(a.document).to.equal(mine);
+    expect(requests).to.eql([]);
+    expect(jsonValue((await get(session, "https://a.test/mine#/b")).node), "and it doesn't answer for the URL").to.equal("the real one");
+  });
+
+  test("a document is browsed from its root, like a target of it", async () => {
+    const { session } = site({ "/x": [`{ "b": 1 }`, jref] });
+    const mine = bundleDocument({ a: { $ref: "/x#/b" } }, "https://a.test/mine");
+    const a = await jrefStep(session, "a", mine);
+    expect(jsonValue(a.node)).to.equal(1);
+    expect(await jrefStep(session, "a", mine, { reference: "manual" })).to.eql({ document: mine, node: referencesIn({ node: mine.children[0] })[0] });
+  });
+});
+
+describe("fragments", () => {
+  test("a document without anchors has no fragments, so any identifies the whole document", async () => {
+    const { session } = site({});
+    const mine = withoutAnchors({ a: 1 }, "https://a.test/mine");
+    const from = { ...bundleDocument(null, "https://a.test/from"), embedded: { "https://a.test/mine": mine } };
+    expect(jsonValue((await get(session, "https://a.test/mine#/a", { referencedFrom: from })).node)).to.eql({ a: 1 });
+  });
+
+  test("an anchor identifies the node at its JSON Pointer, and anything else is a JSON Pointer", async () => {
+    const { session } = site({});
+    const mine = { ...bundleDocument({ a: { "b c": 1 } }, "https://a.test/mine"), anchors: { "here": "/a/b c", "/a": "" } };
+    const from = { ...bundleDocument(null, "https://a.test/from"), embedded: { "https://a.test/mine": mine } };
+    expect(jsonValue((await get(session, "https://a.test/mine#here", { referencedFrom: from })).node)).to.equal(1);
+    expect(jsonValue((await get(session, "https://a.test/mine#/a/b%20c", { referencedFrom: from })).node)).to.equal(1);
+    expect(jsonValue((await get(session, "https://a.test/mine#/a", { referencedFrom: from })).node), "an anchor comes first").to.eql({ a: { "b c": 1 } });
+    expect(jsonValue((await get(session, "https://a.test/mine", { referencedFrom: from })).node)).to.eql({ a: { "b c": 1 } });
+  });
+
+  test("a fragment that isn't an anchor or a JSON Pointer is an error with a code", async () => {
+    const { session } = site({});
+    const mine = bundleDocument({ a: 1 }, "https://a.test/mine");
+    const from = { ...bundleDocument(null, "https://a.test/from"), embedded: { "https://a.test/mine": mine } };
+    const getting = get(session, "https://a.test/mine#nowhere", { referencedFrom: from });
+    await expect(getting).rejects.toThrow("There's no 'nowhere' anchor in 'https://a.test/mine'");
+    await expect(getting).rejects.toMatchObject({ cause: { code: "ERR_ANCHOR_NOT_FOUND", anchor: "nowhere" }, url: "https://a.test/mine" });
+  });
+
+  test("a document a document contains has its own anchors", async () => {
+    const { session } = site({});
+    const contained = { ...bundleDocument({ a: 1 }, "https://a.test/x"), anchors: { here: "/a" } };
+    const mine = { ...withoutAnchors(null, "https://a.test/mine"), embedded: { "https://a.test/x": contained } };
+    expect(jsonValue((await get(session, "https://a.test/x#here", { referencedFrom: mine })).node)).to.equal(1);
   });
 });
 
@@ -87,7 +133,7 @@ describe("targets", () => {
 /**
  * Every reference under a target's node, as written
  *
- * @type (target: Target<unknown, JrefNode>) => JrefReferenceNode[]
+ * @type (target: { node: JrefNode }) => JrefReferenceNode[]
  */
 const referencesIn = (target) => {
   /** @type JrefReferenceNode[] */
@@ -102,7 +148,14 @@ const referencesIn = (target) => {
 const bundle = (main, embedded) => JSON.stringify({ main, embedded });
 
 /** @type (value: Json, url: string) => DocumentNode<JrefNode> */
-const bundleDocument = (value, url) => ({ type: "bundle-document", children: [jrefNode(value, url)], url });
+const bundleDocument = (value, url) => ({ type: "bundle-document", children: [jrefNode(value, url)], url, anchors: {} });
+
+/**
+ * A document whose media type has no fragments
+ *
+ * @type (value: Json, url: string) => DocumentNode<JrefNode>
+ */
+const withoutAnchors = (value, url) => ({ type: "plain-document", children: [jrefNode(value, url)], url });
 
 /** @type (value: Json, url: string) => JrefNode */
 const jrefNode = (value, url) => /** @type JrefNode */ (fromJref(JSON.stringify(value), url).node);
@@ -117,8 +170,7 @@ const bundleMediaType = {
       ...bundleDocument(main, response.url),
       embedded: Object.fromEntries(Object.entries(embedded).map(([url, value]) => [url, bundleDocument(value, url)]))
     };
-  },
-  fragmentPointer: (_document, fragment) => decodeURIComponent(fragment)
+  }
 };
 
 /** @param {Record<string, [body: string, headers: Record<string, string>]>} pages */

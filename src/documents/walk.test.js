@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { documentTarget, get } from "./documents.js";
+import { get } from "./documents.js";
 import { jrefStep } from "./step.js";
 import { jrefMediaType } from "../media-types/jref-media-type.js";
 import { jrefSelect } from "./select.js";
@@ -12,7 +12,7 @@ import { defaultMediaTypes } from "../media-types/media-types.js";
 import { Trace } from "../trace.js";
 
 /**
- * @import { DocumentSession, FollowedNode, Target } from "./documents.d.ts"
+ * @import { DocumentSession, FollowedNode, Start, Target } from "./documents.d.ts"
  * @import { HyperjumpConfig } from "../hyperjump.d.ts"
  * @import { Json } from "../json/jsonast.d.ts"
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
@@ -149,18 +149,18 @@ describe("following references", () => {
 /**
  * The target of a node's property, which has to be there
  *
- * @type (session: DocumentSession, key: string, target: Target<unknown, FollowedNode>) => Promise<Target<unknown, FollowedNode>>
+ * @type (session: DocumentSession, key: string, target: Start<JrefNode>) => Promise<Target<unknown, FollowedNode>>
  */
 const child = async (session, key, target) => {
   const found = await jrefSelect(session, `> [key=${key}]`, target);
   if (found === undefined) {
-    throw Error(`No '${key}' in ${target.node.location}`);
+    throw Error(`No '${key}'`);
   }
 
   return /** @type Target<unknown, FollowedNode> */ (found);
 };
 
-/** @type (session: DocumentSession, key: string, target: Target<unknown, FollowedNode>) => Promise<FollowedNode> */
+/** @type (session: DocumentSession, key: string, target: Start<JrefNode>) => Promise<FollowedNode> */
 const childNode = async (session, key, target) => (await child(session, key, target)).node;
 
 /**
@@ -189,13 +189,12 @@ const bundleMediaType = {
   parse: async (response) => {
     const { main, embedded } = /** @type {{ main: Json, embedded: Record<string, Json> }} */ (JSON.parse(await response.text()));
     /** @type (value: Json, url: string) => DocumentNode<JrefNode> */
-    const document = (value, url) => ({ type: "bundle-document", children: [jrefNode(value, url)], url });
+    const document = (value, url) => ({ type: "bundle-document", children: [jrefNode(value, url)], url, anchors: {} });
     return {
       ...document(main, response.url),
       embedded: Object.fromEntries(Object.entries(embedded).map(([url, value]) => [url, document(value, url)]))
     };
-  },
-  fragmentPointer: (_document, fragment) => decodeURIComponent(fragment)
+  }
 };
 
 /**
@@ -224,11 +223,8 @@ const site = (pages, config = {}) => {
 };
 
 /**
- * A JRef document the session didn't retrieve, as a target
+ * A JRef document the session didn't retrieve
  *
- * @type (text: string, url: string) => Promise<Target<JrefMediaTypeDocument, FollowedNode>>
+ * @type (text: string, url: string) => Promise<JrefMediaTypeDocument>
  */
-const parsed = async (text, url) => {
-  const document = await jrefMediaType.parse({ text: async () => text, url });
-  return /** @type Target<JrefMediaTypeDocument, FollowedNode> */ (documentTarget(document, jrefMediaType));
-};
+const parsed = (text, url) => jrefMediaType.parse({ text: async () => text, url });

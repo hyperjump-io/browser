@@ -22,9 +22,8 @@ export const jrefMediaType = Object.freeze({
       status: result.status,
       children: [result.node],
       comments: [],
-      url: response.url
+      url: response.url,
+      anchors: {}
     };
-  },
-
-  fragmentPointer: (_document, fragment) => decodeURIComponent(fragment)
+  }
 });

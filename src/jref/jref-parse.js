@@ -21,7 +21,8 @@ export function jrefParse(options) {
       status: status,
       children: node ? [node] : [],
       comments: comments,
-      url: url
+      url: url,
+      anchors: {}
     };
     return tree;
   };

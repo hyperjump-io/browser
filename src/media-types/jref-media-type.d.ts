@@ -15,4 +15,4 @@ export type JrefMediaTypeDocument = JrefDocumentNode<"success">;
  * with a reference that isn't a URL. Its `cause` is the first error, with
  * the `code` `ERR_SYNTAX`, and its `url` is the document's.
  */
-export const jrefMediaType: Readonly<Omit<MediaTypePlugin<JrefMediaTypeDocument>, "parse"> & { parse(response: ParseSource): Promise<JrefMediaTypeDocument> }> & Required<Pick<MediaTypePlugin<JrefMediaTypeDocument>, "fragmentPointer">>;
+export const jrefMediaType: Readonly<Omit<MediaTypePlugin<JrefMediaTypeDocument>, "parse"> & { parse(response: ParseSource): Promise<JrefMediaTypeDocument> }>;

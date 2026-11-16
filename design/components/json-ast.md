@@ -163,6 +163,9 @@ status with it:
   - Making up a URL for a file without a path was rejected. Its relative
     references would resolve against a URL that nothing said the document
     has.
+- `jrefParse`'s document has `anchors`, as the JRef media type's does, so
+  a tree from a pipeline says what its fragments identify and is browsed
+  as it is (see [Documents](documents.md)).
 - `appendToLocation` caches the encoded form of each segment, because
   encoding was most of the time `fromJs` took (see
   [Node locations](../benchmarks/node-locations.md)).

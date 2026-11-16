@@ -1,7 +1,7 @@
 // What the step functions' types say about what they return. It's only
 // type-checked.
 import { get, Hyperjump, jrefArrayIter, jrefFind, jrefObjectEntries, jrefObjectHas, jrefObjectKeys, jrefObjectValues, jrefSelect, jrefStep, jrefValue, jrefVisit } from "../index.js";
-import type { FollowedNode, JrefMediaTypeDocument, JrefNode, JsonMediaTypeDocument, JsonNode, Target } from "../index.js";
+import type { FollowedNode, JrefDocumentNode, JrefMediaTypeDocument, JrefNode, JsonMediaTypeDocument, JsonNode, Target } from "../index.js";
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
 const yes = <T extends true>(_is?: T) => {};
@@ -70,3 +70,19 @@ const never = await jrefFind(session, target, "reference");
 yes<Equal<typeof never, undefined>>();
 const selected = await jrefSelect(session, "> [key=a]", target, { reference: "manual" });
 yes<Equal<Extract<NonNullable<typeof selected>["node"], { type: "reference" }> extends never ? false : true, true>>();
+
+// A document is browsed from its root, as a target of it would be
+declare const document: JrefMediaTypeDocument;
+const fromDocument = await jrefStep(session, "a", document);
+yes<Equal<typeof fromDocument.node, Reached>>();
+yes<Equal<typeof fromDocument.document, Documents>>();
+const writtenInDocument = await jrefStep(session, "a", document, { reference: "manual" });
+yes<Equal<typeof writtenInDocument, Target<JrefMediaTypeDocument, JrefNode>>>();
+const selectedInDocument = await jrefSelect(session, "> [key=a][jsonType=string]", document);
+yes<Equal<NonNullable<typeof selectedInDocument>["node"]["value"], string>>();
+jrefObjectHas("a", document);
+await jrefVisit(session, document, () => {});
+
+// A reference is followed from a tree, whatever its parse status
+declare const tree: JrefDocumentNode;
+await get(session, "https://example.com/", { referencedFrom: tree });

@@ -4,11 +4,9 @@
 target a URL identifies in it, following references. It's what makes this
 a hypermedia browser, and the stack is how it retrieves.
 
-- A target is what a URL identifies: a node, the document it's in, and
-  the document's media type (`Target`, `{ document, node, mediaType }`).
-  A URL names a document, and its fragment names a part of it, which is
-  its media type's to define. `get` finds all three, and a target is all
-  three.
+- A target is what a URL identifies: a node and the document it's in
+  (`Target`, `{ document, node }`). A URL names a document, and its
+  fragment names a part of it. `get` finds both, and a target is both.
   - A node isn't enough to go on from. A reference only means something in
     the document it's in, which says what the reference finds before
     anything is retrieved, what caused the request, and whether it can
@@ -18,16 +16,19 @@ a hypermedia browser, and the stack is how it retrieves.
     one contains has its container, because the contained document is
     found from the container by the node's location, and the container
     can't be found from the contained document.
-  - The media type is the plugin, which says what a fragment identifies
-    in the document and in the documents it contains. A document doesn't
-    say its media type, so its target does. With it, a target is all that
-    following a reference needs, whoever parsed the document.
   - It's a plain value, and nothing makes one by hand. `get` returns
     one, and the browsing functions return one for each member they step
-    into or walk to (see [Browsing](browsing.md)). Outside those, only
-    `documentTarget(document, mediaType)` makes one: the target of the
-    root of a document the session didn't retrieve, like one an
-    application parsed itself.
+    into or walk to (see [Browsing](browsing.md)).
+  - Where a target is taken, so is a document, which stands for its
+    root's target (`Start`): by the browsing functions and as
+    `referencedFrom`. A unist utility takes the tree, and a document is
+    the tree, so a tree from a unified pipeline, or one an application
+    parsed itself, is browsed as it is. A target is told from a document
+    by its `node`.
+  - unist has the same need inside one tree, and meets it the same way.
+    A node doesn't say its parent, so `unist-util-visit` gives the
+    `parent` with it. A target is that for a tree that spans documents:
+    the node with the root it's under.
   - The session keeps the entry of each document it retrieved by the
     document, which is how it knows what caused a target's document to
     be retrieved.
@@ -80,8 +81,7 @@ a hypermedia browser, and the stack is how it retrieves.
     what their URL is, like one with an identifier in it, gives a document
     that `url`, and its nodes' locations start with it. If that were where
     it's kept, a document could answer for any URL it names. Such a
-    document finds itself by that URL when its plugin lists it in its own
-    `embedded`.
+    document still finds itself by that URL, as every document does.
 - A document that fails isn't kept, so it can be asked for again.
 - `get` takes a `priority`, which is the request's, and
   the references `get` follows have it too. Whoever waits for a document
@@ -93,16 +93,39 @@ a hypermedia browser, and the stack is how it retrieves.
   has in Node.js, and the throttle does, which it doesn't.
   - The browsing functions don't take a priority. What's being browsed is
     needed now, which is `auto`.
-- An entry keeps the plugin that parsed it, which says what its fragments
-  identify, and its response's fetch record. A document carries neither.
+- An entry keeps its response's fetch record, which a document doesn't
+  carry.
+- A document says what its fragments identify, with its `anchors`: a map
+  from a fragment to the JSON Pointer of the node it names. What a
+  fragment identifies is a pure function of the document
+  (`fragmentPointer` in `documents.js`), so nothing needs the plugin once
+  a document is parsed, and a tree from anywhere can be browsed.
+  - Without `anchors`, a document has no fragments, and any fragment
+    identifies the whole document. JSON's are like that.
+  - With `anchors`, even with none in it, a fragment is an anchor's
+    pointer if it's there, and otherwise a JSON Pointer that's
+    percent-encoded. A JRef document's is `{}`.
+  - A fragment that's neither is an `ERR_ANCHOR_NOT_FOUND`.
+  - An anchor's key is the fragment as it is in a URL, percent-encoded.
 - A plugin's `parse` gives a document the documents it contains
   (`embedded`), parsed, by the URL each says it has. A reference looks in
   its document's set first, then in what the session has, then it's
   fetched.
-  - An embedded document has its container's set, plugin, and record. So
-    it finds the others its container has, its fragments are its
-    container's media type's, and a request it causes has its container's
-    record as its `initiator`.
+  - A document is in its own set, by its `url`, so a reference to the
+    document it's in finds it. A tree the session didn't retrieve, like
+    one from a unified pipeline, can refer to itself with `#/a`, and what
+    it finds is the tree and not what's at its URL. Only its own
+    references and those of the documents it contains find it, so it
+    still doesn't answer for the URL to anything else. A document it
+    lists at its own URL comes first.
+    - Rejected: a document that lists itself in its own `embedded` to be
+      found. The tree would be cyclic, and every parser would do it.
+    - Rejected: retrieving the URL. A tree that isn't saved, like an
+      editor's, would be read from what's on disk.
+  - An embedded document has its container's set and record. So it finds
+    the others its container has, and a request it causes has its
+    container's record as its `initiator`. Its fragments are its own,
+    from its own `anchors`.
   - It isn't kept under its own URL, and only a reference from its
     container, or from a document contained with it, finds it. A document
     can say it contains a document with any URL, so what it says can't
@@ -141,13 +164,14 @@ a hypermedia browser, and the stack is how it retrieves.
     to be a failure.
 - Following a reference that leads back to one already followed is an
   error, with the chain of URLs.
-- `get` with `referencedFrom`, a target, follows a reference from the
-  target's document, which is how the browsing functions follow one (see
-  [Browsing](browsing.md)).
-  - A target whose document the session didn't retrieve, like a tree an
-    application parsed itself (`documentTarget`), is followed like any
-    other: its document has what it contains, and the target has its
-    media type. Nothing caused the request, since the document wasn't
+- `get` with `referencedFrom`, a target or a document, follows a
+  reference from that document, which is how the browsing functions
+  follow one (see [Browsing](browsing.md)). Only the document is read, so
+  a node a unist utility found in a tree is followed with the tree.
+  - A document the session didn't retrieve, like a tree from a unified
+    pipeline, is followed from like any other: it has what it contains
+    and what its fragments identify. Nothing caused the request, since
+    the document wasn't
     retrieved. It doesn't change what the session has: the document isn't
     kept, and it doesn't answer for any URL.
 
@@ -163,6 +187,7 @@ says why, with the exact URL as its `url` (see
 | `ERR_HTTP_STATUS` | A response that isn't a success. The cause has its `status`. |
 | `ERR_UNSUPPORTED_MEDIA_TYPE` | A response no media type plugin parses |
 | `ERR_ABSOLUTE_FILE_URL` | A document that isn't a file and says it contains a document with a `file:` URL (see [`file:` from `file:`](file-references.md)) |
+| `ERR_ANCHOR_NOT_FOUND` | A fragment that isn't an anchor of the document or a JSON Pointer. The cause has the `anchor`. |
 | `ERR_REFERENCE_CYCLE` | References that lead back to one already followed. The cause has the `chain`. |
 
 They're `Error`s, not the `TypeError` of a network error, because a server
@@ -206,16 +231,28 @@ Rejected:
 - Giving the session a document it didn't retrieve, to keep with the
   ones it did. A document would answer for a URL without being retrieved
   from it, and the session's documents would be changed from outside.
-- A target without its media type, with the session knowing the media
-  type of each document it retrieved. A reference in a document it
-  didn't retrieve was followed without the document, so nothing the
-  document contains was found.
-- A `referencedFromMediaType` option of `get`, for the media type of a
-  document the session didn't retrieve. It only meant something with
-  `referencedFrom`, and only for such a document, so it was part of the
-  target.
-- A media type only on the targets an application makes. A target would
-  be two kinds of value, by who made it.
+- A target with its document's media type plugin, which said what a
+  fragment identifies (`fragmentPointer`, a function of the plugin's). A
+  tree from a unified pipeline has no plugin with it, so something had
+  to pair them, and the plugin was carried on every entry and target for
+  one function. One plugin can also make two kinds of document, whose
+  fragments differ.
+- A document that names its media type, with the session finding the
+  plugin by the name. It carried the plugin's name for the same one
+  function, and a session without the plugin couldn't browse the tree.
+- `documentTarget(document, mediaType)`, to make the target of a
+  document the session didn't retrieve. An application made targets, and
+  nothing checked that the plugin parsed the document.
+- A plugin's `parse` returning a target. A tree from a unified pipeline
+  doesn't come from a plugin's `parse`.
+- The root's target on a unified file's `data`, put there by the parse
+  plugin. It's stale when a transformer returns a new tree, it's missing
+  for `processor.run(tree)`, and a transformer would pass it where it
+  has the tree.
+- A session that knows the media type of each document it retrieved,
+  with nothing for one it didn't. A reference in a document it didn't
+  retrieve was followed without the document, so nothing the document
+  contains was found.
 - A target made by hand, like `{ ...target, node: member }`. Code that
   does is missing a function, and it's wrong when a target has more than
   it copied.
@@ -240,3 +277,5 @@ Rejected:
 
 - `get` takes the nodes of a document to be a JSON AST, with references
   as `reference` nodes that have an `href`.
+- A media type whose fragments aren't names or JSON Pointers, like CSV's
+  `#row=5`, can't say so with `anchors`.

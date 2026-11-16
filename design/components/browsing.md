@@ -25,7 +25,10 @@ take the session to follow references with, and a target to start from
   document it's in, which a node doesn't say, and what's found is given
   with its document so it can be browsed from in turn. A member that isn't
   a reference is in its parent's document, so its target has that
-  document and its media type.
+  document.
+  - They take a document where they take a target, and browse from its
+    root, as a unist utility takes the tree (see
+    [Documents](documents.md)).
   - Tests and selectors are about what kind of node a value is, so a
     `type`, an object of properties, and a selector match a target's
     node. A function gets the target, since it can ask anything.
@@ -134,8 +137,7 @@ take the session to follow references with, and a target to start from
   what a reference is: a `reference` node with an `href`. So what's built
   on browser browses its own trees with them, like a tree with more kinds
   of node. A tree the session didn't retrieve is browsed from its
-  document's target (`documentTarget`), and its references find what the
-  document contains.
+  document, and its references find what the document contains.
 - What they return is typed by where a node can come from. A value or an
   item that isn't a reference is a node of the tree it's in. A reference
   can lead to a document in any of the session's media types, so it's a

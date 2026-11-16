@@ -45,5 +45,11 @@ export type JrefDocumentNode<S extends JsonParseStatus = JsonParseStatus> = {
   /** See `JsonDocumentNode` */
   comments: JsonCommentNode[];
   url: string;
+  /**
+   * The names a fragment can be, with the JSON Pointer each identifies.
+   * JRef has none, and a document with `anchors` says a fragment that
+   * isn't one is a JSON Pointer, which is what JRef's are.
+   */
+  anchors: Record<string, string>;
   data?: Data;
 };

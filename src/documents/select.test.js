@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { jrefSelect, jrefSelectAll } from "./select.js";
-import { documentTarget, get } from "./documents.js";
+import { get } from "./documents.js";
 import { jrefMediaType } from "../media-types/jref-media-type.js";
 import { toJson } from "../json/jsonast-util.js";
 import { coded } from "../test-helpers/errors.js";
@@ -119,10 +119,10 @@ describe("jrefSelect", () => {
   });
 
   test("a node with the same location as one that's being walked, but another node, is walked", async () => {
-    const { session } = site({ "/doc": { b: 1 } });
+    const { session } = site({ "/doc": { b: 1 }, "/other": { $ref: "/doc" } });
     // A tree that says it's the document at /doc, which isn't the one the
-    // session retrieves from there
-    const mine = await parsed(`{ "a": { "$ref": "/doc" } }`, "https://a.test/doc");
+    // session retrieves from there for another document's reference
+    const mine = await parsed(`{ "a": { "$ref": "/other" } }`, "https://a.test/doc");
 
     const selected = await jrefSelectAll(session, "[key=b]", mine);
 
@@ -201,11 +201,8 @@ describe("jrefSelect", () => {
 });
 
 /**
- * A JRef document the session didn't retrieve, as a target
+ * A JRef document the session didn't retrieve
  *
- * @type (text: string, url: string) => Promise<Target<JrefMediaTypeDocument, FollowedNode>>
+ * @type (text: string, url: string) => Promise<JrefMediaTypeDocument>
  */
-const parsed = async (text, url) => {
-  const document = await jrefMediaType.parse({ text: async () => text, url });
-  return /** @type Target<JrefMediaTypeDocument, FollowedNode> */ (documentTarget(document, jrefMediaType));
-};
+const parsed = (text, url) => jrefMediaType.parse({ text: async () => text, url });

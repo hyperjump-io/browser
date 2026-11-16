@@ -52,13 +52,19 @@ A plugin is a plain object:
 | `extensions` | The names that files of this media type have. An extension starts with `.`, such as `.yaml`. A whole filename starts with `/`, such as `/.bowerrc`. |
 | `quality` | The media type's quality in the `Accept` header, from 0 to 1. Without it, servers take the quality to be 1. |
 | `parse(response, session)` | Parses a response into a document. The response's `url` is the document's URL, and the document it returns has that `url`. If the response can't be a document, it throws. The session is for a format that needs other documents to parse one, which it gets with `get(session, url, { initiator: response, reference: "manual" })`. |
-| `fragmentPointer(document, fragment)` | The JSON Pointer to the node that a fragment identifies. Without it, a fragment identifies the whole document. |
 
 If a document contains other documents that have URLs of their own, return them
 as the document's `embedded` property: an object of documents by their URLs.
 A reference in the document, or in one of the documents it contains, finds them
 there, and the session doesn't retrieve them. A reference in any other document
 doesn't find them, so a document can't change what other documents get.
+
+A document says what its fragments identify with its `anchors` property: an
+object that has the JSON Pointer to a node for each fragment that names one.
+A fragment that isn't in `anchors` is a JSON Pointer. A document without
+`anchors` has no fragments, so a fragment on its URL identifies the whole
+document. For a format whose fragments are only JSON Pointers, as JRef's are,
+return `anchors: {}`.
 
 For `get` to find values in a document and follow its references, the
 document's root has to be a JSON AST node. `fromJs` makes one from a JavaScript

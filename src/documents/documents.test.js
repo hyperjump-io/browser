@@ -481,13 +481,12 @@ const bundleMediaType = {
   parse: async (response) => {
     const { main, embedded } = /** @type {{ main: Json, embedded: Record<string, Json> }} */ (JSON.parse(await response.text()));
     /** @type (value: Json, url: string) => DocumentNode<JrefNode> */
-    const document = (value, url) => ({ type: "bundle-document", children: [jrefNode(value, url)], url });
+    const document = (value, url) => ({ type: "bundle-document", children: [jrefNode(value, url)], url, anchors: {} });
     return {
       ...document(main, response.url),
       embedded: Object.fromEntries(Object.entries(embedded).map(([url, value]) => [url, document(value, URL.parse(url)?.href.split("#")[0] ?? "https://invalid.test/")]))
     };
-  },
-  fragmentPointer: (_document, fragment) => decodeURIComponent(fragment)
+  }
 };
 
 /**

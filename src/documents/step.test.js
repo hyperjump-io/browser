@@ -1,11 +1,14 @@
 import { describe, test, expect } from "vitest";
-import { documentTarget, get } from "./documents.js";
+import { unified } from "unified";
+import { visit } from "unist-util-visit";
+import { get } from "./documents.js";
 import { jrefSelect, jrefSelectAll } from "./select.js";
 import { jrefArrayIter, jrefObjectEntries, jrefObjectHas, jrefObjectKeys, jrefObjectValues, jrefStep, jrefValue } from "./step.js";
 import { jrefFind, jrefFindAll, jrefVisit } from "./visit.js";
 import { Hyperjump } from "../hyperjump.js";
 import { fetcher } from "../layers.js";
-import { fromJref } from "../jref/jref-util.js";
+import { jrefParse } from "../jref/jref-parse.js";
+import { fromJref, hasStatus } from "../jref/jref-util.js";
 import { toJson } from "../json/jsonast-util.js";
 import { coded } from "../test-helpers/errors.js";
 import { jrefMediaType } from "../media-types/jref-media-type.js";
@@ -45,7 +48,6 @@ describe("stepping", () => {
       const subject = await get(session, "https://a.test/a");
       const foo = await jrefStep(session, "foo", subject);
       expect(foo.document, "a member is in the same document").to.equal(subject.document);
-      expect(foo.mediaType).to.equal(subject.mediaType);
       const other = await jrefStep(session, "other", subject);
       expect(other.document, "what a reference leads to is in its own").to.equal((await get(session, "https://a.test/b")).document);
     });
@@ -79,7 +81,27 @@ describe("stepping", () => {
     test("a reference in a document the session didn't retrieve is still followed", async () => {
       const { session } = site({ "/b": 1 });
       const document = await jrefMediaType.parse({ text: async () => `{ "b": { "$ref": "/b" } }`, url: "https://a.test/mine" });
-      expect(toJson((await jrefStep(session, "b", documentTarget(document, jrefMediaType))).node)).to.equal(`1`);
+      expect(toJson((await jrefStep(session, "b", document)).node)).to.equal(`1`);
+    });
+
+    test("a tree from a unified pipeline is browsed as it is, and a node a unist utility finds in it is followed from it", async () => {
+      const { session } = site({ "/b": { c: 1 }, "/c": 2 });
+      const tree = unified()
+        .use(jrefParse, { url: "https://a.test/mine" })
+        .parse(`{ "b": { "$ref": "/b" }, "c": { "$ref": "/c" } }`);
+      if (!hasStatus(tree, "success")) {
+        throw Error("The parse failed");
+      }
+      const c = await jrefSelect(session, "> [key=b] > [key=c]", tree);
+      expect(c && toJson(c.node)).to.equal(`1`);
+
+      /** @type string[] */
+      const hrefs = [];
+      visit(tree, "reference", (node) => {
+        hrefs.push(/** @type {{ href: string }} */ (/** @type unknown */ (node)).href);
+      });
+      expect(hrefs).to.eql(["https://a.test/b", "https://a.test/c"]);
+      expect(toJson((await get(session, hrefs[1], { referencedFrom: tree })).node)).to.equal(`2`);
     });
   });
 
@@ -330,13 +352,12 @@ const bundleMediaType = {
   parse: async (response) => {
     const { main, embedded } = /** @type {{ main: Json, embedded: Record<string, Json> }} */ (JSON.parse(await response.text()));
     /** @type (value: Json, url: string) => DocumentNode<JrefNode> */
-    const document = (value, url) => ({ type: "bundle-document", children: [jrefNode(value, url)], url });
+    const document = (value, url) => ({ type: "bundle-document", children: [jrefNode(value, url)], url, anchors: {} });
     return {
       ...document(main, response.url),
       embedded: Object.fromEntries(Object.entries(embedded).map(([url, value]) => [url, document(value, url)]))
     };
-  },
-  fragmentPointer: (_document, fragment) => decodeURIComponent(fragment)
+  }
 };
 
 /**

@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { visit } from "unist-util-visit";
 import { CONTINUE, EXIT, SKIP, jrefVisit } from "./visit.js";
-import { documentTarget, get } from "./documents.js";
+import { get } from "./documents.js";
 import { jrefMediaType } from "../media-types/jref-media-type.js";
 import { toJson } from "../json/jsonast-util.js";
 import { coded } from "../test-helpers/errors.js";
@@ -99,10 +99,10 @@ describe("jrefVisit", () => {
   });
 
   test("a node with the same location as one that's being visited, but another node, is descended into", async () => {
-    const { session } = site({ "/doc": { b: 1 } });
+    const { session } = site({ "/doc": { b: 1 }, "/other": { $ref: "/doc" } });
     // A tree that says it's the document at /doc, which isn't the one the
-    // session retrieves from there
-    const mine = await parsed(`{ "a": { "$ref": "/doc" } }`, "https://a.test/doc");
+    // session retrieves from there for another document's reference
+    const mine = await parsed(`{ "a": { "$ref": "/other" } }`, "https://a.test/doc");
 
     /** @type string[] */
     const visited = [];
@@ -110,7 +110,7 @@ describe("jrefVisit", () => {
       visited.push(`${key} ${toJson(target.node)}`);
     });
 
-    expect(visited).to.eql([`undefined {"a":{"$ref":"/doc"}}`, `a {"b":1}`, `b 1`]);
+    expect(visited).to.eql([`undefined {"a":{"$ref":"/other"}}`, `a {"b":1}`, `b 1`]);
   });
 
   test("visits a value reached through two references each time", async () => {
@@ -307,11 +307,8 @@ describe("unist utilities", () => {
 });
 
 /**
- * A JRef document the session didn't retrieve, as a target
+ * A JRef document the session didn't retrieve
  *
- * @type (text: string, url: string) => Promise<Target<JrefMediaTypeDocument, FollowedNode>>
+ * @type (text: string, url: string) => Promise<JrefMediaTypeDocument>
  */
-const parsed = async (text, url) => {
-  const document = await jrefMediaType.parse({ text: async () => text, url });
-  return /** @type Target<JrefMediaTypeDocument, FollowedNode> */ (documentTarget(document, jrefMediaType));
-};
+const parsed = (text, url) => jrefMediaType.parse({ text: async () => text, url });

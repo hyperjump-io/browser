@@ -1,5 +1,5 @@
 import type { JrefTestedNode, TargetOf, WalkOptions, WalkTarget } from "./visit.d.ts";
-import type { DocumentSession, Target } from "./documents.d.ts";
+import type { DocumentSession, Start, StartTarget, Target } from "./documents.d.ts";
 import type { AnyJsonNode } from "../json/jsonast-util.d.ts";
 
 /**
@@ -41,7 +41,7 @@ import type { AnyJsonNode } from "../json/jsonast-util.d.ts";
  * @throws A `RangeError` if `maxDepth` isn't valid.
  * @throws What `get` throws, if it follows a reference.
  */
-export const jrefSelect: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, L extends string, const O extends WalkOptions = WalkOptions>(session: S, selector: L, target: T, options?: O) => Promise<SelectedTarget<WalkTarget<S, T, O>, L> | undefined>;
+export const jrefSelect: <S extends DocumentSession, T extends Start<AnyJsonNode>, L extends string, const O extends WalkOptions = WalkOptions>(session: S, selector: L, target: T, options?: O) => Promise<SelectedTarget<WalkTarget<S, StartTarget<T>, O>, L> | undefined>;
 
 /**
  * Every target under `target`, and `target` itself, whose node matches a
@@ -58,7 +58,7 @@ export const jrefSelect: <S extends DocumentSession, T extends Target<unknown, A
  * @throws A `RangeError` if `maxDepth` isn't valid.
  * @throws What `get` throws, if it follows a reference.
  */
-export const jrefSelectAll: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, L extends string, const O extends WalkOptions = WalkOptions>(session: S, selector: L, target: T, options?: O) => Promise<SelectedTarget<WalkTarget<S, T, O>, L>[]>;
+export const jrefSelectAll: <S extends DocumentSession, T extends Start<AnyJsonNode>, L extends string, const O extends WalkOptions = WalkOptions>(session: S, selector: L, target: T, options?: O) => Promise<SelectedTarget<WalkTarget<S, StartTarget<T>, O>, L>[]>;
 
 /**
  * The targets of type `T` whose node selector list `L` can select (see

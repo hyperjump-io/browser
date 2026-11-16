@@ -16,9 +16,20 @@ export type DocumentNode<T = unknown> = {
    * anything is retrieved. Nothing else does, so what a document says it
    * contains doesn't change what a reference in another document finds.
    * They aren't retrieved, so `allowRetrieval` doesn't apply to them. A URL
-   * has to be absolute.
+   * has to be absolute. A reference to the document's own URL finds the
+   * document the same way, without it being listed.
    */
   embedded?: Record<string, DocumentNode<T>>;
+
+  /**
+   * What the document's fragments identify, as a JSON Pointer for each
+   * fragment that's a name. A fragment is percent-encoded. A document
+   * without `anchors` has no fragments, so any fragment identifies the
+   * whole document. One with `anchors`, even if there are none, has them
+   * and JSON Pointers: a fragment that isn't an anchor is a JSON Pointer
+   * that's percent-encoded.
+   */
+  anchors?: Record<string, string>;
 };
 
 /**
@@ -29,9 +40,9 @@ export type DocumentNode<T = unknown> = {
 export type ParseSource = Pick<Response, "text" | "url">;
 
 /**
- * Parses responses of a media type into documents, and says what the media
- * type's fragments identify. A plugin is a plain object, so one with another
- * quality is `{ ...jsonMediaType, quality: 0.5 }`.
+ * Parses responses of a media type into documents. A document says what
+ * its fragments identify, with its `anchors`. A plugin is a plain object,
+ * so one with another quality is `{ ...jsonMediaType, quality: 0.5 }`.
  */
 export type MediaTypePlugin<T extends DocumentNode = DocumentNode> = {
   /**
@@ -69,12 +80,6 @@ export type MediaTypePlugin<T extends DocumentNode = DocumentNode> = {
    * error.
    */
   parse(response: Response, session: DocumentSession): Promise<T>;
-
-  /**
-   * The JSON Pointer to the node a fragment identifies. The fragment is
-   * percent-encoded. Without this, a fragment identifies the whole document.
-   */
-  fragmentPointer?(document: T, fragment: string): string;
 };
 
 /**

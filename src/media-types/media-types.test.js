@@ -128,13 +128,13 @@ describe("media types", () => {
   test("the JSON plugin has no references, and its fragments identify the whole document", async () => {
     const document = await jsonMediaType.parse({ text: async () => `{ "$ref": "b" }`, url: "https://example.com/a" });
     expect(document.children[0]).to.include({ type: "json", jsonType: "object" });
-    expect(jsonMediaType.fragmentPointer).to.equal(undefined);
+    expect(document).to.not.have.property("anchors");
   });
 
   test("the JRef plugin resolves references, and its fragments are JSON Pointers", async () => {
     const document = await jrefMediaType.parse({ text: async () => `{ "$ref": "b" }`, url: "https://example.com/a" });
     expect(document.children[0]).to.include({ type: "reference", href: "https://example.com/b" });
-    expect(jrefMediaType.fragmentPointer(document, "/a%20b/c")).to.equal("/a b/c");
+    expect(document.anchors).to.eql({});
   });
 
   test("the JRef plugin rejects a document with a reference that isn't a URL", async () => {

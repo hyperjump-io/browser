@@ -1,10 +1,10 @@
 # Media types (`src/media-types/`)
 
-A media type plugin parses a response into a document, and says what its
-fragments identify. JSON and JRef are built in.
+A media type plugin parses a response into a document, which says what
+its fragments identify. JSON and JRef are built in.
 
 - A plugin is a plain object: its `mediaType`, the `extensions` its files
-  have, an optional `quality`, `parse`, and an optional `fragmentPointer`.
+  have, an optional `quality`, and `parse`.
   The built-in ones are values (`jsonMediaType`, `jrefMediaType`), so one
   with another quality is `{ ...jsonMediaType, quality: 0.5 }`.
 - The plugins an application uses are a list, and `defaultMediaTypes` is
@@ -47,10 +47,13 @@ fragments identify. JSON and JRef are built in.
 - `parse` gives a document the documents it contains, as `embedded` (see
   [Documents](documents.md)). An embedded document is in its container's
   media type.
-- A plugin's `fragmentPointer` turns a fragment into a JSON Pointer, so a
-  media type defines what its fragments identify. JRef's are JSON
-  Pointers. A media type without it, like JSON, identifies the whole
-  document.
+- `parse` gives a document its `anchors`, which say what its fragments
+  identify, so a media type defines that in the documents it makes (see
+  [Documents](documents.md)). JRef's fragments are JSON Pointers, so its
+  documents have `anchors` with none in it. JSON's have no `anchors`, so
+  a fragment identifies the whole document.
+  - A `fragmentPointer` function of the plugin's was rejected (see
+    [Documents](documents.md)).
 - Nothing in the stack knows media types. They're for what reads a
   response, not for what fetches it: `get` chooses the plugin and
   sets `Accept` (see [Documents](documents.md)).

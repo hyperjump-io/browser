@@ -1,9 +1,11 @@
+import { startOf } from "./start.js";
 import { follow, isManual, maxDepth, maxDepthError, memberEntries } from "./walk.js";
 
 /**
  * @import * as API from "./visit.d.ts"
  * @import { DocumentSession } from "./documents.d.ts"
  * @import { Target } from "./documents.d.ts"
+ * @import { DocumentNode } from "../media-types/media-types.d.ts"
  * @import { Walked, WalkedTarget } from "./walk.js"
  */
 
@@ -21,12 +23,12 @@ export const EXIT = false;
 export const jrefVisit = /** @type typeof API.jrefVisit */ (
   /**
    * @param {DocumentSession} session
-   * @param {Target} target
+   * @param {Target | DocumentNode} from
    * @param {API.JrefTest<any> | API.JrefVisitor<any>} testOrVisitor
    * @param {API.JrefVisitor<any> | API.WalkOptions} [visitorOrOptions]
    * @param {API.WalkOptions} [options]
    */
-  async (session, target, testOrVisitor, visitorOrOptions, options) => {
+  async (session, from, testOrVisitor, visitorOrOptions, options) => {
     const [check, visit, walkOptions] = typeof visitorOrOptions === "function"
       ? [convertTest(/** @type API.JrefTest<any> */ (testOrVisitor)), visitorOrOptions, options]
       : [() => true, /** @type API.JrefVisitor<any> */ (testOrVisitor), visitorOrOptions];
@@ -35,6 +37,7 @@ export const jrefVisit = /** @type typeof API.jrefVisit */ (
     const walk = { session, maxDepth: maxDepth(walkOptions), manual, ancestors: new Set(), check, visitor: visit };
     // A walk that starts at a reference starts at what it leads to, like a
     // walk that reaches one
+    const target = startOf(from);
     await visitTarget(walk, await follow(session, target, target.node, manual), undefined, undefined, 0);
   }
 );
@@ -42,7 +45,7 @@ export const jrefVisit = /** @type typeof API.jrefVisit */ (
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefFind = /** @type typeof API.jrefFind */ (async (
   /** @type DocumentSession */ session,
-  /** @type Target */ target,
+  /** @type Target | DocumentNode */ target,
   /** @type API.JrefTest<any> */ test,
   /** @type API.WalkOptions | undefined */ options
 ) => {
@@ -59,7 +62,7 @@ export const jrefFind = /** @type typeof API.jrefFind */ (async (
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefFindAll = /** @type typeof API.jrefFindAll */ (async (
   /** @type DocumentSession */ session,
-  /** @type Target */ target,
+  /** @type Target | DocumentNode */ target,
   /** @type API.JrefTest<any> */ test,
   /** @type API.WalkOptions | undefined */ options
 ) => {
