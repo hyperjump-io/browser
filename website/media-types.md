@@ -57,7 +57,10 @@ If a document contains other documents that have URLs of their own, return them
 as the document's `embedded` property: an object of documents by their URLs.
 A reference in the document, or in one of the documents it contains, finds them
 there, and the session doesn't retrieve them. A reference in any other document
-doesn't find them, so a document can't change what other documents get.
+doesn't find them, so a document can't change what other documents get. Only
+a document from a file can contain a document with a `file:` URL. The session
+can't use any other document that does, and `get` rejects with an error whose
+`cause.code` is `"ERR_ABSOLUTE_FILE_URL"`.
 
 A document says what its fragments identify with its `anchors` property: an
 object that has the JSON Pointer to a node for each fragment that names one.

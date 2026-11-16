@@ -64,11 +64,6 @@ const { node } = fromJref(jref, "https://example.com/doc");
 
 `fromJref` takes the `allowComments` option too.
 
-A `$ref` that's an absolute `file:` URL, such as `file:///home/me/a.json`, isn't
-a reference either, because it only works on one machine and says where that
-machine's files are. To refer to a file from a file, use a relative reference.
-Its error's `ruleId` is `"absolute-file-reference"`.
-
 A `$ref` whose value doesn't resolve to a URL against the document's URL isn't a
 reference. `//[` is one, and so is `b` in a `urn:` document. Its object is an
 error node with the `type` `"invalid-reference"`, the `status` is `"failure"`,
@@ -85,6 +80,11 @@ result.node.type; // "invalid-reference"
 jrefSyntaxErrorMessage(result.errors[0]);
 // "'//[' is not a valid reference"
 ```
+
+A `$ref` that's an absolute `file:` URL, such as `file:///home/me/a.json`, isn't
+a reference either, because it only works on one machine and says where that
+machine's files are. To refer to a file from a file, use a relative reference.
+Its error's `ruleId` is `"absolute-file-reference"`.
 
 ## Read the AST
 

@@ -208,7 +208,7 @@ into each one and gets its name.
 | Selector | Matches |
 | --- | --- |
 | `[key=name]` | The value of the property `name`, or the item at index `name` of an array, such as `[key=0]` |
-| `[jsonType=object]` | A value whose property has that value. They're compared as text, so `[value=42]` matches `42` and `"42"`. |
+| `[property=value]` | A value whose property has that value, such as `[jsonType=object]`. They're compared as text, so `[value=42]` matches `42` and `"42"`. |
 | `[value]` | A value that has the property. Strings, numbers, booleans, and null have a `value`. |
 | `json` or `*` | A value whose `type` is `json`, or any value |
 | `:root` or `:scope` | The value you start from |
@@ -429,5 +429,6 @@ The `jref` functions don't take a node on its own, because a node doesn't say
 which document it's in. To browse from a value inside a tree, start at the
 tree and step or select to the value.
 
-For the errors that these functions throw, see
-[Get documents](documents.md#errors).
+When these functions follow a reference, they throw what `get` throws. For
+more information, see [Get documents](documents.md#errors). For the errors of
+their own, see [Errors](errors.md#other-errors).
