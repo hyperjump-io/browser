@@ -27,7 +27,7 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 - [Install](install.md): install in Node.js and browsers
 - [Get started](getting-started.md): browse an API and files step by step
 - [Get documents](documents.md): get a value from a document, and follow references
-- [Browse documents](browsing.md): read a value and step into it, following references
+- [Browse documents](browsing.md): visit, find, and select the values under a node, following references
 - [Media types](media-types.md): formats other than JSON and JRef
 - [Sessions](sessions.md): fetch through a session, and close it
 - [What a session can fetch](allow-retrieval.md): allow only the URLs your app should fetch

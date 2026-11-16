@@ -209,7 +209,7 @@ to follow references with.
   called `key`, which no JSON or JRef node has. A media type shouldn't
   annotate its nodes with one.
   - A pseudo-class like `:key(director)` was rejected. It can't collide
-    with a property, but it's longer for the most common selector, and an
+    with a property, but it's longer for the selector that's used most, and an
     attribute already says "a value that's at this name".
 - Selectors are matched top down with every selector of a list at once,
   so a member is only followed if a selector could still match it or
@@ -256,7 +256,7 @@ to follow references with.
 - What's returned is narrowed by the `[jsonType=...]` attributes in the
   last compound of each selector in the list (`Selected`), so
   `> [key=title][jsonType=string]` returns a string node whose `value` is
-  a `string`. Reading a scalar is the most common thing a selection is for,
+  a `string`. Reading a scalar is what a selection is most often for,
   and without it every `value` needs a `jsonType` check first. A list is
   narrowed to what any of its selectors selects, and one that isn't
   narrowed makes the list the whole `Reachable`. A selector that isn't a

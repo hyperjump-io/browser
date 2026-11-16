@@ -1,9 +1,9 @@
 # Browse documents
 
-Browsing is reading a value and stepping to the values inside it. `get` gives
-you a node for the value a URL identifies, and from there the `jref` functions
-step into it. They take the session so they can follow the references they
-reach.
+Browsing is reading a value and the values under it. `get` gives you a node
+for the value a URL identifies, and from there the `jref` functions visit,
+find, and select the values under it. They take the session so they can follow
+the references they reach.
 
 ```typescript
 import { Hyperjump, get } from "@hyperjump/browser";
