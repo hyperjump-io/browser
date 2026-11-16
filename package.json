@@ -27,7 +27,8 @@
     "!**/*.test.js",
     "!**/*.test-d.ts",
     "!src/test-helpers/",
-    "!src/json/jsonast-util-tests/"
+    "!src/json/jsonast-util-tests/",
+    "!**/node_modules/"
   ],
   "exports": {
     ".": {
