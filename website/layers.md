@@ -49,10 +49,6 @@ A header like this goes to every URL the stack fetches, so don't add
 credentials this way. A session's `headers` option sends them only to the URLs
 they're for. For more information, see [Sessions](sessions.md#headers).
 
-A layer that needs methods or state of its own is a class with an `inner`
-property and a `fetch` method. The built-in layers are classes, and each one
-has a function that makes it.
-
 ## The context
 
 Each request goes down the stack with a context:
@@ -71,11 +67,61 @@ A request's own `signal` aborts when the caller aborts or the session closes. If
 your layer makes a new request, give it a signal, such as the session's
 (`ctx.session.signal`).
 
-A layer that keeps state for each session uses `ctx.session.state`, with the
-layer itself as the key, so one stack can serve many sessions:
+## Write a layer as a class
+
+A layer that needs methods or state of its own is a class with an `inner`
+property and a `fetch` method. The built-in layers are classes, and each one
+has a function that makes it, like `httpCache()`. Write yours the same way, so
+it works with `compose` and `findLayer`.
+
+Sessions can share a stack, so a layer keeps its state for each session with
+`ctx.session.state(key, init)`. The session calls `init` the first time it's
+asked for a key's state, and gives the same state for that key until the
+session ends. Use the layer itself as the key. This layer counts each
+session's requests:
 
 ```typescript
-const inFlight = ctx.session.state(this, () => new Map());
+import {
+  compose,
+  defaultTransport,
+  type FetchContext,
+  type Fetcher,
+  type Hyperjump,
+  type Layer
+} from "@hyperjump/browser";
+
+class RequestCounter implements Layer {
+  readonly inner: Fetcher;
+
+  constructor(inner: Fetcher) {
+    this.inner = inner;
+  }
+
+  async fetch(request: Request, ctx: FetchContext) {
+    this.#state(ctx.session).count++;
+    return this.inner.fetch(request, ctx);
+  }
+
+  count(session: Hyperjump) {
+    return this.#state(session).count;
+  }
+
+  #state(session: Hyperjump) {
+    return session.state(this, () => ({ count: 0 }));
+  }
+}
+
+const requestCounter = () => (inner: Fetcher) => new RequestCounter(inner);
+
+const stack = compose(requestCounter())(defaultTransport());
+```
+
+To call its method, find it in the stack with `findLayer`:
+
+```typescript
+import { findLayer } from "@hyperjump/browser";
+
+findLayer(stack, RequestCounter)?.count(session); // 3
 ```
 
 ## Find a layer in a stack
