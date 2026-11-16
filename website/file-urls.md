@@ -35,7 +35,7 @@ As in a browser, a file the session can't read is a network error, not a 404.
 `session.fetch` rejects with a `TypeError` when the file doesn't exist or can't
 be read, the URL is a directory, or the method isn't `GET` or `HEAD`. The
 message says which, and the error's `cause` is the error from the filesystem,
-so a file that doesn't exist has a `cause.code` of `ENOENT`. For more
+so a file that doesn't exist has a `cause.code` of `"ENOENT"`. For more
 information, see [Errors](errors.md).
 
 ## Limit what a session can read
@@ -85,9 +85,9 @@ await session.fetch("file:///home/me/project/secret.json", {
 ```
 
 `get` does this for you. A tree that you parsed yourself, such as one from a
-[unified pipeline](parsing.md#in-a-unified-pipeline), comes from the URL you
-gave it, its file's path or the `url` option. Only one whose URL is a `file:`
-URL can refer to a file.
+[unified pipeline](parsing.md#in-a-unified-pipeline), comes from its URL. In a
+pipeline, that's the file's path or the `url` option. Only a tree whose URL is a
+`file:` URL can refer to a file.
 
 ## Symbolic links
 

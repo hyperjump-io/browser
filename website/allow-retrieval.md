@@ -9,7 +9,6 @@ allows:
 
 ```typescript
 const session = new Hyperjump({
-  stack,
   allowRetrieval: ["./", "https://api.example.com/"]
 });
 ```
@@ -44,7 +43,7 @@ Fetching a URL the list doesn't allow is a network error, the `TypeError` that
 Fetching 'https://example.com/other' isn't allowed. Add it to 'allowRetrieval' to allow it.
 ```
 
-Its `cause.code` is `ERR_RETRIEVAL_NOT_ALLOWED`, so your app can tell a refused
+Its `cause.code` is `"ERR_RETRIEVAL_NOT_ALLOWED"`, so your app can tell a refused
 URL from one that failed. For more information, see [Errors](errors.md).
 
 A refused request doesn't get the session's [headers](sessions.md#headers), and

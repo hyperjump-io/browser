@@ -7,6 +7,9 @@ draws them as a waterfall:
 ```typescript
 import { Hyperjump, Trace } from "@hyperjump/browser";
 
+const session = new Hyperjump({
+  allowRetrieval: ["https://example.com/"]
+});
 const trace = new Trace(session);
 
 const page = await session.fetch("https://example.com/index.html");

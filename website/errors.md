@@ -21,22 +21,23 @@ show URLs the same way, use `relativeFileUrl(url)`.
 To tell failures apart in code, use the error's `cause.code`:
 
 ```typescript
-try {
-  return await session.fetch(url);
-} catch (error) {
-  const code = (error as { cause?: { code?: string } }).cause?.code;
-  if (code === "ENOENT") {
-    // The file doesn't exist
-  } else if (code === "ERR_RETRIEVAL_NOT_ALLOWED") {
-    // The session's allowRetrieval doesn't allow the URL
+const load = async (url: string) => {
+  try {
+    return await session.fetch(url);
+  } catch (error) {
+    const code = (error as { cause?: { code?: string } }).cause?.code;
+    if (code === "ENOENT") {
+      // The file doesn't exist
+    } else if (code === "ERR_RETRIEVAL_NOT_ALLOWED") {
+      // The session's allowRetrieval doesn't allow the URL
+    }
+    throw error;
   }
-  throw error;
-}
+};
 ```
 
-When the system fails, such as the filesystem or the network, `cause` is the
-system's error with the system's code. Node.js's own `fetch` gives the reason
-the same way. An aborted request rejects with the signal's reason, as it does
+When the filesystem or the network fails, `cause` is the error it gave, with
+its code. Node.js's own `fetch` gives the reason the same way. An aborted request rejects with the signal's reason, as it does
 with `fetch`, so it isn't a network error.
 
 ## Codes

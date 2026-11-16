@@ -43,9 +43,9 @@ tree. An object or an array node doesn't have one. You step into it instead.
 ## Follow references
 
 Following a reference can mean retrieving a document, so the `jref` functions
-are asynchronous and take the session. You step into a target with a selector,
-which [Select values](#select-values) says more about. This one steps from Luke
-to his homeworld and then to its name:
+are asynchronous and take the session. One way to step into a target is with
+a selector, which [Select values](#select-values) covers in full. This one
+steps from Luke to his homeworld and then to its name:
 
 ```typescript
 import { jrefSelect } from "@hyperjump/browser";
@@ -330,9 +330,10 @@ get the name, get the homeworld first. Then select its name.
 
 ## Follow a reference yourself
 
-A walk that starts at a reference starts at the value it leads to. So `:scope`
-follows a target whose node is a reference, and gives you any other target
-unchanged:
+A walk that starts at a reference starts at the value it leads to. The
+selector `:scope` matches only where a walk starts, so it follows a reference
+and gives you the value it leads to. For any other target, it gives you the
+target unchanged:
 
 ```typescript
 import { jrefSelect, jrefStep } from "@hyperjump/browser";

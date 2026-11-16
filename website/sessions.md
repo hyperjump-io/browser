@@ -1,13 +1,12 @@
 # Sessions
 
-A session is the requests that belong together, the way the requests of a page
-load do. You create a session from a configuration and fetch through it:
+A session is a `Hyperjump` instance. Its requests belong together, the way the
+requests of a page load do. You create a session from a configuration and fetch through it:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
 
 const session = new Hyperjump({
-  stack,
   allowRetrieval: ["https://example.com/docs/"]
 });
 
@@ -68,7 +67,6 @@ for, even when a document refers to URLs on other origins:
 
 ```typescript
 const session = new Hyperjump({
-  stack,
   headers: {
     "https://api.example.com/": { "Authorization": `Bearer ${token}` },
     "https://example.com/private/": { "X-API-Key": key }
@@ -90,7 +88,6 @@ refresh a token. The session calls it for each request:
 
 ```typescript
 const session = new Hyperjump({
-  stack,
   headers: {
     "https://api.example.com/": async () => ({
       "Authorization": `Bearer ${await getToken()}`

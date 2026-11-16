@@ -106,7 +106,7 @@ import {
 const json = `{ "a": { "b": [10, 20] } }`;
 const result = fromJson(json, "https://example.com/doc");
 if (result.status === "failure") {
-  throw Error(jsonSyntaxErrorMessage(result.errors[0]));
+  throw new Error(jsonSyntaxErrorMessage(result.errors[0]));
 }
 
 const twenty = jsonPointerGet("/a/b/1", result.node);
@@ -217,6 +217,9 @@ start with it, and the parser resolves JRef references against it. For text that
 a file, such as text from stdin, give the parse plugin a `url` option instead:
 
 ```typescript
+import { unified } from "unified";
+import { jrefParse, jrefStringify } from "@hyperjump/browser";
+
 const processor = unified()
   .use(jrefParse, { url: "https://example.com/doc.jref" })
   .use(jrefStringify);
@@ -233,11 +236,13 @@ narrows the document's type in TypeScript. TypeScript then knows that a
 document with the status `"success"` or `"recovered"` has no error nodes:
 
 ```typescript
-import { hasStatus } from "@hyperjump/browser";
+import { hasStatus, type JsonDocumentNode } from "@hyperjump/browser";
 
-if (hasStatus(document, "success", "recovered")) {
-  // document.children has no error nodes
-}
+const transformer = (tree: JsonDocumentNode) => {
+  if (hasStatus(tree, "success", "recovered")) {
+    // tree.children has no error nodes
+  }
+};
 ```
 
 `hasStatus` works for JRef documents too.
