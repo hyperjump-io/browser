@@ -67,7 +67,8 @@ is another reference, the function follows that one too.
 
 To read the tree as it's written, pass `reference: "manual"`. The `jref`
 function then gives you a reference as a target without following it. For more
-information, see [The tree as it's written](#the-tree-as-its-written). If you
+information, see
+[Follow references yourself](references.md#read-the-tree-as-its-written). If you
 pass a target whose node is a reference to a `jref` function, it starts from
 the value the reference leads to. Without `reference: "manual"`, the node of a
 target from `get` or a `jref` function is never a reference.
@@ -279,169 +280,6 @@ await jrefVisit(session, firstPage, (target, key, parent, depth) => {
 A selector made of `>` steps only goes as deep as it's written, like
 `> [key=next] > [key=next]` for the next two pages.
 
-## The tree as it's written
-
-Every `jref` function takes `reference: "manual"` as its last argument, like
-`get` does. With it, the function doesn't follow references, so it reads the
-tree as it's written and a reference is a target like any other. This finds
-every reference in a document, each with the document it's in:
-
-```typescript
-import { get, jrefFindAll } from "@hyperjump/browser";
-
-const url = "https://swapi.hyperjump.io/api/films/1";
-const film = await get(session, url, { reference: "manual" });
-const references = await jrefFindAll(session, film, "reference", {
-  reference: "manual"
-});
-
-for (const reference of references) {
-  console.log(reference.node.href);
-}
-```
-
-`jrefStep` and the iterators take it too, so
-`jrefStep(session, "homeworld", luke, { reference: "manual" })` is the
-reference to Luke's homeworld and not the homeworld.
-
-Documents are also [unist](https://github.com/syntax-tree/unist) trees, so the
-unified ecosystem's utilities and the `json` functions work on a target's
-`document` and `node`. They read a tree as it's written and give you nodes. For
-more information, see [Parse JSON and JRef](parsing.md).
-
-## Fragments
-
-The fragment of the URL you give `get` identifies a value within the document.
-In JRef, the fragment is a JSON Pointer:
-
-```typescript
-const homeworld = await get(
-  session,
-  "https://swapi.hyperjump.io/api/people/1#/homeworld"
-);
-```
-
-The pointer applies to the document as it's written, so it doesn't follow
-references. `#/homeworld` works because the reference is the last thing the
-pointer reaches. `get` follows that reference and gives you the homeworld.
-`#/homeworld/name` doesn't work because the pointer can't go through the
-reference. It looks for `name` in Luke's document, which doesn't have one. To
-get the name, get the homeworld first. Then select its name.
-
-## Follow a reference yourself
-
-A walk that starts at a reference starts at the value it leads to. The
-selector `:scope` matches only where a walk starts, so it follows a reference
-and gives you the value it leads to. For any other target, it gives you the
-target unchanged:
-
-```typescript
-import { jrefSelect, jrefStep } from "@hyperjump/browser";
-
-const written = await jrefStep(session, "homeworld", luke, {
-  reference: "manual"
-});
-const homeworld = await jrefSelect(session, ":scope", written);
-```
-
-Code that doesn't walk can follow a reference with `get`. Pass the reference's
-target as `referencedFrom` so the session knows which document the reference
-is in. That document causes the request, and `get` finds a document that it
-contains without retrieving it:
-
-```typescript
-import { get, jrefStep } from "@hyperjump/browser";
-
-const written = await jrefStep(session, "homeworld", luke, {
-  reference: "manual"
-});
-const homeworld = written.node.type === "reference"
-  ? await get(session, written.node.href, { referencedFrom: written })
-  : written;
-```
-
-## Carry on past a reference that fails
-
-A walk that can't follow a reference throws what `get` throws, such as a network
-error or an `ERR_HTTP_STATUS` error. To report every broken reference instead of
-stopping at the first, find the references as they're written, and follow each
-one with `get`:
-
-```typescript
-import { get, jrefFindAll } from "@hyperjump/browser";
-
-const references = await jrefFindAll(session, film, "reference", {
-  reference: "manual"
-});
-
-for (const reference of references) {
-  try {
-    await get(session, reference.node.href, { referencedFrom: reference });
-  } catch (error) {
-    console.log(`${reference.node.location}: ${(error as Error).message}`);
-  }
-}
-```
-
-Each reference has the document that it's in, so the session knows which
-document causes the request.
-
-## Browse a tree you parsed
-
-A document that you parsed yourself isn't one the session retrieved, so `get`
-never gave you a target for it. The `jref` functions take the document where
-they take a target and browse from its root, the way a unist utility takes the
-tree. A reference in the document finds the document itself and the documents
-that it contains, without retrieving them:
-
-```typescript
-import { jrefMediaType, jrefSelect } from "@hyperjump/browser";
-
-const mine = await jrefMediaType.parse({
-  text: async () => `{ "luke": { "$ref": "/api/people/1" } }`,
-  url: "https://swapi.hyperjump.io/mine"
-});
-const luke = await jrefSelect(session, "> [key=luke]", mine);
-```
-
-A reference that the session retrieves comes from the document's URL, so only
-a document whose URL is a `file:` URL can refer to a file. For more
-information, see [Documents from the web](file-urls.md#documents-from-the-web).
-
-The tree in a [unified pipeline](parsing.md#in-a-unified-pipeline) is a
-document too. A transformer reads it as it's written with the ecosystem's
-utilities, which give it nodes. To follow a reference that one of them finds,
-pass the tree as `referencedFrom`:
-
-```typescript
-import {
-  get,
-  type Hyperjump,
-  type JrefDocumentNode
-} from "@hyperjump/browser";
-import { visit } from "unist-util-visit";
-
-const followReferences = (session: Hyperjump) =>
-  async (tree: JrefDocumentNode) => {
-    const hrefs: string[] = [];
-    visit(tree, "reference", (reference) => {
-      hrefs.push(reference.href);
-    });
-
-    for (const href of hrefs) {
-      await get(session, href, { referencedFrom: tree });
-    }
-  };
-```
-
-A tree can have any parse status. The `jref` functions browse what a tree whose
-parse failed has: they leave out a value that's missing, and a value that
-couldn't be parsed is a `json-invalid` node.
-
-The `jref` functions don't take a node on its own, because a node doesn't say
-which document it's in. To browse from a value inside a tree, start at the
-tree and step or select to the value.
-
 ## Functions
 
 Each `target` can also be a document, which starts at its root.
@@ -463,7 +301,8 @@ Each `target` can also be a document, which starts at its root.
 
 | Option | Description |
 | --- | --- |
-| `reference` | `"follow"`, the default, follows references. `"manual"` reads the tree as it's written. For more information, see [The tree as it's written](#the-tree-as-its-written). |
+| `reference` | `"follow"`, the default, follows references. `"manual"` reads the tree as it's written. For more information, see
+[Follow references yourself](references.md#read-the-tree-as-its-written). |
 | `maxDepth` | How many levels below the target a walk can go. The default is 1000. Only `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it. For more information, see [How deep a walk goes](#how-deep-a-walk-goes). |
 
 When these functions follow a reference, they throw what `get` throws. For

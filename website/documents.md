@@ -37,6 +37,23 @@ its `anchors`. For more information, see [Media types](media-types.md#a-plugin).
 | JRef, which is `application/reference+json` and `.jref` files | The value at that JSON Pointer |
 | JSON, which is `application/json` and `.json` files | The whole document, because JSON doesn't define fragments |
 
+In JRef, a fragment is a JSON Pointer to a value in the document:
+
+```typescript
+const homeworld = await get(
+  session,
+  "https://swapi.hyperjump.io/api/people/1#/homeworld"
+);
+```
+
+The pointer applies to the document as it's written, so it doesn't follow
+references. `#/homeworld` works because the reference is the last thing the
+pointer reaches. `get` follows that reference and gives you the homeworld.
+`#/homeworld/name` doesn't work because the pointer can't go through the
+reference. It looks for `name` in Luke's document, which doesn't have one. To
+get the name, get the homeworld first. Then select its name. For more
+information, see [Browse documents](browsing.md).
+
 ## References
 
 A JRef document is JSON with references such as `{ "$ref": "../people/1" }`.
@@ -96,7 +113,7 @@ now. For more information, see [Priorities](priorities.md).
 | --- | --- |
 | `priority` | `"high"`, `"auto"`, or `"low"`, or a `PriorityController`'s signal. The references that `get` follows have it too. For more information, see [Priority](#priority). |
 | `reference` | `"follow"`, the default, follows a reference to the value it leads to. `"manual"` gives you the target as it's written. For more information, see [A document as it's written](#a-document-as-its-written). |
-| `referencedFrom` | The target or the document that has the reference you're following. `get` finds a document that it contains without retrieving it. For more information, see [Follow a reference yourself](browsing.md#follow-a-reference-yourself). |
+| `referencedFrom` | The target or the document that has the reference you're following. `get` finds a document that it contains without retrieving it. For more information, see [Follow a reference](references.md#follow-a-reference). |
 | `initiator` | The response of the request that caused this one, or its record. Only a `file:` document can refer to a `file:` URL. For more information, see [File URLs](file-urls.md#documents-from-the-web). |
 
 ## Errors

@@ -30,6 +30,7 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 - Documents
   - [Get documents](documents.md): get a value from a document, and follow references
   - [Browse documents](browsing.md): visit, find, and select the values under a target, following references
+  - [Follow references yourself](references.md): read references as they're written, and follow them with `get`
   - [Media types](media-types.md): formats other than JSON and JRef
   - [Parse JSON and JRef](parsing.md): the parsers and the functions that read their ASTs
 - Retrieval
