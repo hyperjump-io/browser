@@ -112,6 +112,16 @@ take the session to follow references with, and a target to start from
   - Rejected: `unist-util-visit` and the `json*` functions for this, with
     a way to make a target from a node they return. They give nodes, and
     following a reference takes a target.
+  - They're async with `"manual"` too, though nothing is followed or
+    waited for. It costs a few percent of compiling a schema, which steps
+    through every schema as it's written, and a walk of a whole document
+    as written is about a quarter of the time parsing it takes (see
+    [Async steps as written](../benchmarks/manual-steps.md)).
+  - Rejected: synchronous step functions for reading as written, as a
+    second set or typed by the option. It's API for a few percent. It's worth
+    another look for something that walks whole documents as written
+    many times without parsing them again, like an editor on each
+    change.
 - The ones that give targets are async and follow references, because
   following one can retrieve a document. What's needed next isn't known
   until a value is read, so a reference is followed when it's reached.
