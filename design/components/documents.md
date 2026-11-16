@@ -25,6 +25,15 @@ a hypermedia browser, and the stack is how it retrieves.
     the tree, so a tree from a unified pipeline, or one an application
     parsed itself, is browsed as it is. A target is told from a document
     by its `node`.
+  - A document can have any parse status, since that's what unified's
+    `parse` returns and lint works on a tree that failed. So its root
+    can be a value that couldn't be parsed, and what's returned is typed
+    with it. A target's node is still a value, as a `json*` function's
+    node is.
+    - Rejected: only a document whose status isn't `failure`
+      (`hasStatus`). A tree that failed with a root that's a value
+      couldn't be browsed without a cast, and a walk already leaves out
+      what's missing.
   - unist has the same need inside one tree, and meets it the same way.
     A node doesn't say its parent, so `unist-util-visit` gives the
     `parent` with it. A target is that for a tree that spans documents:

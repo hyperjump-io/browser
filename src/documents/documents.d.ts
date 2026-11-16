@@ -1,6 +1,7 @@
 import type { FetchRecord } from "../fetch-record.d.ts";
 import type { Hyperjump } from "../hyperjump.d.ts";
 import type { JrefNode } from "../jref/jref-ast.d.ts";
+import type { JsonErrorNode } from "../json/jsonast.d.ts";
 import type { JrefMediaTypeDocument } from "../media-types/jref-media-type.d.ts";
 import type { JsonMediaTypeDocument } from "../media-types/json-media-type.d.ts";
 import type { DocumentNode, MediaTypePlugin } from "../media-types/media-types.d.ts";
@@ -117,8 +118,12 @@ export type Target<D = unknown, N = unknown> = {
  * pipeline, is browsed like any other: a reference in it finds what the
  * document contains, and nothing caused the request. The session doesn't
  * keep the document, and it doesn't answer for any URL.
+ *
+ * A document can have any parse status, like a tree from unified's
+ * `parse`, so its root can be a value that couldn't be parsed. A target's
+ * node is a value.
  */
-export type Start<N = unknown> = Target<unknown, N> | DocumentNode<N>;
+export type Start<N = unknown> = Target<unknown, N> | DocumentNode<N | JsonErrorNode>;
 
 /** The target a browse from `T` starts at (see {@link Start}) */
 export type StartTarget<T> = T extends Target ? T

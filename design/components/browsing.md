@@ -57,6 +57,11 @@ take the session to follow references with, and a target to start from
     `jrefObjectEntries`) follow a member when a loop reaches it, so a
     loop that stops early retrieves less. They leave out a member that's
     missing from a parse that failed, as the walks do.
+  - `jrefStep` to a member that's missing from a parse that failed is an
+    `ERR_POINTER_NOT_FOUND`, as it is for a property that doesn't exist,
+    and so is `get` with a fragment that ends at one. `jsonStep` gives
+    `undefined` there, but a target is a value's, and a missing value
+    isn't a member.
   - They're `@hyperjump/pact`'s async iterators, a `map` over the
     node's children, so `for await` and an engine's helpers work on
     them, calls to `next()` that overlap get the members in order, and

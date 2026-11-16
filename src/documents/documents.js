@@ -1,7 +1,7 @@
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
 import { jsonPointerGet } from "../json/jsonast-util.js";
-import { startOf } from "./start.js";
+import { missingValueError, startOf } from "./start.js";
 import { acceptHeader, defaultMediaTypes, mediaTypeForContentType, mediaTypeForExtension } from "../media-types/media-types.js";
 import { PriorityGroup, PrioritySignal } from "../priority.js";
 import { responseMeta, withUrl } from "../response-meta.js";
@@ -84,6 +84,11 @@ const targetIn = async (session, entry, documentUrl, fragment, priority, follow)
     chain.push(href);
 
     const node = jsonPointerGet(fragmentPointer(entry.document, fragment), /** @type JrefNode */ (entry.document.children[0]));
+    // Only a document the session didn't retrieve can have a parse that
+    // failed, and so a value that's missing
+    if (node === undefined) {
+      throw missingValueError(href);
+    }
     if (!follow || node.type !== "reference") {
       return { document: entry.container, node };
     }

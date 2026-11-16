@@ -1,10 +1,11 @@
 import { pipe } from "@hyperjump/pact";
 import { filter, map } from "@hyperjump/pact/async";
-import { startOf } from "./start.js";
+import { missingValueError, startOf } from "./start.js";
 import { follow, isManual } from "./walk.js";
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
 import { jsonObjectHas, jsonObjectKeys, jsonStep, jsonValue } from "../json/jsonast-util.js";
+import { appendToLocation } from "../json/location.js";
 
 /**
  * @import * as API from "./step.d.ts"
@@ -27,7 +28,13 @@ export const jrefStep = /** @type typeof API.jrefStep */ (async (
   /** @type API.StepOptions | undefined */ options
 ) => {
   const target = startOf(from);
-  return follow(session, target, jsonStep(key, /** @type Walked */ (target.node)), isManual(options));
+  const node = /** @type Walked */ (target.node);
+  const member = jsonStep(key, node);
+  // A value that's missing from a parse that failed isn't a member
+  if (member === undefined) {
+    throw missingValueError(appendToLocation(key, node.location));
+  }
+  return follow(session, target, member, isManual(options));
 });
 
 /**

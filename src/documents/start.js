@@ -1,3 +1,6 @@
+import { relativeFileUrl } from "../file-urls.js";
+import { codedError } from "../json/coded-error.js";
+
 /**
  * @import { Target } from "./documents.d.ts"
  * @import { DocumentNode } from "../media-types/media-types.d.ts"
@@ -11,3 +14,12 @@
  * @type (from: Target | DocumentNode) => Target
  */
 export const startOf = (from) => "node" in from ? from : { document: from, node: from.children[0] };
+
+/**
+ * What's thrown for a value that's missing from a parse that failed, where
+ * a target is asked for. It isn't a value to find, like a property that
+ * doesn't exist.
+ *
+ * @type (location: string) => Error
+ */
+export const missingValueError = (location) => codedError(`There's no value at ${relativeFileUrl(location)}`, { code: "ERR_POINTER_NOT_FOUND" }, location);

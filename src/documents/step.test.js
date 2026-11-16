@@ -8,7 +8,7 @@ import { jrefFind, jrefFindAll, jrefVisit } from "./visit.js";
 import { Hyperjump } from "../hyperjump.js";
 import { fetcher } from "../layers.js";
 import { jrefParse } from "../jref/jref-parse.js";
-import { fromJref, hasStatus } from "../jref/jref-util.js";
+import { fromJref } from "../jref/jref-util.js";
 import { toJson } from "../json/jsonast-util.js";
 import { coded } from "../test-helpers/errors.js";
 import { jrefMediaType } from "../media-types/jref-media-type.js";
@@ -89,9 +89,6 @@ describe("stepping", () => {
       const tree = unified()
         .use(jrefParse, { url: "https://a.test/mine" })
         .parse(`{ "b": { "$ref": "/b" }, "c": { "$ref": "/c" } }`);
-      if (!hasStatus(tree, "success")) {
-        throw Error("The parse failed");
-      }
       const c = await jrefSelect(session, "> [key=b] > [key=c]", tree);
       expect(c && toJson(c.node)).to.equal(`1`);
 
@@ -102,6 +99,31 @@ describe("stepping", () => {
       });
       expect(hrefs).to.eql(["https://a.test/b", "https://a.test/c"]);
       expect(toJson((await get(session, hrefs[1], { referencedFrom: tree })).node)).to.equal(`2`);
+    });
+
+    test("a tree whose parse failed is browsed for what it has", async () => {
+      const { session } = site({ "/b": 1 });
+      const tree = unified()
+        .use(jrefParse, { url: "https://a.test/mine", accept: "failure" })
+        .parse(`{ "a": , "b": { "$ref": "/b" }, "c": @ }`);
+
+      /** @type string[] */
+      const visited = [];
+      await jrefVisit(session, tree, (target, key) => {
+        visited.push(`${key} ${target.node.type}`);
+      });
+      expect(visited, "a missing value isn't a member").to.eql(["undefined json", "b json", "c json-invalid"]);
+      expect(toJson((await jrefStep(session, "b", tree)).node)).to.equal(`1`);
+    });
+
+    test("a value that's missing from a parse that failed isn't there to step to or to get", async () => {
+      const { session } = site({});
+      const tree = unified()
+        .use(jrefParse, { url: "https://a.test/mine", accept: "failure" })
+        .parse(`{ "a": }`);
+      await expect(jrefStep(session, "a", tree)).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#/a"));
+      await expect(jrefStep(session, "a", tree)).rejects.toThrow("There's no value at https://a.test/mine#/a");
+      await expect(get(session, "https://a.test/mine#/a", { referencedFrom: tree })).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#/a"));
     });
   });
 

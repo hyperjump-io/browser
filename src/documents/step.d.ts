@@ -34,7 +34,9 @@ export type MemberTarget<S, T, O = StepOptions> = T extends Target<infer D, infe
  * something at every value, use `jrefVisit`.
  *
  * @throws What `jsonStep` throws, like an `Error` whose `cause.code` is
- * `ERR_POINTER_NOT_FOUND` if the property or item doesn't exist.
+ * `ERR_POINTER_NOT_FOUND` if the property or item doesn't exist. It's the
+ * same error if its value is missing from a parse that failed, where
+ * `jsonStep` gives `undefined`, because a target is a value's.
  * @throws What `get` throws, if it follows a reference.
  */
 export const jrefStep: <S extends DocumentSession, T extends Start<AnyJsonNode>, const O extends StepOptions = StepOptions>(session: S, key: string, target: T, options?: O) => Promise<MemberTarget<S, StartTarget<T>, O>>;

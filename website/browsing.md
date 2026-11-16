@@ -379,19 +379,21 @@ utilities, which give it nodes. To follow a reference that one of them finds,
 pass the tree as `referencedFrom`:
 
 ```typescript
-import { get, hasStatus, type JrefDocumentNode } from "@hyperjump/browser";
+import { get, type JrefDocumentNode } from "@hyperjump/browser";
 import { selectAll } from "unist-util-select";
 
 const followReferences = (session) => async (tree: JrefDocumentNode) => {
-  if (hasStatus(tree, "success")) {
-    for (const reference of selectAll("reference", tree)) {
-      const target = await get(session, reference.href, {
-        referencedFrom: tree
-      });
-    }
+  for (const reference of selectAll("reference", tree)) {
+    const target = await get(session, reference.href, {
+      referencedFrom: tree
+    });
   }
 };
 ```
+
+A tree can have any parse status. The `jref` functions browse what a tree whose
+parse failed has: they leave out a value that's missing, and a value that
+couldn't be parsed is a `json-invalid` node.
 
 The `jref` functions don't take a node on its own, because a node doesn't say
 which document it's in. To browse from a value inside a tree, start at the

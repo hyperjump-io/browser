@@ -83,6 +83,20 @@ yes<Equal<NonNullable<typeof selectedInDocument>["node"]["value"], string>>();
 jrefObjectHas("a", document);
 await jrefVisit(session, document, () => {});
 
-// A reference is followed from a tree, whatever its parse status
+// So is a tree from a unified pipeline, whatever its parse status. What's
+// reached can be a value that couldn't be parsed, and a walk can start at
+// a root that's missing.
 declare const tree: JrefDocumentNode;
+const inTree = await jrefStep(session, "a", tree);
+yes<Equal<typeof inTree.node.type, "json" | "invalid-reference" | "json-invalid">>();
+const foundInTree = await jrefFind(session, tree, null);
+yes<Equal<NonNullable<typeof foundInTree>["node"]["type"], "json" | "invalid-reference" | "json-invalid" | "json-missing">>();
+const stringInTree = await jrefSelect(session, "> [key=a][jsonType=string]", tree);
+yes<Equal<NonNullable<typeof stringInTree>["node"]["value"], string>>();
+await jrefVisit(session, tree, () => {});
 await get(session, "https://example.com/", { referencedFrom: tree });
+
+// A target's node is a value, so a target of one that couldn't be parsed
+// isn't browsed from
+// @ts-expect-error
+await jrefStep(session, "a", inTree);
