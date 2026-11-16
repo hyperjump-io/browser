@@ -27,17 +27,19 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 
 - [Install](install.md): install in Node.js and browsers
 - [Get started](getting-started.md): browse an API and files step by step
-- [Get documents](documents.md): get a value from a document, and follow references
-- [Browse documents](browsing.md): visit, find, and select the values under a target, following references
-- [Media types](media-types.md): formats other than JSON and JRef
-- [Sessions](sessions.md): fetch through a session, and close it
-- [What a session can fetch](allow-retrieval.md): allow only the URLs your app should fetch
-- [Registries](registries.md): documents your app already has
-- [Errors](errors.md): what a failed request rejects with, and how to tell failures apart
-- [Layers](layers.md): build a stack and write your own layers
-- [File URLs](file-urls.md): fetch `file:` URLs on a server
-- [Redirects](redirects.md): how a session follows redirects through the stack
-- [HTTP caching](http-caching.md): cache responses by their caching headers
-- [Priorities](priorities.md): connection limits, and what loads first
-- [Tracing](tracing.md): see what a session fetched, and why
-- [Parse JSON and JRef](parsing.md): the parsers and the functions that read their ASTs
+- Documents
+  - [Get documents](documents.md): get a value from a document, and follow references
+  - [Browse documents](browsing.md): visit, find, and select the values under a target, following references
+  - [Media types](media-types.md): formats other than JSON and JRef
+  - [Parse JSON and JRef](parsing.md): the parsers and the functions that read their ASTs
+- Retrieval
+  - [Sessions](sessions.md): fetch through a session, and close it
+  - [What a session can fetch](allow-retrieval.md): allow only the URLs your app should fetch
+  - [Registries](registries.md): documents your app already has
+  - [Errors](errors.md): what a failed request rejects with, and how to tell failures apart
+  - [Layers](layers.md): build a stack and write your own layers
+  - [File URLs](file-urls.md): fetch `file:` URLs on a server
+  - [Redirects](redirects.md): how a session follows redirects through the stack
+  - [HTTP caching](http-caching.md): cache responses by their caching headers
+  - [Priorities](priorities.md): connection limits, and what loads first
+  - [Tracing](tracing.md): see what a session fetched, and why
