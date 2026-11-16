@@ -124,18 +124,29 @@ more information, see
 ## Browse files
 
 Files work the same way. Their media type comes from the file extension. For
-JRef the extension is `.jref`. Here's Luke again, this time as a file with a
-reference to his homeworld:
+JRef the extension is `.jref`. To try it, create two files in an `api`
+directory. Here's Luke again, this time as a file with a reference to his
+homeworld:
 
-```jref
+```jref title="api/people/1.jref"
 {
   "name": "Luke Skywalker",
   "homeworld": { "$ref": "../planets/1.jref" }
 }
 ```
 
-The default for `allowRetrieval` allows all files in the working directory, so
-you don't need to configure anything:
+The reference is relative, so it leads to his homeworld's file in the
+`planets` directory next to `people`:
+
+```jref title="api/planets/1.jref"
+{
+  "name": "Tatooine"
+}
+```
+
+Run your code from the directory that has `api` in it. The default for
+`allowRetrieval` allows all files in the working directory, so you don't need
+to configure anything:
 
 ```typescript
 const session = new Hyperjump();
