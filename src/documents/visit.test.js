@@ -1,14 +1,15 @@
 import { describe, test, expect } from "vitest";
 import { visit } from "unist-util-visit";
 import { CONTINUE, EXIT, SKIP, jrefVisit } from "./visit.js";
-import { get } from "./documents.js";
-import { fromJref } from "../jref/jref-util.js";
+import { documentTarget, get } from "./documents.js";
+import { jrefMediaType } from "../media-types/jref-media-type.js";
 import { toJson } from "../json/jsonast-util.js";
 import { coded } from "../test-helpers/errors.js";
 import { jrefSite as site } from "../test-helpers/jref-site.js";
 
 /**
- * @import { FollowedNode } from "./documents.d.ts"
+ * @import { FollowedNode, Target } from "./documents.d.ts"
+ * @import { JrefMediaTypeDocument } from "../media-types/jref-media-type.d.ts"
  * @import { Json } from "../json/jsonast.d.ts"
  */
 
@@ -101,11 +102,11 @@ describe("jrefVisit", () => {
     const { session } = site({ "/doc": { b: 1 } });
     // A tree that says it's the document at /doc, which isn't the one the
     // session retrieves from there
-    const { node } = fromJref(`{ "a": { "$ref": "/doc" } }`, "https://a.test/doc");
+    const mine = await parsed(`{ "a": { "$ref": "/doc" } }`, "https://a.test/doc");
 
     /** @type string[] */
     const visited = [];
-    await jrefVisit(session, { document: undefined, node: /** @type FollowedNode */ (node) }, (target, key) => {
+    await jrefVisit(session, mine, (target, key) => {
       visited.push(`${key} ${toJson(target.node)}`);
     });
 
@@ -304,3 +305,13 @@ describe("unist utilities", () => {
     expect(requests).to.eql(["/doc"]);
   });
 });
+
+/**
+ * A JRef document the session didn't retrieve, as a target
+ *
+ * @type (text: string, url: string) => Promise<Target<JrefMediaTypeDocument, FollowedNode>>
+ */
+const parsed = async (text, url) => {
+  const document = await jrefMediaType.parse({ text: async () => text, url });
+  return /** @type Target<JrefMediaTypeDocument, FollowedNode> */ (documentTarget(document, jrefMediaType));
+};

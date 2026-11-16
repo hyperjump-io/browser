@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { visit } from "unist-util-visit";
-import { get } from "./documents.js";
+import { documentTarget, get } from "./documents.js";
+import { jrefStep } from "./step.js";
 import { Hyperjump } from "../hyperjump.js";
 import { fetcher } from "../layers.js";
 import { jsonValue } from "../json/jsonast-util.js";
@@ -54,22 +55,26 @@ describe("targets", () => {
     expect(requests).to.eql(["/bundle"]);
   });
 
-  test("a target whose document the session didn't retrieve is followed without it", async () => {
-    const { session, requests } = site({ "/x": [`"the real one"`, jref] });
-    const document = bundleDocument({ a: { $ref: "/x" } }, "https://a.test/mine");
-    const mine = { document: { ...document, embedded: { "https://a.test/x": bundleDocument("mine", "https://a.test/x") } }, node: document.children[0] };
-    const [reference] = referencesIn(mine);
-    const target = await get(session, reference.href, { referencedFrom: mine });
-    expect(jsonValue(target.node)).to.equal("the real one");
-    expect(requests).to.eql(["/x"]);
+  test("a target has its document's media type, and so does a target for a node in it", async () => {
+    const { session } = site({
+      "/bundle": [bundle({ a: { $ref: "/x" } }, { "https://a.test/x": 1 }), bundled],
+      "/a": [`{ "b": 1 }`, jref]
+    });
+    const start = await get(session, "https://a.test/bundle", { reference: "manual" });
+    expect(start.mediaType.mediaType).to.equal("application/x-bundle");
+    expect((await get(session, "https://a.test/a")).mediaType.mediaType).to.equal("application/reference+json");
+
+    const [reference] = referencesIn(start);
+    expect(await jrefStep(session, "a", start, { reference: "manual" })).to.eql({ document: start.document, node: reference, mediaType: start.mediaType });
+    expect((await get(session, reference.href, { referencedFrom: start })).mediaType, "a contained document has its container's").to.equal(start.mediaType);
   });
 
-  test("with its media type, a document the session didn't retrieve finds what it contains", async () => {
+  test("a document the session didn't retrieve finds what it contains", async () => {
     const { session, requests } = site({ "/x": [`"the real one"`, jref] });
     const document = bundleDocument({ a: { $ref: "/x#/b" } }, "https://a.test/mine");
-    const mine = { document: { ...document, embedded: { "https://a.test/x": bundleDocument({ b: "mine" }, "https://a.test/x") } }, node: document.children[0] };
+    const mine = documentTarget({ ...document, embedded: { "https://a.test/x": bundleDocument({ b: "mine" }, "https://a.test/x") } }, bundleMediaType);
     const [reference] = referencesIn(mine);
-    const target = await get(session, reference.href, { referencedFrom: mine, referencedFromMediaType: bundleMediaType });
+    const target = await get(session, reference.href, { referencedFrom: mine });
     expect(jsonValue(target.node)).to.equal("mine");
     expect(target.document, "its document is the container").to.equal(mine.document);
     expect(requests).to.eql([]);

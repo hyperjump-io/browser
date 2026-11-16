@@ -4,10 +4,11 @@
 target a URL identifies in it, following references. It's what makes this
 a hypermedia browser, and the stack is how it retrieves.
 
-- A target is what a URL identifies: a node and the document it's in
-  (`Target`, `{ document, node }`). A URL names a document, and its
-  fragment names a part of it, which is its media type's to define. `get`
-  finds both, and a target is both.
+- A target is what a URL identifies: a node, the document it's in, and
+  the document's media type (`Target`, `{ document, node, mediaType }`).
+  A URL names a document, and its fragment names a part of it, which is
+  its media type's to define. `get` finds all three, and a target is all
+  three.
   - A node isn't enough to go on from. A reference only means something in
     the document it's in, which says what the reference finds before
     anything is retrieved, what caused the request, and whether it can
@@ -17,11 +18,19 @@ a hypermedia browser, and the stack is how it retrieves.
     one contains has its container, because the contained document is
     found from the container by the node's location, and the container
     can't be found from the contained document.
-  - It's a plain value. A member of a target's node is in the same
-    document, so its target is `{ ...target, node: member }`, which the
-    browsing functions make for each member and an application can too.
+  - The media type is the plugin, which says what a fragment identifies
+    in the document and in the documents it contains. A document doesn't
+    say its media type, so its target does. With it, a target is all that
+    following a reference needs, whoever parsed the document.
+  - It's a plain value, and nothing makes one by hand. `get` returns
+    one, and the browsing functions return one for each member they step
+    into or walk to (see [Browsing](browsing.md)). Outside those, only
+    `documentTarget(document, mediaType)` makes one: the target of the
+    root of a document the session didn't retrieve, like one an
+    application parsed itself.
   - The session keeps the entry of each document it retrieved by the
-    document, which is how it knows a target's.
+    document, which is how it knows what caused a target's document to
+    be retrieved.
 
 - It's a function of a session, `get(session, url)`, not a method of one.
   A session is retrieval, and retrieval never imports document code (see
@@ -136,15 +145,11 @@ a hypermedia browser, and the stack is how it retrieves.
   target's document, which is how the browsing functions follow one (see
   [Browsing](browsing.md)).
   - A target whose document the session didn't retrieve, like a tree an
-    application parsed itself, is followed without a document: nothing
-    caused the request, and nothing embedded is found.
-  - With `referencedFromMediaType`, such a document's references find
-    what it contains. The document has what it contains, and the session
-    doesn't know its media type, which says what the fragments of those
-    documents identify, so the application says it. Nothing caused the
-    request, since the document wasn't retrieved. It doesn't change what
-    the session has: the document isn't kept, and it doesn't answer for
-    any URL.
+    application parsed itself (`documentTarget`), is followed like any
+    other: its document has what it contains, and the target has its
+    media type. Nothing caused the request, since the document wasn't
+    retrieved. It doesn't change what the session has: the document isn't
+    kept, and it doesn't answer for any URL.
 
 ## Errors
 
@@ -201,9 +206,19 @@ Rejected:
 - Giving the session a document it didn't retrieve, to keep with the
   ones it did. A document would answer for a URL without being retrieved
   from it, and the session's documents would be changed from outside.
-- The media type of a document it didn't retrieve on the target. A
-  target is what a URL identifies, and every other target's media type
-  is the session's to know.
+- A target without its media type, with the session knowing the media
+  type of each document it retrieved. A reference in a document it
+  didn't retrieve was followed without the document, so nothing the
+  document contains was found.
+- A `referencedFromMediaType` option of `get`, for the media type of a
+  document the session didn't retrieve. It only meant something with
+  `referencedFrom`, and only for such a document, so it was part of the
+  target.
+- A media type only on the targets an application makes. A target would
+  be two kinds of value, by who made it.
+- A target made by hand, like `{ ...target, node: member }`. Code that
+  does is missing a function, and it's wrong when a target has more than
+  it copied.
 - A map from every node to its document, filled when a document is
   parsed. It's a walk of every tree for what a target already has.
 - A node that refers to its document. The trees are unist trees, which
@@ -212,8 +227,7 @@ Rejected:
 - A target whose document is the contained document its node is in. The
   container, which is what a reference is followed from and what a
   message names, couldn't be found from it.
-- A class for a target. It holds no state of its own, and an application
-  couldn't make one for a member with a spread.
+- A class for a target. It holds no state of its own.
 - The media types as an option of `get`. Every call would pass them, and
   the documents a session keeps were parsed with one list.
 - One error that wraps whatever kept a document from being retrieved, like

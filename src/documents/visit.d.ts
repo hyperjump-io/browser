@@ -24,6 +24,23 @@ export type Reachable<S, N> = FollowedNode<N> | Followed<S, N>;
  */
 export type ReachableTarget<S, T> = T extends Target<infer D, infer N> ? Target<D | SessionDocument<S>, Reachable<S, N>> : never;
 
+/** Whether options say, or could say, not to follow references */
+export type IsManual<O> = O extends { reference: infer R } ? "manual" extends R ? true : false : false;
+
+/**
+ * A target a walk from target `T` reaches when it doesn't follow
+ * references: `T`, or a target of what's under its node as it's written,
+ * which can be a reference, in the same document.
+ */
+export type WrittenTarget<T> = T extends Target<infer D, infer N> ? Target<D, N | NonNullable<JsonMemberValue<N>>> : never;
+
+/**
+ * A target a walk from target `T` can reach in session `S` with the
+ * options `O`: a {@link ReachableTarget}, or a {@link WrittenTarget} if the
+ * options say, or could say, not to follow references
+ */
+export type WalkTarget<S, T, O> = IsManual<O> extends true ? WrittenTarget<T> : ReachableTarget<S, T>;
+
 export const CONTINUE: true;
 export const SKIP: "skip";
 export const EXIT: false;
@@ -134,8 +151,8 @@ type HasProperties<N, O> = N extends unknown
  * nodes that don't, and follows their references, to find what's under
  * them.
  *
- * To find the references in a tree without following them, use
- * `unist-util-visit` with the `"reference"` type.
+ * To visit the tree as it's written, without following references, pass
+ * `reference: "manual"`. A `"reference"` test then finds the references.
  *
  * @throws An `Error` whose `cause.code` is `ERR_MAX_DEPTH` if it would go
  * more than {@link WalkOptions.maxDepth} levels below the node. The cause
@@ -147,8 +164,8 @@ type HasProperties<N, O> = N extends unknown
  * negative, or `Infinity`.
  */
 export const jrefVisit: {
-  <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const C extends JrefTest<ReachableTarget<S, T>>>(session: S, target: T, test: C, visitor: JrefVisitor<ReachableTarget<S, T>, JrefTestedTarget<ReachableTarget<S, T>, C>>, options?: WalkOptions): Promise<void>;
-  <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>>(session: S, target: T, visitor: JrefVisitor<ReachableTarget<S, T>>, options?: WalkOptions): Promise<void>;
+  <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const C extends JrefTest<WalkTarget<S, T, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, visitor: JrefVisitor<WalkTarget<S, T, O>, JrefTestedTarget<WalkTarget<S, T, O>, C>>, options?: O): Promise<void>;
+  <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const O extends WalkOptions = WalkOptions>(session: S, target: T, visitor: JrefVisitor<WalkTarget<S, T, O>>, options?: O): Promise<void>;
 };
 
 /**
@@ -160,7 +177,7 @@ export const jrefVisit: {
  *
  * @throws What {@link jrefVisit} throws.
  */
-export const jrefFind: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const C extends JrefTest<ReachableTarget<S, T>>>(session: S, target: T, test: C, options?: WalkOptions) => Promise<JrefTestedTarget<ReachableTarget<S, T>, C> | undefined>;
+export const jrefFind: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const C extends JrefTest<WalkTarget<S, T, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, options?: O) => Promise<JrefTestedTarget<WalkTarget<S, T, O>, C> | undefined>;
 
 /**
  * Every target under `target`, and `target` itself, that passes a
@@ -169,7 +186,7 @@ export const jrefFind: <S extends DocumentSession, T extends Target<unknown, Any
  *
  * @throws What {@link jrefVisit} throws.
  */
-export const jrefFindAll: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const C extends JrefTest<ReachableTarget<S, T>>>(session: S, target: T, test: C, options?: WalkOptions) => Promise<JrefTestedTarget<ReachableTarget<S, T>, C>[]>;
+export const jrefFindAll: <S extends DocumentSession, T extends Target<unknown, AnyJsonNode>, const C extends JrefTest<WalkTarget<S, T, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, options?: O) => Promise<JrefTestedTarget<WalkTarget<S, T, O>, C>[]>;
 
 /**
  * Options for the functions that walk everything under a node, following
@@ -193,4 +210,14 @@ export type WalkOptions = {
    * parsed document can nest. `Infinity` doesn't limit the depth.
    */
   maxDepth?: number;
+
+  /**
+   * What to do with references, like `get`'s option. `"follow"`, the
+   * default, follows each one a walk reaches, and the one it starts at.
+   * `"manual"` doesn't follow any, so the walk is of the tree as it's
+   * written, as targets in the same document, and a reference is a
+   * target like any other, which a `"reference"` test or `[type=reference]`
+   * finds.
+   */
+  reference?: "follow" | "manual";
 };

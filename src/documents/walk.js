@@ -36,43 +36,58 @@ import { jsonArrayIter, jsonObjectEntries } from "../json/jsonast-util.js";
  * be any tree's, so here a node is only what a reference needs. What comes
  * back is typed by the functions.
  *
- * @type (session: DocumentSession, from: Target, node: unknown) => Promise<WalkedTarget>
+ * Only a reference is waited for. A walk follows every member, and most
+ * aren't references, so they don't each cost a promise. With `manual`, a
+ * reference isn't followed, so it's the target of the node as it's
+ * written.
+ *
+ * @type (session: DocumentSession, from: Target, node: unknown, manual?: boolean) => WalkedTarget | Promise<WalkedTarget>
  */
-export const follow = async (session, from, node) => {
+export const follow = (session, from, node, manual = false) => {
   const reference = /** @type JrefNode */ (node);
-  if (reference.type === "reference") {
-    return /** @type WalkedTarget */ (await get(session, reference.href, { referencedFrom: from }));
+  if (!manual && reference.type === "reference") {
+    return /** @type Promise<WalkedTarget> */ (get(session, reference.href, { referencedFrom: from }));
   }
 
-  // The target a walk starts at is the one that was given
-  return /** @type WalkedTarget */ (node === from.node ? from : { document: from.document, node });
+  // The target a walk starts at is the one that was given. Any other node
+  // is in the same document, so its target has that document.
+  return /** @type WalkedTarget */ (node === from.node ? from : { document: from.document, node, mediaType: from.mediaType });
 };
+
+/**
+ * Whether a walk's or a step's options say not to follow references
+ *
+ * @type (options: { reference?: "follow" | "manual" } | undefined) => boolean
+ */
+export const isManual = (options) => options?.reference === "manual";
 
 /**
  * The members of an array or an object with their keys, like `[key=...]`
  * matches them: an item's index or a property's name. A value that's missing
  * from a parse that failed isn't a member.
  *
- * @param {Walked} node
- * @yields {[string, JsonMemberValue<Walked>]}
- * @returns {Generator<[string, JsonMemberValue<Walked>]>}
+ * @type (node: Walked) => [string, NonNullable<JsonMemberValue<Walked>>][]
  */
-export const memberEntries = function* (node) {
+export const memberEntries = (node) => {
+  /** @type [string, NonNullable<JsonMemberValue<Walked>>][] */
+  const entries = [];
   if (node.jsonType === "array") {
     let index = 0;
     for (const itemNode of jsonArrayIter(node)) {
       const key = `${index++}`;
       if (itemNode !== undefined) {
-        yield [key, itemNode];
+        entries.push([key, itemNode]);
       }
     }
   } else if (node.jsonType === "object") {
     for (const [key, valueNode] of jsonObjectEntries(node)) {
       if (valueNode !== undefined) {
-        yield [key, valueNode];
+        entries.push([key, valueNode]);
       }
     }
   }
+
+  return entries;
 };
 
 /**

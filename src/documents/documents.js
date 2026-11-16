@@ -87,7 +87,7 @@ const targetIn = async (session, entry, documentUrl, fragment, priority, follow)
     const pointer = entry.mediaType.fragmentPointer?.(entry.document, fragment) ?? "";
     const node = jsonPointerGet(pointer, /** @type JrefNode */ (entry.document.children[0]));
     if (!follow || node.type !== "reference") {
-      return { document: entry.container, node };
+      return { document: entry.container, node, mediaType: entry.mediaType };
     }
 
     ({ documentUrl, fragment } = parseUrl(session, node.href));
@@ -104,23 +104,29 @@ const targetIn = async (session, entry, documentUrl, fragment, priority, follow)
  * @type (session: API.DocumentSession, url: string, options: API.GetOptions, priority: PrioritySignal) => Promise<Entry>
  */
 const entryFor = (session, url, options, priority) => {
-  const from = options.referencedFrom && entryOf(session, /** @type DocumentNode */ (options.referencedFrom.document), options.referencedFromMediaType);
-  return from ? referenced(session, url, from, priority) : load(session, url, options.initiator, priority);
+  const { referencedFrom } = options;
+  return referencedFrom
+    ? referenced(session, url, entryOf(session, referencedFrom), priority)
+    : load(session, url, options.initiator, priority);
 };
 
 /**
- * The entry of a document a reference is followed from. A document the
- * session didn't retrieve, like one an application parsed itself, has one
- * if its media type is given, which says what the fragments of the
- * documents it contains identify. Nothing caused it, so it has no record.
+ * The entry of the document a target is in, which a reference is followed
+ * from. A document the session didn't retrieve, like one an application
+ * parsed itself, has what its target says: its media type, which says
+ * what the fragments of the documents it contains identify. Nothing
+ * caused it, so it has no record.
  *
- * @type (session: API.DocumentSession, document: DocumentNode, mediaType: MediaTypePlugin | undefined) => Entry | undefined
+ * @type (session: API.DocumentSession, target: API.Target) => Entry
  */
-const entryOf = (session, document, mediaType) => {
-  const { retrieved } = documentsOf(session);
-  return retrieved.get(document)
-    ?? (mediaType && { document, mediaType, record: undefined, embedded: embeddedIn(document), container: document });
+const entryOf = (session, target) => {
+  const document = /** @type DocumentNode */ (target.document);
+  return documentsOf(session).retrieved.get(document)
+    ?? { document, mediaType: target.mediaType, record: undefined, embedded: embeddedIn(document), container: document };
 };
+
+/** @type typeof API.documentTarget */
+export const documentTarget = (document, mediaType) => ({ document, node: document.children[0], mediaType });
 
 /**
  * The entry for the document a reference in `from`'s document leads to. A

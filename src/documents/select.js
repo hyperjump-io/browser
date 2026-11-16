@@ -1,4 +1,4 @@
-import { follow, maxDepth, maxDepthError, memberEntries } from "./walk.js";
+import { follow, isManual, maxDepth, maxDepthError, memberEntries } from "./walk.js";
 
 /**
  * @import * as API from "./select.d.ts"
@@ -40,7 +40,7 @@ export const jrefSelect = /** @type typeof API.jrefSelect */ (async (
 ) => {
   /** @type WalkedTarget | undefined */
   let found;
-  await select(session, parseSelector(selector), target, maxDepth(options), (matched) => {
+  await select(session, parseSelector(selector), target, maxDepth(options), isManual(options), (matched) => {
     found = matched;
     return true;
   });
@@ -58,7 +58,7 @@ export const jrefSelectAll = /** @type typeof API.jrefSelectAll */ (async (
   // A node reached through more than one reference is selected once
   /** @type Map<Walked, WalkedTarget> */
   const found = new Map();
-  await select(session, parseSelector(selector), target, maxDepth(options), (matched) => {
+  await select(session, parseSelector(selector), target, maxDepth(options), isManual(options), (matched) => {
     if (!found.has(matched.node)) {
       found.set(matched.node, matched);
     }
@@ -73,13 +73,13 @@ export const jrefSelectAll = /** @type typeof API.jrefSelectAll */ (async (
  * selector at once. A member is only followed if some selector could match
  * it or what's under it, which for a child combinator is known from its key.
  *
- * @type (session: DocumentSession, selectors: Complex[], target: Target, maxDepth: number, onMatch: (target: WalkedTarget) => boolean) => Promise<void>
+ * @type (session: DocumentSession, selectors: Complex[], target: Target, maxDepth: number, manual: boolean, onMatch: (target: WalkedTarget) => boolean) => Promise<void>
  */
-const select = async (session, selectors, target, maxDepth, onMatch) => {
+const select = async (session, selectors, target, maxDepth, manual, onMatch) => {
   const states = selectors.map((complex) => ({ complex, index: 0, descendant: true }));
   // A selection that starts at a reference starts at what it leads to, like
   // a walk that reaches one
-  await selectTarget({ session, maxDepth, ancestors: new Map(), onMatch }, await follow(session, target, target.node), undefined, 0, states);
+  await selectTarget({ session, maxDepth, manual, ancestors: new Map(), onMatch }, await follow(session, target, target.node, manual), undefined, 0, states);
 };
 
 /**
@@ -94,6 +94,7 @@ const select = async (session, selectors, target, maxDepth, onMatch) => {
  * @typedef {{
  *   session: DocumentSession;
  *   maxDepth: number;
+ *   manual: boolean;
  *   ancestors: Map<Walked, Set<string>>;
  *   onMatch: (target: WalkedTarget) => boolean;
  * }} Selection
@@ -163,7 +164,8 @@ const selectTarget = async (selection, target, key, depth, states) => {
         throw maxDepthError(selection.maxDepth, node.location);
       }
 
-      const member = await follow(selection.session, target, memberNode);
+      const followed = follow(selection.session, target, memberNode, selection.manual);
+      const member = followed instanceof Promise ? await followed : followed;
       if (await selectTarget(selection, member, memberKey, depth + 1, memberStates)) {
         return true;
       }

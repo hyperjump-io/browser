@@ -1,11 +1,13 @@
 import { describe, test, expect } from "vitest";
-import { get } from "./documents.js";
+import { documentTarget, get } from "./documents.js";
+import { jrefStep } from "./step.js";
+import { jrefMediaType } from "../media-types/jref-media-type.js";
 import { jrefSelect } from "./select.js";
 import { jrefFind, jrefVisit } from "./visit.js";
 import { Hyperjump } from "../hyperjump.js";
 import { fetcher } from "../layers.js";
 import { fromJref } from "../jref/jref-util.js";
-import { jsonStep, toJson } from "../json/jsonast-util.js";
+import { toJson } from "../json/jsonast-util.js";
 import { defaultMediaTypes } from "../media-types/media-types.js";
 import { Trace } from "../trace.js";
 
@@ -15,6 +17,7 @@ import { Trace } from "../trace.js";
  * @import { Json } from "../json/jsonast.d.ts"
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
  * @import { DocumentNode, MediaTypePlugin } from "../media-types/media-types.d.ts"
+ * @import { JrefMediaTypeDocument } from "../media-types/jref-media-type.d.ts"
  */
 
 describe("following references", () => {
@@ -55,8 +58,8 @@ describe("following references", () => {
 
   test("a reference in a node the session doesn't have is still followed", async () => {
     const { session } = site({ "/b": 1 });
-    const { node } = fromJref(`{ "b": { "$ref": "/b" } }`, "https://a.test/mine");
-    expect(toJson(await childNode(session, "b", { document: undefined, node: /** @type FollowedNode */ (node) }))).to.equal(`1`);
+    const mine = await parsed(`{ "b": { "$ref": "/b" } }`, "https://a.test/mine");
+    expect(toJson(await childNode(session, "b", mine))).to.equal(`1`);
   });
 
   describe("a walk that starts at a reference", () => {
@@ -167,8 +170,8 @@ const childNode = async (session, key, target) => (await child(session, key, tar
  * @type (session: DocumentSession, url: string, key: string) => Promise<Target<unknown, JrefNode>>
  */
 const memberOf = async (session, url, key) => {
-  const { document, node } = /** @type Target<unknown, FollowedNode> */ (await get(session, url));
-  return { document, node: /** @type JrefNode */ (jsonStep(key, node)) };
+  const target = /** @type Target<unknown, FollowedNode> */ (await get(session, url));
+  return /** @type Target<unknown, JrefNode> */ (await jrefStep(session, key, target, { reference: "manual" }));
 };
 
 /** @type (value: Json, url: string) => JrefNode */
@@ -218,4 +221,14 @@ const site = (pages, config = {}) => {
     session: new Hyperjump({ stack, allowRetrieval: ["https://a.test/"], ...config, mediaTypes: [...defaultMediaTypes, bundleMediaType] }),
     requests
   };
+};
+
+/**
+ * A JRef document the session didn't retrieve, as a target
+ *
+ * @type (text: string, url: string) => Promise<Target<JrefMediaTypeDocument, FollowedNode>>
+ */
+const parsed = async (text, url) => {
+  const document = await jrefMediaType.parse({ text: async () => text, url });
+  return /** @type Target<JrefMediaTypeDocument, FollowedNode> */ (documentTarget(document, jrefMediaType));
 };

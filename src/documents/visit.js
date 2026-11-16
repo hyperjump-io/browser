@@ -1,4 +1,4 @@
-import { follow, maxDepth, maxDepthError, memberEntries } from "./walk.js";
+import { follow, isManual, maxDepth, maxDepthError, memberEntries } from "./walk.js";
 
 /**
  * @import * as API from "./visit.d.ts"
@@ -31,10 +31,11 @@ export const jrefVisit = /** @type typeof API.jrefVisit */ (
       ? [convertTest(/** @type API.JrefTest<any> */ (testOrVisitor)), visitorOrOptions, options]
       : [() => true, /** @type API.JrefVisitor<any> */ (testOrVisitor), visitorOrOptions];
 
-    const walk = { session, maxDepth: maxDepth(walkOptions), ancestors: new Set(), check, visitor: visit };
+    const manual = isManual(walkOptions);
+    const walk = { session, maxDepth: maxDepth(walkOptions), manual, ancestors: new Set(), check, visitor: visit };
     // A walk that starts at a reference starts at what it leads to, like a
     // walk that reaches one
-    await visitTarget(walk, await follow(session, target, target.node), undefined, undefined, 0);
+    await visitTarget(walk, await follow(session, target, target.node, manual), undefined, undefined, 0);
   }
 );
 
@@ -87,6 +88,7 @@ export const jrefFindAll = /** @type typeof API.jrefFindAll */ (async (
  * @typedef {{
  *   session: DocumentSession;
  *   maxDepth: number;
+ *   manual: boolean;
  *   ancestors: Set<Walked>;
  *   check: Check;
  *   visitor: API.JrefVisitor<any>;
@@ -101,7 +103,9 @@ export const jrefFindAll = /** @type typeof API.jrefFindAll */ (async (
  * @type (walk: Visit, target: WalkedTarget, key: string | undefined, parent: WalkedTarget | undefined, depth: number) => Promise<API.VisitAction>
  */
 const visitTarget = async (walk, target, key, parent, depth) => {
-  const action = walk.check(target, key, parent) ? await walk.visitor(target, key, parent, depth) : CONTINUE;
+  // A visitor that isn't async isn't waited for
+  const visited = walk.check(target, key, parent) ? walk.visitor(target, key, parent, depth) : CONTINUE;
+  const action = visited instanceof Promise ? await visited : visited;
   if (action === EXIT) {
     return EXIT;
   }
@@ -120,7 +124,8 @@ const visitTarget = async (walk, target, key, parent, depth) => {
         throw maxDepthError(walk.maxDepth, node.location);
       }
 
-      const member = await follow(walk.session, target, memberNode);
+      const followed = follow(walk.session, target, memberNode, walk.manual);
+      const member = followed instanceof Promise ? await followed : followed;
       if (await visitTarget(walk, member, memberKey, target, depth + 1) === EXIT) {
         return EXIT;
       }

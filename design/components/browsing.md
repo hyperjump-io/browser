@@ -1,13 +1,21 @@
-# Browsing (`src/documents/visit.js`, `select.js`, and `walk.js`)
+# Browsing (`src/documents/step.js`, `visit.js`, `select.js`, and `walk.js`)
 
 Browsing is reading values and stepping into them while following
-references. It's done with the `jref*` functions, which are the unist
-utilities for a tree with its references followed. They take the session
-to follow references with, and a target to start from (see
-[Documents](documents.md)).
+references. It's done with the `jref*` functions. The ones that step into
+a value one level are named for the `json*` functions, and the ones that
+walk are the unist utilities for a tree with its references followed. They
+take the session to follow references with, and a target to start from
+(see [Documents](documents.md)).
 
-| unist (as written) | JRef (follows references) |
+| As written | JRef (follows references) |
 | --- | --- |
+| `jsonStep(key, node)` | `jrefStep(session, key, target)` |
+| `jsonArrayIter(node)` | `jrefArrayIter(session, target)` |
+| `jsonObjectValues(node)` | `jrefObjectValues(session, target)` |
+| `jsonObjectEntries(node)` | `jrefObjectEntries(session, target)` |
+| `jsonObjectHas(key, node)` | `jrefObjectHas(key, target)` |
+| `jsonObjectKeys(node)` | `jrefObjectKeys(target)` |
+| `jsonValue(node)` | `jrefValue(target)` |
 | `visit(tree, test, visitor)` (`unist-util-visit`) | `jrefVisit(session, target, test, visitor)` |
 | `find(tree, test)` (`unist-util-find`) | `jrefFind(session, target, test)`, `jrefFindAll(session, target, test)` |
 | `select(selector, tree)` (`unist-util-select`) | `jrefSelect(session, selector, target)` |
@@ -16,43 +24,89 @@ to follow references with, and a target to start from (see
 - They take a target and give targets. A reference is followed from the
   document it's in, which a node doesn't say, and what's found is given
   with its document so it can be browsed from in turn. A member that isn't
-  a reference is in its parent's document, so its target is its parent's
-  with its node.
+  a reference is in its parent's document, so its target has that
+  document and its media type.
   - Tests and selectors are about what kind of node a value is, so a
     `type`, an object of properties, and a selector match a target's
     node. A function gets the target, since it can ask anything.
   - Nodes, with a node's document found from its location, was rejected
     (see [Documents](documents.md)).
 
-- A step is a selector: `> [key=title]` is the title, and
-  `> [key=characters] > *` is each character. A string, number, boolean,
-  or null node has its value in `value`, like any unist literal, and a
-  selector's `[jsonType=...]` narrows a node to one that has it (see
-  Selecting).
-  - A family of functions for one step at a time, each named for a
-    `json*` function, was rejected: `jrefStep`, `jrefArrayIter`,
-    `jrefObjectValues`, `jrefObjectEntries`, `jrefObjectHas`,
-    `jrefObjectKeys`, and `jrefValue`. They'd be a second way to browse
-    beside the walks, and a selector made of `>` steps retrieves no
-    more than they would, because its `[key=...]` rules out a member
-    before it's followed. Their iterators would retrieve an item only when
-    a loop reached it, so a loop that stops early retrieves less.
-    `jrefSelectAll` retrieves every match before it returns, and a walk
-    that stops early is `jrefVisit` returning `EXIT`. `jrefValue` would
-    have to throw for an object or an array, which `value` doesn't need,
-    because those nodes don't have one.
-- They're async and follow references, because following one can
-  retrieve a document. They're for browsing, where what's needed next
-  isn't known until a node is read. Code that computes over documents uses
-  `get` to gather them and the `json*` functions to read
-  them, which are synchronous. Only that code knows what it will need, so
-  it can retrieve it all at once.
+- There are three ways to browse, for three kinds of code:
+  - A walk (`jrefVisit`, `jrefFind`, `jrefFindAll`) decides where to go
+    and tells a visitor about each value. It's for doing something at
+    every value.
+  - A selector (`jrefSelect`, `jrefSelectAll`) reaches values by a path or
+    a pattern. `> [key=title]` is the title, and `> [key=characters] > *`
+    is each character. What it returns doesn't have its key or where it
+    was in the tree.
+  - A step (`jrefStep` and the iterators) is one level, asked for by the
+    caller. It's for recursion where the caller decides what to step into
+    and builds a result from what comes back, like compiling a document
+    by what each of its properties means. A visitor can't return a result
+    built from a value's members, and a selector's results have no
+    structure to build one from, so neither can do that.
+- The step functions are named for their `json*` counterparts, so the
+  prefix says what it does with references: `json*` reads a node of the
+  tree as written, and `jref*` takes a target and follows references. The
+  session comes first and the rest are the counterpart's arguments.
+  - The iterators (`jrefArrayIter`, `jrefObjectValues`,
+    `jrefObjectEntries`) follow a member when a loop reaches it, so a
+    loop that stops early retrieves less. They leave out a member that's
+    missing from a parse that failed, as the walks do.
+  - They're `@hyperjump/pact`'s async iterators, a `map` over the
+    node's children, so `for await` and an engine's helpers work on
+    them, calls to `next()` that overlap get the members in order, and
+    only a reference is waited for. Once one is done it stays done,
+    `return()` ends it, and an error from following a reference ends it
+    too. A missing value is only looked for in a node that has one, which
+    only a parse that failed does, so the pipeline is one step for any
+    other node.
+  - `jrefObjectHas` and `jrefObjectKeys` don't take the session. Nothing
+    needs following to read a property name, but with them a browse
+    doesn't switch between targets and nodes.
+  - `jrefValue` throws for an object or an array
+    (`ERR_STRUCTURED_VALUE`), which `jsonValue` doesn't. Getting their
+    value would mean following every reference in them, which could
+    retrieve any number of documents. A string, number, boolean, or null
+    node also has its value in `value`, like any unist literal, and a
+    selector's `[jsonType=...]` narrows a node to one that has it (see
+    Selecting).
+  - Rejected: generators for the iterators. They show up when profiling
+    code that uses them, and compiling steps through every value of a
+    document.
+  - Rejected: an async iterator class of this package's, written by
+    hand. It was what pact's `map` already is, with pact's rules for
+    closing and for calls that overlap written again. On 37 real schemas
+    it was within a few percent of pact's.
+  - Rejected: stepping only through selectors, like `> [key=title]`. A
+    selector is parsed for each step, a key that isn't a plain name needs
+    quoting, and what `jrefSelectAll` returns for `> *` doesn't have its
+    keys.
+  - Rejected: a public `targetFor(target, node)`, for the target of a
+    node an application has from a `json*` function. An application would
+    be making targets. The step functions return targets, so nothing is
+    made by hand.
+- `reference: "manual"` doesn't follow references, like `get`'s option. A
+  step function gives the member as it's written, in the same document,
+  which can be a reference. A walk visits or selects the tree as it's
+  written, as targets, and doesn't follow the target it starts at, so a
+  `"reference"` test or `[type=reference]` finds the references in a
+  document, each with the document it's followed from. What's returned is
+  typed by the option: a node that could be a reference if `reference`
+  is, or could be, `"manual"`.
+  - Rejected: `unist-util-visit` and the `json*` functions for this, with
+    a way to make a target from a node they return. They give nodes, and
+    following a reference takes a target.
+- The ones that give targets are async and follow references, because
+  following one can retrieve a document. What's needed next isn't known
+  until a value is read, so a reference is followed when it's reached.
+  Only a reference is waited for inside a walk or an iterator, so a
+  member that isn't one doesn't cost a promise of its own.
   - Synchronous browsing functions that return references as they are,
     with an async `follow` for a reference, were rejected. Browsing would
     take as many `await`s with a `follow` after every step, and one that's
-    left out returns a reference instead of its value. Code that computes
-    over documents doesn't use the browsing functions, so it wouldn't gain
-    anything, and `follow` would be `get` again.
+    left out returns a reference instead of its value.
 - They follow references with `get`, the same way an application's own
   function would, giving it the target the reference is in as
   `referencedFrom` (see [Documents](documents.md)).
@@ -60,15 +114,16 @@ to follow references with, and a target to start from (see
   through references, so `get` with a fragment does the one correct thing,
   which is to follow the reference the pointer ends at.
 - A walk that starts at a reference starts at what it leads to, following
-  it the way it follows every member. So a target with a node from a
-  `json*` function, which can be a reference, is passed as it is, and the
-  nodes of the targets `get` and the `jref*` functions return are
-  followed (`FollowedNode`). The starting target is followed after the
+  it the way it follows every member. So a target whose node is a
+  reference, like one from `jrefStep` with `reference: "manual"`, is
+  passed as it is, and the nodes of the targets `get` and the `jref*`
+  functions return are followed (`FollowedNode`) unless they're told not
+  to. The starting target is followed after the
   selector and the options are checked, so a call that's a mistake doesn't
   retrieve anything. A target that isn't followed is returned as it is,
   not as a copy.
   - Taking only a node that isn't a reference, checked by types, was
-    rejected. Every caller with a node from a `json*` function would
+    rejected. Every caller with a target that could be a reference would
     narrow it with `node.type !== "reference"` first, and code that isn't
     type-checked would get a walk of the reference as the object it's
     written as, which looks like an answer and isn't one.
@@ -78,8 +133,9 @@ to follow references with, and a target to start from (see
   take a node of one, and not only a JRef one. All they need of a node is
   what a reference is: a `reference` node with an `href`. So what's built
   on browser browses its own trees with them, like a tree with more kinds
-  of node. A tree the session didn't retrieve is browsed from a target
-  with its node, and its references are followed without a document.
+  of node. A tree the session didn't retrieve is browsed from its
+  document's target (`documentTarget`), and its references find what the
+  document contains.
 - What they return is typed by where a node can come from. A value or an
   item that isn't a reference is a node of the tree it's in. A reference
   can lead to a document in any of the session's media types, so it's a
@@ -99,10 +155,8 @@ to follow references with, and a target to start from (see
 - `jrefVisit` is `unist-util-visit` for the tree with its references
   followed. Its counterpart is `unist-util-visit` and not a `json*`
   function because the tree is a unist tree and the ecosystem's utilities
-  already read it as written. `visit(document, "reference", ...)` gathers a
-  document's references without following them, which is what code that
-  computes over documents needs before it retrieves. `CONTINUE`, `SKIP`,
-  and `EXIT` are the same values as `unist-util-visit`'s.
+  already read it as written. `CONTINUE`, `SKIP`, and `EXIT` are the same
+  values as `unist-util-visit`'s.
 - It visits values, as targets, with the key they're at and the target of
   the value that has them, the same keys `[key=...]` matches. It doesn't visit `json-property` or
   `json-property-name` nodes. A reference's value isn't in the document
@@ -291,6 +345,6 @@ to follow references with, and a target to start from (see
   - Parsing the whole selector in the types, to narrow by `:root` and by
     other properties, was rejected. It would be slow to check, and the
     other properties don't say what kind of value a node is.
-- To find references without following them, use `unist-util-select` or
-  `unist-util-visit` on the tree as written. The nodes a walk reaches are
-  followed, so `[type=reference]` never matches.
+- To find references without following them, select with
+  `reference: "manual"`. Otherwise the nodes a walk reaches are followed,
+  so `[type=reference]` never matches.

@@ -1,8 +1,8 @@
 # Browse documents
 
 Browsing is reading a value and the values under it. `get` gives you a target
-for the value a URL identifies, and from there the `jref` functions visit,
-find, and select the values under it. They take the session so they can follow
+for the value a URL identifies, and from there the `jref` functions step into,
+visit, find, and select the values under it. They take the session so they can follow
 the references they reach.
 
 ```typescript
@@ -16,10 +16,10 @@ const luke = await get(session, "https://swapi.hyperjump.io/api/people/1");
 
 ## Targets
 
-A target is what a URL identifies: a value's node and the document that the
-node is in. A reference only means something in the document it's in, so the
-`jref` functions take a target, which says where to follow references from,
-and they give you targets back.
+A target is what a URL identifies: a value's node, the document that the node
+is in, and the document's media type. A reference only means something in the
+document it's in, so the `jref` functions take a target, which says where to
+follow references from, and they give you targets back.
 
 ```typescript
 luke.node; // The node for Luke
@@ -65,15 +65,12 @@ None of the `jref` functions give you a reference. Each one follows any
 reference it reaches and gives you the referenced value instead. If that value
 is another reference, the function follows that one too.
 
-The unified ecosystem's utilities and the `json` functions, such as `jsonStep`,
-read the AST as it's written. For more information, see
-[The tree as it's written](#the-tree-as-its-written) and
-[Parse JSON and JRef](parsing.md). A node from a `json` function can be a
-reference that it didn't follow. It's in the same document as the node you got
-it from, so its target is that node's target with the new node, like
-`{ ...luke, node }`. If you pass a target whose node is a reference to a `jref`
-function, it starts from the value the reference leads to. The node of a target
-from `get` or a `jref` function is never a reference.
+To read the tree as it's written, pass `reference: "manual"`. The `jref`
+function then gives you a reference as a target without following it. For more
+information, see [The tree as it's written](#the-tree-as-its-written). If you
+pass a target whose node is a reference to a `jref` function, it starts from
+the value the reference leads to. Without `reference: "manual"`, the node of a
+target from `get` or a `jref` function is never a reference.
 
 A reference can lead to a document in any of the session's media types. So in
 TypeScript, the node of a target from `get` or a `jref` function is a node of
@@ -82,6 +79,50 @@ If you add a
 media type with nodes of its own, check a node's `type` to tell which media
 type it's from.
 For more information, see [Media types](media-types.md).
+
+## Step one level at a time
+
+`jrefStep` gives you the member of a target at a key, which is a property name
+or an array index. Like a selector, it follows a reference to get there:
+
+```typescript
+import { jrefStep, jrefValue } from "@hyperjump/browser";
+
+const homeworld = await jrefStep(session, "homeworld", luke);
+const name = await jrefStep(session, "name", homeworld);
+jrefValue(name); // "Tatooine"
+```
+
+`jrefValue` gives you the value of a string, number, boolean, or null as plain
+JavaScript. It throws an error whose `cause.code` is `"ERR_STRUCTURED_VALUE"`
+for an object or an array, because their values could be in other documents.
+Step into those instead.
+
+`jrefArrayIter`, `jrefObjectValues`, and `jrefObjectEntries` are async
+iterators over the members of an array or an object. The session follows each
+member when the loop reaches it, so a loop that stops early retrieves less:
+
+```typescript
+import { jrefArrayIter, jrefObjectEntries } from "@hyperjump/browser";
+
+const films = await jrefStep(session, "films", luke);
+for await (const film of jrefArrayIter(session, films)) {
+  console.log(jrefValue(await jrefStep(session, "title", film)));
+}
+
+for await (const [key, value] of jrefObjectEntries(session, luke)) {
+  console.log(key, value.node.jsonType);
+}
+```
+
+`jrefObjectKeys` gives you an object's property names and `jrefObjectHas` says
+whether it has one. Neither takes the session, because reading a name doesn't
+follow anything.
+
+Use these functions when your code decides what to step into and builds a
+result from what comes back, like a function that turns a document into
+something else one property at a time. To reach a value by a path, a selector
+is shorter. To do something at every value, use `jrefVisit`.
 
 ## Visit every value
 
@@ -236,21 +277,33 @@ A selector made of `>` steps only goes as deep as it's written, like
 
 ## The tree as it's written
 
-Documents are [unist](https://github.com/syntax-tree/unist) trees, so the
-unified ecosystem's utilities work on them too. They read a tree as it's
-written, without following references. For example, `visit` from
-`unist-util-visit` finds every reference in a document:
+Every `jref` function takes `reference: "manual"` as its last argument, like
+`get` does. With it, the function doesn't follow references, so it reads the
+tree as it's written and a reference is a target like any other. This finds
+every reference in a document, each with the document it's in:
 
 ```typescript
-import { visit } from "unist-util-visit";
-import { get } from "@hyperjump/browser";
+import { get, jrefFindAll } from "@hyperjump/browser";
 
 const url = "https://swapi.hyperjump.io/api/films/1";
-const { document } = await get(session, url, { reference: "manual" });
-visit(document, "reference", (node) => {
-  console.log(node.href);
+const film = await get(session, url, { reference: "manual" });
+const references = await jrefFindAll(session, film, "reference", {
+  reference: "manual"
 });
+
+for (const reference of references) {
+  console.log(reference.node.href);
+}
 ```
+
+`jrefStep` and the iterators take it too, so
+`jrefStep(session, "homeworld", luke, { reference: "manual" })` is the
+reference to Luke's homeworld and not the homeworld.
+
+Documents are also [unist](https://github.com/syntax-tree/unist) trees, so the
+unified ecosystem's utilities and the `json` functions work on a target's
+`document` and `node`. They read a tree as it's written and give you nodes. For
+more information, see [Parse JSON and JRef](parsing.md).
 
 ## Fragments
 
@@ -278,36 +331,44 @@ follows a target whose node is a reference, and gives you any other target
 unchanged:
 
 ```typescript
-import { jrefSelect, jsonStep } from "@hyperjump/browser";
+import { jrefSelect, jrefStep } from "@hyperjump/browser";
 
-const node = jsonStep("homeworld", luke.node);
-const homeworld = await jrefSelect(session, ":scope", { ...luke, node });
-```
-
-Code that doesn't walk can follow a reference node with `get`. Pass the target
-that the reference is in as `referencedFrom` so the session knows which
-document the reference is in. That document causes the request, and `get`
-finds a document that it contains without retrieving it:
-
-```typescript
-import { get, jsonStep } from "@hyperjump/browser";
-
-const node = jsonStep("homeworld", luke.node);
-const homeworld = node.type === "reference"
-  ? await get(session, node.href, { referencedFrom: luke })
-  : { ...luke, node };
-```
-
-A document that you parsed yourself isn't one the session retrieved, so the
-session doesn't know its media type. If it contains other documents, give
-`get` its media type plugin as `referencedFromMediaType`, and a reference in
-it finds what it contains:
-
-```typescript
-await get(session, node.href, {
-  referencedFrom: { document: mine, node },
-  referencedFromMediaType: myMediaType
+const written = await jrefStep(session, "homeworld", luke, {
+  reference: "manual"
 });
+const homeworld = await jrefSelect(session, ":scope", written);
+```
+
+Code that doesn't walk can follow a reference with `get`. Pass the reference's
+target as `referencedFrom` so the session knows which document the reference
+is in. That document causes the request, and `get` finds a document that it
+contains without retrieving it:
+
+```typescript
+import { get, jrefStep } from "@hyperjump/browser";
+
+const written = await jrefStep(session, "homeworld", luke, {
+  reference: "manual"
+});
+const homeworld = written.node.type === "reference"
+  ? await get(session, written.node.href, { referencedFrom: written })
+  : written;
+```
+
+A document that you parsed yourself isn't one the session retrieved, so it
+doesn't have a target yet. `documentTarget` makes one for its root from the
+document and its media type plugin. You browse from it like any other target,
+and a reference in it finds a document that it contains:
+
+```typescript
+import { documentTarget, jrefMediaType, jrefSelect } from "@hyperjump/browser";
+
+const document = await jrefMediaType.parse({
+  text: async () => `{ "luke": { "$ref": "/api/people/1" } }`,
+  url: "https://swapi.hyperjump.io/mine"
+});
+const mine = documentTarget(document, jrefMediaType);
+const luke = await jrefSelect(session, "> [key=luke]", mine);
 ```
 
 For the errors that these functions throw, see

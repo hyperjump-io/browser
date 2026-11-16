@@ -23,6 +23,7 @@ export * from "./trace.js";
 export * from "./har.js";
 export * from "./file-urls.js";
 export * from "./documents/documents.js";
+export * from "./documents/step.js";
 export * from "./documents/visit.js";
 export * from "./documents/select.js";
 export * from "./media-types/media-types.js";

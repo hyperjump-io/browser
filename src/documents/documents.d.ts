@@ -3,7 +3,7 @@ import type { Hyperjump } from "../hyperjump.d.ts";
 import type { JrefNode } from "../jref/jref-ast.d.ts";
 import type { JrefMediaTypeDocument } from "../media-types/jref-media-type.d.ts";
 import type { JsonMediaTypeDocument } from "../media-types/json-media-type.d.ts";
-import type { MediaTypePlugin } from "../media-types/media-types.d.ts";
+import type { DocumentNode, MediaTypePlugin } from "../media-types/media-types.d.ts";
 import type { Priority, PrioritySignal } from "../priority.d.ts";
 
 // What a session's configuration has for documents. The session doesn't
@@ -74,20 +74,11 @@ export type GetOptions = {
   /**
    * Where the reference that's being followed is: a target whose document
    * it's in. A document that one contains is found before anything is
-   * retrieved, and it's what caused the request, instead of `initiator`. A
-   * target whose document the session didn't retrieve is ignored, unless
-   * its media type is given as `referencedFromMediaType`.
+   * retrieved, and it's what caused the request, instead of `initiator`.
+   * Nothing caused the request if the session didn't retrieve the target's
+   * document (see {@link documentTarget}).
    */
   referencedFrom?: Target;
-
-  /**
-   * The media type of `referencedFrom`'s document, if the session didn't
-   * retrieve it, like a document an application parsed itself. It says
-   * what the fragments of the documents it contains identify, so a
-   * document it contains is found. The session knows the media type of a
-   * document it retrieved, so it's ignored for one.
-   */
-  referencedFromMediaType?: MediaTypePlugin;
 
   /**
    * What to do if the node the URL identifies is a reference, like
@@ -105,16 +96,35 @@ export type GetOptions = {
 export type FollowedNode<T = JrefNode> = Exclude<T, { type: "reference" }>;
 
 /**
- * What a URL identifies: a node, and the document it's in. The document is
- * the one that was retrieved, so a node of a document that one contains
- * has its container. A reference only means something in its document,
- * which is what a target has that a node doesn't: a reference in it is
- * followed from there, as `referencedFrom`.
+ * What a URL identifies: a node, the document it's in, and the document's
+ * media type. The document is the one that was retrieved, so a node of a
+ * document that one contains has its container. A reference only means
+ * something in its document, which is what a target has that a node
+ * doesn't: a reference in it is followed from there, as `referencedFrom`.
+ *
+ * `get` and the `jref*` functions return targets, and
+ * {@link documentTarget} makes one for a document the session didn't
+ * retrieve, so one isn't made by hand.
  */
 export type Target<D = unknown, N = unknown> = {
   document: D;
   node: N;
+
+  /**
+   * The media type of the document, which says what its fragments
+   * identify, and those of the documents it contains
+   */
+  mediaType: MediaTypePlugin;
 };
+
+/**
+ * The target of a document's root, for a document the session didn't
+ * retrieve, like one an application parsed itself. `mediaType` is the
+ * plugin for the document's media type. A reference followed from it finds
+ * what the document contains, and nothing caused the request. The session
+ * doesn't keep the document, and it doesn't answer for any URL.
+ */
+export const documentTarget: <D extends DocumentNode>(document: D, mediaType: MediaTypePlugin) => Target<D, D["children"][number]>;
 
 /**
  * A target of a session's documents (see {@link SessionDocument}). If
