@@ -220,10 +220,10 @@ export type JsonTypeValue = {
 
 export const jsonObjectHas: (key: string, node: AnyJsonNode) => boolean;
 
-export const jsonArrayIter: <N extends AnyJsonNode>(node: N) => Generator<JsonMemberValue<N>, void, unknown>;
+export const jsonArrayIter: <N extends AnyJsonNode>(node: N) => IteratorObject<JsonMemberValue<N>, undefined, unknown>;
 
-export const jsonObjectKeys: (node: AnyJsonNode) => Generator<string, void, unknown>;
+export const jsonObjectKeys: (node: AnyJsonNode) => IteratorObject<string, undefined, unknown>;
 
-export const jsonObjectValues: <N extends AnyJsonNode>(node: N) => Generator<JsonMemberValue<N>, void, unknown>;
+export const jsonObjectValues: <N extends AnyJsonNode>(node: N) => IteratorObject<JsonMemberValue<N>, undefined, unknown>;
 
-export const jsonObjectEntries: <N extends AnyJsonNode>(node: N) => Generator<[string, JsonMemberValue<N>], void, unknown>;
+export const jsonObjectEntries: <N extends AnyJsonNode>(node: N) => IteratorObject<[string, JsonMemberValue<N>], undefined, unknown>;

@@ -1,3 +1,4 @@
+import { map } from "@hyperjump/pact";
 import { parseJson } from "./json-parser.js";
 
 export { jsonSyntaxErrorMessage } from "./json-parser.js";
@@ -53,7 +54,8 @@ export const jsonStep = (key, node) => {
     case "object": {
       let found = false;
       let result;
-      for (const [keyNode, valueNode] of propertyEntries(node.children)) {
+      for (const propertyNode of node.children) {
+        const [keyNode, valueNode] = propertyNode.children;
         if (keyNode.value === key) {
           // RFC 6901: If a referenced member name is not unique in an object,
           // the member that is referenced is undefined, and evaluation fails.
@@ -61,7 +63,7 @@ export const jsonStep = (key, node) => {
             throw pointerError(`Property '${key}' is not unique`, "ERR_POINTER_DUPLICATE_PROPERTY", appendToLocation(key, node.location));
           }
           found = true;
-          result = valueNode;
+          result = memberValue(valueNode);
         }
       }
       if (!found) {
@@ -141,8 +143,8 @@ export const jsonValue = /** @type typeof API.jsonValue */ ((/** @type JsonNode<
 /** @type typeof API.jsonObjectHas */
 export const jsonObjectHas = (key, node) => {
   if (node.jsonType === "object") {
-    for (const [keyNode] of propertyEntries(node.children)) {
-      if (keyNode.value === key) {
+    for (const propertyNode of node.children) {
+      if (propertyNode.children[0].value === key) {
         return true;
       }
     }
@@ -151,41 +153,36 @@ export const jsonObjectHas = (key, node) => {
   return false;
 };
 
+// The iterators are pact's and not generators, which are slower
+
+/** @type readonly never[] */
+const none = [];
+
+/** @type (itemNode: any) => any */
+const item = (itemNode) => memberValue(itemNode);
+/** @type (propertyNode: any) => string */
+const key = (propertyNode) => propertyNode.children[0].value;
+/** @type (propertyNode: any) => any */
+const value = (propertyNode) => memberValue(propertyNode.children[1]);
+/** @type (propertyNode: any) => [string, any] */
+const entry = (propertyNode) => [propertyNode.children[0].value, memberValue(propertyNode.children[1])];
+
+const items = map(item);
+const keys = map(key);
+const values = map(value);
+const entries = map(entry);
+
 /** @type typeof API.jsonArrayIter */
-export const jsonArrayIter = function* (node) {
-  if (node.jsonType === "array") {
-    for (const itemNode of node.children) {
-      yield memberValue(itemNode);
-    }
-  }
-};
+export const jsonArrayIter = (node) => items(node.jsonType === "array" ? node.children : none);
 
 /** @type typeof API.jsonObjectKeys */
-export const jsonObjectKeys = function* (node) {
-  if (node.jsonType === "object") {
-    for (const [keyNode] of propertyEntries(node.children)) {
-      yield keyNode.value;
-    }
-  }
-};
+export const jsonObjectKeys = (node) => keys(node.jsonType === "object" ? node.children : none);
 
 /** @type typeof API.jsonObjectValues */
-export const jsonObjectValues = function* (node) {
-  if (node.jsonType === "object") {
-    for (const [, valueNode] of propertyEntries(node.children)) {
-      yield valueNode;
-    }
-  }
-};
+export const jsonObjectValues = (node) => values(node.jsonType === "object" ? node.children : none);
 
 /** @type typeof API.jsonObjectEntries */
-export const jsonObjectEntries = function* (node) {
-  if (node.jsonType === "object") {
-    for (const [keyNode, valueNode] of propertyEntries(node.children)) {
-      yield [keyNode.value, valueNode];
-    }
-  }
-};
+export const jsonObjectEntries = (node) => entries(node.jsonType === "object" ? node.children : none);
 
 /**
  * The value to write for a node, or `undefined` for a missing value, which
@@ -257,12 +254,14 @@ const stringifyObject = (node, space, depth) => {
   return "{" + padding + space + properties.join(`,${padding}${space}`) + padding + "}";
 };
 
-/** @type (pointer: string) => Generator<string> */
-const pointerSegments = function* (pointer) {
+/** @type (pointer: string) => string[] */
+const pointerSegments = (pointer) => {
   if (pointer.length > 0 && !pointer.startsWith("/")) {
     throw Error("Invalid JSON Pointer");
   }
 
+  /** @type string[] */
+  const segments = [];
   let segmentStart = 1;
   let segmentEnd = 0;
 
@@ -272,8 +271,10 @@ const pointerSegments = function* (pointer) {
     const segment = pointer.slice(segmentStart, segmentEnd);
     segmentStart = segmentEnd + 1;
 
-    yield unescapePointerSegment(segment);
+    segments.push(unescapePointerSegment(segment));
   }
+
+  return segments;
 };
 
 /** @type (segment: string) => string */
@@ -294,14 +295,6 @@ const isErrorNode = (node) => node.type === "json-missing" || node.type === "jso
  */
 const memberValue = (node) => {
   return node.type === "json-missing" ? undefined : node;
-};
-
-/** @type (propertyNodes: JsonPropertyNode<any, any>[]) => Generator<[JsonPropertyNameNode, any]> */
-const propertyEntries = function* (propertyNodes) {
-  for (const propertyNode of propertyNodes) {
-    const [keyNode, valueNode] = propertyNode.children;
-    yield [keyNode, memberValue(valueNode)];
-  }
 };
 
 /**

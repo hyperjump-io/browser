@@ -23,6 +23,10 @@
   unified plugins import its `Plugin` type, and no code imports it, so it's
   never loaded unless an application uses it. `@types/unist` is one for
   the same reason: the AST's declarations import `Position` and `Data`.
+- `@hyperjump/pact` is a dependency for the iterators the `json*` and
+  `jref*` functions return. Its iterators extend the global `Iterator`,
+  so it needs an engine that has one, and its `engines` says Node.js 24
+  or later, so this package's does too.
 
 Rejected:
 

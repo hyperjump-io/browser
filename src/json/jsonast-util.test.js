@@ -243,6 +243,25 @@ describe("jsonast-util", async () => {
     expect((generator.next()).done).to.equal(true);
   });
 
+  test("an iterator isn't a generator, is iterable, and stays done", () => {
+    const subject = parse(`[1, 2]`);
+
+    const iterator = jsonArrayIter(subject);
+    expect(Object.prototype.toString.call(iterator)).to.not.equal("[object Generator]");
+    expect(iterator[Symbol.iterator]()).to.equal(iterator);
+    expect([...jsonArrayIter(subject)].map((node) => node && toJson(node))).to.eql([`1`, `2`]);
+
+    iterator.next();
+    expect(iterator.return?.()).to.eql({ value: undefined, done: true });
+    expect(iterator.next(), "it's done once it's closed").to.eql({ value: undefined, done: true });
+
+    const exhausted = jsonArrayIter(subject);
+    exhausted.next();
+    exhausted.next();
+    expect(exhausted.next().done).to.equal(true);
+    expect(exhausted.next().done, "and it stays done").to.equal(true);
+  });
+
   test("keys", () => {
     const subject = parse(`{
       "a": 1,

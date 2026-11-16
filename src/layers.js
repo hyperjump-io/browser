@@ -17,13 +17,15 @@ export const layer = (fn) => (inner) => ({
 });
 
 /** @type typeof API.layersOf */
-export const layersOf = function* (stack) {
-  /** @type API.Fetcher | undefined */
-  let current = stack;
-  while (current) {
-    yield current;
-    current = /** @type Partial<API.Layer> */ (current).inner;
+export const layersOf = (stack) => {
+  /** @type API.Fetcher[] */
+  const layers = [];
+  for (let current = /** @type API.Fetcher | undefined */ (stack); current; current = /** @type Partial<API.Layer> */ (current).inner) {
+    layers.push(current);
   }
+
+  // An array's iterator and not a generator, which is slower
+  return layers.values();
 };
 
 /** @type typeof API.findLayer */

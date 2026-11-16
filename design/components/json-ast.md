@@ -109,6 +109,15 @@ status with it:
   (`fromJs`), so a value declared `as const` can be passed. What they
   return is `Json`, because it's a new value the caller owns.
 - Object and array utilities present missing values as `undefined`.
+- `jsonArrayIter`, `jsonObjectKeys`, `jsonObjectValues`, and
+  `jsonObjectEntries` return `@hyperjump/pact`'s iterators, a `map` over
+  the node's children, so they're iterable and have the helpers an engine
+  gives iterators. Once one is done, it stays done.
+  - Generators were rejected. They show up when profiling code that
+    iterates with them, and reading a document's members is most of what
+    browsing does.
+  - An iterator class of this package's was rejected. It was what pact's
+    `map` already is.
   `jsonValue` supports arrays and objects: values that couldn't be parsed
   are left out of objects and are `null` in arrays, as `toJson` does.
 - `jsonValue` makes an object's properties the way `JSON.parse` does, as

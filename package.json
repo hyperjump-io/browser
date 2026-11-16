@@ -18,6 +18,9 @@
     "url": "https://github.com/sponsors/hyperjump-io"
   },
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "sideEffects": false,
   "files": [
     "src/",
@@ -86,6 +89,7 @@
   },
   "dependencies": {
     "@hyperjump/json-pointer": "^2.0.1",
+    "@hyperjump/pact": "^2.0.1",
     "@types/unist": "^3.0.3",
     "unified": "^11.0.5"
   }

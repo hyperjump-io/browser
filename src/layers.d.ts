@@ -53,7 +53,7 @@ export const fetcher: (fn: (request: Request, ctx: FetchContext) => Promise<Resp
 export const layer: (fn: (request: Request, ctx: FetchContext, inner: Fetcher) => Promise<Response>) => Decorator<Layer>;
 
 /** The fetchers in a stack, from the top down, through each layer's `inner` */
-export const layersOf: (stack: Fetcher) => Generator<Fetcher, void, unknown>;
+export const layersOf: (stack: Fetcher) => IteratorObject<Fetcher, undefined, unknown>;
 
 /** The first layer of a class in a stack, like `findLayer(stack, HttpCache)` */
 export const findLayer: <T extends Fetcher>(stack: Fetcher, type: abstract new (...args: any[]) => T) => T | undefined;
