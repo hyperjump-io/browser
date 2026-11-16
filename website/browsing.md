@@ -355,6 +355,32 @@ const homeworld = written.node.type === "reference"
   : written;
 ```
 
+## Carry on past a reference that fails
+
+A walk that can't follow a reference throws what `get` throws, such as a network
+error or an `ERR_HTTP_STATUS` error. To report every broken reference instead of
+stopping at the first, find the references as they're written, and follow each
+one with `get`:
+
+```typescript
+import { get, jrefFindAll } from "@hyperjump/browser";
+
+const references = await jrefFindAll(session, film, "reference", {
+  reference: "manual"
+});
+
+for (const reference of references) {
+  try {
+    await get(session, reference.node.href, { referencedFrom: reference });
+  } catch (error) {
+    console.log(`${reference.node.location}: ${(error as Error).message}`);
+  }
+}
+```
+
+Each reference has the document that it's in, so the session knows which
+document causes the request.
+
 ## Browse a tree you parsed
 
 A document that you parsed yourself isn't one the session retrieved, so `get`

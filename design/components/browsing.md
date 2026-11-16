@@ -131,6 +131,19 @@ take the session to follow references with, and a target to start from
     with an async `follow` for a reference, were rejected. Browsing would
     take as many `await`s with a `follow` after every step, and one that's
     left out returns a reference instead of its value.
+- A reference that can't be followed is an error from the function that
+  followed it: what `get` throws (see [Documents](documents.md)). It ends
+  a walk, as it ends an iterator. Code that carries on past one, like
+  lint, browses as written and follows each reference with `get`, so it
+  has the reference, its document, and why it couldn't be followed, and
+  decides for each what to do.
+  - Rejected: a walk that gives the visitor the error and goes on, like an
+    `onError` option or an error in place of a target. A caller that
+    carries on needs each reference as it's written and why it failed,
+    which is what browsing as written and `get` give it, and it doesn't
+    always want what a reference leads to walked. `jrefFind`,
+    `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` would find less
+    without saying so, which is why `maxDepth` throws too.
 - They follow references with `get`, the same way an application's own
   function would, giving it the target the reference is in as
   `referencedFrom` (see [Documents](documents.md)).
