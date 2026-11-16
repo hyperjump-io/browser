@@ -118,6 +118,7 @@ Besides the options of `fetch`, `session.fetch` takes these:
 | `cache` | A cache mode, as for `fetch`: `"default"`, `"no-store"`, `"reload"`, `"no-cache"`, `"force-cache"`, or `"only-if-cached"`. For more information, see [HTTP caching](http-caching.md). |
 | `priority` | `"high"`, `"auto"`, or `"low"`, like `fetchpriority` in a browser. For more information, see [Priorities](priorities.md). |
 | `initiator` | The response of the request that caused this one, such as the document that referred to it. Only a `file:` document can refer to a `file:` URL. |
+| `referrer` | The URL of the document the request comes from, for a document the session didn't fetch. It wins over the `initiator`'s URL. The session keeps it, and doesn't pass it to `fetch`. |
 
 ## Close a session
 

@@ -70,7 +70,7 @@ export type HeadersFunction = (url: URL) => HeadersInit | undefined | Promise<He
 export type CacheMode = "default" | "no-store" | "reload" | "no-cache" | "force-cache" | "only-if-cached";
 
 /** `RequestInit`, with what the session gives the stack instead of the runtime */
-export type HyperjumpFetchInit = Omit<RequestInit, "cache" | "priority"> & {
+export type HyperjumpFetchInit = Omit<RequestInit, "cache" | "priority" | "referrer"> & {
   /** How the HTTP cache handles the request (see {@link CacheMode}) */
   cache?: CacheMode;
 
@@ -87,6 +87,16 @@ export type HyperjumpFetchInit = Omit<RequestInit, "cache" | "priority"> & {
    * without one is the application's own.
    */
   initiator?: FetchRecord | Response;
+
+  /**
+   * The URL of the document the request came from, for a document that has
+   * no record, like one the session didn't retrieve. Without it, it's the
+   * initiator's response's URL. Only a `file:` document can refer to a
+   * `file:` URL. A browser replaces a `referrer` from another origin, so
+   * the session keeps it, as `record.referrer`, and doesn't give it to the
+   * runtime.
+   */
+  referrer?: string | URL;
 };
 
 /**

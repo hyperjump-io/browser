@@ -20,6 +20,10 @@ what each layer did with it, and how it ended. A response has it as
   tree. It's what caused a request, not only for watching: only a `file:`
   initiator can refer to a `file:` URL (see
   [`file:` from `file:`](file-references.md)).
+- `referrer` is the URL of the document the request came from: the
+  `referrer` the caller gave, for a document without a record, or the
+  initiator's response's URL. It's worked out when the request starts, and
+  it's what the `file:` rule judges the request by.
 - `session.observe(observer)` sees each request of the session start, be
   marked, get its response, and end. An observer that throws doesn't stop
   the request or the other observers. Its error is thrown later, where

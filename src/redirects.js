@@ -1,6 +1,6 @@
 import { networkError, setResponseMeta, withUrl } from "./response-meta.js";
 import { refusedResponse } from "./allowed-urls.js";
-import { canRefer, referrerOf, refusedReferenceResponse } from "./file-references.js";
+import { canRefer, refusedReferenceResponse } from "./file-references.js";
 import { relativeFileUrl } from "./file-urls.js";
 
 /**
@@ -111,7 +111,7 @@ const checked = async (pending, url, ctx, policy) => {
  * @type (url: string, to: string, ctx: FetchContext, policy: FollowPolicy) => Promise<void>
  */
 const check = async (url, to, ctx, policy) => {
-  const referrer = referrerOf(ctx.record.initiator);
+  const { referrer } = ctx.record;
   if (!canRefer(to, referrer)) {
     throw refusedReferenceResponse(url, to, /** @type string */ (referrer));
   }

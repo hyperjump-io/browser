@@ -11,6 +11,17 @@ URL.
   without a response yet is the URL it asked for.
 - A request without an initiator is the application's own, like a URL it's
   given on the command line, so it can fetch a `file:` URL.
+- A document without a record, like one the session didn't retrieve, is
+  given by its URL, as the request's `referrer`. A tree from a unified
+  pipeline has the URL the application gave it, its file's path or the
+  `url` option, so it's judged by where the application says it is, like
+  a document that was retrieved. `referrer` wins over the initiator.
+- The session works out the referrer once, when the request starts, and
+  keeps it on the record (`record.referrer`), where every check of the
+  request reads it.
+- The session keeps `referrer` from the runtime, the way it keeps `cache`
+  and `priority`. A browser replaces a `referrer` from another origin with
+  `about:client`, and a `Request` that's copied with options loses it.
 - The session checks it with `allowRetrieval`, everywhere `allowRetrieval`
   is checked (see [What a session can fetch](allow-retrieval.md)): the URL
   that's asked for, before its headers are found, where each redirect
@@ -62,6 +73,14 @@ Rejected:
   either.
 - Refusing a `file:` URL without an initiator. The application's own
   requests have none, and they're how it reads its files.
+- Checking a document without a record in `get`, before it fetches. It
+  sees the URL that's asked for, but not where a redirect leads or a
+  layer that answers a URL like `urn:` with a file.
+- A record made up for a document the session didn't retrieve. A trace
+  would show a request that wasn't made.
+- A document without a record being the application's, since the
+  application gave it. What's in the document could have come from
+  anywhere, like text from stdin.
 
 ## Known limitations
 
@@ -70,3 +89,7 @@ Rejected:
   request the application's, which can fetch a `file:` URL.
 - An initiator that's a `Response` from somewhere other than a session has
   no record, so it's the same as no initiator.
+- A document the session didn't retrieve is only as good as its URL. A
+  parser that takes a document's URL from what's in it, like an
+  identifier, makes a document that's from the web a file if it says it
+  is one.

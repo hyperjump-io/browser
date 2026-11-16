@@ -2,7 +2,7 @@ import { describe, test, expect } from "vitest";
 import { canRefer } from "./file-references.js";
 import { relativeFileUrl } from "./file-urls.js";
 import { fetcher } from "./layers.js";
-import { withUrl } from "./response-meta.js";
+import { responseMeta, withUrl } from "./response-meta.js";
 import { testHyperjump } from "./test-helpers/hyperjump.js";
 
 /**
@@ -46,6 +46,43 @@ describe("file: references", () => {
         : new Response(`from ${request.url}`)), { allow: ["file:///project/"] });
       const page = await session.fetch("https://a.test/start");
       await expect(session.fetch("file:///project/a.json", { initiator: page })).rejects.toThrow(/isn't allowed from 'https:\/\/b.test\/page.json'/);
+    });
+
+    test("a referrer is the document a request comes from, for a document without a record", async () => {
+      const { session, fetched } = setup();
+      const fetching = session.fetch("file:///project/a.json", { referrer: "https://a.test/page.json" });
+      await expect(fetching).rejects.toThrow(`Fetching '${relativeFileUrl("file:///project/a.json")}' isn't allowed from 'https://a.test/page.json'. Only a file: document can refer to a file: URL.`);
+      expect(fetched()).to.eql([]);
+      const file = await session.fetch("file:///project/b.json", { referrer: new URL("file:///project/a.json") });
+      expect(await file.text()).to.equal("from file:///project/b.json");
+    });
+
+    test("a referrer wins over the initiator's response's URL", async () => {
+      const { session } = setup();
+      const document = await session.fetch("file:///project/a.json");
+      await expect(session.fetch("file:///project/b.json", { initiator: document, referrer: "https://a.test/page.json" })).rejects.toThrow(/Only a file: document/);
+    });
+
+    test("the record has the referrer, and the runtime doesn't", async () => {
+      /** @type string[] */
+      const referrers = [];
+      const session = testHyperjump(fetcher((request) => {
+        referrers.push(request.referrer);
+        return new Response("{}");
+      }));
+      const page = await session.fetch("https://a.test/page.json");
+      const fromPage = await session.fetch("https://a.test/a.json", { initiator: page });
+      const given = await session.fetch("https://a.test/b.json", { referrer: "https://b.test/other.json" });
+      expect([page, fromPage, given].map((response) => responseMeta(response).record?.referrer)).to.eql([undefined, "https://a.test/page.json", "https://b.test/other.json"]);
+      expect(responseMeta(given).record?.toJSON().referrer).to.equal("https://b.test/other.json");
+      expect(new Set(referrers)).to.eql(new Set(["about:client"]));
+    });
+
+    test("a redirect can't lead a document without a record to a file", async () => {
+      const session = testHyperjump(fetcher((request) => request.url.startsWith("file:")
+        ? new Response(`from ${request.url}`)
+        : new Response(null, { status: 302, headers: { location: "file:///project/a.json" } })), { allow: ["file:///project/"], redirectSchemes: ["http:", "https:", "file:"] });
+      await expect(session.fetch("https://a.test/start", { referrer: "https://a.test/page.json" })).rejects.toThrow(/led to .* which isn't allowed from 'https:\/\/a.test\/page.json'/);
     });
 
     test("a refused reference is recorded, without the session's headers", async () => {

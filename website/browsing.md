@@ -373,6 +373,10 @@ const mine = await jrefMediaType.parse({
 const luke = await jrefSelect(session, "> [key=luke]", mine);
 ```
 
+A reference that the session retrieves comes from the document's URL, so only
+a document whose URL is a `file:` URL can refer to a file. For more
+information, see [Documents from the web](file-urls.md#documents-from-the-web).
+
 The tree in a [unified pipeline](parsing.md#in-a-unified-pipeline) is a
 document too. A transformer reads it as it's written with the ecosystem's
 utilities, which give it nodes. To follow a reference that one of them finds,

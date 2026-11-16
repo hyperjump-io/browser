@@ -70,7 +70,20 @@ await session.fetch("file:///home/me/project/secret.json", { initiator: page });
 
 A request without an `initiator` is your app's own, so it can fetch any file
 `allowRetrieval` allows. When you follow a reference, pass the document it's in
-as the `initiator`.
+as the `initiator`. For a document the session didn't fetch, pass its URL as
+the `referrer` instead:
+
+```typescript
+// Rejects with a TypeError
+await session.fetch("file:///home/me/project/secret.json", {
+  referrer: "https://example.com/mine.json"
+});
+```
+
+`get` does this for you. A tree that you parsed yourself, such as one from a
+[unified pipeline](parsing.md#in-a-unified-pipeline), comes from the URL you
+gave it, its file's path or the `url` option. Only one whose URL is a `file:`
+URL can refer to a file.
 
 ## Symbolic links
 

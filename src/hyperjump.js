@@ -108,7 +108,7 @@ export class Hyperjump {
       throw this.signal.reason;
     }
 
-    const { cache, priority, initiator, ...requestInit } = init;
+    const { cache, priority, initiator, referrer: givenReferrer, ...requestInit } = init;
     const callerSignal = init.signal ?? (input instanceof Request ? input.signal : undefined);
     const signal = callerSignal ? AbortSignal.any([this.signal, callerSignal]) : this.signal;
 
@@ -116,6 +116,7 @@ export class Hyperjump {
       ? new Request(input, { ...requestInit, signal })
       : new Request(new URL(input, this.#contextUrl), { ...requestInit, signal });
     const initiatorRecord = initiator instanceof Response ? responseMeta(initiator).record : initiator;
+    const referrer = givenReferrer === undefined ? referrerOf(initiatorRecord) : new URL(givenReferrer).href;
     // The registry's documents aren't fetched, so they're answered before
     // `allowRetrieval`. What it throws is recorded, like a failed fetch.
     let registered;
@@ -127,7 +128,7 @@ export class Hyperjump {
     }
     // A refused URL gets none of the session's headers, but it's recorded, like
     // a request a browser blocks
-    const refusal = registered || registryError ? undefined : await this.#refusal(request.url, referrerOf(initiatorRecord));
+    const refusal = registered || registryError ? undefined : await this.#refusal(request.url, referrer);
     const added = registered || registryError || refusal ? new Headers() : await this.#policy.headers(request.url);
     signal.throwIfAborted();
 
@@ -135,6 +136,7 @@ export class Hyperjump {
       url: request.url,
       method: request.method,
       initiator: initiatorRecord,
+      referrer,
       session: this,
       priority: priority instanceof PrioritySignal ? priority.value : priority ?? "auto",
       requestHeaders: [...sentHeaders(request.headers, added)],

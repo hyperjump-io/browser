@@ -48,6 +48,7 @@ export class FetchRecord {
     this.url = init.url;
     this.method = init.method;
     this.initiator = init.initiator;
+    this.referrer = init.referrer;
     /** @type Hyperjump */
     this.session = init.session;
     this.priority = init.priority;
@@ -120,6 +121,7 @@ export class FetchRecord {
       url: this.url,
       method: this.method,
       initiator: this.initiator?.id,
+      referrer: this.referrer,
       startTime: this.startTime,
       responseTime: this.responseTime,
       endTime: this.endTime,

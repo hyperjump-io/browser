@@ -186,10 +186,12 @@ a hypermedia browser, and the stack is how it retrieves.
   a node a unist utility found in a tree is followed with the tree.
   - A document the session didn't retrieve, like a tree from a unified
     pipeline, is followed from like any other: it has what it contains
-    and what its fragments identify. Nothing caused the request, since
-    the document wasn't
-    retrieved. It doesn't change what the session has: the document isn't
-    kept, and it doesn't answer for any URL.
+    and what its fragments identify. It has no record, since it wasn't
+    retrieved, so a request it causes has its URL as the `referrer`
+    instead of an initiator. It's judged by where it is, and a trace shows
+    the request at the top (see [`file:` from `file:`](file-references.md)).
+    It doesn't change what the session has: the document isn't kept, and
+    it doesn't answer for any URL.
 
 ## Errors
 

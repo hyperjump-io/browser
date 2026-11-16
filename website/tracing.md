@@ -45,6 +45,7 @@ asked for, what each layer did, and how it ended:
 | --- | --- |
 | `url`, `method` | What the request asked for |
 | `initiator` | The record of the request that caused it |
+| `referrer` | The URL of the document it came from: the `referrer` option, or the initiator's URL |
 | `marks` | What each layer did, and when, such as `"redirect"` or `"scheduler:queued"` |
 | `status`, `finalUrl`, `source`, `cache` | How it ended, and where its response came from |
 | `startTime`, `responseTime`, `endTime` | When it started, got its response, and finished |

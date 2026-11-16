@@ -30,6 +30,13 @@ export class FetchRecord {
 
   /** The request that caused this one, like the document that referred to it */
   readonly initiator: FetchRecord | undefined;
+
+  /**
+   * The URL of the document the request came from: the `referrer` it was
+   * given, or its initiator's response's URL. Only a `file:` document can
+   * refer to a `file:` URL. A request without one is the application's own.
+   */
+  readonly referrer: string | undefined;
   readonly session: Hyperjump;
 
   /** Milliseconds, from `performance.now()` */
@@ -83,6 +90,7 @@ export type FetchRecordJson = {
   url: string;
   method: string;
   initiator: number | undefined;
+  referrer: string | undefined;
   startTime: number;
   responseTime: number | undefined;
   endTime: number | undefined;
@@ -104,6 +112,7 @@ export const startRecord: (init: {
   url: string;
   method: string;
   initiator: FetchRecord | undefined;
+  referrer: string | undefined;
   session: Hyperjump;
   priority: string;
   requestHeaders: [string, string][];

@@ -74,6 +74,28 @@ describe("targets", () => {
     expect(jsonValue((await get(session, "https://a.test/x")).node), "and it doesn't answer for the URL").to.equal("the real one");
   });
 
+  test("a document the session didn't retrieve is judged by its URL, so one from the web can't refer to a file", async () => {
+    const { session, requests } = site({ "/project/secret.json": [`"secret"`, jref] }, ["https://a.test/", "file:///project/"]);
+    // JRef can't have an absolute file: reference, but a media type that
+    // makes references itself can
+    const web = linkDocument("file:///project/secret.json", "https://a.test/mine");
+    const following = get(session, web.children[0].href, { referencedFrom: web });
+    await expect(following).rejects.toThrow(/Only a file: document can refer to a file: URL/);
+    await expect(following).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
+    expect(requests).to.eql([]);
+
+    const file = bundleDocument({ a: { $ref: "secret.json" } }, "file:///project/mine.json");
+    expect(jsonValue((await jrefStep(session, "a", file)).node)).to.equal("secret");
+  });
+
+  test("a document a document the session didn't retrieve contains is judged by its container's URL", async () => {
+    const { session, requests } = site({ "/project/secret.json": [`"secret"`, jref] }, ["https://a.test/", "file:///project/"]);
+    const contained = linkDocument("file:///project/secret.json", "https://a.test/x");
+    const web = { ...bundleDocument({ a: { $ref: "/x" } }, "https://a.test/mine"), embedded: { "https://a.test/x": contained } };
+    await expect(jrefStep(session, "a", web)).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
+    expect(requests).to.eql([]);
+  });
+
   test("a reference to a document's own URL finds the document, without retrieving it", async () => {
     const { session, requests } = site({ "/mine": [`{ "b": "the real one" }`, jref] });
     const mine = bundleDocument({ a: { $ref: "#/b" }, b: "mine" }, "https://a.test/mine");
@@ -151,6 +173,18 @@ const bundle = (main, embedded) => JSON.stringify({ main, embedded });
 const bundleDocument = (value, url) => ({ type: "bundle-document", children: [jrefNode(value, url)], url, anchors: {} });
 
 /**
+ * A document that's a reference, made by a media type that makes references
+ * itself, so it can be any URL
+ *
+ * @type (href: string, url: string) => DocumentNode<JrefNode & { type: "reference" }>
+ */
+const linkDocument = (href, url) => ({
+  type: "link-document",
+  children: [{ type: "reference", href, jsonType: "object", children: [], location: `${url}#` }],
+  url
+});
+
+/**
  * A document whose media type has no fragments
  *
  * @type (value: Json, url: string) => DocumentNode<JrefNode>
@@ -173,8 +207,11 @@ const bundleMediaType = {
   }
 };
 
-/** @param {Record<string, [body: string, headers: Record<string, string>]>} pages */
-const site = (pages) => {
+/**
+ * @param {Record<string, [body: string, headers: Record<string, string>]>} pages
+ * @param {string[]} [allowRetrieval]
+ */
+const site = (pages, allowRetrieval = ["https://a.test/"]) => {
   /** @type string[] */
   const requests = [];
   const stack = fetcher((request) => {
@@ -183,6 +220,6 @@ const site = (pages) => {
     const page = pages[pathname];
     return page ? new Response(page[0], { headers: page[1] }) : new Response(null, { status: 404 });
   });
-  const session = new Hyperjump({ stack, allowRetrieval: ["https://a.test/"], mediaTypes: [...defaultMediaTypes, bundleMediaType] });
+  const session = new Hyperjump({ stack, allowRetrieval, mediaTypes: [...defaultMediaTypes, bundleMediaType] });
   return { session, requests };
 };

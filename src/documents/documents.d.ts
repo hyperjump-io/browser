@@ -76,8 +76,9 @@ export type GetOptions = {
    * Where the reference that's being followed is: a target whose document
    * it's in, or the document. A document that one contains is found before
    * anything is retrieved, and it's what caused the request, instead of
-   * `initiator`. Nothing caused the request if the session didn't retrieve
-   * the document, like a tree from a unified pipeline.
+   * `initiator`. A document the session didn't retrieve, like a tree from
+   * a unified pipeline, has no record, so the request comes from its URL,
+   * and only one that's a `file:` URL can refer to a file.
    */
   referencedFrom?: Target | DocumentNode;
 
@@ -116,7 +117,7 @@ export type Target<D = unknown, N = unknown> = {
  * is browsed from its root, the way a unist utility takes the tree. A
  * document the session didn't retrieve, like a tree from a unified
  * pipeline, is browsed like any other: a reference in it finds what the
- * document contains, and nothing caused the request. The session doesn't
+ * document contains, and a request it causes comes from its URL. The session doesn't
  * keep the document, and it doesn't answer for any URL.
  *
  * A document can have any parse status, like a tree from unified's

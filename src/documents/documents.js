@@ -9,6 +9,7 @@ import { responseMeta, withUrl } from "../response-meta.js";
 /**
  * @import * as API from "./documents.d.ts"
  * @import { FetchRecord } from "../fetch-record.d.ts"
+ * @import { HyperjumpFetchInit } from "../hyperjump.d.ts"
  * @import { JrefNode } from "../jref/jref-ast.d.ts"
  * @import { DocumentNode, MediaTypePlugin } from "../media-types/media-types.d.ts"
  */
@@ -49,6 +50,13 @@ import { responseMeta, withUrl } from "../response-meta.js";
  *   entries: Map<string, Kept>,
  *   retrieved: WeakMap<DocumentNode, Entry>
  * }} Documents
+ */
+
+/**
+ * What caused a request: the record or response of the request that did,
+ * or the URL of a document that has no record
+ *
+ * @typedef {Pick<HyperjumpFetchInit, "initiator" | "referrer">} Cause
  */
 
 /** The key of a session's documents in its state */
@@ -135,13 +143,14 @@ const entryFor = (session, url, options, priority) => {
   const { referencedFrom } = options;
   return referencedFrom
     ? referenced(session, url, entryOf(session, referencedFrom), priority)
-    : load(session, url, options.initiator, priority);
+    : load(session, url, { initiator: options.initiator }, priority);
 };
 
 /**
  * The entry of the document a reference is followed from: a target's, or
  * the document itself. Nothing caused a document the session didn't
- * retrieve, like a tree from a unified pipeline, so it has no record.
+ * retrieve, like a tree from a unified pipeline, so it has no record, and
+ * its requests are judged by its URL.
  *
  * @type (session: API.DocumentSession, from: API.Target | DocumentNode) => Entry
  */
@@ -160,8 +169,18 @@ const entryOf = (session, from) => {
  */
 const referenced = async (session, url, from, priority) => {
   const document = from.embedded.get(url);
-  return document ? { ...from, document } : load(session, url, from.record, priority);
+  return document ? { ...from, document } : load(session, url, causeOf(from), priority);
 };
+
+/**
+ * What a reference in an entry's document causes a request to have: the
+ * record of the document that was retrieved, or, for a document the session
+ * didn't retrieve, its URL, so the request is judged by where the document
+ * is, like one that was retrieved.
+ *
+ * @type (entry: Entry) => Cause
+ */
+const causeOf = (entry) => entry.record ? { initiator: entry.record } : { referrer: entry.container.url };
 
 /** @type (priority: API.GetOptions["priority"]) => PrioritySignal */
 const prioritySignal = (priority) => priority instanceof PrioritySignal ? priority : PrioritySignal.of(priority ?? "auto");
@@ -196,9 +215,9 @@ const documentsOf = (session) => session.state(documentsKey, () => {
  * its wait is over, so a document that's being preloaded at a low priority
  * is fetched at a higher one once something needs it.
  *
- * @type (session: API.DocumentSession, url: string, initiator: API.GetOptions["initiator"], priority: PrioritySignal) => Promise<Entry>
+ * @type (session: API.DocumentSession, url: string, cause: Cause, priority: PrioritySignal) => Promise<Entry>
  */
-const load = (session, url, initiator, priority) => {
+const load = (session, url, cause, priority) => {
   const { entries } = documentsOf(session);
   const existing = entries.get(url);
   if (existing) {
@@ -210,7 +229,7 @@ const load = (session, url, initiator, priority) => {
   /** @type Kept */
   const kept = {
     priority: group,
-    loading: retrieve(session, url, initiator, group.signal).then(({ entry, responseUrl }) => {
+    loading: retrieve(session, url, cause, group.signal).then(({ entry, responseUrl }) => {
       const reached = entries.get(responseUrl);
       if (reached && reached !== kept) {
         return reached.loading;
@@ -231,11 +250,11 @@ const load = (session, url, initiator, priority) => {
 /**
  * A document's entry, and the URL its response came from
  *
- * @type (session: API.DocumentSession, url: string, initiator: API.GetOptions["initiator"], priority: PrioritySignal) => Promise<{ entry: Entry, responseUrl: string }>
+ * @type (session: API.DocumentSession, url: string, cause: Cause, priority: PrioritySignal) => Promise<{ entry: Entry, responseUrl: string }>
  */
-const retrieve = async (session, url, initiator, priority) => {
+const retrieve = async (session, url, cause, priority) => {
   const { mediaTypes, accept, retrieved } = documentsOf(session);
-  const response = await session.fetch(url, { headers: { accept }, initiator, priority });
+  const response = await session.fetch(url, { ...cause, headers: { accept }, priority });
 
   try {
     // A response a layer made can have no URL, and one a redirect led to
