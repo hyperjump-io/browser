@@ -7,7 +7,7 @@ retrieves JRef documents over HTTP or from files, and it follows the references
 between them for you:
 
 ```typescript
-import { Hyperjump, get, jsonValue } from "@hyperjump/browser";
+import { Hyperjump, get, jrefValue } from "@hyperjump/browser";
 
 const session = new Hyperjump({
   allowRetrieval: ["https://swapi.hyperjump.io/"]
@@ -15,7 +15,7 @@ const session = new Hyperjump({
 
 const url = "https://swapi.hyperjump.io/api/films/1#/director";
 const director = await get(session, url);
-jsonValue(director.node); // "George Lucas"
+jrefValue(director); // "George Lucas"
 ```
 
 It retrieves documents the way a web browser does. Requests belong to a

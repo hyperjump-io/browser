@@ -6,7 +6,7 @@ in. A document can refer to values in other documents, and `get` follows those
 references for you:
 
 ```typescript
-import { Hyperjump, get, jsonValue } from "@hyperjump/browser";
+import { Hyperjump, get, jrefValue } from "@hyperjump/browser";
 
 const session = new Hyperjump({
   allowRetrieval: ["https://swapi.hyperjump.io/"]
@@ -14,7 +14,7 @@ const session = new Hyperjump({
 
 const url = "https://swapi.hyperjump.io/api/films/1#/director";
 const director = await get(session, url);
-jsonValue(director.node); // "George Lucas"
+jrefValue(director); // "George Lucas"
 director.document.url; // "https://swapi.hyperjump.io/api/films/1"
 ```
 
