@@ -106,7 +106,7 @@ describe("targets", () => {
     expect(jsonValue((await browse(session, "https://a.test/mine#/b")).node), "and it doesn't answer for the URL").to.equal("the real one");
   });
 
-  test("a document is browsed from its root, like a target of it", async () => {
+  test("a document is read from its root, like a target of it", async () => {
     const { session } = site({ "/x": [`{ "b": 1 }`, jref] });
     const mine = bundleDocument({ a: { $ref: "/x#/b" } }, "https://a.test/mine");
     const a = await jrefStep(session, "a", mine);

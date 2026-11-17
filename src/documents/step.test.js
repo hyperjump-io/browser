@@ -84,7 +84,7 @@ describe("stepping", () => {
       expect(toJson((await jrefStep(session, "b", document)).node)).to.equal(`1`);
     });
 
-    test("a tree from a unified pipeline is browsed as it is, and a node a unist utility finds in it is followed from it", async () => {
+    test("a tree from a unified pipeline is read as it is, and a node a unist utility finds in it is followed from it", async () => {
       const { session } = site({ "/b": { c: 1 }, "/c": 2 });
       const tree = unified()
         .use(jrefParse, { url: "https://a.test/mine" })
@@ -101,7 +101,7 @@ describe("stepping", () => {
       expect(toJson((await browse(session, hrefs[1], { referencedFrom: tree })).node)).to.equal(`2`);
     });
 
-    test("a tree whose parse failed is browsed for what it has", async () => {
+    test("a tree whose parse failed is read for what it has", async () => {
       const { session } = site({ "/b": 1 });
       const tree = unified()
         .use(jrefParse, { url: "https://a.test/mine", accept: "failure" })

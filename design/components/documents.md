@@ -17,13 +17,13 @@ a hypermedia browser, and the stack is how it retrieves.
     found from the container by the node's location, and the container
     can't be found from the contained document.
   - It's a plain value, and nothing makes one by hand. `browse` returns
-    one, and the browsing functions return one for each member they step
+    one, and the `jref*` functions return one for each member they step
     into or walk to (see [Browsing](browsing.md)).
   - Where a target is taken, so is a document, which stands for its
-    root's target (`Start`): by the browsing functions and as
+    root's target (`Start`): by the `jref*` functions and as
     `referencedFrom`. A unist utility takes the tree, and a document is
     the tree, so a tree from a unified pipeline, or one an application
-    parsed itself, is browsed as it is. A target is told from a document
+    parsed itself, is read as it is. A target is told from a document
     by its `node`.
   - A document can have any parse status, since that's what unified's
     `parse` returns and lint works on a tree that failed. So its root
@@ -39,7 +39,7 @@ a hypermedia browser, and the stack is how it retrieves.
       there, and the only target whose node isn't a value.
     - Rejected: only a document whose status isn't `failure`
       (`hasStatus`). A tree that failed with a root that's a value
-      couldn't be browsed without a cast, and a walk already leaves out
+      couldn't be read without a cast, and a walk already leaves out
       what's missing.
   - unist has the same need inside one tree, and meets it the same way.
     A node doesn't say its parent, so `unist-util-visit` gives the
@@ -58,7 +58,8 @@ a hypermedia browser, and the stack is how it retrieves.
   redirects without being asked. `browse` retrieves the document, goes to
   what the fragment identifies, and follows references the same way, and
   `reference: "manual"` is `redirect: "manual"`'s counterpart. What it
-  returns is where the URL leads, which is a target.
+  returns is where the URL leads, which is a target. Browsing is `browse`
+  and the `jref*` functions that go on from where it leads.
 - The media types are the session's configuration, `mediaTypes`, which
   defaults to `defaultMediaTypes` (see [Media types](media-types.md)). The
   session keeps the configuration it was given as a value and doesn't read
@@ -113,7 +114,7 @@ a hypermedia browser, and the stack is how it retrieves.
   needed now (see [Priorities](priorities.md)). It matters where the stack
   orders requests by priority: the scheduler does, which the default stack
   has in Node.js, and the throttle does, which it doesn't.
-  - The browsing functions don't take a priority. What's being browsed is
+  - The `jref*` functions don't take a priority. What they read is
     needed now, which is `auto`.
 - An entry keeps its response's fetch record, which a document doesn't
   carry.
@@ -121,7 +122,7 @@ a hypermedia browser, and the stack is how it retrieves.
   from a fragment to the JSON Pointer of the node it names. What a
   fragment identifies is a pure function of the document
   (`fragmentPointer` in `documents.js`), so nothing needs the plugin once
-  a document is parsed, and a tree from anywhere can be browsed.
+  a document is parsed, and a tree from anywhere can be read.
   - Without `anchors`, a document has no fragments, and any fragment
     identifies the whole document. JSON's are like that.
   - With `anchors`, even with none in it, a fragment is an anchor's
@@ -188,7 +189,7 @@ a hypermedia browser, and the stack is how it retrieves.
 - Following a reference that leads back to one already followed is an
   error, with the chain of URLs.
 - `browse` with `referencedFrom`, a target or a document, follows a
-  reference from that document, which is how the browsing functions
+  reference from that document, which is how the `jref*` functions
   follow one (see [Browsing](browsing.md)). Only the document is read, so
   a node a unist utility found in a tree is followed with the tree.
   - A document the session didn't retrieve, like a tree from a unified

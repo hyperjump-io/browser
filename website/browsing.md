@@ -1,9 +1,8 @@
-# Browse documents
+# Read targets
 
-Browsing is reading a value and the values under it. `browse` gives you a target
-for the value a URL identifies, and from there the `jref` functions step into,
-visit, find, and select the values under it. They take the session so they can follow
-the references they reach.
+`browse` gives you a target for the value a URL identifies, and from there the
+`jref` functions read it and step into, visit, find, and select the values under
+it. They take the session so they can follow the references they reach.
 
 ```typescript
 import { Hyperjump, browse } from "@hyperjump/browser";
@@ -310,5 +309,5 @@ Each `target` can also be a document, which starts at its root.
 | `maxDepth` | How many levels below the target a walk can go. The default is 1000. Only `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it. For more information, see [How deep a walk goes](#how-deep-a-walk-goes). |
 
 When these functions follow a reference, they throw what `browse` throws. For
-more information, see [Get documents](documents.md#errors). For the errors of
+more information, see [Browse to a URL](documents.md#errors). For the errors of
 their own, see [Errors](errors.md#other-errors).

@@ -113,10 +113,10 @@ export type Target<D = unknown, N = unknown> = {
 };
 
 /**
- * What the `jref*` functions browse from: a target, or a document, which
- * is browsed from its root, the way a unist utility takes the tree. A
+ * What the `jref*` functions start from: a target, or a document, whose
+ * root they start from, the way a unist utility takes the tree. A
  * document the session didn't retrieve, like a tree from a unified
- * pipeline, is browsed like any other: a reference in it finds what the
+ * pipeline, is read like any other: a reference in it finds what the
  * document contains, and a request it causes comes from its URL. The session doesn't
  * keep the document, and it doesn't answer for any URL.
  *
@@ -128,7 +128,7 @@ export type Target<D = unknown, N = unknown> = {
 export type Start<N = unknown> = Target<unknown, N> | DocumentNode<N | JsonErrorNode>;
 
 /**
- * The target a browse from `T` starts at (see {@link Start}). The root of
+ * The target the `jref*` functions start at, given `T` (see {@link Start}). The root of
  * a document with nothing in it is missing, which isn't a value, so
  * there's no target of it.
  */

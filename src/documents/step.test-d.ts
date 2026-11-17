@@ -71,7 +71,7 @@ yes<Equal<typeof never, undefined>>();
 const selected = await jrefSelect(session, "> [key=a]", target, { reference: "manual" });
 yes<Equal<Extract<NonNullable<typeof selected>["node"], { type: "reference" }> extends never ? false : true, true>>();
 
-// A document is browsed from its root, as a target of it would be
+// A document is read from its root, as a target of it would be
 declare const document: JrefMediaTypeDocument;
 const fromDocument = await jrefStep(session, "a", document);
 yes<Equal<typeof fromDocument.node, Reached>>();
@@ -97,6 +97,6 @@ await jrefVisit(session, tree, () => {});
 await browse(session, "https://example.com/", { referencedFrom: tree });
 
 // A target's node is a value, so a target of one that couldn't be parsed
-// isn't browsed from
+// isn't started from
 // @ts-expect-error
 await jrefStep(session, "a", inTree);

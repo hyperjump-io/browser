@@ -28,8 +28,8 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 - [Install](install.md): install in Node.js and browsers
 - [Get started](getting-started.md): browse an API and files step by step
 - Documents
-  - [Get documents](documents.md): get a value from a document, and follow references
-  - [Browse documents](browsing.md): visit, find, and select the values under a target, following references
+  - [Browse to a URL](documents.md): go to the value a URL identifies, following references
+  - [Read targets](browsing.md): step into, visit, find, and select the values under a target, following references
   - [Follow references yourself](references.md): read references as they're written, and follow them with `browse`
   - [Media types](media-types.md): formats other than JSON and JRef
   - [Parse JSON and JRef](parsing.md): the parsers and the functions that read their ASTs

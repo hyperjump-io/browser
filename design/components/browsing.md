@@ -1,11 +1,11 @@
 # Browsing (`src/documents/step.js`, `visit.js`, `select.js`, and `walk.js`)
 
-Browsing is reading values and stepping into them while following
-references. It's done with the `jref*` functions. The ones that step into
+Browsing is `browse` and the `jref*` functions that go on from where it
+leads (see [Documents](documents.md)). The `jref*` functions read values
+and step into them while following references. The ones that step into
 a value one level are named for the `json*` functions, and the ones that
 walk are the unist utilities for a tree with its references followed. They
-take the session to follow references with, and a target to start from
-(see [Documents](documents.md)).
+take the session to follow references with, and a target to start from.
 
 | As written | JRef (follows references) |
 | --- | --- |
@@ -23,10 +23,10 @@ take the session to follow references with, and a target to start from
 
 - They take a target and give targets. A reference is followed from the
   document it's in, which a node doesn't say, and what's found is given
-  with its document so it can be browsed from in turn. A member that isn't
+  with its document so they can start from it in turn. A member that isn't
   a reference is in its parent's document, so its target has that
   document.
-  - They take a document where they take a target, and browse from its
+  - They take a document where they take a target, and start from its
     root, as a unist utility takes the tree (see
     [Documents](documents.md)).
   - Tests and selectors are about what kind of node a value is, so a
@@ -35,7 +35,7 @@ take the session to follow references with, and a target to start from
   - Nodes, with a node's document found from its location, was rejected
     (see [Documents](documents.md)).
 
-- There are three ways to browse, for three kinds of code:
+- There are three ways to go on from a target, for three kinds of code:
   - A walk (`jrefVisit`, `jrefFind`, `jrefFindAll`) decides where to go
     and tells a visitor about each value. It's for doing something at
     every value.
@@ -71,8 +71,8 @@ take the session to follow references with, and a target to start from
     only a parse that failed does, so the pipeline is one step for any
     other node.
   - `jrefObjectHas` and `jrefObjectKeys` don't take the session. Nothing
-    needs following to read a property name, but with them a browse
-    doesn't switch between targets and nodes.
+    needs following to read a property name, but with them code that
+    reads targets doesn't switch between targets and nodes.
   - A document's root can be a value that couldn't be parsed, which a
     `json*` function doesn't take. `jrefStep` into one is an
     `ERR_POINTER_NOT_INDEXABLE`, as `jsonPointerGet` has for a pointer
@@ -127,7 +127,7 @@ take the session to follow references with, and a target to start from
   until a value is read, so a reference is followed when it's reached.
   Only a reference is waited for inside a walk or an iterator, so a
   member that isn't one doesn't cost a promise of its own.
-  - Synchronous browsing functions that return references as they are,
+  - Synchronous `jref*` functions that return references as they are,
     with an async `follow` for a reference, were rejected. Browsing would
     take as many `await`s with a `follow` after every step, and one that's
     left out returns a reference instead of its value.
@@ -170,7 +170,7 @@ take the session to follow references with, and a target to start from
   take a node of one, and not only a JRef one. All they need of a node is
   what a reference is: a `reference` node with an `href`. So what's built
   on browser browses its own trees with them, like a tree with more kinds
-  of node. A tree the session didn't retrieve is browsed from its
+  of node. A tree the session didn't retrieve is read from its
   document, and its references find what the document contains.
 - What they return is typed by where a node can come from. A value or an
   item that isn't a reference is a node of the tree it's in. A reference
@@ -197,7 +197,7 @@ take the session to follow references with, and a target to start from
   the value that has them, the same keys `[key=...]` matches. It doesn't visit `json-property` or
   `json-property-name` nodes. A reference's value isn't in the document
   the reference is in, so a unist `index` into its parent's `children`
-  wouldn't find it, and the browsing functions deal in values.
+  wouldn't find it, and the `jref*` functions deal in values.
 - The visitor also gets the node's depth below the node the visit starts
   at, so returning `SKIP` at a depth is how a visit goes only so deep.
 - Each member is followed just before it's visited and not all of a

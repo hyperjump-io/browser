@@ -29,7 +29,7 @@ import { jsonArrayIter, jsonObjectEntries } from "../json/jsonast-util.js";
  * The target of a node in a target's document. A reference's is what it
  * leads to, which `browse` finds from the document the reference is in, and
  * follows to a value. Any other node is in the same document. It uses
- * `browse`, so the browsing functions are built on a session the way an
+ * `browse`, so the `jref*` functions are built on a session the way an
  * application's would be.
  *
  * The functions take the type of the target they're given, whose node can

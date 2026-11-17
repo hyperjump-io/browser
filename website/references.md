@@ -111,7 +111,7 @@ const names = await jrefSelectAll(
 
 The session keeps every document it retrieves, so the walk finds each
 character's document without retrieving it again. For more information, see
-[Get documents](documents.md#a-session-keeps-its-documents). In Node.js, the
+[Browse to a URL](documents.md#a-session-keeps-its-documents). In Node.js, the
 default stack limits how many requests go to a server at once, so some of them
 wait for a slot:
 
@@ -162,11 +162,11 @@ for (const reference of references) {
 Each reference has the document that it's in, so the session knows which
 document causes the request.
 
-## Browse a tree you parsed
+## Read a tree you parsed
 
 A document that you parsed yourself isn't one the session retrieved, so `browse`
 never gave you a target for it. The `jref` functions take the document where
-they take a target and browse from its root, the way a unist utility takes the
+they take a target and start from its root, the way a unist utility takes the
 tree. A reference in the document finds the document itself and the documents
 that it contains, without retrieving them:
 
@@ -210,10 +210,10 @@ const followReferences = (session: Hyperjump) =>
   };
 ```
 
-A tree can have any parse status. The `jref` functions browse what a tree whose
+A tree can have any parse status. The `jref` functions read what a tree whose
 parse failed has: they leave out a value that's missing, and a value that
 the parser couldn't parse is a `json-invalid` node.
 
 The `jref` functions don't take a node on its own, because a node doesn't say
-which document it's in. To browse from a value inside a tree, start at the
+which document it's in. To read a value inside a tree, start at the
 tree and step or select to the value.

@@ -17,7 +17,7 @@ const response = await session.fetch(url);
 
 `session.fetch` takes the same arguments as `fetch`. `browse` retrieves documents
 with `session.fetch`, so what this page says about requests applies to the
-documents it gets too. For more information, see [Get documents](documents.md).
+documents it gets too. For more information, see [Browse to a URL](documents.md).
 For more information about stacks, see [Layers](layers.md).
 
 Without a stack, a session gets a default stack of its own:

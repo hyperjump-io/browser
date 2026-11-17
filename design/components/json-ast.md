@@ -164,7 +164,7 @@ status with it:
     references would resolve against a URL that nothing said the document
     has.
 - `jrefParse`'s document has `anchors`, as the JRef media type's does, so
-  a tree from a pipeline says what its fragments identify and is browsed
+  a tree from a pipeline says what its fragments identify and is read
   as it is (see [Documents](documents.md)).
 - `appendToLocation` caches the encoded form of each segment, because
   encoding was most of the time `fromJs` took (see

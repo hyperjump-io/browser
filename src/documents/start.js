@@ -7,7 +7,7 @@ import { codedError } from "../json/coded-error.js";
  */
 
 /**
- * The target to browse from. A target is itself, and a document is its
+ * The target to start from. A target is itself, and a document is its
  * root's, the way a unist utility takes the tree. A target is told by its
  * `node`, which a document node doesn't have.
  *
