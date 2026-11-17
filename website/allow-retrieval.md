@@ -77,5 +77,17 @@ Separately from the list, only a document from a file can refer to a `file:`
 URL. For more information, see
 [File URLs](file-urls.md#documents-from-the-web).
 
+## What it doesn't protect against
+
 `allowRetrieval` checks URLs, not the addresses they connect to. A host whose
-DNS points at an internal address gets through if the list allows its URL.
+DNS points at an internal address gets through if the list allows its URL, and
+so does a host whose DNS changes to one between requests. That matters when
+your list allows hosts that you don't control. To keep requests from reaching
+internal addresses, do one of these:
+
+- Allow only hosts that you control or trust.
+- Run your app on a network that can't reach internal addresses, such as behind
+  a firewall that blocks them.
+- Give the transport `http:` and `https:` fetchers that check the address each
+  request connects to. For more information, see
+  [Transports](transports.md#replace-a-scheme).
