@@ -22,7 +22,7 @@ A target's `node` is a node of a JSON abstract syntax tree (AST), which has its
 `location` and its `position` in the document. Its `document` is the document
 that the node is in. When a `jref` function follows a reference in the node,
 the request comes from that document.
-To read a target and step into it, see [Read targets](browsing.md).
+To read a target and step into it, see [Read targets](read-targets.md).
 
 `browse` resolves a relative URL the way the session does. In Node.js, that's
 against the working directory, so `browse(session, "data/film.json")` reads a file.
@@ -53,7 +53,7 @@ pointer reaches. `browse` follows that reference and gives you the homeworld.
 `#/homeworld/name` doesn't work because the pointer can't go through the
 reference. It looks for `name` in Luke's document, which doesn't have one. To
 get the name, get the homeworld first. Then select its name. For more
-information, see [Read targets](browsing.md).
+information, see [Read targets](read-targets.md).
 
 ## References
 

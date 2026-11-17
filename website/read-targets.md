@@ -309,5 +309,5 @@ Each `target` can also be a document, which starts at its root.
 | `maxDepth` | How many levels below the target a walk can go. The default is 1000. Only `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it. For more information, see [How deep a walk goes](#how-deep-a-walk-goes). |
 
 When these functions follow a reference, they throw what `browse` throws. For
-more information, see [Browse to a URL](documents.md#errors). For the errors of
+more information, see [Browse to a URL](browse-to-a-url.md#errors). For the errors of
 their own, see [Errors](errors.md#other-errors).

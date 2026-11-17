@@ -111,7 +111,7 @@ const names = await jrefSelectAll(
 
 The session keeps every document it retrieves, so the walk finds each
 character's document without retrieving it again. For more information, see
-[Browse to a URL](documents.md#a-session-keeps-its-documents). In Node.js, the
+[Browse to a URL](browse-to-a-url.md#a-session-keeps-its-documents). In Node.js, the
 default stack limits how many requests go to a server at once, so some of them
 wait for a slot:
 

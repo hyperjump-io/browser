@@ -120,7 +120,7 @@ Luke, the session uses the copy of his document it already has instead of
 retrieving it again. That gives you a consistent view of the API for as long as
 you use the session. Create a new session when you want to see changes. For
 more information, see
-[Browse to a URL](documents.md#a-session-keeps-its-documents).
+[Browse to a URL](browse-to-a-url.md#a-session-keeps-its-documents).
 
 ## Browse files
 
@@ -169,7 +169,7 @@ because a URL reads `C:` as a scheme.
 
 ## What's next
 
-- [Read targets](browsing.md) for every way to read a target
+- [Read targets](read-targets.md) for every way to read a target
 - [What a session can fetch](allow-retrieval.md) before you use documents you
   don't control
 - [Sessions](sessions.md) for a session's options, and the stack it retrieves

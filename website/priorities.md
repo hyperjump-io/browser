@@ -81,7 +81,7 @@ priority.set("high");
 ```
 
 A request that already started keeps its priority. For more information about
-`browse`'s priority, see [Browse to a URL](documents.md#priority).
+`browse`'s priority, see [Browse to a URL](browse-to-a-url.md#priority).
 
 ## Hold back low-priority requests
 
