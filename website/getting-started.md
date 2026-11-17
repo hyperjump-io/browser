@@ -16,8 +16,8 @@ the value it refers to. Here's how the first film refers to its characters:
   "title": "A New Hope",
   "director": "George Lucas",
   "characters": [
-    { "$ref": "../../people/1" },
-    { "$ref": "../../people/2" }
+    { "$ref": "/api/people/1" },
+    { "$ref": "/api/people/2" }
   ]
 }
 ```
