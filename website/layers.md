@@ -65,8 +65,8 @@ To give the layer below a different value, pass it a copy of the context, such
 as `inner.fetch(request, { ...ctx, priority })`.
 
 A request's own `signal` aborts when the caller aborts or the session closes. If
-your layer makes a new request, give it a signal, such as the session's
-(`ctx.session.signal`).
+your layer makes a new request, give it a signal, such as `ctx.session.signal`,
+which aborts when the session closes.
 
 ## Write a layer as a class
 

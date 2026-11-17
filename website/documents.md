@@ -20,7 +20,8 @@ director.document.url; // "https://swapi.hyperjump.io/api/films/1"
 
 A target's `node` is a node of a JSON abstract syntax tree (AST), which has its
 `location` and its `position` in the document. Its `document` is the document
-that the node is in, which is where a reference in the node is followed from.
+that the node is in. When a `jref` function follows a reference in the node,
+the request comes from that document.
 To read a target and step into it, see [Browse documents](browsing.md).
 
 `get` resolves a relative URL the way the session does. In Node.js, that's

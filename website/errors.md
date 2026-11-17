@@ -51,10 +51,10 @@ with `fetch`, so it isn't a network error.
 | `ERR_UNSAFE_REDIRECT` | A redirect led to a scheme that isn't in the session's `redirectSchemes`. For more information, see [Redirects](redirects.md). |
 | `ERR_CACHE_MISS` | The request's `cache` is `"only-if-cached"`, and the HTTP cache doesn't have the response. |
 | `ERR_UNKNOWN_URL_SCHEME` | The transport doesn't have a fetcher for the URL's scheme. For more information, see [Transports](transports.md). |
-| `ERR_METHOD_NOT_SUPPORTED` | A `file:` URL was fetched with a method other than `GET` or `HEAD`. |
+| `ERR_METHOD_NOT_SUPPORTED` | A request for a `file:` URL used a method other than `GET` or `HEAD`. |
 | `ERR_OUTSIDE_ROOT` | A `file:` URL is outside the `file:` scheme's `root`. |
 | `ERR_NOT_A_FILE` | A `file:` URL is a directory, or something else that isn't a file. |
-| `ENOENT`, `EACCES`, and other codes from the filesystem | A file doesn't exist or can't be read. |
+| `ENOENT`, `EACCES`, and other codes from the filesystem | A file doesn't exist, or the session can't read it. |
 | `ENOTFOUND`, `ECONNREFUSED`, and other codes from the runtime | The runtime's `fetch` failed, such as for a host that isn't found or a server that refused the connection. |
 
 A failed request shows in a trace with its message. For more information, see

@@ -31,8 +31,8 @@ which allows the files in the working directory. The browser default is
 `["/"]`, which allows the page's origin. Your own list replaces the default, so
 include `"./"` or `"/"` if you still want to allow those.
 
-A `data:` URL is always allowed because its content is in the URL, so nothing is
-fetched.
+`allowRetrieval` always allows a `data:` URL, because its content is in the URL,
+so the session doesn't fetch anything.
 
 ## Refused URLs
 

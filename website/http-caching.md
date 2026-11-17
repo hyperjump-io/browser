@@ -83,7 +83,7 @@ httpCache({
 | `permanentRedirectLifetime` | Seconds that a 301 or 308 without a lifetime is fresh for. The default is a day. `0` leaves them to `heuristicFraction`. |
 | `heuristicFraction` | The part of the time since `Last-Modified` that a response is fresh for. The default is 0.1. |
 | `maxBodySize` | Responses bigger than this many bytes aren't stored |
-| `onStoreError` | A function that the cache calls when the store fails, with the error, the method that failed (`"match"`, `"put"`, or `"delete"`), and the URL. The request still succeeds, as if the cache had nothing. |
+| `onStoreError` | A function that the cache calls when the store fails, with the error, the method that failed, and the URL. The method is `"match"`, `"put"`, or `"delete"`. The request still succeeds, as if the cache had nothing. |
 
 ## Where the cache keeps responses
 
@@ -145,7 +145,7 @@ anywhere:
 | `headers` | The response's headers, as `[name, value]` pairs |
 | `body` | The response's body, as a `Uint8Array` |
 | `requestHeaders` | The headers of the request it was for, as `[name, value]` pairs, to match a `Vary` |
-| `requestTime`, `responseTime` | When the request was sent and when its response came, in milliseconds since the epoch |
+| `requestTime`, `responseTime` | When the cache sent the request and when its response came, in milliseconds since the epoch |
 
 ## Remove a response
 
