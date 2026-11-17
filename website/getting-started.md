@@ -1,8 +1,9 @@
 # Get started
 
-This tutorial explores a small Star Wars API by following the links between its
-documents. After that works, you point the same code at files on disk and find
-that it works almost exactly the same way.
+This tutorial explores a Star Wars API whose documents refer to each other.
+Starting from a film, you find the names of its characters. You never follow a
+reference yourself because the session does that for you. Then you'll see that
+browsing files on disk works the same way.
 
 ## JRef
 
