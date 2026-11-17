@@ -249,6 +249,10 @@ at any depth, so it follows every reference under the value you start from. On
 an API like this one that could be the whole API, so start a selector with `>`
 unless you mean to search everything.
 
+A selector follows the references it reaches one at a time. To load the
+documents it needs in parallel, see
+[Load references in parallel](references.md#load-references-in-parallel).
+
 ## How deep a walk goes
 
 `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` can't

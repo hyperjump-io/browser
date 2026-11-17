@@ -70,8 +70,9 @@ console.log(trace.waterfall());
 ```
 
 The selector follows each character's reference when it reaches it, so the
-characters load one after another, in the order the film lists them. For more
-information, see [Browse documents](browsing.md#follow-references).
+characters load one after another, in the order the film lists them. To load
+them at once, see
+[Load references in parallel](references.md#load-references-in-parallel).
 
 ## Records
 

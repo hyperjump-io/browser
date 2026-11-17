@@ -77,6 +77,65 @@ const homeworld = written.node.type === "reference"
   : written;
 ```
 
+## Load references in parallel
+
+The `jref` functions follow each reference when they reach it, and wait for it
+before they go on. That's what lets a walk that stops early, or a selector that
+can't match under a value, skip retrieving the rest. It also means the documents
+that a walk reaches load one after another. To load them all at once, find the
+references as they're written, follow them together with `get`, and then walk:
+
+```typescript
+import { get, jrefSelectAll } from "@hyperjump/browser";
+
+const film = await get(session, "https://swapi.hyperjump.io/api/films/1");
+
+const characters = await jrefSelectAll(
+  session,
+  "> [key=characters] > *",
+  film,
+  { reference: "manual" }
+);
+await Promise.all(characters.map((character) =>
+  character.node.type === "reference"
+    ? get(session, character.node.href, { referencedFrom: character })
+    : character
+));
+
+const names = await jrefSelectAll(
+  session,
+  "> [key=characters] > * > [key=name]",
+  film
+);
+```
+
+The session keeps every document it retrieves, so the walk finds each
+character's document without retrieving it again. For more information, see
+[Get documents](documents.md#a-session-keeps-its-documents). In Node.js, the
+default stack limits how many requests go to a server at once, so some of them
+wait for a slot:
+
+```text
+  # url                                          source           stat  0ms                                833ms
+  1 swapi.hyperjump.io/api/films/1               network          200  |█████████████████████                   |
+  2 ↳ swapi.hyperjump.io/api/people/1            network          200  |                     ██████             |
+  3 ↳ swapi.hyperjump.io/api/people/2            network          200  |                     ██████             |
+  4 ↳ swapi.hyperjump.io/api/people/3            network          200  |                     ██████             |
+  5 ↳ swapi.hyperjump.io/api/people/4            network          200  |                     █████              |
+  6 ↳ swapi.hyperjump.io/api/people/5            network          200  |                     ██████             |
+  7 ↳ swapi.hyperjump.io/api/people/6            network          200  |                     ██████             |
+  8 ↳ swapi.hyperjump.io/api/people/7            network          200  |                     ░░░░████████████   |
+  9 ↳ swapi.hyperjump.io/api/people/8            network          200  |                     ░░░░░███████████   |
+...
+```
+
+With the 18 characters of this film, the walk on its own took about two
+seconds, and loading them first took under one. For more information about
+limits and waiting, see [Priorities](priorities.md).
+
+Loading ahead of a walk retrieves everything you find, even what the walk
+wouldn't have reached. Find only the references that you know the walk needs.
+
 ## Carry on past a reference that fails
 
 A walk that can't follow a reference throws what `get` throws, such as a network
