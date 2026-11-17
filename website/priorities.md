@@ -64,24 +64,24 @@ priority.
 ## Change a priority
 
 A priority can change while the request waits, like an image that scrolls into
-view. Pass a `PriorityController`'s signal instead of a string:
+view, or a document that an app loads ahead of time and then needs. Pass a
+`PriorityController`'s signal instead of a string. `session.fetch` and `get`
+both take one:
 
 ```typescript
-import { PriorityController } from "@hyperjump/browser";
+import { PriorityController, get } from "@hyperjump/browser";
 
 const priority = new PriorityController("low");
-const image = session.fetch("https://example.com/photo.jpg", {
+const loading = get(session, "https://example.com/films/2", {
   priority: priority.signal
 });
 
-// Later, when the image scrolls into view
+// Later, when the reader opens the film
 priority.set("high");
 ```
 
-A request that already started keeps its priority.
-
-`get` takes a `priority` too. For more information, see
-[Get documents](documents.md#priority).
+A request that already started keeps its priority. For more information about
+`get`'s priority, see [Get documents](documents.md#priority).
 
 ## Hold back low-priority requests
 

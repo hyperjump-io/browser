@@ -42,6 +42,37 @@ redirected.
 Pass the response that caused a request as `initiator`, such as the page that
 refers to a style sheet. The waterfall puts each request under its initiator.
 
+`get` and the `jref` functions do this for you. Each document that a reference
+leads to is under the document that the reference is in:
+
+```typescript
+import { Hyperjump, Trace, get, jrefSelectAll } from "@hyperjump/browser";
+
+const session = new Hyperjump({
+  allowRetrieval: ["https://swapi.hyperjump.io/"]
+});
+const trace = new Trace(session);
+
+const film = await get(session, "https://swapi.hyperjump.io/api/films/1");
+await jrefSelectAll(session, "> [key=characters] > * > [key=name]", film);
+
+console.log(trace.waterfall());
+```
+
+```text
+  # url                                          source           stat  0ms                               2982ms
+  1 swapi.hyperjump.io/api/films/1               network          200  |█████████                               |
+  2 ↳ swapi.hyperjump.io/api/people/1            network          200  |        █████                           |
+  3 ↳ swapi.hyperjump.io/api/people/2            network          200  |            ███                         |
+  4 ↳ swapi.hyperjump.io/api/people/3            network          200  |              ████                      |
+  5 ↳ swapi.hyperjump.io/api/people/4            network          200  |                 ███                    |
+...
+```
+
+The selector follows each character's reference when it reaches it, so the
+characters load one after another, in the order the film lists them. For more
+information, see [Browse documents](browsing.md#follow-references).
+
 ## Records
 
 A response's record is `responseMeta(response).record`. It has what the request

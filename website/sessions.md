@@ -1,20 +1,24 @@
 # Sessions
 
 A session is a `Hyperjump` instance. Its requests belong together, the way the
-requests of a page load do. You create a session from a configuration and fetch through it:
+requests of a page load do. You create a session from a configuration and
+fetch through it:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";
 
 const session = new Hyperjump({
-  allowRetrieval: ["https://example.com/docs/"]
+  allowRetrieval: ["https://swapi.hyperjump.io/"]
 });
 
-const page = await session.fetch("https://example.com/docs/index.html");
+const url = "https://swapi.hyperjump.io/api/films/1";
+const response = await session.fetch(url);
 ```
 
-`session.fetch` takes the same arguments as `fetch`. For more information about
-stacks, see [Layers](layers.md).
+`session.fetch` takes the same arguments as `fetch`. `get` retrieves documents
+with `session.fetch`, so what this page says about requests applies to the
+documents it gets too. For more information, see [Get documents](documents.md).
+For more information about stacks, see [Layers](layers.md).
 
 Without a stack, a session gets a default stack of its own:
 
@@ -44,9 +48,9 @@ share what the stack keeps, such as an HTTP cache.
 
 A session resolves a relative URL the way a browser does. In a browser, that's
 against the page. In Node.js, it's against the working directory, so
-`session.fetch("docs/index.html")` fetches a file. To resolve a URL that a
+`session.fetch("api/films/1.jref")` fetches a file. To resolve a URL that a
 document refers to, resolve it against the document's URL yourself, such as
-`new URL("main.css", page.url)`.
+`new URL("../people/1", response.url)`. `get` does this for you.
 
 ## Options
 
