@@ -39,7 +39,7 @@ import type { AnyJsonNode } from "../json/jsonast-util.d.ts";
  * @throws A `SyntaxError` if the selector isn't one, or uses something that
  * isn't supported, like `:has()` or `+`.
  * @throws A `RangeError` if `maxDepth` isn't valid.
- * @throws What `get` throws, if it follows a reference.
+ * @throws What `browse` throws, if it follows a reference.
  */
 export const jrefSelect: <S extends DocumentSession, T extends Start<AnyJsonNode>, L extends string, const O extends WalkOptions = WalkOptions>(session: S, selector: L, target: T, options?: O) => Promise<SelectedTarget<WalkTarget<S, StartTarget<T>, O>, L> | undefined>;
 
@@ -56,7 +56,7 @@ export const jrefSelect: <S extends DocumentSession, T extends Start<AnyJsonNode
  * @throws A `SyntaxError` if the selector isn't one, or uses something that
  * isn't supported, like `:has()` or `+`.
  * @throws A `RangeError` if `maxDepth` isn't valid.
- * @throws What `get` throws, if it follows a reference.
+ * @throws What `browse` throws, if it follows a reference.
  */
 export const jrefSelectAll: <S extends DocumentSession, T extends Start<AnyJsonNode>, L extends string, const O extends WalkOptions = WalkOptions>(session: S, selector: L, target: T, options?: O) => Promise<SelectedTarget<WalkTarget<S, StartTarget<T>, O>, L>[]>;
 

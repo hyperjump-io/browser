@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
-import { get } from "./documents.js";
+import { browse } from "./documents.js";
 import { jrefSelect, jrefSelectAll } from "./select.js";
 import { jrefArrayIter, jrefObjectEntries, jrefObjectHas, jrefObjectKeys, jrefObjectValues, jrefStep, jrefValue } from "./step.js";
 import { jrefFind, jrefFindAll, jrefVisit } from "./visit.js";
@@ -26,7 +26,7 @@ describe("stepping", () => {
   describe("jrefStep", () => {
     test("is a property or an item", async () => {
       const { session } = site({ "/a": { foo: [1, 42] } });
-      const foo = await jrefStep(session, "foo", await get(session, "https://a.test/a"));
+      const foo = await jrefStep(session, "foo", await browse(session, "https://a.test/a"));
       expect(toJson((await jrefStep(session, "1", foo)).node)).to.equal(`42`);
     });
 
@@ -35,7 +35,7 @@ describe("stepping", () => {
         "/a": { foo: 42, local: { $ref: "#/foo" }, other: { $ref: "/b#/bar" } },
         "/b": { bar: { $ref: "#/baz" }, baz: "here" }
       });
-      const subject = await get(session, "https://a.test/a");
+      const subject = await browse(session, "https://a.test/a");
       expect(toJson((await jrefStep(session, "local", subject)).node)).to.equal(`42`);
       const other = await jrefStep(session, "other", subject);
       expect(toJson(other.node)).to.equal(`"here"`);
@@ -45,27 +45,27 @@ describe("stepping", () => {
 
     test("a member's target has the document it's in", async () => {
       const { session } = site({ "/a": { foo: 42, other: { $ref: "/b" } }, "/b": 1 });
-      const subject = await get(session, "https://a.test/a");
+      const subject = await browse(session, "https://a.test/a");
       const foo = await jrefStep(session, "foo", subject);
       expect(foo.document, "a member is in the same document").to.equal(subject.document);
       const other = await jrefStep(session, "other", subject);
-      expect(other.document, "what a reference leads to is in its own").to.equal((await get(session, "https://a.test/b")).document);
+      expect(other.document, "what a reference leads to is in its own").to.equal((await browse(session, "https://a.test/b")).document);
     });
 
     test("with reference: \"manual\", a reference isn't followed", async () => {
       const { session, requests } = site({ "/a": { other: { $ref: "/b" } }, "/b": 1 });
-      const subject = await get(session, "https://a.test/a");
+      const subject = await browse(session, "https://a.test/a");
       const other = await jrefStep(session, "other", subject, { reference: "manual" });
       expect(other.node).to.include({ type: "reference", href: "https://a.test/b" });
       expect(other.document).to.equal(subject.document);
       expect(requests).to.eql(["/a"]);
       const href = other.node.type === "reference" ? other.node.href : "";
-      expect(toJson((await get(session, href, { referencedFrom: other })).node), "and it can be followed from").to.equal(`1`);
+      expect(toJson((await browse(session, href, { referencedFrom: other })).node), "and it can be followed from").to.equal(`1`);
     });
 
     test("a property or item that doesn't exist is an error with a code and its location", async () => {
       const { session } = site({ "/a": { foo: [] } });
-      const subject = await get(session, "https://a.test/a");
+      const subject = await browse(session, "https://a.test/a");
       await expect(jrefStep(session, "bar", subject)).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/a#/bar"));
       await expect(jrefStep(session, "0", await jrefStep(session, "foo", subject))).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/a#/foo/0"));
     });
@@ -73,7 +73,7 @@ describe("stepping", () => {
     test("a reference that's followed is caused by the document it's in", async () => {
       const { session } = site({ "/a": { b: { $ref: "/b" } }, "/b": { c: { $ref: "/c" } }, "/c": 1 });
       const trace = new Trace(session);
-      const b = await jrefStep(session, "b", await get(session, "https://a.test/a"));
+      const b = await jrefStep(session, "b", await browse(session, "https://a.test/a"));
       await jrefStep(session, "c", b);
       expect(trace.tree().map(({ record, depth }) => `${depth} ${new URL(record.url).pathname}`)).to.eql(["0 /a", "1 /b", "2 /c"]);
     });
@@ -98,7 +98,7 @@ describe("stepping", () => {
         hrefs.push(/** @type {{ href: string }} */ (/** @type unknown */ (node)).href);
       });
       expect(hrefs).to.eql(["https://a.test/b", "https://a.test/c"]);
-      expect(toJson((await get(session, hrefs[1], { referencedFrom: tree })).node)).to.equal(`2`);
+      expect(toJson((await browse(session, hrefs[1], { referencedFrom: tree })).node)).to.equal(`2`);
     });
 
     test("a tree whose parse failed is browsed for what it has", async () => {
@@ -133,7 +133,7 @@ describe("stepping", () => {
       expect(await jrefFindAll(session, tree, null)).to.eql([]);
       expect(await jrefSelect(session, ":root", tree)).to.equal(undefined);
       expect(await jrefSelectAll(session, "*", tree)).to.eql([]);
-      await expect(get(session, "https://a.test/mine", { referencedFrom: tree })).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#"));
+      await expect(browse(session, "https://a.test/mine", { referencedFrom: tree })).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#"));
     });
 
     test("a root that couldn't be parsed can't be stepped into, and has no value", async () => {
@@ -162,7 +162,7 @@ describe("stepping", () => {
         .parse(`{ "a": }`);
       await expect(jrefStep(session, "a", tree)).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#/a"));
       await expect(jrefStep(session, "a", tree)).rejects.toThrow("There's no value at https://a.test/mine#/a");
-      await expect(get(session, "https://a.test/mine#/a", { referencedFrom: tree })).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#/a"));
+      await expect(browse(session, "https://a.test/mine#/a", { referencedFrom: tree })).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#/a"));
     });
   });
 
@@ -172,7 +172,7 @@ describe("stepping", () => {
         "/bundle": { main: { x: { $ref: "/x" } }, embedded: { "https://a.test/x": { y: { $ref: "/y" } }, "https://a.test/y": "the bundle's" } },
         "/y": "the real one"
       });
-      const bundle = await get(session, "https://a.test/bundle");
+      const bundle = await browse(session, "https://a.test/bundle");
       const x = await jrefStep(session, "x", bundle);
       expect(x.node.location).to.equal("https://a.test/x#");
       expect(x.document, "its document is the container").to.equal(bundle.document);
@@ -185,8 +185,8 @@ describe("stepping", () => {
         "/one": { main: { $ref: "/x" }, embedded: { "https://a.test/x": { y: { $ref: "/y" } }, "https://a.test/y": "one's" } },
         "/two": { main: { $ref: "/x" }, embedded: { "https://a.test/x": { y: { $ref: "/y" } }, "https://a.test/y": "two's" } }
       });
-      const one = await get(session, "https://a.test/one");
-      const two = await get(session, "https://a.test/two");
+      const one = await browse(session, "https://a.test/one");
+      const two = await browse(session, "https://a.test/two");
       expect(toJson((await jrefStep(session, "y", two)).node)).to.equal(`"two's"`);
       expect(toJson((await jrefStep(session, "y", one)).node)).to.equal(`"one's"`);
       expect(requests).to.eql(["/one", "/two"]);
@@ -198,7 +198,7 @@ describe("stepping", () => {
         "/other": 1
       });
       const trace = new Trace(session);
-      await jrefStep(session, "other", await get(session, "https://a.test/bundle"));
+      await jrefStep(session, "other", await browse(session, "https://a.test/bundle"));
       expect(trace.tree().map(({ record, depth }) => `${depth} ${new URL(record.url).pathname}`)).to.eql(["0 /bundle", "1 /other"]);
     });
   });
@@ -207,7 +207,7 @@ describe("stepping", () => {
     test("jrefArrayIter follows the items that are references", async () => {
       const { session } = site({ "/a": [1, { $ref: "/b" }, { $ref: "#/0" }], "/b": 2 });
       const items = [];
-      for await (const item of jrefArrayIter(session, await get(session, "https://a.test/a"))) {
+      for await (const item of jrefArrayIter(session, await browse(session, "https://a.test/a"))) {
         items.push(toJson(item.node));
       }
       expect(items).to.eql(["1", "2", "1"]);
@@ -215,7 +215,7 @@ describe("stepping", () => {
 
     test("jrefObjectValues and jrefObjectEntries follow the values that are references", async () => {
       const { session } = site({ "/a": { a: 1, b: { $ref: "/b" } }, "/b": 2 });
-      const subject = await get(session, "https://a.test/a");
+      const subject = await browse(session, "https://a.test/a");
       const values = [];
       for await (const value of jrefObjectValues(session, subject)) {
         values.push(toJson(value.node));
@@ -231,7 +231,7 @@ describe("stepping", () => {
 
     test("a member is followed when the iterator reaches it, so stopping early retrieves less", async () => {
       const { session, requests } = site({ "/a": [{ $ref: "/b" }, { $ref: "/c" }], "/b": 1, "/c": 2 });
-      for await (const item of jrefArrayIter(session, await get(session, "https://a.test/a"))) {
+      for await (const item of jrefArrayIter(session, await browse(session, "https://a.test/a"))) {
         expect(toJson(item.node)).to.equal(`1`);
         break;
       }
@@ -240,7 +240,7 @@ describe("stepping", () => {
 
     test("with reference: \"manual\", members are as they're written, in the same document", async () => {
       const { session, requests } = site({ "/a": { a: 1, b: { $ref: "/b" } }, "/b": [{ $ref: "/a" }] });
-      const subject = await get(session, "https://a.test/a");
+      const subject = await browse(session, "https://a.test/a");
       const entries = [];
       for await (const [key, value] of jrefObjectEntries(session, subject, { reference: "manual" })) {
         expect(value.document).to.equal(subject.document);
@@ -256,7 +256,7 @@ describe("stepping", () => {
       expect(requests).to.eql(["/a"]);
 
       const items = [];
-      for await (const item of jrefArrayIter(session, await get(session, "https://a.test/b"), { reference: "manual" })) {
+      for await (const item of jrefArrayIter(session, await browse(session, "https://a.test/b"), { reference: "manual" })) {
         items.push(item.node.type);
       }
       expect(items).to.eql(["reference"]);
@@ -265,7 +265,7 @@ describe("stepping", () => {
 
     test("an iterator of the wrong kind of node has nothing", async () => {
       const { session } = site({ "/a": { a: [1] } });
-      const subject = await get(session, "https://a.test/a");
+      const subject = await browse(session, "https://a.test/a");
       expect(await jrefArrayIter(session, subject).next()).to.eql({ value: undefined, done: true });
       const a = await jrefStep(session, "a", subject);
       expect(await jrefObjectValues(session, a).next()).to.eql({ value: undefined, done: true });
@@ -274,7 +274,7 @@ describe("stepping", () => {
 
     test("once it's done, it stays done, and return() ends it", async () => {
       const { session, requests } = site({ "/a": [1, { $ref: "/b" }], "/b": 2 });
-      const subject = await get(session, "https://a.test/a");
+      const subject = await browse(session, "https://a.test/a");
       const items = jrefArrayIter(session, subject);
       const first = await items.next();
       expect(first.done === true ? undefined : toJson(first.value.node)).to.equal(`1`);
@@ -291,21 +291,21 @@ describe("stepping", () => {
 
     test("calls to next() that overlap get the members in order", async () => {
       const { session } = site({ "/a": [{ $ref: "/b" }, 1, { $ref: "/c" }], "/b": "b", "/c": "c" });
-      const items = jrefArrayIter(session, await get(session, "https://a.test/a"));
+      const items = jrefArrayIter(session, await browse(session, "https://a.test/a"));
       const results = await Promise.all([items.next(), items.next(), items.next(), items.next()]);
       expect(results.map(({ value, done }) => done ? "done" : toJson(value.node))).to.eql([`"b"`, `1`, `"c"`, "done"]);
     });
 
     test("a reference that can't be followed rejects, and the iterator is done", async () => {
       const { session } = site({ "/a": [{ $ref: "/missing" }, 1] });
-      const items = jrefArrayIter(session, await get(session, "https://a.test/a"));
+      const items = jrefArrayIter(session, await browse(session, "https://a.test/a"));
       await expect(items.next()).rejects.toThrow(coded("ERR_HTTP_STATUS", "https://a.test/missing"));
       expect(await items.next()).to.eql({ value: undefined, done: true });
     });
 
     test("it's an async iterator, with what an engine gives one", async () => {
       const { session } = site({ "/a": [1, 2] });
-      const items = jrefArrayIter(session, await get(session, "https://a.test/a"));
+      const items = jrefArrayIter(session, await browse(session, "https://a.test/a"));
       expect(items[Symbol.asyncIterator]()).to.equal(items);
       await items[Symbol.asyncDispose]();
       expect(await items.next()).to.eql({ value: undefined, done: true });
@@ -313,7 +313,7 @@ describe("stepping", () => {
 
     test("jrefObjectKeys and jrefObjectHas read property names, which need no following", async () => {
       const { session, requests } = site({ "/a": { a: 1, b: { $ref: "/b" } } });
-      const subject = await get(session, "https://a.test/a");
+      const subject = await browse(session, "https://a.test/a");
       expect([...jrefObjectKeys(subject)]).to.eql(["a", "b"]);
       expect(jrefObjectHas("b", subject)).to.equal(true);
       expect(jrefObjectHas("c", subject)).to.equal(false);
@@ -325,7 +325,7 @@ describe("stepping", () => {
     test("is the value of a string, number, boolean, or null", async () => {
       const { session } = site({ "/a": ["a", 1, true, null] });
       const values = [];
-      for await (const item of jrefArrayIter(session, await get(session, "https://a.test/a"))) {
+      for await (const item of jrefArrayIter(session, await browse(session, "https://a.test/a"))) {
         values.push(jrefValue(item));
       }
       expect(values).to.eql(["a", 1, true, null]);
@@ -333,7 +333,7 @@ describe("stepping", () => {
 
     test("throws for an object or an array, which could have references", async () => {
       const { session } = site({ "/a": { b: [] } });
-      const subject = await get(session, "https://a.test/a");
+      const subject = await browse(session, "https://a.test/a");
       expect(() => jrefValue(subject)).to.throw("Can't get the value of an object at https://a.test/a#. Step into it instead.");
       expect(() => jrefValue(subject)).toThrow(coded("ERR_STRUCTURED_VALUE", "https://a.test/a#"));
       const b = await jrefStep(session, "b", subject);
@@ -344,7 +344,7 @@ describe("stepping", () => {
   describe("walking the tree as it's written", () => {
     test("jrefVisit with reference: \"manual\" visits references without following them", async () => {
       const { session, requests } = site({ "/a": { a: 1, b: { $ref: "/b" } }, "/b": 2 });
-      const subject = await get(session, "https://a.test/a");
+      const subject = await browse(session, "https://a.test/a");
       /** @type string[] */
       const visited = [];
       await jrefVisit(session, subject, (target, key) => {
@@ -357,7 +357,7 @@ describe("stepping", () => {
 
     test("a walk that starts at a reference doesn't follow it", async () => {
       const { session, requests } = site({ "/a": { $ref: "/b" }, "/b": 2 });
-      const start = await get(session, "https://a.test/a", { reference: "manual" });
+      const start = await browse(session, "https://a.test/a", { reference: "manual" });
       /** @type unknown[] */
       const visited = [];
       await jrefVisit(session, start, (target, key) => {
@@ -371,7 +371,7 @@ describe("stepping", () => {
 
     test("jrefFind and jrefFindAll find references by type", async () => {
       const { session, requests } = site({ "/a": { a: { $ref: "/b" }, b: [{ $ref: "/c" }] } });
-      const subject = await get(session, "https://a.test/a");
+      const subject = await browse(session, "https://a.test/a");
       const first = await jrefFind(session, subject, "reference", { reference: "manual" });
       expect(first?.node).to.include({ href: "https://a.test/b" });
       const all = await jrefFindAll(session, subject, "reference", { reference: "manual" });
@@ -382,7 +382,7 @@ describe("stepping", () => {
 
     test("jrefSelect and jrefSelectAll select references", async () => {
       const { session, requests } = site({ "/a": { a: { $ref: "/b" }, b: [{ $ref: "/c" }] } });
-      const subject = await get(session, "https://a.test/a");
+      const subject = await browse(session, "https://a.test/a");
       const a = await jrefSelect(session, "> [key=a]", subject, { reference: "manual" });
       expect(a?.node).to.include({ type: "reference", href: "https://a.test/b" });
       const all = await jrefSelectAll(session, "[type=reference]", subject, { reference: "manual" });
@@ -392,7 +392,7 @@ describe("stepping", () => {
 
     test("without it, a reference is never found, because it's followed", async () => {
       const { session } = site({ "/a": { a: { $ref: "/b" } }, "/b": 2 });
-      const subject = await get(session, "https://a.test/a");
+      const subject = await browse(session, "https://a.test/a");
       expect(await jrefFindAll(session, subject, "reference")).to.eql([]);
     });
   });

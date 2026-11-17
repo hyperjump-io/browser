@@ -21,7 +21,7 @@ declare module "../hyperjump.d.ts" {
   }
 }
 
-/** What `get` needs of a session. A `Hyperjump` is one. */
+/** What `browse` needs of a session. A `Hyperjump` is one. */
 export type DocumentSession = Pick<Hyperjump, "fetch" | "state" | "contextUrl" | "config">;
 
 /** The documents the default media types make */
@@ -55,10 +55,10 @@ export type SessionDocument<S> = S extends { config: infer C }
 /** A node of a session's documents (see {@link SessionDocument}) */
 export type SessionNode<S> = SessionDocument<S> extends infer D ? D extends { children: readonly (infer N)[] } ? N : never : never;
 
-export type GetOptions = {
+export type BrowseOptions = {
   /**
    * How urgent the document is, like `fetchpriority` in browsers. The
-   * references `get` follows have it too. A document that's asked for again
+   * references `browse` follows have it too. A document that's asked for again
    * while it's being retrieved has the most urgent priority of whoever is
    * waiting for it, so a document that's preloaded at `"low"` is fetched
    * sooner once something needs it.
@@ -92,7 +92,7 @@ export type GetOptions = {
 };
 
 /**
- * A node that isn't a reference. `get` follows every reference it reaches
+ * A node that isn't a reference. `browse` follows every reference it reaches
  * unless it's told not to, so the node of the target it returns is one.
  */
 export type FollowedNode<T = JrefNode> = Exclude<T, { type: "reference" }>;
@@ -104,7 +104,7 @@ export type FollowedNode<T = JrefNode> = Exclude<T, { type: "reference" }>;
  * which is what a target has that a node doesn't: a reference in it is
  * followed from there, as `referencedFrom`.
  *
- * `get` and the `jref*` functions return targets, and they take a
+ * `browse` and the `jref*` functions return targets, and they take a
  * document where they take a target, so one isn't made by hand.
  */
 export type Target<D = unknown, N = unknown> = {
@@ -143,10 +143,10 @@ export type StartTarget<T> = T extends Target ? T
 export type SessionTarget<S> = unknown extends SessionNode<S> ? Target : Target<SessionDocument<S>, FollowedNode<SessionNode<S>>>;
 
 /**
- * What `get` returns for its options: a target whose node isn't a
+ * What `browse` returns for its options: a target whose node isn't a
  * reference, unless `reference` is, or could be, `"manual"`
  */
-export type GetTarget<S, O> = unknown extends SessionNode<S> ? Target
+export type BrowseTarget<S, O> = unknown extends SessionNode<S> ? Target
   : O extends { reference: infer R }
     ? "manual" extends R ? Target<SessionDocument<S>, SessionNode<S>> : SessionTarget<S>
     : SessionTarget<S>;
@@ -190,4 +190,4 @@ export type GetTarget<S, O> = unknown extends SessionNode<S> ? Target
  * `chain` of URLs, if following references leads back to one that was
  * already followed.
  */
-export const get: <S extends DocumentSession, const O extends GetOptions = GetOptions>(session: S, url: string | URL, options?: O) => Promise<GetTarget<S, O>>;
+export const browse: <S extends DocumentSession, const O extends BrowseOptions = BrowseOptions>(session: S, url: string | URL, options?: O) => Promise<BrowseTarget<S, O>>;

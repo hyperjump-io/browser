@@ -1,13 +1,13 @@
 // What the step functions' types say about what they return. It's only
 // type-checked.
-import { get, Hyperjump, jrefArrayIter, jrefFind, jrefObjectEntries, jrefObjectHas, jrefObjectKeys, jrefObjectValues, jrefSelect, jrefStep, jrefValue, jrefVisit } from "../index.js";
+import { browse, Hyperjump, jrefArrayIter, jrefFind, jrefObjectEntries, jrefObjectHas, jrefObjectKeys, jrefObjectValues, jrefSelect, jrefStep, jrefValue, jrefVisit } from "../index.js";
 import type { FollowedNode, JrefDocumentNode, JrefMediaTypeDocument, JrefNode, JsonMediaTypeDocument, JsonNode, Target } from "../index.js";
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
 const yes = <T extends true>(_is?: T) => {};
 
 const session = new Hyperjump({ allowRetrieval: [] });
-const target = await get(session, "https://example.com/");
+const target = await browse(session, "https://example.com/");
 
 type Documents = JrefMediaTypeDocument | JsonMediaTypeDocument;
 type Reached = FollowedNode<JrefNode | JsonNode>;
@@ -94,7 +94,7 @@ yes<Equal<NonNullable<typeof foundInTree>["node"]["type"], "json" | "invalid-ref
 const stringInTree = await jrefSelect(session, "> [key=a][jsonType=string]", tree);
 yes<Equal<NonNullable<typeof stringInTree>["node"]["value"], string>>();
 await jrefVisit(session, tree, () => {});
-await get(session, "https://example.com/", { referencedFrom: tree });
+await browse(session, "https://example.com/", { referencedFrom: tree });
 
 // A target's node is a value, so a target of one that couldn't be parsed
 // isn't browsed from

@@ -59,7 +59,7 @@ take the session to follow references with, and a target to start from
     missing from a parse that failed, as the walks do.
   - `jrefStep` to a member that's missing from a parse that failed is an
     `ERR_POINTER_NOT_FOUND`, as it is for a property that doesn't exist,
-    and so is `get` with a fragment that ends at one. `jsonStep` gives
+    and so is `browse` with a fragment that ends at one. `jsonStep` gives
     `undefined` there, but a target is a value's, and a missing value
     isn't a member.
   - They're `@hyperjump/pact`'s async iterators, a `map` over the
@@ -77,7 +77,7 @@ take the session to follow references with, and a target to start from
     `json*` function doesn't take. `jrefStep` into one is an
     `ERR_POINTER_NOT_INDEXABLE`, as `jsonPointerGet` has for a pointer
     that goes into one. `jrefValue` of a missing one is an
-    `ERR_POINTER_NOT_FOUND`, as `get` has, and of an invalid one an
+    `ERR_POINTER_NOT_FOUND`, as `browse` has, and of an invalid one an
     `ERR_INVALID_VALUE`, as `toJson` has.
   - `jrefValue` throws for an object or an array
     (`ERR_STRUCTURED_VALUE`), which `jsonValue` doesn't. Getting their
@@ -101,7 +101,7 @@ take the session to follow references with, and a target to start from
     node an application has from a `json*` function. An application would
     be making targets. The step functions return targets, so nothing is
     made by hand.
-- `reference: "manual"` doesn't follow references, like `get`'s option. A
+- `reference: "manual"` doesn't follow references, like `browse`'s option. A
   step function gives the member as it's written, in the same document,
   which can be a reference. A walk visits or selects the tree as it's
   written, as targets, and doesn't follow the target it starts at, so a
@@ -132,28 +132,28 @@ take the session to follow references with, and a target to start from
     take as many `await`s with a `follow` after every step, and one that's
     left out returns a reference instead of its value.
 - A reference that can't be followed is an error from the function that
-  followed it: what `get` throws (see [Documents](documents.md)). It ends
+  followed it: what `browse` throws (see [Documents](documents.md)). It ends
   a walk, as it ends an iterator. Code that carries on past one, like
-  lint, browses as written and follows each reference with `get`, so it
+  lint, browses as written and follows each reference with `browse`, so it
   has the reference, its document, and why it couldn't be followed, and
   decides for each what to do.
   - Rejected: a walk that gives the visitor the error and goes on, like an
     `onError` option or an error in place of a target. A caller that
     carries on needs each reference as it's written and why it failed,
-    which is what browsing as written and `get` give it, and it doesn't
+    which is what browsing as written and `browse` give it, and it doesn't
     always want what a reference leads to walked. `jrefFind`,
     `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` would find less
     without saying so, which is why `maxDepth` throws too.
-- They follow references with `get`, the same way an application's own
+- They follow references with `browse`, the same way an application's own
   function would, giving it the target the reference is in as
   `referencedFrom` (see [Documents](documents.md)).
 - There's no `jrefPointerGet`. A JSON Pointer in a JRef fragment doesn't go
-  through references, so `get` with a fragment does the one correct thing,
+  through references, so `browse` with a fragment does the one correct thing,
   which is to follow the reference the pointer ends at.
 - A walk that starts at a reference starts at what it leads to, following
   it the way it follows every member. So a target whose node is a
   reference, like one from `jrefStep` with `reference: "manual"`, is
-  passed as it is, and the nodes of the targets `get` and the `jref*`
+  passed as it is, and the nodes of the targets `browse` and the `jref*`
   functions return are followed (`FollowedNode`) unless they're told not
   to. The starting target is followed after the
   selector and the options are checked, so a call that's a mistake doesn't

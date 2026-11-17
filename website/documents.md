@@ -1,19 +1,19 @@
 # Get documents
 
-`get` retrieves a document through a session and gives you a target for the
+`browse` retrieves a document through a session and gives you a target for the
 value its URL identifies: the value's node and the document that the node is
-in. A document can refer to values in other documents, and `get` follows those
+in. A document can refer to values in other documents, and `browse` follows those
 references for you:
 
 ```typescript
-import { Hyperjump, get, jrefValue } from "@hyperjump/browser";
+import { Hyperjump, browse, jrefValue } from "@hyperjump/browser";
 
 const session = new Hyperjump({
   allowRetrieval: ["https://swapi.hyperjump.io/"]
 });
 
 const url = "https://swapi.hyperjump.io/api/films/1#/director";
-const director = await get(session, url);
+const director = await browse(session, url);
 jrefValue(director); // "George Lucas"
 director.document.url; // "https://swapi.hyperjump.io/api/films/1"
 ```
@@ -24,8 +24,8 @@ that the node is in. When a `jref` function follows a reference in the node,
 the request comes from that document.
 To read a target and step into it, see [Browse documents](browsing.md).
 
-`get` resolves a relative URL the way the session does. In Node.js, that's
-against the working directory, so `get(session, "data/film.json")` reads a file.
+`browse` resolves a relative URL the way the session does. In Node.js, that's
+against the working directory, so `browse(session, "data/film.json")` reads a file.
 
 ## What a URL identifies
 
@@ -41,7 +41,7 @@ its `anchors`. For more information, see [Media types](media-types.md#a-plugin).
 In JRef, a fragment is a JSON Pointer to a value in the document:
 
 ```typescript
-const homeworld = await get(
+const homeworld = await browse(
   session,
   "https://swapi.hyperjump.io/api/people/1#/homeworld"
 );
@@ -49,7 +49,7 @@ const homeworld = await get(
 
 The pointer applies to the document as it's written, so it doesn't follow
 references. `#/homeworld` works because the reference is the last thing the
-pointer reaches. `get` follows that reference and gives you the homeworld.
+pointer reaches. `browse` follows that reference and gives you the homeworld.
 `#/homeworld/name` doesn't work because the pointer can't go through the
 reference. It looks for `name` in Luke's document, which doesn't have one. To
 get the name, get the homeworld first. Then select its name. For more
@@ -58,7 +58,7 @@ information, see [Browse documents](browsing.md).
 ## References
 
 A JRef document is JSON with references such as `{ "$ref": "../people/1" }`.
-When the value a URL identifies is a reference, `get` retrieves what it refers
+When the value a URL identifies is a reference, `browse` retrieves what it refers
 to, and it keeps going until it reaches a value that isn't a reference. The
 target's `document` is then the document that value is in, which can be another
 one than the URL's. In a JSON document, an object with a `$ref` property is an
@@ -70,7 +70,7 @@ information, see [What a session can fetch](allow-retrieval.md).
 
 ## A document as it's written
 
-`get` follows a reference unless you tell it not to. With
+`browse` follows a reference unless you tell it not to. With
 `reference: "manual"`, it gives you the target the URL identifies as it's
 written, even when its node is a reference. It works like `redirect: "manual"`
 does for a request. The target's `document` is then always the document at the
@@ -78,7 +78,7 @@ URL, which is how you get a whole document:
 
 ```typescript
 const url = "https://swapi.hyperjump.io/api/films/1";
-const { document } = await get(session, url, { reference: "manual" });
+const { document } = await browse(session, url, { reference: "manual" });
 document.url; // "https://swapi.hyperjump.io/api/films/1"
 document.children[0]; // The root node
 ```
@@ -95,10 +95,10 @@ URL that redirects and the URL it redirects to give you the same document.
 
 ## Priority
 
-`get` takes a `priority`, which works like `fetchpriority` in a browser. The references that `get` follows have the same priority:
+`browse` takes a `priority`, which works like `fetchpriority` in a browser. The references that `browse` follows have the same priority:
 
 ```typescript
-await get(session, url, { priority: "low" });
+await browse(session, url, { priority: "low" });
 ```
 
 If you ask for a document again while the session is still retrieving it, its
@@ -108,18 +108,18 @@ now. For more information, see [Priorities](priorities.md).
 
 ## Options
 
-`get(session, url, options)` takes these options:
+`browse(session, url, options)` takes these options:
 
 | Option | Description |
 | --- | --- |
-| `priority` | `"high"`, `"auto"`, or `"low"`, or a `PriorityController`'s signal. The references that `get` follows have it too. For more information, see [Priority](#priority). |
+| `priority` | `"high"`, `"auto"`, or `"low"`, or a `PriorityController`'s signal. The references that `browse` follows have it too. For more information, see [Priority](#priority). |
 | `reference` | `"follow"`, the default, follows a reference to the value it leads to. `"manual"` gives you the target as it's written. For more information, see [A document as it's written](#a-document-as-its-written). |
-| `referencedFrom` | The target or the document that has the reference you're following. `get` finds a document that it contains without retrieving it. For more information, see [Follow a reference](references.md#follow-a-reference). |
+| `referencedFrom` | The target or the document that has the reference you're following. `browse` finds a document that it contains without retrieving it. For more information, see [Follow a reference](references.md#follow-a-reference). |
 | `initiator` | The response of the request that caused this one, or its record. Only a `file:` document can refer to a `file:` URL. For more information, see [File URLs](file-urls.md#documents-from-the-web). |
 
 ## Errors
 
-`get` rejects with whatever kept it from giving you a value:
+`browse` rejects with whatever kept it from giving you a value:
 
 | Error | When |
 | --- | --- |
@@ -130,13 +130,13 @@ now. For more information, see [Priorities](priorities.md).
 | An `Error` whose `cause.code` is `"ERR_ABSOLUTE_FILE_URL"` | A document that isn't a file says it contains a document with a `file:` URL. For more information, see [Media types](media-types.md#a-plugin). |
 | An `Error` whose `cause.code` is `"ERR_ANCHOR_NOT_FOUND"` | The fragment isn't an anchor of the document or a JSON Pointer. The `cause.anchor` is the fragment. |
 | An `Error` whose `cause.code` starts with `"ERR_POINTER_"` | The fragment doesn't identify a value. For more information, see [Parse JSON and JRef](parsing.md#read-the-ast). |
-| An `Error` whose `cause.code` is `"ERR_REFERENCE_CYCLE"` | Following references leads back to a reference that `get` already followed. The `cause.chain` lists the URLs. |
+| An `Error` whose `cause.code` is `"ERR_REFERENCE_CYCLE"` | Following references leads back to a reference that `browse` already followed. The `cause.chain` lists the URLs. |
 
 Every one of these errors has the URL that failed as its `url`:
 
 ```typescript
 try {
-  await get(session, "https://swapi.hyperjump.io/api/films/99");
+  await browse(session, "https://swapi.hyperjump.io/api/films/99");
 } catch (error) {
   const { cause, url } = error as {
     cause?: { code?: string; status?: number };

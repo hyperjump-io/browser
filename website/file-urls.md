@@ -84,7 +84,7 @@ await session.fetch("file:///home/me/project/secret.json", {
 });
 ```
 
-`get` does this for you. A tree that you parsed yourself, such as one from a
+`browse` does this for you. A tree that you parsed yourself, such as one from a
 [unified pipeline](parsing.md#in-a-unified-pipeline), comes from its URL. In a
 pipeline, that's the file's path or the `url` option. Only a tree whose URL is a
 `file:` URL can refer to a file.

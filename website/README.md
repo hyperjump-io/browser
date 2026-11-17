@@ -7,14 +7,14 @@ retrieves JRef documents over HTTP or from files, and it follows the references
 between them for you:
 
 ```typescript
-import { Hyperjump, get, jrefValue } from "@hyperjump/browser";
+import { Hyperjump, browse, jrefValue } from "@hyperjump/browser";
 
 const session = new Hyperjump({
   allowRetrieval: ["https://swapi.hyperjump.io/"]
 });
 
 const url = "https://swapi.hyperjump.io/api/films/1#/director";
-const director = await get(session, url);
+const director = await browse(session, url);
 jrefValue(director); // "George Lucas"
 ```
 
@@ -30,7 +30,7 @@ it by its URL scheme. On a server, that includes `file:` URLs.
 - Documents
   - [Get documents](documents.md): get a value from a document, and follow references
   - [Browse documents](browsing.md): visit, find, and select the values under a target, following references
-  - [Follow references yourself](references.md): read references as they're written, and follow them with `get`
+  - [Follow references yourself](references.md): read references as they're written, and follow them with `browse`
   - [Media types](media-types.md): formats other than JSON and JRef
   - [Parse JSON and JRef](parsing.md): the parsers and the functions that read their ASTs
 - Retrieval

@@ -42,18 +42,18 @@ redirected.
 Pass the response that caused a request as `initiator`, such as the page that
 refers to a style sheet. The waterfall puts each request under its initiator.
 
-`get` and the `jref` functions do this for you. Each document that a reference
+`browse` and the `jref` functions do this for you. Each document that a reference
 leads to is under the document that the reference is in:
 
 ```typescript
-import { Hyperjump, Trace, get, jrefSelectAll } from "@hyperjump/browser";
+import { Hyperjump, Trace, browse, jrefSelectAll } from "@hyperjump/browser";
 
 const session = new Hyperjump({
   allowRetrieval: ["https://swapi.hyperjump.io/"]
 });
 const trace = new Trace(session);
 
-const film = await get(session, "https://swapi.hyperjump.io/api/films/1");
+const film = await browse(session, "https://swapi.hyperjump.io/api/films/1");
 await jrefSelectAll(session, "> [key=characters] > * > [key=name]", film);
 
 console.log(trace.waterfall());

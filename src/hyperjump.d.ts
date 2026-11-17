@@ -5,7 +5,7 @@ import type { Registry } from "./registry.d.ts";
 
 /**
  * A session's configuration. It's an interface so what's built on a session
- * can add to it, like the `mediaTypes` that `get` parses documents with.
+ * can add to it, like the `mediaTypes` that `browse` parses documents with.
  */
 export interface HyperjumpConfig {
   /**
@@ -112,7 +112,7 @@ export type HyperjumpFetchInit = Omit<RequestInit, "cache" | "priority" | "refer
 export interface Hyperjump<C extends HyperjumpConfig = HyperjumpConfig> {
   /**
    * The configuration it was created with. It can have more than the session
-   * reads, for what's built on a session, like the `mediaTypes` that `get`
+   * reads, for what's built on a session, like the `mediaTypes` that `browse`
    * parses documents with.
    */
   readonly config: Readonly<C>;

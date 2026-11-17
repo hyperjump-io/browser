@@ -42,7 +42,7 @@ you say where it may go. This one can only access the Star Wars API:
 ```typescript
 import {
   Hyperjump,
-  get,
+  browse,
   jrefSelect,
   jrefSelectAll
 } from "@hyperjump/browser";
@@ -55,13 +55,13 @@ const session = new Hyperjump({
 Use the session to get the first film:
 
 ```typescript
-const aNewHope = await get(
+const aNewHope = await browse(
   session,
   "https://swapi.hyperjump.io/api/films/1"
 );
 ```
 
-`get` returns a target for the value that URL identifies. A target has the
+`browse` returns a target for the value that URL identifies. A target has the
 value's `node`, which is a JRef abstract syntax tree (AST) node, and the
 `document` that the node is in. The tree is a
 [unist](https://github.com/syntax-tree/unist) tree, and you find values in it
@@ -152,7 +152,7 @@ to configure anything:
 ```typescript
 const session = new Hyperjump();
 
-const luke = await get(session, "./api/people/1.jref");
+const luke = await browse(session, "./api/people/1.jref");
 const name = await jrefSelect(
   session,
   "> [key=homeworld] > [key=name][jsonType=string]",
@@ -161,9 +161,9 @@ const name = await jrefSelect(
 name?.node.value; // "Tatooine"
 ```
 
-Everything after `get` is the same code you used for the API. Keep in mind that
+Everything after `browse` is the same code you used for the API. Keep in mind that
 `./api/people/1.jref` isn't a path, it's a URL. That means the string you pass
-to `get` is the same regardless of what operating system you're using. A
+to `browse` is the same regardless of what operating system you're using. A
 Windows path such as `C:\api\people\1.jref` doesn't work, not even on Windows,
 because a URL reads `C:` as a scheme.
 

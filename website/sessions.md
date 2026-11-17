@@ -15,7 +15,7 @@ const url = "https://swapi.hyperjump.io/api/films/1";
 const response = await session.fetch(url);
 ```
 
-`session.fetch` takes the same arguments as `fetch`. `get` retrieves documents
+`session.fetch` takes the same arguments as `fetch`. `browse` retrieves documents
 with `session.fetch`, so what this page says about requests applies to the
 documents it gets too. For more information, see [Get documents](documents.md).
 For more information about stacks, see [Layers](layers.md).
@@ -50,7 +50,7 @@ A session resolves a relative URL the way a browser does. In a browser, that's
 against the page. In Node.js, it's against the working directory, so
 `session.fetch("api/films/1.jref")` fetches a file. To resolve a URL that a
 document refers to, resolve it against the document's URL yourself, such as
-`new URL("../people/1", response.url)`. `get` does this for you.
+`new URL("../people/1", response.url)`. `browse` does this for you.
 
 ## Options
 

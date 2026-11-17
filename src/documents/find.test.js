@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { jrefFind, jrefFindAll } from "./visit.js";
-import { get } from "./documents.js";
+import { browse } from "./documents.js";
 import { toJson } from "../json/jsonast-util.js";
 import { coded } from "../test-helpers/errors.js";
 import { jrefSite as site } from "../test-helpers/jref-site.js";
@@ -19,7 +19,7 @@ describe("jrefFind", () => {
 
   test("finds the first node that passes, and retrieves nothing after it", async () => {
     const { session, requests } = site(swapi);
-    const film = await get(session, "https://a.test/films/1");
+    const film = await browse(session, "https://a.test/films/1");
 
     const number = await jrefFind(session, film, { jsonType: "number" });
 
@@ -29,21 +29,21 @@ describe("jrefFind", () => {
 
   test("is undefined if nothing passes", async () => {
     const { session } = site(swapi);
-    const film = await get(session, "https://a.test/films/1");
+    const film = await browse(session, "https://a.test/films/1");
 
     expect(await jrefFind(session, film, "something-else")).to.equal(undefined);
   });
 
   test("can find the node it starts at", async () => {
     const { session } = site(swapi);
-    const film = await get(session, "https://a.test/films/1");
+    const film = await browse(session, "https://a.test/films/1");
 
     expect(await jrefFind(session, film, { jsonType: "object" })).to.equal(film);
   });
 
   test("finds all in the order they're visited, each once", async () => {
     const { session } = site(swapi);
-    const film = await get(session, "https://a.test/films/1");
+    const film = await browse(session, "https://a.test/films/1");
 
     const numbers = await jrefFindAll(session, film, { jsonType: "number" });
 
@@ -53,7 +53,7 @@ describe("jrefFind", () => {
 
   test("a function test gets the key", async () => {
     const { session } = site(swapi);
-    const film = await get(session, "https://a.test/films/1");
+    const film = await browse(session, "https://a.test/films/1");
 
     const names = await jrefFindAll(session, film, (_target, key) => key === "name");
 
@@ -62,14 +62,14 @@ describe("jrefFind", () => {
 
   test("takes a walk's options", async () => {
     const { session } = site(swapi);
-    const film = await get(session, "https://a.test/films/1");
+    const film = await browse(session, "https://a.test/films/1");
 
     await expect(jrefFindAll(session, film, "json", { maxDepth: 1 })).rejects.toThrow(coded("ERR_MAX_DEPTH", "https://a.test/films/1#/characters"));
   });
 
   test("a test that isn't a test is a TypeError", async () => {
     const { session } = site({ "/subject": 1 });
-    const subject = await get(session, "https://a.test/subject");
+    const subject = await browse(session, "https://a.test/subject");
 
     // @ts-expect-error A number isn't a test
     await expect(jrefFind(session, subject, 42)).rejects.toThrow(TypeError);

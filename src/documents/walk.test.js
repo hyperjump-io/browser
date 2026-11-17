@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { get } from "./documents.js";
+import { browse } from "./documents.js";
 import { jrefStep } from "./step.js";
 import { jrefMediaType } from "../media-types/jref-media-type.js";
 import { jrefSelect } from "./select.js";
@@ -26,12 +26,12 @@ describe("following references", () => {
       "/a": { foo: 42, local: { $ref: "#/foo" }, other: { $ref: "/b#/bar" } },
       "/b": { bar: { $ref: "#/baz" }, baz: "here" }
     });
-    const subject = await get(session, "https://a.test/a");
+    const subject = await browse(session, "https://a.test/a");
     expect(toJson(await childNode(session, "local", subject))).to.equal(`42`);
     const other = await child(session, "other", subject);
     expect(toJson(other.node)).to.equal(`"here"`);
     expect(other.node.location).to.equal("https://a.test/b#/baz");
-    expect(other.document, "its document is the one it's in").to.equal((await get(session, "https://a.test/b", { reference: "manual" })).document);
+    expect(other.document, "its document is the one it's in").to.equal((await browse(session, "https://a.test/b", { reference: "manual" })).document);
     expect((await child(session, "foo", subject)).document, "a member that isn't a reference is in the same document").to.equal(subject.document);
     expect(requests).to.eql(["/a", "/b"]);
   });
@@ -43,7 +43,7 @@ describe("following references", () => {
     });
     /** @type string[] */
     const visited = [];
-    await jrefVisit(session, await get(session, "https://a.test/a"), ({ document }, key, parent) => {
+    await jrefVisit(session, await browse(session, "https://a.test/a"), ({ document }, key, parent) => {
       visited.push(`${key} in ${new URL(document.url).pathname} under ${parent && new URL(parent.document.url).pathname}`);
     });
     expect(visited).to.eql(["undefined in /a under undefined", "local in /a under /a", "other in /b under /a", "c in /b under /b"]);
@@ -52,7 +52,7 @@ describe("following references", () => {
   test("a reference that's followed is caused by the document it's in", async () => {
     const { session } = site({ "/a": { b: { $ref: "/b" } }, "/b": { c: { $ref: "/c" } }, "/c": 1 });
     const trace = new Trace(session);
-    await jrefSelect(session, "> [key=b] > [key=c]", await get(session, "https://a.test/a"));
+    await jrefSelect(session, "> [key=b] > [key=c]", await browse(session, "https://a.test/a"));
     expect(trace.tree().map(({ record, depth }) => `${depth} ${new URL(record.url).pathname}`)).to.eql(["0 /a", "1 /b", "2 /c"]);
   });
 
@@ -115,9 +115,9 @@ describe("following references", () => {
         "/bundle": { main: { x: { $ref: "/x" } }, embedded: { "https://a.test/x": { y: { $ref: "/y" } }, "https://a.test/y": "the bundle's" } },
         "/y": "the real one"
       });
-      const x = await child(session, "x", await get(session, "https://a.test/bundle"));
+      const x = await child(session, "x", await browse(session, "https://a.test/bundle"));
       expect(x.node.location).to.equal("https://a.test/x#");
-      expect(x.document, "its document is its container").to.equal((await get(session, "https://a.test/bundle", { reference: "manual" })).document);
+      expect(x.document, "its document is its container").to.equal((await browse(session, "https://a.test/bundle", { reference: "manual" })).document);
       expect(toJson(await childNode(session, "y", x))).to.equal(`"the bundle's"`);
       expect(requests).to.eql(["/bundle"]);
     });
@@ -127,8 +127,8 @@ describe("following references", () => {
         "/one": { main: { $ref: "/x" }, embedded: { "https://a.test/x": { y: { $ref: "/y" } }, "https://a.test/y": "one's" } },
         "/two": { main: { $ref: "/x" }, embedded: { "https://a.test/x": { y: { $ref: "/y" } }, "https://a.test/y": "two's" } }
       });
-      const one = await get(session, "https://a.test/one");
-      const two = await get(session, "https://a.test/two");
+      const one = await browse(session, "https://a.test/one");
+      const two = await browse(session, "https://a.test/two");
       expect(toJson(await childNode(session, "y", two))).to.equal(`"two's"`);
       expect(toJson(await childNode(session, "y", one))).to.equal(`"one's"`);
       expect(requests).to.eql(["/one", "/two"]);
@@ -140,7 +140,7 @@ describe("following references", () => {
         "/other": 1
       });
       const trace = new Trace(session);
-      await child(session, "other", await get(session, "https://a.test/bundle"));
+      await child(session, "other", await browse(session, "https://a.test/bundle"));
       expect(trace.tree().map(({ record, depth }) => `${depth} ${new URL(record.url).pathname}`)).to.eql(["0 /bundle", "1 /other"]);
     });
   });
@@ -170,7 +170,7 @@ const childNode = async (session, key, target) => (await child(session, key, tar
  * @type (session: DocumentSession, url: string, key: string) => Promise<Target<unknown, JrefNode>>
  */
 const memberOf = async (session, url, key) => {
-  const target = /** @type Target<unknown, FollowedNode> */ (await get(session, url));
+  const target = /** @type Target<unknown, FollowedNode> */ (await browse(session, url));
   return /** @type Target<unknown, JrefNode> */ (await jrefStep(session, key, target, { reference: "manual" }));
 };
 

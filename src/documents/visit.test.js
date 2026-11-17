@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { visit } from "unist-util-visit";
 import { CONTINUE, EXIT, SKIP, jrefVisit } from "./visit.js";
-import { get } from "./documents.js";
+import { browse } from "./documents.js";
 import { jrefMediaType } from "../media-types/jref-media-type.js";
 import { toJson } from "../json/jsonast-util.js";
 import { coded } from "../test-helpers/errors.js";
@@ -19,7 +19,7 @@ describe("jrefVisit", () => {
       "/subject": { a: 1, b: [{ $ref: "/external" }, { $ref: "#/a" }] },
       "/external": { c: true }
     });
-    const subject = await get(session, "https://a.test/subject");
+    const subject = await browse(session, "https://a.test/subject");
 
     /** @type [string | undefined, string, string | undefined, number][] */
     const visited = [];
@@ -40,7 +40,7 @@ describe("jrefVisit", () => {
 
   test("doesn't follow the references of a node it skips", async () => {
     const { session, requests } = site({ "/subject": { skipped: { a: { $ref: "/never" } }, b: 2 } });
-    const subject = await get(session, "https://a.test/subject");
+    const subject = await browse(session, "https://a.test/subject");
 
     /** @type string[] */
     const visited = [];
@@ -55,7 +55,7 @@ describe("jrefVisit", () => {
 
   test("stops at EXIT", async () => {
     const { session } = site({ "/subject": [1, 2, 3] });
-    const subject = await get(session, "https://a.test/subject");
+    const subject = await browse(session, "https://a.test/subject");
 
     /** @type string[] */
     const visited = [];
@@ -73,7 +73,7 @@ describe("jrefVisit", () => {
       "/pages/2": { next: { $ref: "3" } },
       "/pages/3": { next: { $ref: "4" } }
     });
-    const subject = await get(session, "https://a.test/pages/1");
+    const subject = await browse(session, "https://a.test/pages/1");
 
     await jrefVisit(session, subject, (_node, _key, _parent, depth) => depth === 1 ? SKIP : CONTINUE);
 
@@ -82,7 +82,7 @@ describe("jrefVisit", () => {
 
   test("visits a reference back to an ancestor without descending into it", async () => {
     const { session } = site({ "/subject": { type: "tree", children: { items: { $ref: "#" } } } });
-    const subject = await get(session, "https://a.test/subject");
+    const subject = await browse(session, "https://a.test/subject");
 
     /** @type string[] */
     const visited = [];
@@ -115,7 +115,7 @@ describe("jrefVisit", () => {
 
   test("visits a value reached through two references each time", async () => {
     const { session } = site({ "/subject": { a: { $ref: "#/shared" }, b: { $ref: "#/shared" }, shared: { x: 1 } } });
-    const subject = await get(session, "https://a.test/subject");
+    const subject = await browse(session, "https://a.test/subject");
 
     /** @type string[] */
     const visited = [];
@@ -135,7 +135,7 @@ describe("jrefVisit", () => {
 
     test("going under a node at maxDepth is an error with a code and the node's location", async () => {
       const { session } = site({ "/subject": { a: { b: { c: 1 } } } });
-      const subject = await get(session, "https://a.test/subject");
+      const subject = await browse(session, "https://a.test/subject");
 
       const visit = jrefVisit(session, subject, () => {}, { maxDepth: 2 });
 
@@ -145,7 +145,7 @@ describe("jrefVisit", () => {
 
     test("a reference under a node at maxDepth isn't followed", async () => {
       const { session, requests } = site(pages);
-      const subject = await get(session, "https://a.test/pages/1");
+      const subject = await browse(session, "https://a.test/pages/1");
 
       // A page's `next` is the next page, so each page is a level deeper
       await expect(jrefVisit(session, subject, () => {}, { maxDepth: 1 })).rejects.toThrow(coded("ERR_MAX_DEPTH", "https://a.test/pages/2#"));
@@ -154,7 +154,7 @@ describe("jrefVisit", () => {
 
     test("it isn't an error when nothing would be walked under a node at maxDepth", async () => {
       const { session } = site({ "/subject": { empty: [], scalar: 1, cycle: { $ref: "#" }, skipped: { a: 1 } } });
-      const subject = await get(session, "https://a.test/subject");
+      const subject = await browse(session, "https://a.test/subject");
 
       let count = 0;
       await jrefVisit(session, subject, (_node, key) => {
@@ -167,14 +167,14 @@ describe("jrefVisit", () => {
 
     test("it's after a test", async () => {
       const { session } = site({ "/subject": { a: { b: 1 } } });
-      const subject = await get(session, "https://a.test/subject");
+      const subject = await browse(session, "https://a.test/subject");
 
       await expect(jrefVisit(session, subject, "json", () => {}, { maxDepth: 1 })).rejects.toThrow(coded("ERR_MAX_DEPTH"));
     });
 
     test("the default is 1000, and Infinity doesn't limit it", async () => {
       const { session } = site(pages);
-      const subject = await get(session, "https://a.test/pages/1");
+      const subject = await browse(session, "https://a.test/pages/1");
 
       await expect(jrefVisit(session, subject, () => {})).rejects.toThrow(coded("ERR_MAX_DEPTH", "https://a.test/pages/1001#"));
 
@@ -189,7 +189,7 @@ describe("jrefVisit", () => {
 
     test.each([[-1], [1.5], [Number.NaN]])("%s is a RangeError", async (maxDepth) => {
       const { session } = site({ "/subject": 1 });
-      const subject = await get(session, "https://a.test/subject");
+      const subject = await browse(session, "https://a.test/subject");
 
       await expect(jrefVisit(session, subject, () => {}, { maxDepth })).rejects.toThrow(RangeError);
     });
@@ -203,7 +203,7 @@ describe("jrefVisit", () => {
 
     test("an object test passes nodes with its properties", async () => {
       const { session } = site(pages);
-      const subject = await get(session, "https://a.test/subject");
+      const subject = await browse(session, "https://a.test/subject");
 
       /** @type number[] */
       const numbers = [];
@@ -217,7 +217,7 @@ describe("jrefVisit", () => {
 
     test("an array test passes nodes that pass any of its tests", async () => {
       const { session } = site(pages);
-      const subject = await get(session, "https://a.test/subject");
+      const subject = await browse(session, "https://a.test/subject");
 
       /** @type (string | boolean)[] */
       const values = [];
@@ -230,7 +230,7 @@ describe("jrefVisit", () => {
 
     test("a string test passes nodes of that type", async () => {
       const { session } = site({ "/subject": [1, 2] });
-      const subject = await get(session, "https://a.test/subject");
+      const subject = await browse(session, "https://a.test/subject");
 
       let json = 0;
       await jrefVisit(session, subject, "json", () => {
@@ -246,7 +246,7 @@ describe("jrefVisit", () => {
 
     test("a function test gets the key and parent", async () => {
       const { session } = site(pages);
-      const subject = await get(session, "https://a.test/subject");
+      const subject = await browse(session, "https://a.test/subject");
 
       /** @type (string | undefined)[] */
       const keys = [];
@@ -259,7 +259,7 @@ describe("jrefVisit", () => {
 
     test("a null or undefined test passes every node, like unist-util-is's", async () => {
       const { session } = site({ "/subject": [1, 2] });
-      const subject = await get(session, "https://a.test/subject");
+      const subject = await browse(session, "https://a.test/subject");
 
       let count = 0;
       await jrefVisit(session, subject, null, () => {
@@ -274,7 +274,7 @@ describe("jrefVisit", () => {
 
     test("an array of tests with an array in it is a TypeError", async () => {
       const { session } = site({ "/subject": 1 });
-      const subject = await get(session, "https://a.test/subject");
+      const subject = await browse(session, "https://a.test/subject");
 
       // @ts-expect-error An array's tests can't be arrays
       await expect(jrefVisit(session, subject, [["json"]], () => {})).rejects.toThrow(TypeError);
@@ -282,7 +282,7 @@ describe("jrefVisit", () => {
 
     test("a test that isn't a test is a TypeError", async () => {
       const { session } = site({ "/subject": 1 });
-      const subject = await get(session, "https://a.test/subject");
+      const subject = await browse(session, "https://a.test/subject");
 
       // @ts-expect-error A number isn't a test
       await expect(jrefVisit(session, subject, 42, () => {})).rejects.toThrow(TypeError);
@@ -293,7 +293,7 @@ describe("jrefVisit", () => {
 describe("unist utilities", () => {
   test("unist-util-visit finds the references in a document as it's written", async () => {
     const { session, requests } = site({ "/doc": { a: { $ref: "#/b" }, b: [{ $ref: "other#/x" }] } });
-    const document = (await get(session, "https://a.test/doc", { reference: "manual" })).document;
+    const document = (await browse(session, "https://a.test/doc", { reference: "manual" })).document;
 
     /** @type string[] */
     const hrefs = [];

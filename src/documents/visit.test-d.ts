@@ -1,12 +1,12 @@
 // What jrefVisit's types say about the nodes it visits. It's only type-checked.
-import { get, Hyperjump, jrefFind, jrefFindAll, jrefVisit } from "../index.js";
+import { browse, Hyperjump, jrefFind, jrefFindAll, jrefVisit } from "../index.js";
 import type { FollowedNode, JrefMediaTypeDocument, JrefNode, JsonMediaTypeDocument, JsonNode, JsonPropertyNameNode, Target } from "../index.js";
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
 const yes = <T extends true>(_is?: T) => {};
 
 const session = new Hyperjump({ allowRetrieval: [] });
-const target = await get(session, "https://example.com/");
+const target = await browse(session, "https://example.com/");
 
 type Reached = Target<JrefMediaTypeDocument | JsonMediaTypeDocument, FollowedNode<JrefNode | JsonNode>>;
 

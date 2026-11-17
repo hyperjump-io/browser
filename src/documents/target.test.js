@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { visit } from "unist-util-visit";
-import { get } from "./documents.js";
+import { browse } from "./documents.js";
 import { jrefStep } from "./step.js";
 import { Hyperjump } from "../hyperjump.js";
 import { fetcher } from "../layers.js";
@@ -22,14 +22,14 @@ const bundled = { "content-type": "application/x-bundle" };
 describe("targets", () => {
   test("a target is the node a URL identifies, with the document it's in", async () => {
     const { session } = site({ "/a": [`{ "b": 1 }`, jref] });
-    const target = await get(session, "https://a.test/a#/b");
+    const target = await browse(session, "https://a.test/a#/b");
     expect(jsonValue(target.node)).to.equal(1);
-    expect(target.document).to.equal((await get(session, "https://a.test/a", { reference: "manual" })).document);
+    expect(target.document).to.equal((await browse(session, "https://a.test/a", { reference: "manual" })).document);
   });
 
   test("with reference: \"manual\", a reference isn't followed, so the target is in the document at the URL", async () => {
     const { session, requests } = site({ "/a": [`{ "$ref": "/b#/c" }`, jref], "/b": [`{ "c": 2 }`, jref] });
-    const target = await get(session, "https://a.test/a", { reference: "manual" });
+    const target = await browse(session, "https://a.test/a", { reference: "manual" });
     expect(target.node).to.include({ type: "reference", href: "https://a.test/b#/c" });
     expect(target.document.url).to.equal("https://a.test/a");
     expect(requests).to.eql(["/a"]);
@@ -37,9 +37,9 @@ describe("targets", () => {
 
   test("a reference is followed, so the document is the one the value is in", async () => {
     const { session } = site({ "/a": [`{ "$ref": "/b#/c" }`, jref], "/b": [`{ "c": 2 }`, jref] });
-    const target = await get(session, "https://a.test/a");
+    const target = await browse(session, "https://a.test/a");
     expect(jsonValue(target.node)).to.equal(2);
-    expect(target.document).to.equal((await get(session, "https://a.test/b", { reference: "manual" })).document);
+    expect(target.document).to.equal((await browse(session, "https://a.test/b", { reference: "manual" })).document);
   });
 
   test("a reference from a target finds what the target's document contains, and the target has the container", async () => {
@@ -47,9 +47,9 @@ describe("targets", () => {
       "/bundle": [bundle({ a: { $ref: "/x" } }, { "https://a.test/x": "the bundle's" }), bundled],
       "/x": [`"the real one"`, jref]
     });
-    const start = await get(session, "https://a.test/bundle");
+    const start = await browse(session, "https://a.test/bundle");
     const [reference] = referencesIn(start);
-    const target = await get(session, reference.href, { referencedFrom: start });
+    const target = await browse(session, reference.href, { referencedFrom: start });
     expect(jsonValue(target.node)).to.equal("the bundle's");
     expect(target.document).to.equal(start.document);
     expect(requests).to.eql(["/bundle"]);
@@ -57,7 +57,7 @@ describe("targets", () => {
 
   test("a target is a node and its document, and so is a target for a node in it", async () => {
     const { session } = site({ "/bundle": [bundle({ a: { $ref: "/x" } }, { "https://a.test/x": 1 }), bundled] });
-    const start = await get(session, "https://a.test/bundle", { reference: "manual" });
+    const start = await browse(session, "https://a.test/bundle", { reference: "manual" });
     const [reference] = referencesIn(start);
     expect(await jrefStep(session, "a", start, { reference: "manual" })).to.eql({ document: start.document, node: reference });
   });
@@ -67,11 +67,11 @@ describe("targets", () => {
     const document = bundleDocument({ a: { $ref: "/x#/b" } }, "https://a.test/mine");
     const mine = { ...document, embedded: { "https://a.test/x": bundleDocument({ b: "mine" }, "https://a.test/x") } };
     const [reference] = referencesIn({ node: mine.children[0] });
-    const target = await get(session, reference.href, { referencedFrom: mine });
+    const target = await browse(session, reference.href, { referencedFrom: mine });
     expect(jsonValue(target.node)).to.equal("mine");
     expect(target.document, "its document is the container").to.equal(mine);
     expect(requests).to.eql([]);
-    expect(jsonValue((await get(session, "https://a.test/x")).node), "and it doesn't answer for the URL").to.equal("the real one");
+    expect(jsonValue((await browse(session, "https://a.test/x")).node), "and it doesn't answer for the URL").to.equal("the real one");
   });
 
   test("a document the session didn't retrieve is judged by its URL, so one from the web can't refer to a file", async () => {
@@ -79,7 +79,7 @@ describe("targets", () => {
     // JRef can't have an absolute file: reference, but a media type that
     // makes references itself can
     const web = linkDocument("file:///project/secret.json", "https://a.test/mine");
-    const following = get(session, web.children[0].href, { referencedFrom: web });
+    const following = browse(session, web.children[0].href, { referencedFrom: web });
     await expect(following).rejects.toThrow(/Only a file: document can refer to a file: URL/);
     await expect(following).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
     expect(requests).to.eql([]);
@@ -103,7 +103,7 @@ describe("targets", () => {
     expect(jsonValue(a.node)).to.equal("mine");
     expect(a.document).to.equal(mine);
     expect(requests).to.eql([]);
-    expect(jsonValue((await get(session, "https://a.test/mine#/b")).node), "and it doesn't answer for the URL").to.equal("the real one");
+    expect(jsonValue((await browse(session, "https://a.test/mine#/b")).node), "and it doesn't answer for the URL").to.equal("the real one");
   });
 
   test("a document is browsed from its root, like a target of it", async () => {
@@ -120,24 +120,24 @@ describe("fragments", () => {
     const { session } = site({});
     const mine = withoutAnchors({ a: 1 }, "https://a.test/mine");
     const from = { ...bundleDocument(null, "https://a.test/from"), embedded: { "https://a.test/mine": mine } };
-    expect(jsonValue((await get(session, "https://a.test/mine#/a", { referencedFrom: from })).node)).to.eql({ a: 1 });
+    expect(jsonValue((await browse(session, "https://a.test/mine#/a", { referencedFrom: from })).node)).to.eql({ a: 1 });
   });
 
   test("an anchor identifies the node at its JSON Pointer, and anything else is a JSON Pointer", async () => {
     const { session } = site({});
     const mine = { ...bundleDocument({ a: { "b c": 1 } }, "https://a.test/mine"), anchors: { "here": "/a/b c", "/a": "" } };
     const from = { ...bundleDocument(null, "https://a.test/from"), embedded: { "https://a.test/mine": mine } };
-    expect(jsonValue((await get(session, "https://a.test/mine#here", { referencedFrom: from })).node)).to.equal(1);
-    expect(jsonValue((await get(session, "https://a.test/mine#/a/b%20c", { referencedFrom: from })).node)).to.equal(1);
-    expect(jsonValue((await get(session, "https://a.test/mine#/a", { referencedFrom: from })).node), "an anchor comes first").to.eql({ a: { "b c": 1 } });
-    expect(jsonValue((await get(session, "https://a.test/mine", { referencedFrom: from })).node)).to.eql({ a: { "b c": 1 } });
+    expect(jsonValue((await browse(session, "https://a.test/mine#here", { referencedFrom: from })).node)).to.equal(1);
+    expect(jsonValue((await browse(session, "https://a.test/mine#/a/b%20c", { referencedFrom: from })).node)).to.equal(1);
+    expect(jsonValue((await browse(session, "https://a.test/mine#/a", { referencedFrom: from })).node), "an anchor comes first").to.eql({ a: { "b c": 1 } });
+    expect(jsonValue((await browse(session, "https://a.test/mine", { referencedFrom: from })).node)).to.eql({ a: { "b c": 1 } });
   });
 
   test("a fragment that isn't an anchor or a JSON Pointer is an error with a code", async () => {
     const { session } = site({});
     const mine = bundleDocument({ a: 1 }, "https://a.test/mine");
     const from = { ...bundleDocument(null, "https://a.test/from"), embedded: { "https://a.test/mine": mine } };
-    const getting = get(session, "https://a.test/mine#nowhere", { referencedFrom: from });
+    const getting = browse(session, "https://a.test/mine#nowhere", { referencedFrom: from });
     await expect(getting).rejects.toThrow("There's no 'nowhere' anchor in 'https://a.test/mine'");
     await expect(getting).rejects.toMatchObject({ cause: { code: "ERR_ANCHOR_NOT_FOUND", anchor: "nowhere" }, url: "https://a.test/mine" });
   });
@@ -146,7 +146,7 @@ describe("fragments", () => {
     const { session } = site({});
     const contained = { ...bundleDocument({ a: 1 }, "https://a.test/x"), anchors: { here: "/a" } };
     const mine = { ...withoutAnchors(null, "https://a.test/mine"), embedded: { "https://a.test/x": contained } };
-    expect(jsonValue((await get(session, "https://a.test/x#here", { referencedFrom: mine })).node)).to.equal(1);
+    expect(jsonValue((await browse(session, "https://a.test/x#here", { referencedFrom: mine })).node)).to.equal(1);
   });
 });
 

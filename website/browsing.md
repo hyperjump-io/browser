@@ -1,17 +1,17 @@
 # Browse documents
 
-Browsing is reading a value and the values under it. `get` gives you a target
+Browsing is reading a value and the values under it. `browse` gives you a target
 for the value a URL identifies, and from there the `jref` functions step into,
 visit, find, and select the values under it. They take the session so they can follow
 the references they reach.
 
 ```typescript
-import { Hyperjump, get } from "@hyperjump/browser";
+import { Hyperjump, browse } from "@hyperjump/browser";
 
 const session = new Hyperjump({
   allowRetrieval: ["https://swapi.hyperjump.io/"]
 });
-const luke = await get(session, "https://swapi.hyperjump.io/api/people/1");
+const luke = await browse(session, "https://swapi.hyperjump.io/api/people/1");
 ```
 
 ## Targets
@@ -71,10 +71,10 @@ information, see
 [Follow references yourself](references.md#read-the-tree-as-its-written). If you
 pass a target whose node is a reference to a `jref` function, it starts from
 the value the reference leads to. Without `reference: "manual"`, the node of a
-target from `get` or a `jref` function is never a reference.
+target from `browse` or a `jref` function is never a reference.
 
 A reference can lead to a document in any of the session's media types. So in
-TypeScript, the node of a target from `get` or a `jref` function is a node of
+TypeScript, the node of a target from `browse` or a `jref` function is a node of
 any of them. A session with the default media types gives JRef and JSON nodes.
 If you add a
 media type with nodes of its own, check a node's `type` to tell which media
@@ -197,7 +197,7 @@ does. `jrefSelectAll` gives you all of them in the order it reaches them.
 ```typescript
 import { jrefSelect, jrefSelectAll } from "@hyperjump/browser";
 
-const film = await get(session, "https://swapi.hyperjump.io/api/films/1");
+const film = await browse(session, "https://swapi.hyperjump.io/api/films/1");
 
 const director = await jrefSelect(session, "> [key=director]", film);
 const names = await jrefSelectAll(
@@ -309,6 +309,6 @@ Each `target` can also be a document, which starts at its root.
 [Follow references yourself](references.md#read-the-tree-as-its-written). |
 | `maxDepth` | How many levels below the target a walk can go. The default is 1000. Only `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it. For more information, see [How deep a walk goes](#how-deep-a-walk-goes). |
 
-When these functions follow a reference, they throw what `get` throws. For
+When these functions follow a reference, they throw what `browse` throws. For
 more information, see [Get documents](documents.md#errors). For the errors of
 their own, see [Errors](errors.md#other-errors).

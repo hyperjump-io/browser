@@ -37,7 +37,7 @@ JSON.
 
 The plugin's type says what its documents' nodes are, which here is
 `JsonNode`. A reference can lead to a document in any of a session's media
-types, so `get` and the `jref` functions return a target whose node is a node of
+types, so `browse` and the `jref` functions return a target whose node is a node of
 any of them. With this session, that's a JRef node or a JSON node. If a
 plugin's type is only `MediaTypePlugin`, TypeScript doesn't know what the
 session's documents and nodes are, and they're `unknown`.
@@ -51,7 +51,7 @@ A plugin is a plain object:
 | `mediaType` | The media type, such as `application/yaml`, or a range such as `text/*` |
 | `extensions` | The names that files of this media type have. An extension starts with `.`, such as `.yaml`. A whole filename starts with `/`, such as `/.bowerrc`. |
 | `quality` | The media type's quality in the `Accept` header, from 0 to 1. Without it, servers take the quality to be 1. |
-| `parse(response, session)` | Parses a response into a document. The response's `url` is the document's URL, and the document it returns has that `url`. If the response can't be a document, it throws. The session is for a format that needs other documents to parse one, which it gets with `get(session, url, { initiator: response, reference: "manual" })`. |
+| `parse(response, session)` | Parses a response into a document. The response's `url` is the document's URL, and the document it returns has that `url`. If the response can't be a document, it throws. The session is for a format that needs other documents to parse one, which it gets with `browse(session, url, { initiator: response, reference: "manual" })`. |
 
 If a document contains other documents that have URLs of their own, return them
 as the document's `embedded` property: an object of documents by their URLs.
@@ -59,7 +59,7 @@ A reference in the document, or in one of the documents it contains, finds them
 there, and the session doesn't retrieve them. A reference in any other document
 doesn't find them, so a document can't change what other documents get. Only
 a document from a file can contain a document with a `file:` URL. The session
-can't use any other document that does, and `get` rejects with an error whose
+can't use any other document that does, and `browse` rejects with an error whose
 `cause.code` is `"ERR_ABSOLUTE_FILE_URL"`.
 
 A document says what its fragments identify with its `anchors` property: an
@@ -69,7 +69,7 @@ A fragment that isn't in `anchors` is a JSON Pointer. A document without
 document. For a format whose fragments are only JSON Pointers, as JRef's are,
 return `anchors: {}`.
 
-For `get` to find values in a document and follow its references, the
+For `browse` to find values in a document and follow its references, the
 document's root has to be a JSON AST node. `fromJs` makes one from a JavaScript
 value. A reference is a node whose `type` is `"reference"`, with the URL it
 refers to as its `href`.
@@ -99,7 +99,7 @@ file's name. The longest extension that matches wins, so a plugin for
 `.schema.json` gets `person.schema.json` and the JSON plugin gets
 `person.json`.
 
-If no plugin matches, `get` rejects with an error whose `cause.code` is
+If no plugin matches, `browse` rejects with an error whose `cause.code` is
 `"ERR_UNSUPPORTED_MEDIA_TYPE"`.
 
 ## The `Accept` header

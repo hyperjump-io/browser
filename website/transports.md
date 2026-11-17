@@ -25,7 +25,7 @@ import {
   Hyperjump,
   defaultTransport,
   fetcher,
-  get,
+  browse,
   networkError,
   setResponseMeta
 } from "@hyperjump/browser";
@@ -54,7 +54,7 @@ const session = new Hyperjump({
   allowRetrieval: ["mem:/"]
 });
 
-const name = await get(session, "mem:/person#/name");
+const name = await browse(session, "mem:/person#/name");
 ```
 
 A fetcher works the way `fetch` does:

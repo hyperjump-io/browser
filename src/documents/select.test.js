@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { jrefSelect, jrefSelectAll } from "./select.js";
-import { get } from "./documents.js";
+import { browse } from "./documents.js";
 import { jrefMediaType } from "../media-types/jref-media-type.js";
 import { toJson } from "../json/jsonast-util.js";
 import { coded } from "../test-helpers/errors.js";
@@ -25,7 +25,7 @@ describe("jrefSelect", () => {
 
   test("a child selector doesn't follow what its key rules out", async () => {
     const { session, requests } = site(swapi);
-    const film = await get(session, "https://a.test/films/1");
+    const film = await browse(session, "https://a.test/films/1");
 
     const director = await jrefSelect(session, ":root > [key=director]", film);
 
@@ -35,7 +35,7 @@ describe("jrefSelect", () => {
 
   test("a selector that starts with '>' starts at the node", async () => {
     const { session } = site(swapi);
-    const film = await get(session, "https://a.test/films/1");
+    const film = await browse(session, "https://a.test/films/1");
 
     const director = await jrefSelect(session, "> [key=director]", film);
 
@@ -44,7 +44,7 @@ describe("jrefSelect", () => {
 
   test("a path follows the references on it and nothing else", async () => {
     const { session, requests } = site(swapi);
-    const film = await get(session, "https://a.test/films/1");
+    const film = await browse(session, "https://a.test/films/1");
 
     const names = await jrefSelectAll(session, "> [key=characters] > * > [key=name]", film);
 
@@ -54,7 +54,7 @@ describe("jrefSelect", () => {
 
   test("a descendant selector follows everything, and a node is selected once", async () => {
     const { session, requests } = site(swapi);
-    const film = await get(session, "https://a.test/films/1");
+    const film = await browse(session, "https://a.test/films/1");
 
     const names = await jrefSelectAll(session, "[key=name]", film);
 
@@ -64,7 +64,7 @@ describe("jrefSelect", () => {
 
   test("jrefSelect stops at the first match", async () => {
     const { session, requests } = site(swapi);
-    const film = await get(session, "https://a.test/films/1");
+    const film = await browse(session, "https://a.test/films/1");
 
     const name = await jrefSelect(session, "[key=name]", film);
 
@@ -74,7 +74,7 @@ describe("jrefSelect", () => {
 
   test("types and attributes", async () => {
     const { session } = site({ "/subject": { "a": 42, "b": [true, "x"], "c d": null } });
-    const subject = await get(session, "https://a.test/subject");
+    const subject = await browse(session, "https://a.test/subject");
 
     /** @type (selector: string) => Promise<string[]> */
     const selected = async (selector) => (await jrefSelectAll(session, selector, subject)).map(({ node }) => toJson(node));
@@ -91,7 +91,7 @@ describe("jrefSelect", () => {
 
   test("a selector list selects in the order nodes are reached", async () => {
     const { session } = site(swapi);
-    const film = await get(session, "https://a.test/films/1");
+    const film = await browse(session, "https://a.test/films/1");
 
     const selected = await jrefSelectAll(session, "> [key=director], > [key=title]", film);
 
@@ -100,7 +100,7 @@ describe("jrefSelect", () => {
 
   test(":root is the node", async () => {
     const { session } = site({ "/subject": [1] });
-    const subject = await get(session, "https://a.test/subject");
+    const subject = await browse(session, "https://a.test/subject");
 
     expect(await jrefSelect(session, ":root", subject)).to.equal(subject);
     expect(await jrefSelect(session, ":scope", subject)).to.equal(subject);
@@ -109,7 +109,7 @@ describe("jrefSelect", () => {
 
   test("a reference back to an ancestor is walked again for what it could match that the ancestor couldn't", async () => {
     const { session } = site({ "/subject": { y: 1, x: { $ref: "#" } } });
-    const subject = await get(session, "https://a.test/subject");
+    const subject = await browse(session, "https://a.test/subject");
 
     const descendant = await jrefSelectAll(session, "[key=x] [key=y]", subject);
     expect(descendant.map(({ node }) => node.location)).to.eql(["https://a.test/subject#/y"]);
@@ -131,7 +131,7 @@ describe("jrefSelect", () => {
 
   test("a reference back to an ancestor is selected but not walked again", async () => {
     const { session } = site({ "/subject": { child: { $ref: "#" } } });
-    const subject = await get(session, "https://a.test/subject");
+    const subject = await browse(session, "https://a.test/subject");
 
     expect(await jrefSelectAll(session, "[key=child]", subject)).to.eql([subject]);
   });
@@ -145,7 +145,7 @@ describe("jrefSelect", () => {
 
     test("a selector that could match under a node at maxDepth is an error", async () => {
       const { session, requests } = site(pages);
-      const subject = await get(session, "https://a.test/pages/1");
+      const subject = await browse(session, "https://a.test/pages/1");
 
       await expect(jrefSelectAll(session, "[key=next]", subject, { maxDepth: 1 })).rejects.toThrow(coded("ERR_MAX_DEPTH", "https://a.test/pages/2#"));
       expect(requests).to.eql(["/pages/1", "/pages/2"]);
@@ -153,7 +153,7 @@ describe("jrefSelect", () => {
 
     test("a selector that can't match under a node at maxDepth isn't", async () => {
       const { session, requests } = site(pages);
-      const subject = await get(session, "https://a.test/pages/1");
+      const subject = await browse(session, "https://a.test/pages/1");
 
       const next = await jrefSelectAll(session, "> [key=next]", subject, { maxDepth: 1 });
 
@@ -163,7 +163,7 @@ describe("jrefSelect", () => {
 
     test("a maxDepth that isn't valid is a RangeError", async () => {
       const { session } = site({ "/subject": 1 });
-      const subject = await get(session, "https://a.test/subject");
+      const subject = await browse(session, "https://a.test/subject");
 
       await expect(jrefSelect(session, ":root", subject, { maxDepth: -1 })).rejects.toThrow(RangeError);
     });
@@ -185,7 +185,7 @@ describe("jrefSelect", () => {
     ["[key^=a]"]
   ])("'%s' is a SyntaxError", async (selector) => {
     const { session, requests } = site({ "/subject": 1 });
-    const subject = await get(session, "https://a.test/subject");
+    const subject = await browse(session, "https://a.test/subject");
 
     await expect(jrefSelect(session, selector, subject)).rejects.toThrow(SyntaxError);
     expect(requests).to.eql(["/subject"]);
@@ -193,7 +193,7 @@ describe("jrefSelect", () => {
 
   test("a SyntaxError says where and what's supported", async () => {
     const { session } = site({ "/subject": 1 });
-    const subject = await get(session, "https://a.test/subject");
+    const subject = await browse(session, "https://a.test/subject");
 
     await expect(jrefSelect(session, "a + b", subject)).rejects.toThrow("Invalid selector 'a + b' at 2: '+' isn't supported. The combinators are ' ' and '>'");
     await expect(jrefSelect(session, ":has(a)", subject)).rejects.toThrow("':has' isn't supported. The pseudo-classes are ':root' and ':scope'");

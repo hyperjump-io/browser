@@ -5,7 +5,7 @@ bundled with it. A session answers them from the registry instead of
 fetching them:
 
 ```typescript
-import { Hyperjump, get, registry } from "@hyperjump/browser";
+import { Hyperjump, browse, registry } from "@hyperjump/browser";
 
 const session = new Hyperjump({
   registry: registry({
@@ -16,7 +16,7 @@ const session = new Hyperjump({
   })
 });
 
-const name = await get(session, "https://example.com/person.json#/name");
+const name = await browse(session, "https://example.com/person.json#/name");
 ```
 
 The session asks the registry before it checks

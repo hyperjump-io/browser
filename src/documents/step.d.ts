@@ -5,7 +5,7 @@ import type { AnyJsonNode, JsonMemberValue, JsonTypeValue } from "../json/jsonas
 /** Options for the functions that step into a target one level */
 export type StepOptions = {
   /**
-   * What to do with a member that's a reference, like `get`'s option.
+   * What to do with a member that's a reference, like `browse`'s option.
    * `"follow"`, the default, follows it, and any reference that leads to,
    * until there's a value. `"manual"` doesn't, so the member's target is
    * the node as it's written, in the same document.
@@ -38,7 +38,7 @@ export type MemberTarget<S, T, O = StepOptions> = T extends Target<infer D, infe
  * same error if its value is missing from a parse that failed, where
  * `jsonStep` gives `undefined`, because a target is a value's. A document
  * whose root couldn't be parsed is an `ERR_POINTER_NOT_INDEXABLE`.
- * @throws What `get` throws, if it follows a reference.
+ * @throws What `browse` throws, if it follows a reference.
  */
 export const jrefStep: <S extends DocumentSession, T extends Start<AnyJsonNode>, const O extends StepOptions = StepOptions>(session: S, key: string, target: T, options?: O) => Promise<MemberTarget<S, StartTarget<T>, O>>;
 
@@ -49,7 +49,7 @@ export const jrefStep: <S extends DocumentSession, T extends Start<AnyJsonNode>,
  * missing from a parse that failed is left out. It has no items if the
  * node isn't an array.
  *
- * @throws What `get` throws, from `next()`, if it follows a reference.
+ * @throws What `browse` throws, from `next()`, if it follows a reference.
  */
 export const jrefArrayIter: <S extends DocumentSession, T extends Start<AnyJsonNode>, const O extends StepOptions = StepOptions>(session: S, target: T, options?: O) => AsyncIteratorObject<MemberTarget<S, StartTarget<T>, O>, undefined, unknown>;
 

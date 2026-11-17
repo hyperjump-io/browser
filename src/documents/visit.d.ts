@@ -157,7 +157,7 @@ type HasProperties<N, O> = N extends unknown
  * @throws An `Error` whose `cause.code` is `ERR_MAX_DEPTH` if it would go
  * more than {@link WalkOptions.maxDepth} levels below the node. The cause
  * has the `maxDepth`, and its `url` is the node it would go under.
- * @throws What `get` throws, if it follows a reference.
+ * @throws What `browse` throws, if it follows a reference.
  * @throws A `TypeError` if a test isn't `null`, `undefined`, a string, an
  * object, a function, or an array of strings, objects, and functions.
  * @throws A `RangeError` if `maxDepth` isn't a whole number that isn't
@@ -212,7 +212,7 @@ export type WalkOptions = {
   maxDepth?: number;
 
   /**
-   * What to do with references, like `get`'s option. `"follow"`, the
+   * What to do with references, like `browse`'s option. `"follow"`, the
    * default, follows each one a walk reaches, and the one it starts at.
    * `"manual"` doesn't follow any, so the walk is of the tree as it's
    * written, as targets in the same document, and a reference is a

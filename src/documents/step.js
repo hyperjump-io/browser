@@ -155,7 +155,7 @@ export const jrefObjectKeys = (from) => jsonObjectKeys(/** @type Walked */ (star
 export const jrefValue = /** @type typeof API.jrefValue */ ((/** @type From */ from) => {
   const node = /** @type Walked */ (startOf(from).node);
   // A document's root can be a value that couldn't be parsed. A missing
-  // one isn't there, as it isn't for `get`, and an invalid one has no
+  // one isn't there, as it isn't for `browse`, and an invalid one has no
   // value to give, as it has no JSON for `toJson`.
   if (node.type === "json-missing") {
     throw missingValueError(node.location);

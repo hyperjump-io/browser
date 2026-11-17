@@ -1,4 +1,4 @@
-import { get } from "./documents.js";
+import { browse } from "./documents.js";
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
 import { MAX_DEPTH } from "../json/json-parser.js";
@@ -27,9 +27,9 @@ import { jsonArrayIter, jsonObjectEntries } from "../json/jsonast-util.js";
 
 /**
  * The target of a node in a target's document. A reference's is what it
- * leads to, which `get` finds from the document the reference is in, and
+ * leads to, which `browse` finds from the document the reference is in, and
  * follows to a value. Any other node is in the same document. It uses
- * `get`, so the browsing functions are built on a session the way an
+ * `browse`, so the browsing functions are built on a session the way an
  * application's would be.
  *
  * The functions take the type of the target they're given, whose node can
@@ -46,7 +46,7 @@ import { jsonArrayIter, jsonObjectEntries } from "../json/jsonast-util.js";
 export const follow = (session, from, node, manual = false) => {
   const reference = /** @type JrefNode */ (node);
   if (!manual && reference.type === "reference") {
-    return /** @type Promise<WalkedTarget> */ (get(session, reference.href, { referencedFrom: from }));
+    return /** @type Promise<WalkedTarget> */ (browse(session, reference.href, { referencedFrom: from }));
   }
 
   // The target a walk starts at is the one that was given. Any other node

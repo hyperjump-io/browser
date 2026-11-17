@@ -73,7 +73,7 @@ Rejected:
   either.
 - Refusing a `file:` URL without an initiator. The application's own
   requests have none, and they're how it reads its files.
-- Checking a document without a record in `get`, before it fetches. It
+- Checking a document without a record in `browse`, before it fetches. It
   sees the URL that's asked for, but not where a redirect leads or a
   layer that answers a URL like `urn:` with a file.
 - A record made up for a document the session didn't retrieve. A trace

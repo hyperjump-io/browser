@@ -7,26 +7,26 @@ references in a tree that the session didn't retrieve. These examples use this
 session:
 
 ```typescript
-import { Hyperjump, get } from "@hyperjump/browser";
+import { Hyperjump, browse } from "@hyperjump/browser";
 
 const session = new Hyperjump({
   allowRetrieval: ["https://swapi.hyperjump.io/"]
 });
-const luke = await get(session, "https://swapi.hyperjump.io/api/people/1");
+const luke = await browse(session, "https://swapi.hyperjump.io/api/people/1");
 ```
 
 ## Read the tree as it's written
 
 Every `jref` function takes `reference: "manual"` as its last argument, like
-`get` does. With it, the function doesn't follow references, so it reads the
+`browse` does. With it, the function doesn't follow references, so it reads the
 tree as it's written and a reference is a target like any other. This finds
 every reference in a document, each with the document it's in:
 
 ```typescript
-import { get, jrefFindAll } from "@hyperjump/browser";
+import { browse, jrefFindAll } from "@hyperjump/browser";
 
 const url = "https://swapi.hyperjump.io/api/films/1";
-const film = await get(session, url, { reference: "manual" });
+const film = await browse(session, url, { reference: "manual" });
 const references = await jrefFindAll(session, film, "reference", {
   reference: "manual"
 });
@@ -61,19 +61,19 @@ const written = await jrefStep(session, "homeworld", luke, {
 const homeworld = await jrefSelect(session, ":scope", written);
 ```
 
-Code that doesn't walk can follow a reference with `get`. Pass the reference's
+Code that doesn't walk can follow a reference with `browse`. Pass the reference's
 target as `referencedFrom` so the session knows which document the reference
-is in. That document causes the request, and `get` finds a document that it
+is in. That document causes the request, and `browse` finds a document that it
 contains without retrieving it:
 
 ```typescript
-import { get, jrefStep } from "@hyperjump/browser";
+import { browse, jrefStep } from "@hyperjump/browser";
 
 const written = await jrefStep(session, "homeworld", luke, {
   reference: "manual"
 });
 const homeworld = written.node.type === "reference"
-  ? await get(session, written.node.href, { referencedFrom: written })
+  ? await browse(session, written.node.href, { referencedFrom: written })
   : written;
 ```
 
@@ -83,12 +83,12 @@ The `jref` functions follow each reference when they reach it, and wait for it
 before they go on. That's what lets a walk that stops early, or a selector that
 can't match under a value, skip retrieving the rest. It also means the documents
 that a walk reaches load one after another. To load them all at once, find the
-references as they're written, follow them together with `get`, and then walk:
+references as they're written, follow them together with `browse`, and then walk:
 
 ```typescript
-import { get, jrefSelectAll } from "@hyperjump/browser";
+import { browse, jrefSelectAll } from "@hyperjump/browser";
 
-const film = await get(session, "https://swapi.hyperjump.io/api/films/1");
+const film = await browse(session, "https://swapi.hyperjump.io/api/films/1");
 
 const characters = await jrefSelectAll(
   session,
@@ -98,7 +98,7 @@ const characters = await jrefSelectAll(
 );
 await Promise.all(characters.map((character) =>
   character.node.type === "reference"
-    ? get(session, character.node.href, { referencedFrom: character })
+    ? browse(session, character.node.href, { referencedFrom: character })
     : character
 ));
 
@@ -138,13 +138,13 @@ wouldn't have reached. Find only the references that you know the walk needs.
 
 ## Carry on past a reference that fails
 
-A walk that can't follow a reference throws what `get` throws, such as a network
+A walk that can't follow a reference throws what `browse` throws, such as a network
 error or an `ERR_HTTP_STATUS` error. To report every broken reference instead of
 stopping at the first, find the references as they're written, and follow each
-one with `get`:
+one with `browse`:
 
 ```typescript
-import { get, jrefFindAll } from "@hyperjump/browser";
+import { browse, jrefFindAll } from "@hyperjump/browser";
 
 const references = await jrefFindAll(session, film, "reference", {
   reference: "manual"
@@ -152,7 +152,7 @@ const references = await jrefFindAll(session, film, "reference", {
 
 for (const reference of references) {
   try {
-    await get(session, reference.node.href, { referencedFrom: reference });
+    await browse(session, reference.node.href, { referencedFrom: reference });
   } catch (error) {
     console.log(`${reference.node.location}: ${(error as Error).message}`);
   }
@@ -164,7 +164,7 @@ document causes the request.
 
 ## Browse a tree you parsed
 
-A document that you parsed yourself isn't one the session retrieved, so `get`
+A document that you parsed yourself isn't one the session retrieved, so `browse`
 never gave you a target for it. The `jref` functions take the document where
 they take a target and browse from its root, the way a unist utility takes the
 tree. A reference in the document finds the document itself and the documents
@@ -191,7 +191,7 @@ pass the tree as `referencedFrom`:
 
 ```typescript
 import {
-  get,
+  browse,
   type Hyperjump,
   type JrefDocumentNode
 } from "@hyperjump/browser";
@@ -205,7 +205,7 @@ const followReferences = (session: Hyperjump) =>
     });
 
     for (const href of hrefs) {
-      await get(session, href, { referencedFrom: tree });
+      await browse(session, href, { referencedFrom: tree });
     }
   };
 ```

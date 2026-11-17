@@ -1,12 +1,12 @@
 # Documents (`src/documents/`)
 
-`get` retrieves a document through a session, parses it, and returns the
+`browse` retrieves a document through a session, parses it, and returns the
 target a URL identifies in it, following references. It's what makes this
 a hypermedia browser, and the stack is how it retrieves.
 
 - A target is what a URL identifies: a node and the document it's in
   (`Target`, `{ document, node }`). A URL names a document, and its
-  fragment names a part of it. `get` finds both, and a target is both.
+  fragment names a part of it. `browse` finds both, and a target is both.
   - A node isn't enough to go on from. A reference only means something in
     the document it's in, which says what the reference finds before
     anything is retrieved, what caused the request, and whether it can
@@ -16,7 +16,7 @@ a hypermedia browser, and the stack is how it retrieves.
     one contains has its container, because the contained document is
     found from the container by the node's location, and the container
     can't be found from the contained document.
-  - It's a plain value, and nothing makes one by hand. `get` returns
+  - It's a plain value, and nothing makes one by hand. `browse` returns
     one, and the browsing functions return one for each member they step
     into or walk to (see [Browsing](browsing.md)).
   - Where a target is taken, so is a document, which stands for its
@@ -32,10 +32,10 @@ a hypermedia browser, and the stack is how it retrieves.
     node is.
   - A document with nothing in it has a root that's missing, which isn't
     a value, so there's no target of it: a walk of it visits nothing, and
-    `get` for it is an `ERR_POINTER_NOT_FOUND`. A member that's missing
+    `browse` for it is an `ERR_POINTER_NOT_FOUND`. A member that's missing
     isn't one either (see [Browsing](browsing.md)).
     - Rejected: visiting the missing root, as the node the walk was
-      started at. A walk would give a target that `get` says isn't
+      started at. A walk would give a target that `browse` says isn't
       there, and the only target whose node isn't a value.
     - Rejected: only a document whose status isn't `failure`
       (`hasStatus`). A tree that failed with a root that's a value
@@ -49,17 +49,23 @@ a hypermedia browser, and the stack is how it retrieves.
     document, which is how it knows what caused a target's document to
     be retrieved.
 
-- It's a function of a session, `get(session, url)`, not a method of one.
+- It's a function of a session, `browse(session, url)`, not a method of one.
   A session is retrieval, and retrieval never imports document code (see
   [Packaging](packaging.md)). What it needs of a session is its `fetch`,
   its `state`, its `contextUrl`, and its `config`.
+- It's named `browse` for what a browser does with a URL. A browser
+  retrieves the page, goes to what the fragment identifies, and follows
+  redirects without being asked. `browse` retrieves the document, goes to
+  what the fragment identifies, and follows references the same way, and
+  `reference: "manual"` is `redirect: "manual"`'s counterpart. What it
+  returns is where the URL leads, which is a target.
 - The media types are the session's configuration, `mediaTypes`, which
   defaults to `defaultMediaTypes` (see [Media types](media-types.md)). The
   session keeps the configuration it was given as a value and doesn't read
   what isn't its own. `documents.d.ts` adds `mediaTypes` to the
   `HyperjumpConfig` interface, so it's checked where a session is created
   without the session's declaration knowing documents.
-- What `get` returns is typed by the session's media types: a target
+- What `browse` returns is typed by the session's media types: a target
   with a document any of its plugins makes (`SessionDocument`) and a node
   of one (`SessionTarget`). A reference
   can lead to a document in any of them, so it's the union, and the caller
@@ -99,8 +105,8 @@ a hypermedia browser, and the stack is how it retrieves.
     it's kept, a document could answer for any URL it names. Such a
     document still finds itself by that URL, as every document does.
 - A document that fails isn't kept, so it can be asked for again.
-- `get` takes a `priority`, which is the request's, and
-  the references `get` follows have it too. Whoever waits for a document
+- `browse` takes a `priority`, which is the request's, and
+  the references `browse` follows have it too. Whoever waits for a document
   adds its priority to the document's (`PriorityGroup`) until its wait is
   over, so the request has the most urgent priority of whoever is waiting.
   A tool that preloads documents at `low` doesn't hold up one that's
@@ -146,7 +152,7 @@ a hypermedia browser, and the stack is how it retrieves.
     container, or from a document contained with it, finds it. A document
     can say it contains a document with any URL, so what it says can't
     change what another document's reference finds.
-  - The first document of a `get` is always retrieved. Only a reference
+  - The first document of a `browse` is always retrieved. Only a reference
     finds an embedded document.
   - It isn't retrieved, so `allowRetrieval` doesn't apply to it.
   - Its URL is parsed, without a fragment, when its container is loaded.
@@ -163,12 +169,12 @@ a hypermedia browser, and the stack is how it retrieves.
 - The plugin is the one for the response's `Content-Type`. A `file:`
   response has none, so it's the one for its URL's extension (see
   [The `file:` scheme](file-scheme.md)).
-- `get` follows the reference its URL ends at, and any that leads to,
+- `browse` follows the reference its URL ends at, and any that leads to,
   until there's a value. A request a reference causes has the record of
   the document the reference is in as its `initiator`, so a trace shows it
   under that document, and a document from the web can't refer to a file
   (see [`file:` from `file:`](file-references.md)).
-- With `reference: "manual"`, `get` doesn't follow the reference its URL
+- With `reference: "manual"`, `browse` doesn't follow the reference its URL
   ends at, so the target is the node as it's written and the document at
   the URL. It's how code gets a document to read as a whole, like one that
   finds every reference in it, and how it sees that a document's root is
@@ -176,12 +182,12 @@ a hypermedia browser, and the stack is how it retrieves.
   already has, and `"follow"` is the default, so references are followed
   unless a caller says otherwise.
   - What it returns is typed by the option: a node that could be a
-    reference if `reference` is, or could be, `"manual"` (`GetTarget`).
+    reference if `reference` is, or could be, `"manual"` (`BrowseTarget`).
   - `"error"`, like a request's, isn't there. Nothing needs a reference
     to be a failure.
 - Following a reference that leads back to one already followed is an
   error, with the chain of URLs.
-- `get` with `referencedFrom`, a target or a document, follows a
+- `browse` with `referencedFrom`, a target or a document, follows a
   reference from that document, which is how the browsing functions
   follow one (see [Browsing](browsing.md)). Only the document is read, so
   a node a unist utility found in a tree is followed with the tree.
@@ -215,13 +221,22 @@ file or connection is released.
 
 Rejected:
 
-- `get` as a method of `Hyperjump`. The class would import
+- `browse` as a method of `Hyperjump`. The class would import
   the media types and the parsers, so retrieval would depend on documents.
 - Methods, with the stack's code depending on a narrower type than
   `Hyperjump` for `ctx.session`. The session's own code, like
   `allowRetrieval` and redirects, would still be in a class that imports
   document code.
-- A retrieval class that `Hyperjump` extends with `get`. It's a second
+- `get`. It's too generic to say anything on its own, and likely to
+  collide with something else an application imports.
+- `getTarget`. It names what it returns with a word a user has to learn
+  first.
+- `dereference`. It's the precise term for what it does, but it's
+  jargon, and to someone who knows JSON tooling it suggests a document
+  with every reference inlined.
+- `resolve`, which is what's done to a relative URL, and `load` or
+  `fetchDocument`, which say it returns a document, not a target.
+- A retrieval class that `Hyperjump` extends with `browse`. It's a second
   class for what a function does.
 - A `Hyperjump` whose configuration type is whatever it's given, so
   document code's keys are allowed in it without being declared.
@@ -229,22 +244,22 @@ Rejected:
   when it shares a property with the session's, so
   `new Hyperjump({ mediaTypes })` was an error. `mediaTypes` is declared on
   `HyperjumpConfig`, which the configuration's type extends.
-- `get` typed as returning a target with a JRef node, whatever the session's media types
+- `browse` typed as returning a target with a JRef node, whatever the session's media types
   are. It's only so for a session with the defaults.
-- A `getDocument(session, url)` for the document at a URL, beside `get`.
+- A `getDocument(session, url)` for the document at a URL, beside `browse`.
   They retrieved the same way and differed in what they returned, and
-  with a target, `get` without following returns what it did.
+  with a target, `browse` without following returns what it did.
 - A `follow: false` option. A boolean doesn't say what else could be done
   with a reference, and a request's option for the same choice is
   `redirect`, with `"follow"` and `"manual"`.
-- `get` returning only the node. What it's given to next needs the
+- `browse` returning only the node. What it's given to next needs the
   node's document: to follow a reference in it, or to read what a plugin
   puts on a document. The caller would look it up again, or keep its own
   record of which document each node came from.
 - `referencedFrom` as a node, with its document found from the node's
   location: among the documents the session has and the ones they
   contain, the one where the location's pointer leads to that node. It
-  searches for what `get` had when it found the node, and it needs the
+  searches for what `browse` had when it found the node, and it needs the
   entries of contained documents kept by URL, since two documents can say
   they contain a document with the same URL.
 - Giving the session a document it didn't retrieve, to keep with the
@@ -284,7 +299,7 @@ Rejected:
   container, which is what a reference is followed from and what a
   message names, couldn't be found from it.
 - A class for a target. It holds no state of its own.
-- The media types as an option of `get`. Every call would pass them, and
+- The media types as an option of `browse`. Every call would pass them, and
   the documents a session keeps were parsed with one list.
 - One error that wraps whatever kept a document from being retrieved, like
   a `RetrievalError` with a cause. Code would look in the cause for every
@@ -294,7 +309,7 @@ Rejected:
 
 ## Known limitations
 
-- `get` takes the nodes of a document to be a JSON AST, with references
+- `browse` takes the nodes of a document to be a JSON AST, with references
   as `reference` nodes that have an `href`.
 - A media type whose fragments aren't names or JSON Pointers, like CSV's
   `#row=5`, can't say so with `anchors`.

@@ -62,9 +62,9 @@ import { responseMeta, withUrl } from "../response-meta.js";
 /** The key of a session's documents in its state */
 const documentsKey = {};
 
-/** @type typeof API.get */
-export const get = async (session, url, given) => {
-  /** @type API.GetOptions */
+/** @type typeof API.browse */
+export const browse = async (session, url, given) => {
+  /** @type API.BrowseOptions */
   const options = given ?? {};
   const { documentUrl, fragment } = parseUrl(session, url);
   const priority = prioritySignal(options.priority);
@@ -133,11 +133,11 @@ const fragmentPointer = (document, fragment) => {
 };
 
 /**
- * The entry for the document at a URL that `get` is asked
+ * The entry for the document at a URL that `browse` is asked
  * for. With `referencedFrom`, it's the document a reference in that
  * target's document, or in that document, leads to.
  *
- * @type (session: API.DocumentSession, url: string, options: API.GetOptions, priority: PrioritySignal) => Promise<Entry>
+ * @type (session: API.DocumentSession, url: string, options: API.BrowseOptions, priority: PrioritySignal) => Promise<Entry>
  */
 const entryFor = (session, url, options, priority) => {
   const { referencedFrom } = options;
@@ -182,7 +182,7 @@ const referenced = async (session, url, from, priority) => {
  */
 const causeOf = (entry) => entry.record ? { initiator: entry.record } : { referrer: entry.container.url };
 
-/** @type (priority: API.GetOptions["priority"]) => PrioritySignal */
+/** @type (priority: API.BrowseOptions["priority"]) => PrioritySignal */
 const prioritySignal = (priority) => priority instanceof PrioritySignal ? priority : PrioritySignal.of(priority ?? "auto");
 
 /**
