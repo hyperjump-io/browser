@@ -42,8 +42,8 @@ so read or cancel every body.
 | `key` | What shares a limit. The default is the origin of `http:` and `https:` requests. Other URLs aren't limited. |
 | `releaseOn` | `"body"`, the default, frees a slot when you finish with the body. `"headers"` frees it when the response arrives. |
 
-The limits belong to the layer, so every session on the same stack shares them,
-the way a browser's tabs share its connections.
+The limits belong to the layer, so every Hyperjump session on the same stack
+shares them, the way a browser's tabs share its connections.
 
 `stats()` says how many requests are in flight and waiting, for each origin:
 

@@ -1,7 +1,7 @@
 # File URLs
 
-On a server, a session can fetch `file:` URLs the way a browser opens files. Use
-`nodeTransport()` as the bottom of your stack:
+On a server, a Hyperjump session can fetch `file:` URLs the way a browser opens
+files. Use `nodeTransport()` as the bottom of your stack:
 
 ```typescript
 import { Hyperjump, nodeTransport } from "@hyperjump/browser";

@@ -2,7 +2,8 @@
 
 `browse` gives you a target for the value a URL identifies, and from there the
 `jref` functions read it and step into, visit, find, and select the values under
-it. They take the session so they can follow the references they reach.
+it. They take the Hyperjump session so they can follow the references they
+reach.
 
 ```typescript
 import { Hyperjump, browse } from "@hyperjump/browser";

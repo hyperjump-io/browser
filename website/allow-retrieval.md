@@ -3,8 +3,8 @@
 Documents refer to other documents by URL, and following a reference fetches
 whatever that URL identifies. That's fine when you control the documents. When
 you don't, a document could refer to `http://169.254.169.254/` or
-`file:///etc/passwd`, and following that reference would make your app fetch
-it. That's why a session fetches only the URLs its `allowRetrieval` option
+`file:///etc/passwd`, and following that reference would make your app fetch it.
+That's why a Hyperjump session fetches only the URLs its `allowRetrieval` option
 allows:
 
 ```typescript
@@ -46,9 +46,9 @@ Fetching 'https://example.com/other' isn't allowed. Add it to 'allowRetrieval' t
 Its `cause.code` is `"ERR_RETRIEVAL_NOT_ALLOWED"`, so your app can tell a refused
 URL from one that failed. For more information, see [Errors](errors.md).
 
-A refused request doesn't get the session's [headers](sessions.md#headers), and
-a trace shows it as a request that failed. For more information, see
-[Tracing](tracing.md).
+A refused request doesn't get the session's
+[headers](hyperjump-sessions.md#headers), and a trace shows it as a request that
+failed. For more information, see [Tracing](tracing.md).
 
 The session checks a URL before any layer gets the request, so a URL that the
 [HTTP cache](http-caching.md) or a layer of your own answers has to be in the

@@ -27,7 +27,7 @@ const stack = first()(second()(defaultTransport()));
 ```
 
 A stack is a fetcher, like a transport or a single layer, so you can give any
-part of a stack to a session, or wrap a stack in more layers.
+part of a stack to a Hyperjump session, or wrap a stack in more layers.
 
 ## Write a layer
 
@@ -46,9 +46,9 @@ const userAgent = layer((request, ctx, inner) => {
 const stack = compose(userAgent)(defaultTransport());
 ```
 
-A header like this goes to every URL the stack fetches, so don't add
-credentials this way. A session's `headers` option sends them only to the URLs
-they're for. For more information, see [Sessions](sessions.md#headers).
+A header like this goes to every URL the stack fetches, so don't add credentials
+this way. A session's `headers` option sends them only to the URLs they're for.
+For more information, see [Hyperjump sessions](hyperjump-sessions.md#headers).
 
 ## The context
 

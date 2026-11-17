@@ -1,8 +1,8 @@
 # Redirects
 
-A session follows redirects itself, instead of letting the runtime follow them
-inside the transport. Each redirect is a new request down the stack, so every
-layer works with each step:
+A Hyperjump session follows redirects itself, instead of letting the runtime
+follow them inside the transport. Each redirect is a new request down the stack,
+so every layer works with each step:
 
 - The HTTP cache stores the redirects themselves, so a cached 301 saves a round
   trip.
@@ -21,7 +21,7 @@ It follows redirects the way `fetch` does:
 - A 307 or 308 sends the same method and body again.
 - It doesn't send `Authorization` to another origin.
 - Each step gets the session's headers for the URL it leads to. For more
-  information, see [Sessions](sessions.md#headers).
+  information, see [Hyperjump sessions](hyperjump-sessions.md#headers).
 - More than 20 redirects is a network error. To change that, use the session's
   `maxRedirects` option.
 

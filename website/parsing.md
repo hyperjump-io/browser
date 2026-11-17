@@ -1,7 +1,7 @@
 # Parse JSON and JRef
 
-You can use the JSON and JRef parsers on their own, without a session. They
-parse into a JSON abstract syntax tree (AST), which is a
+You can use the JSON and JRef parsers on their own, without a Hyperjump session.
+They parse into a JSON abstract syntax tree (AST), which is a
 [unist](https://github.com/syntax-tree/unist) tree with a position for every
 value.
 

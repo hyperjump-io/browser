@@ -1,9 +1,9 @@
 # Browse to a URL
 
-`browse` retrieves a document through a session and gives you a target for the
-value its URL identifies: the value's node and the document that the node is
-in. A document can refer to values in other documents, and `browse` follows those
-references for you, the way a web browser follows redirects:
+`browse` retrieves a document through a Hyperjump session and gives you a target
+for the value its URL identifies: the value's node and the document that the
+node is in. A document can refer to values in other documents, and `browse`
+follows those references for you, the way a web browser follows redirects:
 
 ```typescript
 import { Hyperjump, browse, jrefValue } from "@hyperjump/browser";

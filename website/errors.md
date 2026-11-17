@@ -3,8 +3,8 @@
 When a request fails, `session.fetch` rejects with a network error, the
 `TypeError` that `fetch` rejects with. A browser gives a network error for a
 file that doesn't exist, a scheme it doesn't support, and a redirect it won't
-follow, so the session does too. A failure is never an error response like a
-404, because no server answered.
+follow, so a Hyperjump session does too. A failure is never an error response
+like a 404, because no server answered.
 
 The error's message says what went wrong and names the URL, so you can show it
 to a person:

@@ -3,8 +3,8 @@
 The `jref` functions follow every reference they reach, which is what you want
 to read values. Some code needs the references themselves: to list what a
 document refers to, to report every reference that's broken, or to follow the
-references in a tree that the session didn't retrieve. These examples use this
-session:
+references in a tree that the Hyperjump session didn't retrieve. These examples
+use this session:
 
 ```typescript
 import { Hyperjump, browse } from "@hyperjump/browser";

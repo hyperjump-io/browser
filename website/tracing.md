@@ -1,8 +1,8 @@
 # Tracing
 
-Every request a session makes has a record of what happened to it, like a row
-in a browser's network panel. A `Trace` collects the records of a session, and
-draws them as a waterfall:
+Every request a Hyperjump session makes has a record of what happened to it,
+like a row in a browser's network panel. A `Trace` collects the records of a
+session, and draws them as a waterfall:
 
 ```typescript
 import { Hyperjump, Trace } from "@hyperjump/browser";

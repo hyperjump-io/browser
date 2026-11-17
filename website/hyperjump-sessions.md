@@ -1,8 +1,8 @@
-# Sessions
+# Hyperjump sessions
 
-A session is a `Hyperjump` instance. Its requests belong together, the way the
-requests of a page load do. You create a session from a configuration and
-fetch through it:
+A Hyperjump session is a `Hyperjump` instance. Its requests belong together, the
+way the requests of a page load do. You create a session from a configuration
+and fetch through it:
 
 ```typescript
 import { Hyperjump } from "@hyperjump/browser";

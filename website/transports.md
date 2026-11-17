@@ -63,9 +63,9 @@ A fetcher works the way `fetch` does:
 - When it can't give a response, it throws a network error, like a browser
   does for a file that doesn't exist. `networkError(message, cause, url)` makes
   one. For more information, see [Errors](errors.md).
-- The `Response` constructor can't set a response's URL, so the session gives
-  a response without one the request's URL. To give it another, like the file
-  that a symbolic link points to, use `withUrl`.
+- The `Response` constructor can't set a response's URL, so the Hyperjump
+  session gives a response without one the request's URL. To give it another,
+  like the file that a symbolic link points to, use `withUrl`.
 - A response that's a document needs a `Content-Type`, so a
   [media type](media-types.md) can parse it.
 

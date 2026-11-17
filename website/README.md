@@ -19,9 +19,9 @@ jrefValue(director); // "George Lucas"
 ```
 
 It retrieves documents the way a web browser does. Requests belong to a
-session, the way the requests of a page load do. Each request goes through a
-stack of layers, such as an HTTP cache, and ends at a transport that retrieves
-it by its URL scheme. On a server, that includes `file:` URLs.
+Hyperjump session, the way the requests of a page load do. Each request goes
+through a stack of layers, such as an HTTP cache, and ends at a transport that
+retrieves it by its URL scheme. On a server, that includes `file:` URLs.
 
 ## Contents
 
@@ -34,7 +34,7 @@ it by its URL scheme. On a server, that includes `file:` URLs.
   - [Media types](media-types.md): formats other than JSON and JRef
   - [Parse JSON and JRef](parsing.md): the parsers and the functions that read their ASTs
 - Retrieval
-  - [Sessions](sessions.md): fetch through a session, and close it
+  - [Hyperjump sessions](hyperjump-sessions.md): fetch through a session, and close it
   - [What a session can fetch](allow-retrieval.md): allow only the URLs your app should fetch
   - [Registries](registries.md): documents your app already has
   - [Errors](errors.md): what a failed request rejects with, and how to tell failures apart

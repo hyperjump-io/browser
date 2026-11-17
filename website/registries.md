@@ -1,7 +1,7 @@
 # Registries
 
 A registry has documents your app already has, like a copy of a document
-bundled with it. A session answers them from the registry instead of
+bundled with it. A Hyperjump session answers them from the registry instead of
 fetching them:
 
 ```typescript

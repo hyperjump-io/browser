@@ -1,7 +1,7 @@
 # Media types
 
-A session can get documents in JRef and JSON. To get documents in another
-format, give the session a media type plugin for it in its `mediaTypes`:
+A Hyperjump session can get documents in JRef and JSON. To get documents in
+another format, give the session a media type plugin for it in its `mediaTypes`:
 
 ```typescript
 import {
