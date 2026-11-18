@@ -53,8 +53,18 @@ it's a private cache, like a browser's.
   on as if it had missed and tells `onStoreError`.
 - The store is a `CacheStore`: entries are data by URL, one for each `Vary`
   variant, so a store can keep them anywhere. The cache does all the HTTP.
-  `MemoryCacheStore` is the default, and keeps at most 1000 URLs, least
-  recently used first out.
+  `MemoryCacheStore` is the default, and keeps at most 64 MB of bodies and
+  headers, least recently used first out. Its `size` is bytes, like
+  `FileCacheStore`'s.
+- A body bigger than `maxBodySize`, 16 MB by default, isn't stored. The
+  default is many times the biggest schemas, 815 KB in the SchemaStore
+  schemas in `sourcemeta/jsonschema-benchmark`, and big enough for a large
+  API's description. A response that's too big still succeeds.
+  - No limit by default was rejected. A cache in memory would keep what a
+    server sends without end, even after the caller has stopped reading
+    it, because the stored copy reads on.
+  - A limit on the URLs `MemoryCacheStore` keeps was rejected. It doesn't
+    limit memory: 1000 URLs of 16 MB is 16 GB.
 - The store is the layer's, so sessions on one stack share it, like a
   browser's tabs (see
   [State lives as long as what it's for](../principles/state-lifetimes.md)).

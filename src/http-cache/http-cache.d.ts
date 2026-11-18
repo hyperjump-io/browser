@@ -64,7 +64,8 @@ export type HttpCacheOptions = {
   /**
    * Bodies bigger than this many bytes aren't stored. The copy that's read to
    * be stored stops as soon as it's bigger, whatever `Content-Length` says,
-   * so a response never takes more memory than this to store.
+   * so a response never takes more memory than this to store. It's 16 MB by
+   * default, and `Infinity` stores a body of any size.
    */
   maxBodySize?: number;
 

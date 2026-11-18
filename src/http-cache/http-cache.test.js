@@ -382,6 +382,22 @@ describe("the HTTP cache", () => {
       expect(await cache.store.match("https://a.test/big"), "nothing was stored").to.eql([]);
     });
 
+    test("it's 16 MB by default", async () => {
+      const megabyte = 1024 * 1024;
+      const cache = new HttpCache(fetcher((request) => new Response(new Uint8Array(request.url.endsWith("/big") ? 16 * megabyte + 1 : 16 * megabyte), {
+        headers: { "cache-control": "max-age=60" }
+      })));
+      const session = testHyperjump(cache, { allow: ["https://a.test/"] });
+
+      for (const url of ["https://a.test/big", "https://a.test/limit"]) {
+        await (await session.fetch(url)).arrayBuffer();
+      }
+      await settle();
+
+      expect(await cache.store.match("https://a.test/big"), "one byte too big").to.eql([]);
+      expect((await cache.store.match("https://a.test/limit")).length).to.equal(1);
+    });
+
     test("a body within maxBodySize is stored, without a Content-Length", async () => {
       const { stack } = streamed();
       const cache = new HttpCache(stack, { maxBodySize: 200 * 1024 });

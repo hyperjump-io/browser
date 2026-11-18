@@ -29,6 +29,13 @@ const notUpdatedBy304 = new Set(["content-length", "content-encoding", "transfer
 /** Headers about one connection, not the response (RFC 9110 §7.6.1), which a cache doesn't store */
 const hopByHopHeaders = ["connection", "keep-alive", "proxy-connection", "te", "trailer", "transfer-encoding", "upgrade"];
 
+/**
+ * The default `maxBodySize`: 16 MB, many times the biggest schemas, and big
+ * enough for a large API's description. A cache in memory that kept bodies
+ * of any size could be made to keep them without end.
+ */
+const MAX_BODY_SIZE = 16 * 1024 * 1024;
+
 /** @implements API.HttpCache */
 export class HttpCache {
   /** @type number */
@@ -40,7 +47,7 @@ export class HttpCache {
   /** @type API.HttpCacheOptions["heuristic"] */
   #heuristic;
 
-  /** @type number | undefined */
+  /** @type number */
   #maxBodySize;
 
   /** @type () => number */
@@ -61,7 +68,7 @@ export class HttpCache {
     this.#heuristicFraction = options.heuristicFraction ?? 0.1;
     this.#permanentRedirectLifetime = options.permanentRedirectLifetime ?? 86_400;
     this.#heuristic = options.heuristic;
-    this.#maxBodySize = options.maxBodySize;
+    this.#maxBodySize = options.maxBodySize ?? MAX_BODY_SIZE;
     this.#now = options.now ?? Date.now;
     this.#onStoreError = options.onStoreError ?? (() => {});
   }
@@ -219,12 +226,13 @@ export class HttpCache {
     if (!this.#isStorable(request, response)) {
       return response;
     }
-    const max = this.#maxBodySize;
-    if (max !== undefined && Number(response.headers.get("content-length") ?? NaN) > max) {
+    // A body that says it's too big isn't read. One that doesn't say, or
+    // whose decoded body is bigger than it says, is found out as it's read.
+    if (Number(response.headers.get("content-length") ?? NaN) > this.#maxBodySize) {
       return response;
     }
 
-    readUpTo(response.clone().body, max ?? Infinity)
+    readUpTo(response.clone().body, this.#maxBodySize)
       .then(async (body) => {
         if (body) {
           await this.#storePut(this.#fullEntry(request, timed, body));

@@ -82,23 +82,23 @@ httpCache({
 | `heuristic` | A function that gives a lifetime in seconds for a response that doesn't say one. It gets `{ url, status, headers }` and returns a number, or `undefined` to leave the response to the rules in [Responses without a lifetime](#responses-without-a-lifetime). |
 | `permanentRedirectLifetime` | Seconds that a 301 or 308 without a lifetime is fresh for. The default is a day. `0` leaves them to `heuristicFraction`. |
 | `heuristicFraction` | The part of the time since `Last-Modified` that a response is fresh for. The default is 0.1. |
-| `maxBodySize` | Responses bigger than this many bytes aren't stored |
+| `maxBodySize` | Responses bigger than this many bytes aren't stored. The default is 16 MB, and `Infinity` stores responses of any size. A response that's too big still succeeds. |
 | `onStoreError` | A function that the cache calls when the store fails, with the error, the method that failed, and the URL. The method is `"match"`, `"put"`, or `"delete"`. The request still succeeds, as if the cache had nothing. |
 
 ## Where the cache keeps responses
 
-`MemoryCacheStore` keeps responses in memory, for up to 1,000 URLs, and forgets
-the least recently used first:
+`MemoryCacheStore` keeps responses in memory, up to 64 MB of bodies and headers,
+and forgets the least recently used first. `size` says how many bytes it keeps:
 
 ```typescript
 import { MemoryCacheStore } from "@hyperjump/browser";
 
-httpCache({ store: new MemoryCacheStore({ maxUrls: 5000 }) });
+httpCache({ store: new MemoryCacheStore({ maxSize: 200 * 1024 * 1024 }) });
 ```
 
 | Option | Description |
 | --- | --- |
-| `maxUrls` | How many URLs the store keeps responses for. The default is 1,000. |
+| `maxSize` | How many bytes the store keeps. The default is 64 MB. |
 
 On a server, `FileCacheStore` keeps responses on disk, so they outlive the
 process:
