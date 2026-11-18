@@ -100,6 +100,12 @@ describe("media types", () => {
       expect(mediaTypeForExtension([jsonMediaType, rc], "file:///project/a.bowerrc")).to.equal(undefined);
     });
 
+    test("an extension matches whatever its case, as a web server's does", () => {
+      const schema = { ...jsonMediaType, extensions: [".Schema.json"] };
+      expect(mediaTypeForExtension(defaultMediaTypes, "file:///project/A.JSON")).to.equal(jsonMediaType);
+      expect(mediaTypeForExtension([jsonMediaType, schema], "file:///project/a.schema.JSON")).to.equal(schema);
+    });
+
     test("there's none without a matching extension", () => {
       expect(mediaTypeForExtension(defaultMediaTypes, "file:///project/a.txt")).to.equal(undefined);
       expect(mediaTypeForExtension(defaultMediaTypes, "file:///project/json")).to.equal(undefined);

@@ -22,7 +22,12 @@ its fragments identify. JSON and JRef are built in.
     URL's path ends with, so a plugin for `.schema.json` wins over the JSON
     plugin, whatever order they're in. A file doesn't have a media type,
     so its extension is all there is (see
-    [The `file:` scheme](file-scheme.md)).
+    [The `file:` scheme](file-scheme.md)). Case doesn't matter, as it
+    doesn't to a web server that gives a file its `Content-Type`, like
+    Apache's or nginx's, so `A.JSON` is JSON on any file system.
+    - Matching case was rejected. A file's name has the case it was
+      saved with, and on a file system that ignores case, like the ones
+      on macOS and Windows, nothing else does.
 - A `Content-Type` is read without a parser of its own: what's before the
   first `;`, in lowercase, checked against RFC 9110's `token "/" token`. A
   parameter can't change which plugin parses a response, so parameters

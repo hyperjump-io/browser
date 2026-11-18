@@ -43,13 +43,14 @@ export const mediaTypeForContentType = (mediaTypes, contentType) => {
 
 /** @type typeof API.mediaTypeForExtension */
 export const mediaTypeForExtension = (mediaTypes, url) => {
-  const path = new URL(url).pathname;
+  // An extension's case doesn't matter, as it doesn't to a web server
+  const path = new URL(url).pathname.toLowerCase();
 
   let best;
   let bestLength = 0;
   for (const plugin of mediaTypes) {
     for (const extension of plugin.extensions) {
-      if (extension.length > bestLength && path.endsWith(extension) && isNameEnd(path, extension)) {
+      if (extension.length > bestLength && path.endsWith(extension.toLowerCase()) && isNameEnd(path, extension)) {
         best = plugin;
         bestLength = extension.length;
       }

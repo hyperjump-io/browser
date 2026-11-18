@@ -97,7 +97,8 @@ const session = new Hyperjump({
 A file doesn't have a `Content-Type`, so a session chooses the plugin from the
 file's name. The longest extension that matches wins, so a plugin for
 `.schema.json` gets `person.schema.json` and the JSON plugin gets
-`person.json`.
+`person.json`. Case doesn't matter, so the JSON plugin gets `PERSON.JSON`
+too.
 
 If no plugin matches, `browse` rejects with an error whose `cause.code` is
 `"ERR_UNSUPPORTED_MEDIA_TYPE"`.
