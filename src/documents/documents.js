@@ -1,3 +1,4 @@
+import { canRefer, referrerFor, refusedReferenceResponse } from "../file-references.js";
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
 import { jsonPointerGet } from "../json/jsonast-util.js";
@@ -215,13 +216,28 @@ const documentsOf = (session) => session.state(documentsKey, () => {
  * its wait is over, so a document that's being preloaded at a low priority
  * is fetched at a higher one once something needs it.
  *
+ * A document is only given to a cause that could have retrieved it: only a
+ * `file:` document can refer to a `file:` URL, and that's the URL that's
+ * asked for and the URL the document's response came from. A URL the cause
+ * can't refer to is fetched anyway, so the session refuses it and records
+ * that, but it isn't kept, so whoever else asks for it doesn't get the
+ * refusal. `allowRetrieval` is the session's, so a document the session
+ * has passed it already.
+ *
  * @type (session: API.DocumentSession, url: string, cause: Cause, priority: PrioritySignal) => Promise<Entry>
  */
 const load = (session, url, cause, priority) => {
+  const referrer = referrerFor(cause.initiator, cause.referrer);
+  if (!canRefer(url, referrer)) {
+    return retrieve(session, url, cause, priority).then(({ entry }) => entry);
+  }
+
   const { entries } = documentsOf(session);
   const existing = entries.get(url);
   if (existing) {
-    return existing.loading.finally(existing.priority.add(priority));
+    return existing.loading
+      .then((entry) => referable(entry, url, referrer))
+      .finally(existing.priority.add(priority));
   }
 
   const group = new PriorityGroup();
@@ -245,6 +261,21 @@ const load = (session, url, cause, priority) => {
     }
   });
   return kept.loading.finally(leave);
+};
+
+/**
+ * An entry the session has, for a cause that can refer to the URL it was
+ * asked for, if the cause can refer to where its response came from too,
+ * like where a redirect led
+ *
+ * @type (entry: Entry, url: string, referrer: string | undefined) => Entry
+ */
+const referable = (entry, url, referrer) => {
+  const responseUrl = entry.container.url;
+  if (!canRefer(responseUrl, referrer)) {
+    throw refusedReferenceResponse(url, responseUrl, /** @type string */ (referrer));
+  }
+  return entry;
 };
 
 /**

@@ -7,6 +7,7 @@ import { fetcher } from "../layers.js";
 import { jsonValue } from "../json/jsonast-util.js";
 import { defaultMediaTypes } from "../media-types/media-types.js";
 import { fromJref } from "../jref/jref-util.js";
+import { withUrl } from "../response-meta.js";
 
 /**
  * @import { Node } from "unist"
@@ -86,6 +87,53 @@ describe("targets", () => {
 
     const file = bundleDocument({ a: { $ref: "secret.json" } }, "file:///project/mine.json");
     expect(jsonValue((await jrefStep(session, "a", file)).node)).to.equal("secret");
+  });
+
+  describe("a document the session has is only given to a document that could retrieve it", () => {
+    const secret = { "/project/secret.json": /** @type [string, Record<string, string>] */ ([`"secret"`, jref]), "/page": /** @type [string, Record<string, string>] */ ([`{}`, jref]) };
+    const allowed = ["https://a.test/", "file:///project/"];
+
+    test("a reference from a document from the web to a file the application browsed is refused", async () => {
+      const { session } = site(secret, allowed);
+      expect(jsonValue((await browse(session, "file:///project/secret.json")).node)).to.equal("secret");
+
+      const web = linkDocument("file:///project/secret.json", "https://a.test/mine");
+      await expect(browse(session, web.children[0].href, { referencedFrom: web })).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
+    });
+
+    test("an initiator from the web can't browse a file the application browsed", async () => {
+      const { session } = site(secret, allowed);
+      await browse(session, "file:///project/secret.json");
+      const page = await session.fetch("https://a.test/page");
+
+      await expect(browse(session, "file:///project/secret.json", { initiator: page })).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
+    });
+
+    test("a refused reference isn't kept, so the application still gets the document", async () => {
+      const { session, requests } = site(secret, allowed);
+      const web = linkDocument("file:///project/secret.json", "https://a.test/mine");
+
+      const refused = browse(session, web.children[0].href, { referencedFrom: web });
+      const browsed = browse(session, "file:///project/secret.json");
+
+      await expect(refused).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
+      expect(jsonValue((await browsed).node)).to.equal("secret");
+      expect(requests).to.eql(["/project/secret.json"]);
+    });
+
+    test("a URL from the web whose response came from a file is refused, by where the response came from", async () => {
+      const stack = fetcher((request) => request.url === "https://a.test/alias"
+        ? withUrl(new Response(`"secret"`, { headers: jref }), "file:///project/secret.json")
+        : new Response(null, { status: 404 }));
+      const session = new Hyperjump({ stack, allowRetrieval: allowed });
+      expect(jsonValue((await browse(session, "https://a.test/alias")).node)).to.equal("secret");
+
+      const web = linkDocument("https://a.test/alias", "https://a.test/mine");
+      const following = browse(session, web.children[0].href, { referencedFrom: web });
+
+      await expect(following).rejects.toThrow(/led to .*secret\.json/);
+      await expect(following).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
+    });
   });
 
   test("a document a document the session didn't retrieve contains is judged by its container's URL", async () => {

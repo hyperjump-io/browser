@@ -30,6 +30,12 @@ URL.
   like `urn:` with a file, can't take a document from the web to a file.
   It's checked first, because adding the URL to `allowRetrieval` wouldn't
   help.
+- A document the session has isn't fetched again, so it's checked before
+  it's given, by the URL that's asked for and the URL its response came
+  from (see [Documents](documents.md)). Otherwise a document from the web
+  could refer to a file the application browsed, and what it got would
+  depend on what was browsed first. The rule for which document a request
+  comes from is one function (`referrerFor`), for both.
 - A refused reference is a network error, like a URL `allowRetrieval`
   refuses, and it's recorded the same way, without the session's headers.
   Its message names the URL and the document, and says only a `file:`
@@ -83,6 +89,12 @@ Rejected:
   anywhere, like text from stdin.
 
 ## Known limitations
+
+- A document that's being retrieved is shared by whoever asks for it while
+  it is, and it's retrieved for the first. If a redirect it follows is
+  refused for that one, because it leads to a file and the first is from
+  the web, the others get the refusal too, though they could have
+  retrieved it. They can ask for it again.
 
 - It's only as good as the initiators callers give. A caller that follows
   a reference without giving its document as the initiator makes the

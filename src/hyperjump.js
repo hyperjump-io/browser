@@ -5,7 +5,7 @@ import { follow, sentHeaders } from "./redirects.js";
 import { urlEntries } from "./url-entries.js";
 import { headersFor } from "./request-headers.js";
 import { allows, realEntries, refused, resolveAllowRetrieval } from "./allowed-urls.js";
-import { canRefer, referrerOf, refusedReference } from "./file-references.js";
+import { canRefer, referrerFor, refusedReference } from "./file-references.js";
 import { contextUrl, defaultAllowRetrieval } from "#context-url";
 import { defaultStack } from "#default-stack";
 
@@ -116,7 +116,7 @@ export class Hyperjump {
       ? new Request(input, { ...requestInit, signal })
       : new Request(new URL(input, this.#contextUrl), { ...requestInit, signal });
     const initiatorRecord = initiator instanceof Response ? responseMeta(initiator).record : initiator;
-    const referrer = givenReferrer === undefined ? referrerOf(initiatorRecord) : new URL(givenReferrer).href;
+    const referrer = referrerFor(initiatorRecord, givenReferrer);
     // The registry's documents aren't fetched, so they're answered before
     // `allowRetrieval`. What it throws is recorded, like a failed fetch.
     let registered;

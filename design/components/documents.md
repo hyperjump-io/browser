@@ -106,6 +106,18 @@ a hypermedia browser, and the stack is how it retrieves.
     it's kept, a document could answer for any URL it names. Such a
     document still finds itself by that URL, as every document does.
 - A document that fails isn't kept, so it can be asked for again.
+- A document the session has is only given to a cause that could have
+  retrieved it (see [`file:` from `file:`](file-references.md)): only a
+  `file:` document can refer to the URL that's asked for, if it's a
+  `file:` URL, and to the URL the document's response came from.
+  `allowRetrieval` is the session's, so a document it has passed it
+  already.
+  - A URL a cause can't refer to is still fetched, so the session refuses
+    it and records that, but it isn't kept. The refusal is for that cause,
+    so whoever else is waiting for the URL doesn't get it.
+  - Keeping documents by what caused them was rejected. A document would
+    be retrieved again for each document that refers to it, and two
+    targets of the same URL would have different documents.
 - `browse` takes a `priority`, which is the request's, and
   the references `browse` follows have it too. Whoever waits for a document
   adds its priority to the document's (`PriorityGroup`) until its wait is

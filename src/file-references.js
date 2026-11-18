@@ -1,4 +1,4 @@
-import { networkError } from "./response-meta.js";
+import { networkError, responseMeta } from "./response-meta.js";
 import { relativeFileUrl } from "./file-urls.js";
 
 /**
@@ -12,6 +12,17 @@ import { relativeFileUrl } from "./file-urls.js";
  * @type (initiator: FetchRecord | undefined) => string | undefined
  */
 export const referrerOf = (initiator) => initiator && (initiator.finalUrl ?? initiator.url);
+
+/**
+ * The URL of the document a request comes from, from what caused it: the
+ * `referrer` it's given, which wins, or its initiator's. A `Response`
+ * initiator is its record's.
+ *
+ * @type (initiator: FetchRecord | Response | undefined, referrer: string | URL | undefined) => string | undefined
+ */
+export const referrerFor = (initiator, referrer) => referrer === undefined
+  ? referrerOf(initiator instanceof Response ? responseMeta(initiator).record : initiator)
+  : new URL(referrer).href;
 
 /**
  * Whether a document at `referrer` can refer to `url`. Only a `file:`
