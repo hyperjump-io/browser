@@ -29,7 +29,9 @@ URL.
   even with `file:` in `redirectSchemes`, or a layer that answers a URL
   like `urn:` with a file, can't take a document from the web to a file.
   It's checked first, because adding the URL to `allowRetrieval` wouldn't
-  help.
+  help, and before the registry is asked, whose answers `allowRetrieval`
+  doesn't apply to (see [The registry](registry.md)). A registry's
+  response whose URL is another one is checked too.
 - A document the session has isn't fetched again, so it's checked before
   it's given, by the URL that's asked for and the URL its response came
   from (see [Documents](documents.md)). Otherwise a document from the web

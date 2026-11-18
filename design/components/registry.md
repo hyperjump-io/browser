@@ -21,6 +21,16 @@ with it, are a session's `registry`. The session asks it before
   a document from making the session fetch whatever it names, and a
   document the application gives the session isn't fetched (see
   [What a session can fetch](allow-retrieval.md)).
+- Only a `file:` document can refer to a `file:` URL, whatever answers it
+  (see [`file:` from `file:`](file-references.md)), so that's checked
+  before the registry is asked, and a URL the request can't refer to
+  isn't asked for. A response whose URL is another one, like a file, is
+  checked too, like a fetched response's. An application can register
+  what's in its files, like an editor's buffers, and a document from the
+  web shouldn't read them that way.
+  - Asking the registry first and checking only what it answers was
+    rejected. A registry's function entry, or one the application wrote,
+    would run for a URL that's refused.
 - Only a `GET` or a `HEAD` is asked, by the URL without its fragment, which
   isn't part of what's fetched. A response without a URL, like one made
   with `new Response`, gets the request's from the session (see

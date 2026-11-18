@@ -5,7 +5,7 @@ import { follow, sentHeaders } from "./redirects.js";
 import { urlEntries } from "./url-entries.js";
 import { headersFor } from "./request-headers.js";
 import { allows, realEntries, refused, resolveAllowRetrieval } from "./allowed-urls.js";
-import { canRefer, referrerFor, refusedReference } from "./file-references.js";
+import { canRefer, referrerFor, refusedReference, refusedReferenceResponse } from "./file-references.js";
 import { contextUrl, defaultAllowRetrieval } from "#context-url";
 import { defaultStack } from "#default-stack";
 
@@ -117,18 +117,23 @@ export class Hyperjump {
       : new Request(new URL(input, this.#contextUrl), { ...requestInit, signal });
     const initiatorRecord = initiator instanceof Response ? responseMeta(initiator).record : initiator;
     const referrer = referrerFor(initiatorRecord, givenReferrer);
+    // Only a file: document can refer to a file: URL, whatever answers it, so
+    // it's checked before the registry is asked
+    const referenceRefusal = canRefer(request.url, referrer) ? undefined : refusedReference(request.url, /** @type string */ (referrer));
     // The registry's documents aren't fetched, so they're answered before
     // `allowRetrieval`. What it throws is recorded, like a failed fetch.
     let registered;
     let registryError;
-    try {
-      registered = await this.#registered(request);
-    } catch (error) {
-      registryError = error;
+    if (!referenceRefusal) {
+      try {
+        registered = await this.#registered(request, referrer);
+      } catch (error) {
+        registryError = error;
+      }
     }
     // A refused URL gets none of the session's headers, but it's recorded, like
     // a request a browser blocks
-    const refusal = registered || registryError ? undefined : await this.#refusal(request.url, referrer);
+    const refusal = referenceRefusal ?? (registered || registryError ? undefined : await this.#allowRetrievalRefusal(request.url));
     const added = registered || registryError || refusal ? new Headers() : await this.#policy.headers(request.url);
     signal.throwIfAborted();
 
@@ -199,11 +204,13 @@ export class Hyperjump {
 
   /**
    * What the registry has for a request, if it has one. Only a `GET` or a
-   * `HEAD` is asked of it, without the URL's fragment.
+   * `HEAD` is asked of it, without the URL's fragment. A response whose URL
+   * is another one, like a file, is checked like a fetched response's: the
+   * document the request comes from has to be able to refer to it.
    *
-   * @type (request: Request) => Promise<Response | undefined>
+   * @type (request: Request, referrer: string | undefined) => Promise<Response | undefined>
    */
-  async #registered(request) {
+  async #registered(request, referrer) {
     const registry = this.config.registry;
     if (registry === undefined || (request.method !== "GET" && request.method !== "HEAD")) {
       return;
@@ -215,20 +222,19 @@ export class Hyperjump {
     if (response === undefined) {
       return;
     }
+    if (response.url && !canRefer(response.url, referrer)) {
+      await response.body?.cancel().catch(() => {});
+      throw refusedReferenceResponse(request.url, response.url, /** @type string */ (referrer));
+    }
     return setResponseMeta(response, { source: "registry" });
   }
 
   /**
-   * Why a URL can't be fetched from a document at `referrer`, if it can't: a
-   * `file:` URL from a document that isn't a file, or a URL `allowRetrieval`
-   * doesn't allow
+   * Why `allowRetrieval` doesn't allow a URL, if it doesn't
    *
-   * @type (url: string, referrer: string | undefined) => Promise<TypeError | undefined>
+   * @type (url: string) => Promise<TypeError | undefined>
    */
-  async #refusal(url, referrer) {
-    if (!canRefer(url, referrer)) {
-      return refusedReference(url, /** @type string */ (referrer));
-    }
+  async #allowRetrievalRefusal(url) {
     return await this.#allows(url) ? undefined : refused(url);
   }
 

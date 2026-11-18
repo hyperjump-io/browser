@@ -25,6 +25,10 @@ allow a URL that the registry has, and the session doesn't fetch it. The
 session fetches a URL that the registry doesn't have as usual, if
 `allowRetrieval` allows it.
 
+Only a `file:` document can refer to a `file:` URL, even one that the registry
+has, so a document from the web can't read what you registered for a file. For
+more information, see [File URLs](file-urls.md#documents-from-the-web).
+
 ## Entries
 
 `registry(entries, options)` takes an object of entries by URL. An iterable

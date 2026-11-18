@@ -141,6 +141,50 @@ describe("file: references", () => {
       await expect(session.fetch("urn:example:a", { initiator: page })).rejects.toThrow(`Fetching 'urn:example:a' led to '${relativeFileUrl("file:///project/a.json")}', which isn't allowed from 'https://a.test/page.json'`);
       expect(cancelled).to.equal(true);
     });
+
+    test("a document from the web can't refer to a file the registry has, and the registry isn't asked for it", async () => {
+      /** @type string[] */
+      const asked = [];
+      const { session } = setup({
+        registry: {
+          get: (url) => {
+            asked.push(url);
+            return url.startsWith("file:") ? new Response("registered") : undefined;
+          }
+        }
+      });
+      const page = await session.fetch("https://a.test/page.json");
+
+      const fetching = session.fetch("file:///project/a.json", { initiator: page });
+
+      await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" }, url: "file:///project/a.json" });
+      expect(asked).to.eql(["https://a.test/page.json"]);
+      expect(await (await session.fetch("file:///project/a.json")).text(), "from the application").to.equal("registered");
+    });
+
+    test("a response from a file that the registry has isn't used for a document from the web, and its body is cancelled", async () => {
+      let cancelled = false;
+      const { session } = setup({
+        registry: {
+          get: (url) => {
+            if (url !== "urn:example:a") {
+              return;
+            }
+            const body = new ReadableStream({ cancel: () => {
+              cancelled = true;
+            } });
+            return withUrl(new Response(body), "file:///project/a.json");
+          }
+        }
+      });
+      const page = await session.fetch("https://a.test/page.json");
+
+      const fetching = session.fetch("urn:example:a", { initiator: page });
+
+      await expect(fetching).rejects.toThrow(`Fetching 'urn:example:a' led to '${relativeFileUrl("file:///project/a.json")}', which isn't allowed from 'https://a.test/page.json'`);
+      await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
+      expect(cancelled).to.equal(true);
+    });
   });
 });
 
