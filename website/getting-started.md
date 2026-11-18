@@ -168,8 +168,10 @@ because a URL reads `C:` as a scheme.
 
 ## What's next
 
+- [Browse to a URL](browse-to-a-url.md) for what a URL identifies, and how
+  `browse` follows references to it
 - [Read targets](read-targets.md) for every way to read a target
+- [Hyperjump sessions](hyperjump-sessions.md) for a session's options and
+  headers, and how to close it
 - [What a session can fetch](allow-retrieval.md) before you use documents you
   don't control
-- [Hyperjump sessions](hyperjump-sessions.md) for a session's options, and the
-  stack it retrieves through
