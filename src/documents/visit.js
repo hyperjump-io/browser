@@ -1,12 +1,12 @@
 import { hasValue, startOf } from "./start.js";
-import { follow, isManual, maxDepth, maxDepthError, memberEntries, unreachableReferenceError } from "./walk.js";
+import { follow, isManual, maxDepth, maxDepthError, memberEntries, pace, unreachableReferenceError } from "./walk.js";
 
 /**
  * @import * as API from "./visit.d.ts"
  * @import { DocumentSession } from "./documents.d.ts"
  * @import { Target } from "./documents.d.ts"
  * @import { DocumentNode } from "../media-types/media-types.d.ts"
- * @import { Walked, WalkedTarget } from "./walk.js"
+ * @import { Pace, Walked, WalkedTarget } from "./walk.js"
  */
 
 /** @type typeof API.CONTINUE */
@@ -46,7 +46,9 @@ const visitFrom = async (session, from, testOrVisitor, visitorOrOptions, options
   if (!manual && typeof visitorOrOptions === "function" && onlyReferences(/** @type API.JrefTest<any> */ (testOrVisitor))) {
     throw unreachableReferenceError("a test that only passes a reference");
   }
-  const walk = { session, maxDepth: maxDepth(walkOptions), manual, ancestors: new Set(), walked, check, visitor: visit };
+  const walk = { session, maxDepth: maxDepth(walkOptions), manual, ancestors: new Set(), walked, check, visitor: visit, signal: walkOptions?.signal, steps: 0 };
+  // A walk that's aborted already doesn't retrieve the target it starts at
+  walk.signal?.throwIfAborted();
   // A walk that starts at a reference starts at what it leads to, like a
   // walk that reaches one
   const target = startOf(from);
@@ -119,7 +121,7 @@ export const jrefFindAll = /** @type typeof API.jrefFindAll */ (async (
  *   walked: Set<Walked> | undefined;
  *   check: Check;
  *   visitor: API.JrefVisitor<any>;
- * }} Visit
+ * } & Pace} Visit
  */
 
 /**
@@ -130,6 +132,11 @@ export const jrefFindAll = /** @type typeof API.jrefFindAll */ (async (
  * @type (walk: Visit, target: WalkedTarget, key: string | undefined, parent: WalkedTarget | undefined, depth: number) => Promise<API.VisitAction>
  */
 const visitTarget = async (walk, target, key, parent, depth) => {
+  const paced = pace(walk);
+  if (paced) {
+    await paced;
+  }
+
   // A visitor that isn't async isn't waited for
   const visited = walk.check(target, key, parent) ? walk.visitor(target, key, parent, depth) : CONTINUE;
   const action = visited instanceof Promise ? await visited : visited;

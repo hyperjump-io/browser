@@ -1,3 +1,4 @@
+import { nextTask } from "#next-task";
 import { browse } from "./documents.js";
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
@@ -52,6 +53,36 @@ export const follow = (session, from, node, manual = false) => {
   // The target a walk starts at is the one that was given. Any other node
   // is in the same document, so its target has that document.
   return /** @type WalkedTarget */ (node === from.node ? from : { document: from.document, node });
+};
+
+/**
+ * How many nodes a walk goes through before it lets other tasks run
+ */
+const STEPS_PER_TASK = 1000;
+
+/**
+ * What a walk keeps to stop when it's aborted: its `signal`, and how many
+ * nodes it's gone through
+ *
+ * @typedef {{ signal: AbortSignal | undefined; steps: number }} Pace
+ */
+
+/**
+ * Throw the walk's signal's reason if it's aborted, and every so many nodes,
+ * wait for the next task. A walk of documents the session has waits only
+ * for promises that are settled, so without it, nothing else would run
+ * until the walk ended, not even what would abort it, like a timer or a
+ * request to cancel.
+ *
+ * @type (walk: Pace) => Promise<void> | undefined
+ */
+export const pace = (walk) => {
+  walk.signal?.throwIfAborted();
+  if (++walk.steps % STEPS_PER_TASK !== 0) {
+    return;
+  }
+
+  return nextTask().then(() => walk.signal?.throwIfAborted());
 };
 
 /**

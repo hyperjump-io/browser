@@ -161,6 +161,27 @@ describe("jrefSelect", () => {
     expect(matches).to.equal(4);
   });
 
+  describe("signal", () => {
+    test("a selection that's aborted already rejects with the reason before it retrieves anything", async () => {
+      const { session, requests } = site({ "/subject": { $ref: "/external" }, "/external": 1 });
+      const reference = await browse(session, "https://a.test/subject", { reference: "manual" });
+      const reason = Error("Stop");
+
+      await expect(jrefSelectAll(session, "*", reference, { signal: AbortSignal.abort(reason) })).rejects.toBe(reason);
+      expect(requests).to.eql(["/subject"]);
+    });
+
+    test("a selection of documents the session has lets a timer abort it", async () => {
+      const { session } = site({ "/subject": Array.from({ length: 3000 }, (_, index) => index) });
+      const subject = await browse(session, "https://a.test/subject");
+      const controller = new AbortController();
+      const reason = Error("Stop");
+      setTimeout(() => controller.abort(reason), 0);
+
+      await expect(jrefSelectAll(session, "[key=none]", subject, { signal: controller.signal })).rejects.toBe(reason);
+    });
+  });
+
   describe("maxDepth", () => {
     const pages = {
       "/pages/1": { next: { $ref: "2" } },

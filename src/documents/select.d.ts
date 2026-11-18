@@ -43,6 +43,7 @@ import type { AnyJsonNode } from "../json/jsonast-util.d.ts";
  * `[type=reference]`, and the walk follows references, so it never
  * reaches one.
  * @throws What `browse` throws, if it follows a reference.
+ * @throws The signal's `reason` if {@link WalkOptions.signal} is aborted.
  */
 export const jrefSelect: <S extends DocumentSession, T extends Start<AnyJsonNode>, L extends string, const O extends WalkOptions = WalkOptions>(session: S, selector: L, target: T, options?: O) => Promise<SelectedTarget<WalkTarget<S, StartTarget<T>, O>, L> | undefined>;
 
@@ -63,6 +64,7 @@ export const jrefSelect: <S extends DocumentSession, T extends Start<AnyJsonNode
  * `[type=reference]`, and the walk follows references, so it never
  * reaches one.
  * @throws What `browse` throws, if it follows a reference.
+ * @throws The signal's `reason` if {@link WalkOptions.signal} is aborted.
  */
 export const jrefSelectAll: <S extends DocumentSession, T extends Start<AnyJsonNode>, L extends string, const O extends WalkOptions = WalkOptions>(session: S, selector: L, target: T, options?: O) => Promise<SelectedTarget<WalkTarget<S, StartTarget<T>, O>, L>[]>;
 

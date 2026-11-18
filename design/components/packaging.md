@@ -8,8 +8,9 @@
   message that says it isn't supported there.
 - What's different in each runtime without being unsupported in one has a
   version for each too: the context URL (`#context-url`), a `file:` URL's
-  real path (`#real-url`), the default stack (`#default-stack`), and a
-  file's URL from its path (`#path-to-url`).
+  real path (`#real-url`), the default stack (`#default-stack`), a
+  file's URL from its path (`#path-to-url`), and waiting for the next task
+  (`#next-task`).
 - There's one entry point, `@hyperjump/browser`. The package has no side
   effects, so a bundler drops what isn't imported.
 - `index.js` imports the parts with versions through their subpath imports,

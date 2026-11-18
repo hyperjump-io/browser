@@ -195,6 +195,54 @@ describe("jrefVisit", () => {
     });
   });
 
+  describe("signal", () => {
+    test("a walk that's aborted already rejects with the reason before it retrieves anything", async () => {
+      const { session, requests } = site({ "/subject": { $ref: "/external" }, "/external": 1 });
+      const reference = await browse(session, "https://a.test/subject", { reference: "manual" });
+      const reason = Error("Stop");
+
+      await expect(jrefVisit(session, reference, () => {}, { signal: AbortSignal.abort(reason) })).rejects.toBe(reason);
+      expect(requests).to.eql(["/subject"]);
+    });
+
+    test("an abort stops the walk at the next node", async () => {
+      const { session } = site({ "/subject": [1, 2, 3] });
+      const subject = await browse(session, "https://a.test/subject");
+      const controller = new AbortController();
+      const reason = Error("Stop");
+
+      /** @type unknown[] */
+      const visited = [];
+      const visiting = jrefVisit(session, subject, (target) => {
+        visited.push(toJson(target.node));
+        if (toJson(target.node) === `1`) {
+          controller.abort(reason);
+        }
+      }, { signal: controller.signal });
+
+      await expect(visiting).rejects.toBe(reason);
+      expect(visited).to.eql([`[1,2,3]`, `1`]);
+    });
+
+    test("a walk of documents the session has lets a timer abort it", async () => {
+      // Each level refers to the next one twice, so it's visited 2^12 times,
+      // all of it from the document the session has
+      /** @type Record<string, Json> */
+      const document = { last: 1 };
+      for (let level = 0; level < 12; level++) {
+        document[`l${level}`] = [{ $ref: `#/l${level + 1}` }, { $ref: `#/l${level + 1}` }];
+      }
+      document.l12 = { $ref: "#/last" };
+      const { session } = site({ "/subject": document });
+      const subject = await browse(session, "https://a.test/subject");
+      const controller = new AbortController();
+      const reason = Error("Stop");
+      setTimeout(() => controller.abort(reason), 0);
+
+      await expect(jrefVisit(session, subject, () => {}, { signal: controller.signal })).rejects.toBe(reason);
+    });
+  });
+
   describe("tests", () => {
     const pages = {
       "/subject": { a: 1, b: { $ref: "/external" }, c: [true, "x"] },

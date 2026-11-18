@@ -175,6 +175,7 @@ type HasProperties<N, O> = N extends unknown
  * references, so it never reaches one.
  * @throws A `RangeError` if `maxDepth` isn't a whole number that isn't
  * negative, or `Infinity`.
+ * @throws The signal's `reason` if {@link WalkOptions.signal} is aborted.
  */
 export const jrefVisit: {
   <S extends DocumentSession, T extends Start<AnyJsonNode>, const C extends JrefTest<WalkTarget<S, StartTarget<T>, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, visitor: JrefVisitor<WalkTarget<S, StartTarget<T>, O>, JrefTestedTarget<WalkTarget<S, StartTarget<T>, O>, C>>, options?: O): Promise<void>;
@@ -235,4 +236,17 @@ export type WalkOptions = {
    * finds.
    */
   reference?: "follow" | "manual";
+
+  /**
+   * Stops the walk when it's aborted, like `fetch`'s: it rejects with the
+   * signal's `reason` at the next node it reaches, or before it starts if
+   * it's aborted already. A retrieval the walk is waiting for isn't
+   * aborted, because it's the session's, and other walks can be waiting
+   * for the same document.
+   *
+   * A walk lets other tasks run every so many nodes, even through
+   * documents the session has, so a timer, like
+   * `AbortSignal.timeout(ms)`, or a request to cancel can abort it.
+   */
+  signal?: AbortSignal;
 };

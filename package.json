@@ -53,6 +53,10 @@
       "node": "./src/real-url.js",
       "default": "./src/real-url.browser.js"
     },
+    "#next-task": {
+      "node": "./src/next-task.js",
+      "default": "./src/next-task.browser.js"
+    },
     "#file-scheme": {
       "node": "./src/transports/file-scheme.js",
       "default": "./src/transports/file-scheme.browser.js"

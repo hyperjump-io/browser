@@ -344,6 +344,42 @@ await jrefVisit(session, firstPage, (target, key, parent, depth) => {
 A selector made of `>` steps only goes as deep as it's written, like
 `> [key=next] > [key=next]` for the next two pages.
 
+## Stop a walk
+
+`jrefVisit` goes inside a value each time a reference leads to it, so a visit
+costs as much as the document would if you replaced every reference with what it
+leads to. A document of a few kilobytes whose values each refer to the next one
+twice is too big to visit that way. If you visit documents you don't control,
+pass a `signal` so the walk can't run forever. This one gives up after a
+second:
+
+```typescript
+await jrefVisit(session, target, visitor, { signal: AbortSignal.timeout(1000) });
+```
+
+When the signal is aborted, the walk rejects with the signal's `reason` at the
+next value it reaches. The walk lets other tasks run every so often, so a timer
+or a request to cancel can stop it even when the Hyperjump session already has
+every document it reaches. A document the walk is waiting for isn't aborted,
+because another walk might need it too.
+
+`jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` go inside each
+value only once, so they don't have this problem, but they take a `signal` too.
+To visit each value once, skip the ones you've already visited:
+
+```typescript
+const visited = new Set();
+await jrefVisit(session, target, (target) => {
+  if (visited.has(target.node)) {
+    return SKIP;
+  }
+  visited.add(target.node);
+  // ...
+});
+```
+
+The visitor still gets a value it skips, with the key it's at this time.
+
 ## Functions
 
 Each `target` can also be a document, which starts at its root. A target that's
@@ -374,6 +410,7 @@ a reference starts at what it leads to, unless the options have
 | --- | --- |
 | `reference` | `"follow"`, the default, follows references. `"manual"` reads the tree as it's written. For more information, see [Follow references yourself](references.md#read-the-tree-as-its-written). |
 | `maxDepth` | How many levels below the target a walk can go. The default is 1000. Only `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it. For more information, see [How deep a walk goes](#how-deep-a-walk-goes). |
+| `signal` | An `AbortSignal` that stops a walk. Only `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it. For more information, see [Stop a walk](#stop-a-walk). |
 
 When these functions follow a reference, they throw what `browse` throws. For
 more information, see [Browse to a URL](browse-to-a-url.md#errors). For the errors of

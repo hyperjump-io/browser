@@ -1,12 +1,12 @@
 import { hasValue, startOf } from "./start.js";
-import { follow, isManual, maxDepth, maxDepthError, memberEntries, unreachableReferenceError } from "./walk.js";
+import { follow, isManual, maxDepth, maxDepthError, memberEntries, pace, unreachableReferenceError } from "./walk.js";
 
 /**
  * @import * as API from "./select.d.ts"
  * @import { WalkOptions } from "./visit.d.ts"
  * @import { DocumentSession, Target } from "./documents.d.ts"
  * @import { DocumentNode } from "../media-types/media-types.d.ts"
- * @import { Walked, WalkedTarget } from "./walk.js"
+ * @import { Pace, Walked, WalkedTarget } from "./walk.js"
  */
 
 /**
@@ -42,7 +42,7 @@ export const jrefSelect = /** @type typeof API.jrefSelect */ (async (
 ) => {
   /** @type WalkedTarget | undefined */
   let found;
-  await select(session, selector, target, maxDepth(options), isManual(options), (matched) => {
+  await select(session, selector, target, maxDepth(options), isManual(options), options?.signal, (matched) => {
     found = matched;
     return true;
   });
@@ -60,7 +60,7 @@ export const jrefSelectAll = /** @type typeof API.jrefSelectAll */ (async (
   // A node reached through more than one reference is selected once
   /** @type Map<Walked, WalkedTarget> */
   const found = new Map();
-  await select(session, selector, target, maxDepth(options), isManual(options), (matched) => {
+  await select(session, selector, target, maxDepth(options), isManual(options), options?.signal, (matched) => {
     if (!found.has(matched.node)) {
       found.set(matched.node, matched);
     }
@@ -75,9 +75,9 @@ export const jrefSelectAll = /** @type typeof API.jrefSelectAll */ (async (
  * selector at once. A member is only followed if some selector could match
  * it or what's under it, which for a child combinator is known from its key.
  *
- * @type (session: DocumentSession, selector: string, from: Target | DocumentNode, maxDepth: number, manual: boolean, onMatch: (target: WalkedTarget) => boolean) => Promise<void>
+ * @type (session: DocumentSession, selector: string, from: Target | DocumentNode, maxDepth: number, manual: boolean, signal: AbortSignal | undefined, onMatch: (target: WalkedTarget) => boolean) => Promise<void>
  */
-const select = async (session, selector, from, maxDepth, manual, onMatch) => {
+const select = async (session, selector, from, maxDepth, manual, signal, onMatch) => {
   const selectors = parseSelector(selector);
   if (!manual && selectors.every(needsReference)) {
     throw unreachableReferenceError(`'${selector}'`);
@@ -88,9 +88,12 @@ const select = async (session, selector, from, maxDepth, manual, onMatch) => {
     return;
   }
   const states = selectors.map((complex) => ({ complex, index: 0, descendant: true }));
+  // A selection that's aborted already doesn't retrieve the target it
+  // starts at
+  signal?.throwIfAborted();
   // A selection that starts at a reference starts at what it leads to, like
   // a walk that reaches one
-  await selectTarget({ session, maxDepth, manual, ancestors: new Map(), walked: new Map(), onMatch }, await follow(session, target, target.node, manual), undefined, 0, states);
+  await selectTarget({ session, maxDepth, manual, ancestors: new Map(), walked: new Map(), onMatch, signal, steps: 0 }, await follow(session, target, target.node, manual), undefined, 0, states);
 };
 
 /**
@@ -115,7 +118,7 @@ const select = async (session, selector, from, maxDepth, manual, onMatch) => {
  *   ancestors: Map<Walked, Set<string>>;
  *   walked: Map<Walked, Set<string>>;
  *   onMatch: (target: WalkedTarget) => boolean;
- * }} Selection
+ * } & Pace} Selection
  */
 
 /**
@@ -124,6 +127,11 @@ const select = async (session, selector, from, maxDepth, manual, onMatch) => {
  * @type (selection: Selection, target: WalkedTarget, key: string | undefined, depth: number, states: State[]) => Promise<boolean>
  */
 const selectTarget = async (selection, target, key, depth, states) => {
+  const paced = pace(selection);
+  if (paced) {
+    await paced;
+  }
+
   const { node } = target;
   /** @type Map<string, State> */
   const next = new Map();

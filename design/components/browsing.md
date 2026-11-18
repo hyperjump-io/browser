@@ -379,6 +379,44 @@ take the session to follow references with, and a target to start from.
   `Infinity` turns it off. Any other `maxDepth` that isn't a whole number
   from 0 is a `RangeError`, because it's a mistake in the call.
 
+## Stopping a walk
+
+- A visit costs the document as a tree, because it visits a value each
+  place it is. A document of a few kilobytes whose levels each refer to
+  the next one twice is a tree too big to visit, and `maxDepth` doesn't
+  stop it, because it's shallow. A walk takes a `signal` (`WalkOptions`)
+  so an application that walks documents it doesn't control can stop it,
+  with a timeout or when what the walk was for is cancelled, like a
+  request to a language server.
+- It's checked at each node, and the walk rejects with its `reason`, like
+  `fetch`. One that's aborted already rejects before the target the walk
+  starts at is followed, so nothing is retrieved.
+- A retrieval the walk is waiting for isn't aborted. It's the session's,
+  and other walks can be waiting for the same document, so it's kept like
+  any other.
+- A walk of documents the session has waits only for promises that are
+  settled, and what waits for one runs before any other task, so nothing
+  else would run until the walk ended, not even the timer that would abort
+  it. So a walk waits for the next
+  task every 1000 nodes (`pace` in `walk.js`). It's `setImmediate` in
+  Node.js and a message to a `MessageChannel` port in a browser
+  (`#next-task`). Its cost is in
+  [Pausing walks](../benchmarks/pausing-walks.md).
+  - A nested `setTimeout` was rejected. A browser waits at least 4 ms for
+    one, which is more than a thousand nodes take.
+  - `scheduler.yield` was rejected for now. Safari 18.4 doesn't have it.
+  - Pausing by time was rejected. It would read a clock at each node, and
+    a count pauses often enough: a thousand nodes are about a millisecond.
+- `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it
+  too. They walk under a value once, so they cost the document and not
+  the tree, but a document can still be large, or lead to many more.
+- A limit on what a visit does was considered, and isn't here yet. A
+  limit on the number of visits has no default that's right: a broad walk
+  that's shallow, like every person in a film, makes many visits
+  correctly. A limit on how many times a walk goes under the same node
+  stops a document that doubles at each level after a few levels, and
+  allows a value that a document uses many times.
+
 ## Selecting
 
 - `jrefSelect` and `jrefSelectAll` are `unist-util-select`'s `select` and
