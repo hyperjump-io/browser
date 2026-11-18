@@ -16,7 +16,11 @@ it's a private cache, like a browser's.
 - `stale-while-revalidate` serves the stale response and refreshes it in
   the background. The refresh belongs to the session, so the caller
   aborting doesn't stop it, and it's low priority, because nobody is
-  waiting for it.
+  waiting for it. It's the origin allowing a stale response, so a request
+  that doesn't want one, with `max-age` or `min-fresh` and without
+  `max-stale` (RFC 9111 §5.2.1), is revalidated first. That's also true of
+  a response that's only too old for the request, not past its own
+  lifetime.
 - The request's `max-age`, `min-fresh`, `max-stale`, `no-cache`, and
   `no-store` are followed.
 - The cache doesn't do ranges. A request with a `Range` bypasses it, and a

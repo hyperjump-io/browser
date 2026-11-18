@@ -265,6 +265,30 @@ describe("the HTTP cache", () => {
     }
   });
 
+  test("doesn't serve stale while it revalidates for a request with max-age or min-fresh", async () => {
+    const { server, get, advance, hits } = await setup();
+    try {
+      const first = await get("/swr");
+
+      // Fresh, but too old for the request
+      const tooOld = await get("/swr", { headers: { "cache-control": "max-age=0" } });
+      expect(tooOld.cache).not.to.equal("stale");
+      expect(tooOld.body).not.to.equal(first.body);
+
+      // Fresh, but not for long enough
+      const notFreshEnough = await get("/swr", { headers: { "cache-control": "min-fresh=10" } });
+      expect(notFreshEnough.cache).not.to.equal("stale");
+
+      // Stale, but within the request's max-age
+      advance(5);
+      const stale = await get("/swr", { headers: { "cache-control": "max-age=10" } });
+      expect(stale.cache).not.to.equal("stale");
+      expect(hits("/swr"), "each was fetched before it was answered").to.equal(4);
+    } finally {
+      await server.close();
+    }
+  });
+
   test("follows max-age=0 and max-stale in the request", async () => {
     const { server, get, advance } = await setup();
     try {

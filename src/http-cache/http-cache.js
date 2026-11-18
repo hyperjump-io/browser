@@ -137,7 +137,12 @@ export class HttpCache {
       if (staleAllowed && maxStale !== undefined && (maxStale === "" || staleBy <= Number(maxStale))) {
         return this.#serve(entry, request, "stale");
       }
-      if (staleAllowed && staleWhileRevalidate !== undefined && staleBy <= staleWhileRevalidate) {
+      // `stale-while-revalidate` is the origin allowing a stale response, but
+      // a request with `max-age` or `min-fresh` and without `max-stale`
+      // doesn't want one (RFC 9111 §5.2.1), even if it's only too old for
+      // the request and not past its own lifetime
+      const wantsFresh = requestCacheControl.has("max-age") || requestCacheControl.has("min-fresh");
+      if (staleAllowed && !wantsFresh && staleWhileRevalidate !== undefined && staleBy <= staleWhileRevalidate) {
         // The refresh belongs to the session, not to this request, and nobody
         // is waiting for it, so it's low priority
         ctx.record.mark("cache:background-revalidate");

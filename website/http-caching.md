@@ -26,7 +26,8 @@ Hyperjump session reads a `file:` URL every time.
 - It revalidates a stale response that has an `ETag` or `Last-Modified`
   header, so an unchanged response isn't downloaded again.
 - It serves a stale response while it revalidates in the background when the
-  response has `stale-while-revalidate`.
+  response has `stale-while-revalidate`, unless the request's `Cache-Control`
+  has `max-age` or `min-fresh`, which ask for a fresh one.
 - It keeps a response for each value of the headers a response's `Vary` names.
 - A successful `POST`, `PUT`, `PATCH`, or `DELETE` to a URL removes what's
   cached for it.
