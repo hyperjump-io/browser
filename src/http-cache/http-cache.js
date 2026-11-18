@@ -1,7 +1,6 @@
 import { MemoryCacheStore } from "./memory-cache-store.js";
 import { parseCacheControl, varyMatches } from "./cache-control.js";
 import { networkError, responseMeta, setResponseMeta, withUrl } from "../response-meta.js";
-import { PrioritySignal } from "../priority.js";
 import { nullBodyStatuses } from "../statuses.js";
 
 /**
@@ -143,12 +142,20 @@ export class HttpCache {
       // the request and not past its own lifetime
       const wantsFresh = requestCacheControl.has("max-age") || requestCacheControl.has("min-fresh");
       if (staleAllowed && !wantsFresh && staleWhileRevalidate !== undefined && staleBy <= staleWhileRevalidate) {
-        // The refresh belongs to the session, not to this request, and nobody
-        // is waiting for it, so it's low priority
+        // The refresh is a request of the session's, with its own record, so
+        // it isn't this one's, which ends now, and the caller aborting
+        // doesn't stop it. It goes down the stack again, to this cache, which
+        // revalidates it for `no-cache`. Nobody is waiting for it, so it's
+        // low priority, and it refreshes this response, even a redirect.
         ctx.record.mark("cache:background-revalidate");
-        const backgroundCtx = { ...ctx, priority: PrioritySignal.of("low") };
-        this.#revalidate(entry, new Request(request, { signal: ctx.session.signal }), backgroundCtx)
-          .then((response) => response.body?.cancel(), () => {});
+        ctx.session.fetch(request.url, {
+          method: request.method,
+          headers: request.headers,
+          cache: "no-cache",
+          priority: "low",
+          redirect: "manual",
+          initiator: ctx.record
+        }).then((response) => response.body?.cancel(), () => {});
         return this.#serve(entry, request, "stale", age);
       }
     }

@@ -265,6 +265,34 @@ describe("the HTTP cache", () => {
     }
   });
 
+  test("a refresh in the background is a request of its own, which the stale response caused", async () => {
+    const { server, session, get, advance } = await setup();
+    try {
+      await get("/swr");
+      advance(5);
+      /** @type import("../fetch-record.d.ts").TraceEvent[] */
+      const events = [];
+      session.observe((event) => {
+        events.push(event);
+      });
+
+      await get("/swr");
+
+      const [stale, refresh] = events.filter(({ type }) => type === "start").map(({ record }) => record);
+      expect(stale.cache).to.equal("stale");
+      expect(stale.marks.map(({ name }) => name)).to.eql(["cache:background-revalidate"]);
+      const ended = events.findIndex(({ type, record }) => type === "end" && record === stale);
+      expect(events.slice(ended + 1).filter(({ record }) => record === stale), "nothing happens to it after it ends").to.eql([]);
+
+      expect(refresh.initiator).to.equal(stale);
+      expect(refresh.priority).to.equal("low");
+      expect(refresh.marks.map(({ name }) => name)).to.include("network:start");
+      expect(refresh.endTime).not.to.equal(undefined);
+    } finally {
+      await server.close();
+    }
+  });
+
   test("doesn't serve stale while it revalidates for a request with max-age or min-fresh", async () => {
     const { server, get, advance, hits } = await setup();
     try {

@@ -14,9 +14,18 @@ it's a private cache, like a browser's.
 - A stale response with an `ETag` or `Last-Modified` is revalidated, and a
   304's headers are merged into what's stored.
 - `stale-while-revalidate` serves the stale response and refreshes it in
-  the background. The refresh belongs to the session, so the caller
-  aborting doesn't stop it, and it's low priority, because nobody is
-  waiting for it. It's the origin allowing a stale response, so a request
+  the background. The refresh is a request of the session's,
+  `session.fetch` with `cache: "no-cache"`, so it goes down the stack
+  again and this cache revalidates it. It has its own record, whose
+  initiator is the stale response's, so a trace shows what caused it and
+  the stale response's record ends when it does. The caller aborting
+  doesn't stop it, and it's low priority, because nobody is waiting for
+  it. It's `redirect: "manual"`, so it refreshes the response that was
+  served, even a redirect. The stale response is marked
+  `cache:background-revalidate`.
+  - Refreshing it with the stale response's context was rejected. What
+    the refresh did was marked on a record that had ended, so a trace and
+    a HAR export gave a hit from the cache the time the refresh took. It's the origin allowing a stale response, so a request
   that doesn't want one, with `max-age` or `min-fresh` and without
   `max-stale` (RFC 9111 §5.2.1), is revalidated first. That's also true of
   a response that's only too old for the request, not past its own
