@@ -223,6 +223,22 @@ describe("tolerant parse", () => {
     expect(/** @type any */ (document.children[0]).children[0].type).toBe("json-invalid");
   });
 
+  test("a byte order mark at the start is skipped and reported, as RFC 8259 allows", () => {
+    const { errors } = parse(`\uFEFF{ "a": 1 }`);
+    expect(errors).toEqual([{ code: "byte-order-mark", offset: 0, length: 1 }]);
+
+    const { document } = fromJson(`\uFEFF{ "a": 1 }`, url);
+    expect(document.status, "the tree has everything").toBe("recovered");
+    expect(toJson(document.children[0])).toBe(`{"a":1}`);
+    expect(document.children[0].position?.start.offset, "positions are in the text").toBe(1);
+    expect(jsonSyntaxErrorMessage(fromJson(`\uFEFF1`, url).errors[0])).toBe("A byte order mark isn't allowed at the start of JSON");
+  });
+
+  test("a byte order mark anywhere else isn't one", () => {
+    expect(parse(`[\uFEFF1]`).errors.map((error) => error.code)).not.toContain("byte-order-mark");
+    expect(fromJson(`\uFEFF`, url).document.status, "a BOM alone still has no value").toBe("failure");
+  });
+
   test("hex notation is not a valid JSON number", () => {
     const { errors } = parse(`{ "a": 0x1F }`);
 

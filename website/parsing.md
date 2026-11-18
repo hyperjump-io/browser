@@ -36,6 +36,9 @@ Each error is plain data with a `ruleId` and a `place`. The `ruleId` is a name
 such as `"trailing-comma"`. To turn an error into a message for people to read,
 use `jsonSyntaxErrorMessage`.
 
+A byte order mark at the start of the text, which `readFile` leaves there, is a
+`"byte-order-mark"` error. The parser skips it, so the status is `"recovered"`.
+
 A number too big for JavaScript, such as `1e999`, is a `"number-out-of-range"`
 error, so the parse fails. In `JSON.parse`, it would be `Infinity`, which JSON
 can't represent.

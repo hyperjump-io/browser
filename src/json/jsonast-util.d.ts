@@ -105,6 +105,7 @@ export type JsonSyntaxErrorCode
     | "invalid-literal"
     | "comment-not-allowed"
     | "comment-not-closed"
+    | "byte-order-mark"
     | "max-depth-exceeded";
 
 /**

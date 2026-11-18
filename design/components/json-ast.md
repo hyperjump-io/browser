@@ -36,6 +36,17 @@ the root of a document, whose parse status is one of:
 - `allowComments` supports JSONC. Comments are listed on the document node.
 - Nesting is limited to 1000 levels instead of overflowing the stack.
   Recovery heuristics run in linear time regardless of the input.
+- A byte order mark at the start is `byte-order-mark`, and the parse
+  goes on after it, so the status is `recovered`. RFC 8259 lets a parser
+  ignore one, and a decoder that isn't the Encoding Standard's, like
+  `readFile`'s or a vfile's, leaves it in the text, though
+  `Response.text()` doesn't. Positions are in the text, so the root
+  starts at offset 1. A U+FEFF anywhere else is an ordinary character.
+  - Ignoring it, with the status `success`, was rejected. JSON text
+    shouldn't have one, and `JSON.parse` fails on it, so an editor says
+    so, and the unified plugins' `accept` decides what's too bad.
+  - Failing was rejected, as `JSON.parse` does. The tree has everything,
+    which is what `recovered` says.
 - A number past a JavaScript number's range, like `1e999`, is
   `number-out-of-range`, a `json-invalid` node, so the parse is a failure.
   RFC 8259 allows a limit on a number's range. Its value would be

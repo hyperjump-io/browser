@@ -81,6 +81,7 @@ const MESSAGES = {
   "invalid-literal": (found) => `'${found}' is not a valid value`,
   "comment-not-allowed": () => "Comments are not allowed in JSON",
   "comment-not-closed": () => "Comment is missing its closing '*/'",
+  "byte-order-mark": () => "A byte order mark isn't allowed at the start of JSON",
   "max-depth-exceeded": () => `Objects and arrays can't be nested more than ${MAX_DEPTH} levels deep`
 };
 
@@ -120,8 +121,13 @@ export const parseJson = (text, url, options = {}) => {
   /** @type WeakSet<object> */
   const unclosed = new WeakSet();
 
+  // RFC 8259 lets a parser ignore a byte order mark, which a decoder that
+  // isn't the Encoding Standard's, like `readFile`'s, leaves at the start.
+  // The tree has everything, so it's recovered.
+  const hasByteOrderMark = text.startsWith("\uFEFF");
+
   /** @type JsonToken */
-  let token = scanToken("", 0);
+  let token = scanToken("", hasByteOrderMark ? 1 : 0);
   let previousOffset = 0;
   let previousLength = 0;
 
@@ -129,6 +135,10 @@ export const parseJson = (text, url, options = {}) => {
   const report = (code, offset, length, found) => {
     errors.push({ code, offset, length, found });
   };
+
+  if (hasByteOrderMark) {
+    report("byte-order-mark", 0, 1);
+  }
 
   /** @type (code: JsonSyntaxErrorCode) => void */
   const reportAtPrevious = (code) => {
