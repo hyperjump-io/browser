@@ -44,7 +44,9 @@ A response for a URL that isn't a `file:` URL needs a `Content-Type`, so
 a [media type](media-types.md) can parse it.
 
 `registry` copies the entries, so changing them later doesn't change the
-registry.
+registry. A `ReadableStream` body works too. The registry keeps what's read of
+it, so it answers the stream every time and for every Hyperjump session that
+shares the registry.
 
 | Option | Description |
 | --- | --- |

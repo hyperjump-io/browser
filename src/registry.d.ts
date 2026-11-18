@@ -39,7 +39,8 @@ export type RegistryEntryFunction = (url: string, ctx: RegistryContext) => Respo
 /**
  * A registry of entries by URL. A relative URL is resolved against `base`,
  * or the working directory in Node.js or the page in a browser. The entries
- * are copied, so changing them later changes nothing. A response that isn't
+ * are copied, so changing them later changes nothing, and a stream body is
+ * answered every time, by every session. A response that isn't
  * a `file:` URL needs a `Content-Type` for a media type to parse it.
  */
 export const registry: (entries: Record<string, RegistryEntry> | Iterable<[string | URL, RegistryEntry]>, options?: { base?: string | URL }) => Registry;

@@ -12,9 +12,20 @@ with it, are a session's `registry`. The session asks it before
   written by the application, and the session never knows what an
   identifier is.
 - `registry(entries, { base })` is one by URL. An entry is a body, the
-  parts of a response, or a function that makes a response each time.
-  Entries are copied, so changing them later changes nothing, and a
-  relative URL is resolved against `base` or the context URL. A response
+  parts of a response, or a function that makes a response each time. A
+  relative URL is resolved against `base` or the context URL.
+- An entry that isn't a function is made into a response once, and each
+  time it's asked for, the registry answers with a clone. Making a
+  response copies a body that's bytes and copies the headers, so changing
+  an entry later changes nothing. A clone of a stream body is a branch of
+  it, so a stream is answered every time, by every session that shares the
+  registry, and what's been read of it stays in memory like any other
+  body.
+  - Making a response each time from the entry was rejected. A stream can
+    be read only once, so the second session would fail, and an entry's
+    bytes would be read when it's asked for, not when it's registered.
+  - Refusing a stream body was rejected. A clone answers it without code
+    of its own. A response
   that isn't for a `file:` URL needs a `Content-Type`, for a media type to
   parse it, so an entry's isn't guessed from its URL.
 - `allowRetrieval` doesn't apply to what it answers. `allowRetrieval` keeps

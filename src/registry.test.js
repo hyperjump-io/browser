@@ -56,13 +56,14 @@ describe("registry", () => {
     expect(trace.records.map((record) => [record.url, record.source])).to.eql([["https://a.test/doc", "registry"]]);
   });
 
-  test("an entry can be the parts of a response, or a function that makes one each time", async () => {
+  test("an entry can be the parts of a response, a Blob with its type, or a function that makes one each time", async () => {
     let made = 0;
     /** @type Hyperjump */
     const session = new Hyperjump({
       stack,
       registry: registry({
         "https://a.test/parts": { body: "{}", headers: { "content-type": "application/json" } },
+        "https://a.test/blob": new Blob(["{}"], { type: "application/json" }),
         "https://a.test/made": (/** @type string */ url, /** @type import("./registry.d.ts").RegistryContext */ ctx) => {
           made++;
           return new Response(`${url} ${ctx.session === session}`);
@@ -71,9 +72,42 @@ describe("registry", () => {
     });
 
     expect((await session.fetch("https://a.test/parts")).headers.get("content-type")).to.equal("application/json");
+    expect((await session.fetch("https://a.test/blob")).headers.get("content-type")).to.equal("application/json");
     expect(await (await session.fetch("https://a.test/made")).text()).to.equal("https://a.test/made true");
     await session.fetch("https://a.test/made");
     expect(made).to.equal(2);
+  });
+
+  test("changing an entry's bytes or headers later doesn't change what it answers", async () => {
+    const bytes = new TextEncoder().encode("before");
+    const buffer = new TextEncoder().encode("before").buffer;
+    const headers = { "content-type": "application/json" };
+    const session = new Hyperjump({
+      stack,
+      registry: registry({
+        "https://a.test/bytes": bytes,
+        "https://a.test/buffer": buffer,
+        "https://a.test/parts": { body: "{}", headers }
+      })
+    });
+    bytes.set(new TextEncoder().encode("after!"));
+    new Uint8Array(buffer).set(new TextEncoder().encode("after!"));
+    headers["content-type"] = "text/plain";
+
+    expect(await (await session.fetch("https://a.test/bytes")).text()).to.equal("before");
+    expect(await (await session.fetch("https://a.test/buffer")).text()).to.equal("before");
+    expect((await session.fetch("https://a.test/parts")).headers.get("content-type")).to.equal("application/json");
+  });
+
+  test("a stream body is answered every time it's asked for, by every session", async () => {
+    const body = new Blob(["streamed"]).stream();
+    const registered = registry({ "https://a.test/stream": { body, headers: { "content-type": "text/plain" } } });
+    const first = new Hyperjump({ stack, registry: registered });
+    const second = new Hyperjump({ stack, registry: registered });
+
+    expect(await (await first.fetch("https://a.test/stream")).text()).to.equal("streamed");
+    expect(await (await first.fetch("https://a.test/stream")).text()).to.equal("streamed");
+    expect(await (await second.fetch("https://a.test/stream")).text()).to.equal("streamed");
   });
 
   test("a relative URL is resolved against base, and entries are copied", () => {
