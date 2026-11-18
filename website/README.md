@@ -29,7 +29,7 @@ retrieves it by its URL scheme. On a server, that includes `file:` URLs.
 - [Get started](getting-started.md): browse an API and files step by step
 - Documents
   - [Browse to a URL](browse-to-a-url.md): go to the value a URL identifies, following references
-  - [Read targets](read-targets.md): step into, visit, find, and select the values under a target, following references
+  - [Read values](read-values.md): read values, and step into, visit, find, and select the values under them, following references
   - [Follow references yourself](references.md): read references as they're written, and follow them with `browse`
   - [Media types](media-types.md): formats other than JSON and JRef
   - [Parse JSON and JRef](parsing.md): the parsers and the functions that read their ASTs
