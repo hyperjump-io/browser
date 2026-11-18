@@ -1,5 +1,6 @@
 import { nextTask } from "#next-task";
 import { browse } from "./documents.js";
+import { limit } from "./limit.js";
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
 import { MAX_DEPTH } from "../json/json-parser.js";
@@ -128,20 +129,6 @@ export const memberEntries = (node) => {
  * @type (options: WalkOptions | undefined) => number
  */
 export const maxDepth = (options) => limit("maxDepth", options?.maxDepth ?? MAX_DEPTH);
-
-/**
- * A limit from a walk's options. One that isn't a whole number from 0, or
- * `Infinity`, is a mistake in the call.
- *
- * @type (name: string, value: number) => number
- */
-export const limit = (name, value) => {
-  if (value !== Infinity && (!Number.isInteger(value) || value < 0)) {
-    throw RangeError(`'${name}' has to be a whole number that isn't negative, or Infinity, not ${value}`);
-  }
-
-  return value;
-};
 
 /**
  * A walk that follows references was asked to find them. Every reference

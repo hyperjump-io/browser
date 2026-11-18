@@ -2,6 +2,7 @@ import { canRefer, referrerFor, refusedReferenceResponse } from "../file-referen
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
 import { jsonPointerGet } from "../json/jsonast-util.js";
+import { limit } from "./limit.js";
 import { missingValueError, startOf } from "./start.js";
 import { acceptHeader, defaultMediaTypes, mediaTypeForContentType, mediaTypeForExtension } from "../media-types/media-types.js";
 import { PriorityGroup, PrioritySignal } from "../priority.js";
@@ -45,13 +46,22 @@ import { responseMeta, withUrl } from "../response-meta.js";
  * `retrieved` is the entry of each document that was retrieved, by the
  * document, which is how a target's document is known to the session.
  *
+ * `maxReferences` is the session's, or the default.
+ *
  * @typedef {{
  *   mediaTypes: readonly MediaTypePlugin[],
  *   accept: string,
+ *   maxReferences: number,
  *   entries: Map<string, Kept>,
  *   retrieved: WeakMap<DocumentNode, Entry>
  * }} Documents
  */
+
+/**
+ * How many references `browse` follows in a row to reach a value, unless
+ * the session says, like `maxRedirects`. A real schema has one or two.
+ */
+const MAX_REFERENCES = 20;
 
 /**
  * What caused a request: the record or response of the request that did,
@@ -77,7 +87,8 @@ export const browse = async (session, url, given) => {
 /**
  * What a fragment identifies in a document, as a target. To `follow`, a
  * reference is followed, and so is any that leads to, until there's a
- * value.
+ * value. Each one can lead to a new document, so following more than
+ * `maxReferences` is an error, before the next one is retrieved.
  *
  * @type (session: API.DocumentSession, entry: Entry, documentUrl: string, fragment: string, priority: PrioritySignal, follow: boolean) => Promise<API.Target<DocumentNode, JrefNode>>
  */
@@ -100,6 +111,14 @@ const targetIn = async (session, entry, documentUrl, fragment, priority, follow)
     }
     if (!follow || node.type !== "reference") {
       return { document: entry.container, node };
+    }
+    const { maxReferences } = documentsOf(session);
+    if (chain.length > maxReferences) {
+      throw codedError(
+        `Following more than ${maxReferences} references in a row, at '${relativeFileUrl(href)}'. If that's expected, use a bigger 'maxReferences', or Infinity.`,
+        { code: "ERR_TOO_MANY_REFERENCES", maxReferences, chain },
+        href
+      );
     }
 
     ({ documentUrl, fragment } = parseUrl(session, node.href));
@@ -201,7 +220,8 @@ const parseUrl = (session, url) => {
 /** @type (session: API.DocumentSession) => Documents */
 const documentsOf = (session) => session.state(documentsKey, () => {
   const mediaTypes = session.config.mediaTypes ?? defaultMediaTypes;
-  return { mediaTypes, accept: acceptHeader(mediaTypes), entries: new Map(), retrieved: new WeakMap() };
+  const maxReferences = limit("maxReferences", session.config.maxReferences ?? MAX_REFERENCES);
+  return { mediaTypes, accept: acceptHeader(mediaTypes), maxReferences, entries: new Map(), retrieved: new WeakMap() };
 });
 
 /**

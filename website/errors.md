@@ -68,7 +68,7 @@ A failure that isn't a network error works the same way: it's an error whose
 
 | Codes | From |
 | --- | --- |
-| `ERR_HTTP_STATUS`, `ERR_UNSUPPORTED_MEDIA_TYPE`, `ERR_ABSOLUTE_FILE_URL`, `ERR_ANCHOR_NOT_FOUND`, `ERR_REFERENCE_CYCLE`, `ERR_SYNTAX` | `browse`. For more information, see [Browse to a URL](browse-to-a-url.md#errors). |
+| `ERR_HTTP_STATUS`, `ERR_UNSUPPORTED_MEDIA_TYPE`, `ERR_ABSOLUTE_FILE_URL`, `ERR_ANCHOR_NOT_FOUND`, `ERR_REFERENCE_CYCLE`, `ERR_TOO_MANY_REFERENCES`, `ERR_SYNTAX` | `browse`. For more information, see [Browse to a URL](browse-to-a-url.md#errors). |
 | `ERR_POINTER_NOT_FOUND`, `ERR_POINTER_INVALID_INDEX`, `ERR_POINTER_DUPLICATE_PROPERTY`, `ERR_POINTER_NOT_INDEXABLE`, `ERR_INVALID_VALUE` | The functions that read an AST. For more information, see [Parse JSON and JRef](parsing.md#read-the-ast). |
 | `ERR_STRUCTURED_VALUE` | `jrefValue`. For more information, see [Read values](read-values.md#step-one-level-at-a-time). |
 | `ERR_MAX_DEPTH` | `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll`. For more information, see [Read values](read-values.md#how-deep-a-walk-goes). |

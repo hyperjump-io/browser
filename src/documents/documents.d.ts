@@ -18,6 +18,17 @@ declare module "../hyperjump.d.ts" {
      * two plugins match a response equally, the first one parses it.
      */
     mediaTypes?: readonly MediaTypePlugin[];
+
+    /**
+     * How many references `browse` follows in a row to reach a value, each
+     * of which can lead to another document, before it's an `Error` whose
+     * `cause.code` is `ERR_TOO_MANY_REFERENCES`. It's like `maxRedirects`:
+     * a document can't make the session retrieve documents without end. The
+     * default is 20, and `Infinity` doesn't limit it. Anything else that
+     * isn't a whole number from 0 is a `RangeError` the first time the
+     * session browses.
+     */
+    maxReferences?: number;
   }
 }
 
@@ -189,5 +200,11 @@ export type BrowseTarget<S, O> = unknown extends SessionNode<S> ? Target
  * @throws An `Error` whose `cause.code` is `ERR_REFERENCE_CYCLE`, with the
  * `chain` of URLs, if following references leads back to one that was
  * already followed.
+ * @throws An `Error` whose `cause.code` is `ERR_TOO_MANY_REFERENCES`, with
+ * the `maxReferences` and the `chain` of URLs, if it would follow more than
+ * the session's `maxReferences` in a row. Its `url` is the reference it
+ * would follow.
+ * @throws A `RangeError` if the session's `maxReferences` isn't a whole
+ * number that isn't negative, or `Infinity`.
  */
 export const browse: <S extends DocumentSession, const O extends BrowseOptions = BrowseOptions>(session: S, url: string | URL, options?: O) => Promise<BrowseTarget<S, O>>;

@@ -62,6 +62,7 @@ document refers to, resolve it against the document's URL yourself, such as
 | `headers` | Headers for the requests to some URLs, such as credentials. For more information, see [Headers](#headers). |
 | `registry` | Documents your app already has, which the session answers without fetching them. For more information, see [Registries](registries.md). |
 | `maxRedirects` | How many redirects a request can follow before it's a network error. The default is 20. |
+| `maxReferences` | How many references `browse` can follow in a row to reach a value before it's an error. The default is 20. For more information, see [Browse to a URL](browse-to-a-url.md#errors). |
 | `redirectSchemes` | The schemes a redirect can lead to. The default is `["http:", "https:"]`. It can't include `file:`. For more information, see [Redirects](redirects.md). |
 
 ## Headers

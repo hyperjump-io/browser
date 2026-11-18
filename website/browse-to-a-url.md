@@ -170,6 +170,7 @@ needs now. For more information, see [Priorities](priorities.md).
 | An `Error` whose `cause.code` is `"ERR_ANCHOR_NOT_FOUND"` | The fragment isn't an anchor of the document or a JSON Pointer. The `cause.anchor` is the fragment. |
 | An `Error` whose `cause.code` starts with `"ERR_POINTER_"` | The fragment doesn't identify a value. For more information, see [Parse JSON and JRef](parsing.md#read-the-ast). |
 | An `Error` whose `cause.code` is `"ERR_REFERENCE_CYCLE"` | Following references leads back to a reference that `browse` already followed. The `cause.chain` lists the URLs. |
+| An `Error` whose `cause.code` is `"ERR_TOO_MANY_REFERENCES"` | `browse` would follow more than 20 references in a row, each of which can lead to another document, so a document can't make the Hyperjump session retrieve documents without end. To change the limit, use the session's `maxReferences` option. The `cause.chain` lists the URLs. |
 
 Every one of these errors has the URL that failed as its `url`:
 

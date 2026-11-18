@@ -200,6 +200,22 @@ a hypermedia browser, and the stack is how it retrieves.
     to be a failure.
 - Following a reference that leads back to one already followed is an
   error, with the chain of URLs.
+- Following more than `maxReferences` references in a row is an error
+  too, `ERR_TOO_MANY_REFERENCES`, checked before the next one is followed,
+  so nothing past the limit is retrieved. Each reference can lead to a new
+  document, so a server that answers each one with a reference to another
+  would have the session retrieve documents without end, and a cycle only
+  ends a chain that comes back. It's like `maxRedirects`, and its default
+  is the same, 20. Of 7,133 references followed in the 57 SchemaStore
+  schemas in `sourcemeta/jsonschema-benchmark`, 22 led to another
+  reference, and none to a third.
+  - It's a session option, next to `mediaTypes`, and not one of
+    `browse`'s. The `jref*` functions follow references with `browse`, so
+    one setting covers them, without each passing it on.
+  - A `signal` for `browse` was left out. A document that's being
+    retrieved is shared by whoever asks for it, so one caller's abort
+    can't abort its request, and with a limit, `browse` makes at most one
+    request more than `maxReferences`.
 - `browse` with `referencedFrom`, a target or a document, follows a
   reference from that document, which is how the `jref*` functions
   follow one (see [Browsing](browsing.md)). Only the document is read, so
@@ -227,6 +243,7 @@ says why, with the exact URL as its `url` (see
 | `ERR_ABSOLUTE_FILE_URL` | A document that isn't a file and says it contains a document with a `file:` URL (see [`file:` from `file:`](file-references.md)) |
 | `ERR_ANCHOR_NOT_FOUND` | A fragment that isn't an anchor of the document or a JSON Pointer. The cause has the `anchor`. |
 | `ERR_REFERENCE_CYCLE` | References that lead back to one already followed. The cause has the `chain`. |
+| `ERR_TOO_MANY_REFERENCES` | More than the session's `maxReferences` references in a row. The cause has the `maxReferences` and the `chain`. |
 
 They're `Error`s, not the `TypeError` of a network error, because a server
 answered. A response that can't be used has its body cancelled, so its

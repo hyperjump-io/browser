@@ -287,6 +287,42 @@ describe("documents", () => {
       await expect(browse(session, "https://a.test/self")).rejects.toMatchObject({ cause: { code: "ERR_REFERENCE_CYCLE" } });
     });
 
+    describe("maxReferences", () => {
+      /**
+       * Documents that are each a reference to the next, without end
+       *
+       * @type (length: number) => Record<string, [string, Record<string, string>]>
+       */
+      const chain = (length) => Object.fromEntries(Array.from({ length }, (_, index) => [`/${index}`, [`{ "$ref": "/${index + 1}" }`, jref]]));
+
+      test("following more than 20 references in a row is an error, and nothing past them is retrieved", async () => {
+        const { session, requests } = site(chain(100));
+
+        const following = browse(session, "https://a.test/0");
+
+        await expect(following).rejects.toThrow(coded("ERR_TOO_MANY_REFERENCES", "https://a.test/20#"));
+        await expect(following).rejects.toMatchObject({ cause: { maxReferences: 20, chain: Array.from({ length: 21 }, (_, index) => `https://a.test/${index}#`) } });
+        expect(requests.map(({ url }) => url)).to.eql(Array.from({ length: 21 }, (_, index) => `https://a.test/${index}`));
+      });
+
+      test("it's the session's", async () => {
+        const pages = { ...chain(2), "/2": /** @type [string, Record<string, string>] */ ([`"end"`, jref]) };
+
+        expect(jsonValue((await browse(site(pages, { maxReferences: 2 }).session, "https://a.test/0")).node)).to.equal("end");
+        await expect(browse(site(pages, { maxReferences: 1 }).session, "https://a.test/0")).rejects.toThrow(coded("ERR_TOO_MANY_REFERENCES", "https://a.test/1#"));
+      });
+
+      test("Infinity doesn't limit it", async () => {
+        const pages = { ...chain(30), "/30": /** @type [string, Record<string, string>] */ ([`"end"`, jref]) };
+
+        expect(jsonValue((await browse(site(pages, { maxReferences: Infinity }).session, "https://a.test/0")).node)).to.equal("end");
+      });
+
+      test.each([[-1], [1.5], [Number.NaN]])("%s is a RangeError", async (maxReferences) => {
+        await expect(browse(site({}, { maxReferences }).session, "https://a.test/0")).rejects.toThrow(RangeError);
+      });
+    });
+
     test("a fragment that doesn't identify a value is an error with a code and its location", async () => {
       const { session } = site({ "/a": [`{}`, jref] });
       await expect(browse(session, "https://a.test/a#/b")).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/a#/b"));
