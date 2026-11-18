@@ -24,8 +24,8 @@ export const acceptHeader = (mediaTypes) => {
 
 /** @type typeof API.mediaTypeForContentType */
 export const mediaTypeForContentType = (mediaTypes, contentType) => {
-  const actual = parseMediaType(contentType?.split(";", 1)[0]);
-  if (!actual || actual.type === "*" || actual.subtype === "*") {
+  const actual = extractMediaType(contentType);
+  if (!actual) {
     return undefined;
   }
 
@@ -67,6 +67,54 @@ export const mediaTypeForExtension = (mediaTypes, url) => {
  */
 const isNameEnd = (path, extension) => extension.startsWith("/")
   || (extension.startsWith(".") && path[path.length - extension.length - 1] !== "/");
+
+/**
+ * The media type of a `Content-Type`, by the Fetch standard's "extract a
+ * MIME type": a header that's several values, like two headers combined, is
+ * the last one that's a media type and isn't a range.
+ *
+ * @type (contentType: string | null) => MediaType | undefined
+ */
+const extractMediaType = (contentType) => {
+  let found;
+  for (const value of splitHeader(contentType ?? "")) {
+    const parsed = parseMediaType(value.split(";", 1)[0]);
+    if (parsed && parsed.type !== "*" && parsed.subtype !== "*") {
+      found = parsed;
+    }
+  }
+  return found;
+};
+
+/**
+ * A header's values, by the Fetch standard's "get, decode, and split": a
+ * comma separates them, except in a quoted string, where `\` escapes the
+ * next character
+ *
+ * @type (header: string) => string[]
+ */
+const splitHeader = (header) => {
+  const values = [];
+  let value = "";
+  let quoted = false;
+  for (let position = 0; position < header.length; position++) {
+    const char = header[position];
+    if (quoted && char === "\\") {
+      value += header.slice(position, position + 2);
+      position++;
+    } else if (char === "\"") {
+      quoted = !quoted;
+      value += char;
+    } else if (char === "," && !quoted) {
+      values.push(value.trim());
+      value = "";
+    } else {
+      value += char;
+    }
+  }
+  values.push(value.trim());
+  return values;
+};
 
 const token = "[!#$%&'*+\\-.^_`|~0-9A-Za-z]+";
 const mediaTypePattern = new RegExp(`^(${token})/(${token})$`);

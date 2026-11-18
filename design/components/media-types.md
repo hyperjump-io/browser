@@ -32,6 +32,14 @@ its fragments identify. JSON and JRef are built in.
   first `;`, in lowercase, checked against RFC 9110's `token "/" token`. A
   parameter can't change which plugin parses a response, so parameters
   aren't parsed.
+  - A header that's several values, like two `Content-Type` headers that
+    `Headers` combined, is the last one that's a media type and isn't
+    `*/*`, by the Fetch standard's "extract a MIME type". It's split at
+    commas outside quoted strings, so a parameter with a comma in it
+    doesn't split it. A browser reads it that way, so a response is parsed
+    the way it's rendered.
+  - Known limitation: a plugin that reads its `Content-Type`'s parameters
+    gets the whole header, not the value it was chosen for.
 - `parse` gets the response and the session. The response's `url` is the
   document's, without a fragment, and its `headers` have its
   `Content-Type`'s parameters, which a media type can give a meaning.

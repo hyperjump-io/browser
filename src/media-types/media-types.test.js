@@ -34,6 +34,15 @@ describe("media types", () => {
       expect(mediaTypeForContentType(defaultMediaTypes, "Application/Reference+JSON")).to.equal(jrefMediaType);
     });
 
+    test("a Content-Type that's several, like one from two headers, is the last that's a media type, as the Fetch standard says", () => {
+      expect(mediaTypeForContentType(defaultMediaTypes, "text/html, application/json")).to.equal(jsonMediaType);
+      expect(mediaTypeForContentType(defaultMediaTypes, "application/json, text/html")).to.equal(undefined);
+      expect(mediaTypeForContentType(defaultMediaTypes, "application/json, */*"), "*/* isn't one").to.equal(jsonMediaType);
+      expect(mediaTypeForContentType(defaultMediaTypes, "application/json, not a media type"), "nor is one that doesn't parse").to.equal(jsonMediaType);
+      expect(mediaTypeForContentType(defaultMediaTypes, `application/json; x="a, text/html"`), "a comma in quotes is in the value").to.equal(jsonMediaType);
+      expect(mediaTypeForContentType(defaultMediaTypes, `application/json; x="a\\", text/html"`), "a quote can be escaped").to.equal(jsonMediaType);
+    });
+
     test.each([
       null,
       "",

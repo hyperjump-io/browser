@@ -103,7 +103,9 @@ export const acceptHeader: (mediaTypes: readonly MediaTypePlugin[]) => string;
  * The plugin with the most specific match for a `Content-Type`: its own
  * media type, then a structured suffix, then a range. The first plugin wins
  * a tie. It's `undefined` when none matches, or the header is missing or
- * isn't a media type.
+ * isn't a media type. A header that's several values, like two headers
+ * combined, is the last one that's a media type, as the Fetch standard
+ * says.
  */
 export const mediaTypeForContentType: <P extends MediaTypePlugin>(mediaTypes: readonly P[], contentType: string | null) => P | undefined;
 

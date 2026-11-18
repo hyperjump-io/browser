@@ -94,6 +94,9 @@ const session = new Hyperjump({
 });
 ```
 
+A response with more than one `Content-Type` has the last one that's a media
+type, as it does in a browser.
+
 A file doesn't have a `Content-Type`, so a session chooses the plugin from the
 file's name. The longest extension that matches wins, so a plugin for
 `.schema.json` gets `person.schema.json` and the JSON plugin gets
