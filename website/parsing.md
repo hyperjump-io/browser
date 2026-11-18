@@ -94,6 +94,10 @@ a reference either, because it only works on one machine and says where that
 machine's files are. To refer to a file from a file, use a relative reference.
 Its error's `ruleId` is `"absolute-file-reference"`.
 
+An object with more than one `$ref` isn't a reference either, because readers
+of JSON don't agree on which one wins. Its error's `ruleId` is
+`"duplicate-reference"`, and its `place` is the second `$ref`.
+
 To follow the references in a document you parsed, pass it to the `jref`
 functions. For more information, see
 [Read a tree you parsed](references.md#read-a-tree-you-parsed).

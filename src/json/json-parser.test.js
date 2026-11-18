@@ -1480,6 +1480,28 @@ describe("invalid references", () => {
     expect(result.errors).toMatchObject([{ source: "jref", ruleId: "absolute-file-reference", actual: reference }]);
   });
 
+  test.each([
+    [`{ "$ref": "/a", "$ref": "/b" }`, 16],
+    [`{ "$ref": 1, "$ref": "/b" }`, 13],
+    [`{ "$ref": "/a", "$ref": 1 }`, 16]
+  ])("an object with more than one $ref is ambiguous, so it's an invalid reference: %s", (jref, offset) => {
+    const result = fromJref(jref, base);
+
+    expect(result.document.status).toBe("failure");
+    expect(result.document.children[0]).toMatchObject({ type: "invalid-reference" });
+    expect(result.errors, "at the second $ref's name").toEqual([{
+      source: "jref",
+      ruleId: "duplicate-reference",
+      place: { start: { line: 1, column: offset + 1, offset }, end: { line: 1, column: offset + 7, offset: offset + 6 } }
+    }]);
+  });
+
+  test("the message for more than one $ref says so", () => {
+    const { errors } = fromJref(`{ "$ref": "/a", "$ref": "/b" }`, base);
+
+    expect(jrefSyntaxErrorMessage(errors[0])).toBe("An object can't have more than one '$ref'");
+  });
+
   test("a relative reference in a file is a reference", () => {
     const { document: { status, children: [node] } } = fromJref(`{ "$ref": "../other/a.json" }`, "file:///home/me/project/main.jref");
 

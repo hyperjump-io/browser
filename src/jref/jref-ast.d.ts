@@ -16,7 +16,7 @@ export type JrefNode<X = never> = JsonNode<JrefAnnotations, X>;
 
 /**
  * An object whose `$ref` is a string that doesn't resolve to a URL against
- * the document's URL. It's still an
+ * the document's URL, or that has more than one `$ref`. It's still an
  * object, with its properties. Only a parse whose status is `failure`
  * produces these.
  */

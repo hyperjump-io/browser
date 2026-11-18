@@ -90,6 +90,17 @@ the root of a document, whose parse status is one of:
   machine it was written on, just by being shared, and it only works
   there. A file is referred to with a relative reference, from a file, so
   nothing that should work is refused. The message doesn't say the URL.
+- An object with more than one `$ref` is an invalid reference too
+  (`ruleId: "duplicate-reference"`), whatever their values are, with the
+  error at the second `$ref`'s name. It's ambiguous: `JSON.parse` keeps
+  the last one, and another reader could take the first, so two readers
+  of a document could disagree about where it refers, or whether it's a
+  reference at all. RFC 6901 fails a pointer to a name that's there more
+  than once for the same reason, and so does `jsonStep`. The error has no
+  `actual`, since it isn't about one value.
+  - The first string `$ref` winning was rejected, and so was the last
+    winning, as `JSON.parse` does. Either one reads the document without
+    saying it's ambiguous.
   - An annotation that isn't an error, with the document's status still
     `success`, was rejected. A session could use the rest of the document,
     but every complete tree could have references that can't be followed,

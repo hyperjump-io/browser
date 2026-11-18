@@ -45,9 +45,14 @@ export const jrefSyntaxErrorMessage = (error) => {
     return jsonSyntaxErrorMessage(error);
   }
   // The URL says where files are on a machine, so the message doesn't say it
-  return error.ruleId === "absolute-file-reference"
-    ? "A reference can't be an absolute file: URL. Use a relative reference to refer to a file."
-    : `'${error.actual}' is not a valid reference`;
+  switch (error.ruleId) {
+    case "absolute-file-reference":
+      return "A reference can't be an absolute file: URL. Use a relative reference to refer to a file.";
+    case "duplicate-reference":
+      return "An object can't have more than one '$ref'";
+    default:
+      return `'${error.actual}' is not a valid reference`;
+  }
 };
 
 /**
@@ -66,10 +71,21 @@ const annotateReferences = (node, url, errors) => {
       annotateReferences(item, url, errors);
     }
   } else if (node.jsonType === "object") {
-    let isReference = false;
+    // More than one `$ref` is ambiguous, as a JSON Pointer to a name that's
+    // there more than once is, and readers of JSON don't agree on which wins
+    const refs = node.children.filter((propertyNode) => propertyNode.children[0].value === "$ref");
+    if (refs.length > 1) {
+      Object.assign(node, { type: "invalid-reference" });
+      errors.push({
+        source: "jref",
+        ruleId: "duplicate-reference",
+        place: /** @type NonNullable<typeof node.position> */ (refs[1].children[0].position)
+      });
+    }
+
     for (const propertyNode of node.children) {
       const [keyNode, valueNode] = propertyNode.children;
-      if (!isReference && keyNode.value === "$ref" && "jsonType" in valueNode && valueNode.jsonType === "string") {
+      if (refs.length === 1 && keyNode.value === "$ref" && "jsonType" in valueNode && valueNode.jsonType === "string") {
         const href = resolveReference(valueNode.value, url);
         const absoluteFile = isAbsoluteFileUrl(valueNode.value);
         if (href === undefined || absoluteFile) {
@@ -84,7 +100,6 @@ const annotateReferences = (node, url, errors) => {
         } else {
           Object.assign(node, { type: "reference", href });
         }
-        isReference = true;
       }
       annotateReferences(valueNode, url, errors);
     }

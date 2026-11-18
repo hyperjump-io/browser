@@ -43,6 +43,20 @@ export type JrefSyntaxError = {
 
   /** The `$ref`'s value */
   actual: string;
+} | {
+  source: "jref";
+
+  /**
+   * `duplicate-reference`: an object with more than one `$ref`, which is
+   * ambiguous, whatever their values are
+   */
+  ruleId: "duplicate-reference";
+
+  /** The span of the second `$ref`'s name */
+  place: Position;
+
+  /** There's no one value it's about */
+  actual?: undefined;
 };
 
 /**
