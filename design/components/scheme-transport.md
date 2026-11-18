@@ -17,4 +17,5 @@ The bottom of a stack gives a request to the fetcher for its URL's scheme.
   An abort is given on as it is (see [Network errors](network-errors.md)).
 - `defaultTransport()` is those three schemes, and works in browsers too.
   `nodeTransport()` adds `file:`, on a server (see
-  [The `file:` scheme](file-scheme.md)).
+  [The `file:` scheme](file-scheme.md)). Its `schemes` can replace any
+  of them, `file:` too.

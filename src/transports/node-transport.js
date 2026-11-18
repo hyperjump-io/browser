@@ -9,9 +9,6 @@ import { fileScheme } from "./file-scheme.js";
 /** @type typeof API.nodeTransport */
 export const nodeTransport = (options = {}) => {
   /** @type Record<string, Fetcher> */
-  const extra = { ...options.schemes };
-  if (options.file !== false) {
-    extra["file:"] = fileScheme(options.file ?? {});
-  }
-  return defaultTransport(extra);
+  const file = options.file === false ? {} : { "file:": fileScheme(options.file ?? {}) };
+  return defaultTransport({ ...file, ...options.schemes });
 };
