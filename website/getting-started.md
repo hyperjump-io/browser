@@ -62,15 +62,13 @@ const aNewHope = await browse(
 );
 ```
 
-`browse` returns a target for the value that URL identifies. A target has the
-value's `node`, which is a JRef abstract syntax tree (AST) node, and the
-`document` that the node is in. The tree is a
-[unist](https://github.com/syntax-tree/unist) tree, and you find values in it
-with selectors, like you'd find elements in a web page with CSS. `jrefSelect`
-takes the session so it can follow references, and it returns a target for the
-first value that matches. A selector that starts with `>` matches what's
-directly inside the target you give it, and `[key=title]` matches the value of
-the `title` property. `jrefValue` gives you the value of a string, number,
+`browse` returns a target for the value that URL identifies. You don't read a
+target yourself. You pass it to the `jref` functions, which read its value and
+find the values under it. One way to find them is with selectors, like you'd
+find elements in a web page with CSS. `jrefSelect` takes the session so it can
+follow references, and it returns a target for the first value that matches. A
+selector that starts with `>` matches what's directly inside the target you give
+it, and `[key=title]` matches the value of the `title` property. `jrefValue` gives you the value of a string, number,
 boolean, or null as plain JavaScript:
 
 ```typescript

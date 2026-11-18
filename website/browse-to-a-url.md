@@ -1,8 +1,7 @@
 # Browse to a URL
 
 `browse` retrieves a document through a Hyperjump session and gives you a target
-for the value its URL identifies: the value's node and the document that the
-node is in. A document can refer to values in other documents, and you don't
+for the value its URL identifies. A document can refer to values in other documents, and you don't
 follow those references yourself. In a web browser, you click a link, and the
 browser resolves its URL, requests it and shows you the page it leads to. In a
 Hyperjump session, you navigate to a reference, and `browse` resolves its URL,
@@ -36,11 +35,10 @@ if (name) {
 }
 ```
 
-A target's `node` is a node of a JSON abstract syntax tree (AST), which has its
-`location` and its `position` in the document. Its `document` is the document
-that the node is in. When a `jref` function follows a reference in the node,
-the request comes from that document.
-To read the value and step into it, see [Read values](read-values.md).
+You pass a target to the `jref` functions, which read its value and step into
+it. A target knows which document its value is in, so when a `jref` function
+follows a reference under it, the request comes from that document. For more
+information, see [Read values](read-values.md).
 
 `browse` resolves a relative URL the way a web browser does. In a browser,
 that's against the page. In Node.js, it's against the working directory, so
@@ -79,8 +77,7 @@ information, see [Read values](read-values.md).
 A JRef document is JSON with references such as `{ "$ref": "../people/1" }`.
 When the value a URL identifies is a reference, `browse` retrieves what it refers
 to, and it keeps going until it reaches a value that isn't a reference. The
-target's `document` is then the document that value is in, which can be another
-one than the URL's. In a JSON document, an object with a `$ref` property is an
+target is for that value, which can be in another document than the URL's. In a JSON document, an object with a `$ref` property is an
 ordinary object.
 
 A document can refer to anything, so a session only retrieves the URLs its
@@ -91,7 +88,7 @@ information, see [What a session can fetch](allow-retrieval.md).
 
 `browse` follows a reference unless you tell it not to. With
 `reference: "manual"`, it gives you the target the URL identifies as it's
-written, even when its node is a reference. It works like `fetch`'s
+written, even when it's a reference. It works like `fetch`'s
 `redirect: "manual"` option, which gives you a redirect instead of following
 it.
 
