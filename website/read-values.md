@@ -175,30 +175,28 @@ values inside it again, so the walk ends.
 To visit only some values, put a test before the visitor like you would with
 `unist-util-visit`. A string matches a node's `type`, an object matches nodes
 with the same properties, a function gets the target and matches the ones it
-returns `true` for, and an array matches what any test in it matches. A
-node's `jsonType` is the kind of JSON value it holds, such as `"string"`. In
-TypeScript, `jrefValue` knows the type of a value that matches. This example
-prints every string:
+returns `true` for, and an array matches what any test in it matches. In
+TypeScript, a test narrows the visitor's target to what can match it. A function
+test gets the same target, key, and parent as the visitor, so this prints every
+name:
 
 ```typescript
-await jrefVisit(files, team, { jsonType: "string" }, async (target, key) => {
-  console.log(key, await jrefValue(files, target));
+const isName = (target: unknown, key?: string) => key === "name";
+
+await jrefVisit(files, team, isName, async (target) => {
+  console.log(await jrefValue(files, target));
 });
 ```
 
 ```text
-name Ada
-email ada@example.com
-name Ada
-email ada@example.com
-name Grace
-email grace@example.com
-name Ada
-email ada@example.com
+Ada
+Ada
+Grace
+Ada
 ```
 
-The visitor gets Ada's name and email each time the walk reaches her, through
-`lead`, `people`, and Grace's `manager`. The walk still goes through the values
+The visitor gets Ada's name each time the walk reaches her, through `lead`,
+`people`, and Grace's `manager`. The walk still goes through the values
 that don't match and follows their references to find what's under them.
 
 ## Find values
@@ -207,8 +205,7 @@ that don't match and follows their references to find what's under them.
 `undefined` if none does. `jrefFindAll` gives you every value that passes. They
 take the same tests as `jrefVisit` and look in the same order it visits, so
 they follow references along the way. They're for searching a document when
-you don't know where the values are. A function test gets each value's target
-and the key it's at, so this finds every email in the team:
+you don't know where the values are. This finds every email in the team:
 
 ```typescript
 import { jrefFindAll } from "@hyperjump/browser";
@@ -225,13 +222,9 @@ grace@example.com
 ```
 
 A visit gets Ada's email three times, but `jrefFindAll` gives you each value
-once. `jrefFind` stops at the first value that passes, so the Hyperjump session
+once, even if more than one reference leads to it. `jrefFind` stops at the first value that passes, so the Hyperjump session
 doesn't retrieve anything after it. To reach values by their path, use a
 selector.
-
-In TypeScript, an object test narrows what they find, so with
-`{ jsonType: "string" }`, `jrefValue` gives you a `string`. A function test
-narrows only if it's a type predicate.
 
 ## Select values
 
@@ -259,7 +252,7 @@ into each one and gets its name.
 | Selector | Matches |
 | --- | --- |
 | `[key=name]` | The value of the property `name`, or the item at index `name` of an array, such as `[key=0]` |
-| `[property=value]` | A value whose property has that value, such as `[jsonType=object]`. They're compared as text, so `[value=42]` matches `42` and `"42"`. |
+| `[property=value]` | A value whose property has that value, such as `[value="George Lucas"]`. They're compared as text, so `[value=42]` matches `42` and `"42"`. |
 | `[value]` | A value that has the property. Strings, numbers, booleans, and null have a `value`. |
 | `json` or `*` | A value whose `type` is `json`, or any value |
 | `:root` or `:scope` | The value you start from |
