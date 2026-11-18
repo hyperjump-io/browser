@@ -1,5 +1,7 @@
-import { describe, test, expect, beforeAll } from "vitest";
-import { chmod, mkdir, mkdtemp, realpath, symlink, writeFile } from "node:fs/promises";
+import { describe, test, expect, beforeAll, afterAll } from "vitest";
+import { execFileSync } from "node:child_process";
+import { constants } from "node:fs";
+import { chmod, mkdir, mkdtemp, open, realpath, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -72,6 +74,29 @@ describe("the file: scheme", () => {
     const fetching = testHyperjump(nodeTransport(), { allow: [pathToFileURL(directory).href] }).fetch(pathToFileURL(directory).href);
     await expect(fetching).rejects.toThrow(/is a directory/);
     await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_NOT_A_FILE" } });
+  });
+
+  describe.skipIf(process.platform === "win32")("a FIFO", () => {
+    /** @type string */
+    let fifo;
+
+    beforeAll(() => {
+      fifo = join(directory, "site", "fifo");
+      execFileSync("mkfifo", [fifo]);
+    });
+
+    // A reader that's waiting for a writer is let go, so a failure doesn't
+    // leave a thread waiting
+    afterAll(async () => {
+      const writer = await open(fifo, constants.O_WRONLY | constants.O_NONBLOCK).catch(() => undefined);
+      await writer?.close();
+    });
+
+    test("is a network error, without waiting for something to write to it", async () => {
+      const fetching = testHyperjump(nodeTransport(), { allow: [pathToFileURL(directory + "/").href] }).fetch(pathToFileURL(fifo).href);
+      await expect(fetching).rejects.toThrow(/is something other than a file/);
+      await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_NOT_A_FILE" } });
+    }, 2000);
   });
 
   test("a file outside the root is a network error", async () => {

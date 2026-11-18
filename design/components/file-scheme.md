@@ -12,6 +12,13 @@
 - The file is opened before it's answered, so one that can't be read is a
   network error, not a body that fails partway. Its size and modified time
   are from the open file.
+- Something that isn't a file, like a directory, a FIFO, or a device, is
+  an `ERR_NOT_A_FILE`, found from the open file. It's opened with
+  `O_NONBLOCK`, which a file ignores, because opening a FIFO otherwise
+  waits for something to write to it, and a fetch of one would never end.
+  - Checking what a path is before opening it was rejected. What's at a
+    path can change between the check and the open, and the open file is
+    what's read.
 - A response is a 200 with the file's `Content-Length` and
   `Last-Modified`. It has no `Content-Type`, because a file doesn't have a
   media type. What a file is, by its extension, is for whoever reads the

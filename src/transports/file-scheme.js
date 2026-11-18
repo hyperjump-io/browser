@@ -1,3 +1,4 @@
+import { constants } from "node:fs";
 import { open, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import { Readable } from "node:stream";
@@ -9,6 +10,13 @@ import { relativeFileUrl } from "../file-urls.js";
 /**
  * @import * as API from "./file-scheme.d.ts"
  */
+
+/**
+ * Opening a FIFO waits for something to write to it, so it's opened without
+ * waiting, and is then found not to be a file. A file opens the same way
+ * either way. Windows has no FIFOs, and no `O_NONBLOCK`.
+ */
+const readFlags = constants.O_RDONLY | (constants.O_NONBLOCK ?? 0);
 
 /** @type typeof API.fileScheme */
 export const fileScheme = (options = {}) => fetcher(async (request, ctx) => {
@@ -52,7 +60,7 @@ export const fileScheme = (options = {}) => fetcher(async (request, ctx) => {
   }
   let handle;
   try {
-    handle = await open(path);
+    handle = await open(path, readFlags);
   } catch (error) {
     throw readError(request.url, error);
   }

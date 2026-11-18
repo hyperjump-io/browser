@@ -33,8 +33,8 @@ media type.
 
 As in a browser, a file the Hyperjump session can't read is a network error, not
 a 404. `session.fetch` rejects with a `TypeError` when the file doesn't exist or
-the session can't read it, the URL is a directory, or the method isn't `GET` or
-`HEAD`. The message says which, and the error's `cause` is the error from the
+the session can't read it, the URL isn't a file, such as a directory, or the
+method isn't `GET` or `HEAD`. The message says which, and the error's `cause` is the error from the
 filesystem, so a file that doesn't exist has a `cause.code` of `"ENOENT"`. For
 more information, see [Errors](errors.md).
 
