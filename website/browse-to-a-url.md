@@ -87,21 +87,42 @@ A document can refer to anything, so a session only retrieves the URLs its
 `allowRetrieval` allows, and only a file can refer to a file. For more
 information, see [What a session can fetch](allow-retrieval.md).
 
-## A document as it's written
+## A reference as it's written
 
 `browse` follows a reference unless you tell it not to. With
 `reference: "manual"`, it gives you the target the URL identifies as it's
 written, even when its node is a reference. It works like `fetch`'s
 `redirect: "manual"` option, which gives you a redirect instead of following
-it. The target's `document` is then always the document at the URL, which is
-how you get a whole document:
+it.
+
+The option is only for that call. A `jref` function that you give the target
+follows the reference unless you give it `reference: "manual"` too:
 
 ```typescript
-const url = "https://swapi.hyperjump.io/api/films/1";
-const { document } = await browse(session, url, { reference: "manual" });
-document.url; // "https://swapi.hyperjump.io/api/films/1"
-document.children[0]; // The root node
+const url = "https://swapi.hyperjump.io/api/people/1#/homeworld";
+const homeworld = await browse(session, url, { reference: "manual" });
+
+const ref = await jrefSelect(
+  session,
+  ":scope[type=reference] > [key=$ref]",
+  homeworld,
+  { reference: "manual" }
+);
+if (ref) {
+  console.log(await jrefValue(session, ref)); // /api/planets/1
+}
+
+const name = await jrefSelect(session, "> [key=name]", homeworld);
+if (name) {
+  console.log(await jrefValue(session, name)); // Tatooine
+}
 ```
+
+`:scope[type=reference]` matches only if the target is a reference, so the
+first `jrefSelect` finds the `$ref` as it's written in Luke's document. The
+second follows the reference and finds the planet's name. For more ways to
+work with references as they're written, see
+[Follow references yourself](references.md).
 
 ## A session keeps its documents
 
@@ -133,7 +154,7 @@ now. For more information, see [Priorities](priorities.md).
 | Option | Description |
 | --- | --- |
 | `priority` | `"high"`, `"auto"`, or `"low"`, or a `PriorityController`'s signal. The references that `browse` follows have it too. For more information, see [Priority](#priority). |
-| `reference` | `"follow"`, the default, follows a reference to the value it leads to. `"manual"` gives you the target as it's written. For more information, see [A document as it's written](#a-document-as-its-written). |
+| `reference` | `"follow"`, the default, follows a reference to the value it leads to. `"manual"` gives you the target as it's written. For more information, see [A reference as it's written](#a-reference-as-its-written). |
 | `referencedFrom` | The target or the document that has the reference you're following. `browse` finds a document that it contains without retrieving it. For more information, see [Follow a reference](references.md#follow-a-reference). |
 | `initiator` | The response of the request that caused this one, or its record. Only a `file:` document can refer to a `file:` URL. For more information, see [File URLs](file-urls.md#documents-from-the-web). |
 
