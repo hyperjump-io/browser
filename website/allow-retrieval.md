@@ -19,8 +19,8 @@ const session = new Hyperjump({
 under that URL, and any other URL allows only that exact URL. An origin such as
 `https://example.com` allows everything on it with or without the `/` because
 it's the URL of the origin's root, `https://example.com/`. An empty list allows
-nothing. The session compares URLs after it parses them, so a different case or
-a `..` in a path doesn't get around the list.
+nothing. The Hyperjump session compares URLs after it parses them, so a
+different case or a `..` in a path doesn't get around the list.
 
 The session resolves a relative URL in the list against the working directory in
 Node.js or the page in a browser. A worker has no page, so use absolute URLs
@@ -46,7 +46,7 @@ Fetching 'https://example.com/other' isn't allowed. Add it to 'allowRetrieval' t
 Its `cause.code` is `"ERR_RETRIEVAL_NOT_ALLOWED"`, so your app can tell a refused
 URL from one that failed. For more information, see [Errors](errors.md).
 
-A refused request doesn't get the session's
+A refused request doesn't get the Hyperjump session's
 [headers](hyperjump-sessions.md#headers), and a trace shows it as a request that
 failed. For more information, see [Tracing](tracing.md).
 
@@ -58,9 +58,9 @@ fetched, so it doesn't have to be in the list.
 
 ## What it protects against
 
-Checking the URL a session fetches isn't enough on its own because there are
-other ways to end up somewhere you didn't allow. `allowRetrieval` covers these
-too:
+Checking the URL a Hyperjump session fetches isn't enough on its own because
+there are other ways to end up somewhere you didn't allow. `allowRetrieval`
+covers these too:
 
 - **Redirects.** The session checks where a redirect leads before it follows the
   redirect, so a server can't make the session send a request to a URL you

@@ -66,8 +66,8 @@ document refers to, resolve it against the document's URL yourself, such as
 
 ## Headers
 
-A session's `headers` are by URL, so a credential goes only to the URLs it's
-for, even when a document refers to URLs on other origins:
+A Hyperjump session's `headers` are by URL, so a credential goes only to the
+URLs it's for, even when a document refers to URLs on other origins:
 
 ```typescript
 const session = new Hyperjump({
@@ -125,9 +125,9 @@ Besides the options of `fetch`, `session.fetch` takes these:
 
 ## Close a session
 
-Closing a session aborts every request it started that hasn't finished, the
-way navigating away from a page does. After that, the session refuses new
-requests:
+Closing a Hyperjump session aborts every request it started that hasn't
+finished, the way navigating away from a page does. After that, the session
+refuses new requests:
 
 ```typescript
 session.close();

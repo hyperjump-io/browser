@@ -47,8 +47,9 @@ const stack = compose(userAgent)(defaultTransport());
 ```
 
 A header like this goes to every URL the stack fetches, so don't add credentials
-this way. A session's `headers` option sends them only to the URLs they're for.
-For more information, see [Hyperjump sessions](hyperjump-sessions.md#headers).
+this way. A Hyperjump session's `headers` option sends them only to the URLs
+they're for. For more information, see
+[Hyperjump sessions](hyperjump-sessions.md#headers).
 
 ## The context
 
@@ -64,9 +65,9 @@ Each request goes down the stack with a context:
 To give the layer below a different value, pass it a copy of the context, such
 as `inner.fetch(request, { ...ctx, priority })`.
 
-A request's own `signal` aborts when the caller aborts or the session closes. If
-your layer makes a new request, give it a signal, such as `ctx.session.signal`,
-which aborts when the session closes.
+A request's own `signal` aborts when the caller aborts or the Hyperjump session
+closes. If your layer makes a new request, give it a signal, such as
+`ctx.session.signal`, which aborts when the session closes.
 
 ## Write a layer as a class
 
@@ -75,10 +76,10 @@ property and a `fetch` method. The built-in layers are classes, and each one
 has a function that makes it, like `httpCache()`. Write yours the same way, so
 it works with `compose` and `findLayer`.
 
-Sessions can share a stack, so a layer keeps its state for each session with
-`ctx.session.state(key, init)`. The session calls `init` the first time it's
-asked for a key's state, and gives the same state for that key until the
-session ends. Use the layer itself as the key. This layer counts each
+Hyperjump sessions can share a stack, so a layer keeps its state for each
+session with `ctx.session.state(key, init)`. The session calls `init` the first
+time it's asked for a key's state, and gives the same state for that key until
+the session ends. Use the layer itself as the key. This layer counts each
 session's requests:
 
 ```typescript

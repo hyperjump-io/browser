@@ -32,9 +32,9 @@ of `[url, entry]` pairs such as a `Map` works too. An entry can be:
 
 - A body: a string, a `Uint8Array`, an `ArrayBuffer`, or a `Blob`.
 - The parts of a response: `{ body, status, statusText, headers }`.
-- A function that makes a response, which the session calls each time it
-  asks for the URL: `(url, { session }) => Response`. It has to make a new
-  response each time, because you can read a body only once.
+- A function that makes a response, which the Hyperjump session calls each
+  time it asks for the URL: `(url, { session }) => Response`. It has to make a
+  new response each time, because you can read a body only once.
 
 A response for a URL that isn't a `file:` URL needs a `Content-Type`, so
 a [media type](media-types.md) can parse it.
@@ -48,10 +48,10 @@ registry.
 
 ## Your own registry
 
-A registry is any object with a `get` method. The session calls it with
-the URL, without its fragment, and `{ session }`. It returns a response,
-or `undefined` for a URL it doesn't have. It can throw, to say that the URL
-is the registry's but the session can't use it:
+A registry is any object with a `get` method. The Hyperjump session calls it
+with the URL, without its fragment, and `{ session }`. It returns a response, or
+`undefined` for a URL it doesn't have. It can throw, to say that the URL is the
+registry's but the session can't use it:
 
 ```typescript
 import { Hyperjump, type Registry } from "@hyperjump/browser";

@@ -1,11 +1,12 @@
 # Browse to a URL
 
 `browse` retrieves a document through a Hyperjump session and gives you a target
-for the value its URL identifies. A document can refer to values in other documents, and you don't
-follow those references yourself. In a web browser, you click a link, and the
-browser resolves its URL, requests it and shows you the page it leads to. In a
-Hyperjump session, you navigate to a reference, and `browse` resolves its URL,
-retrieves the document it leads to and gives you the value it refers to.
+for the value its URL identifies. A document can refer to values in other
+documents, and you don't follow those references yourself. In a web browser, you
+click a link, and the browser resolves its URL, requests it and shows you the
+page it leads to. In a Hyperjump session, you navigate to a reference, and
+`browse` resolves its URL, retrieves the document it leads to and gives you the
+value it refers to.
 
 Luke's document at `https://swapi.hyperjump.io/api/people/1` has his homeworld
 as a reference to the planet's document. Here's that part of it:
@@ -77,11 +78,11 @@ information, see [Read values](read-values.md).
 A JRef document is JSON with references such as `{ "$ref": "../people/1" }`.
 When the value a URL identifies is a reference, `browse` retrieves what it refers
 to, and it keeps going until it reaches a value that isn't a reference. The
-target is for that value, which can be in another document than the URL's. In a JSON document, an object with a `$ref` property is an
-ordinary object.
+target is for that value, which can be in another document than the URL's. In a
+JSON document, an object with a `$ref` property is an ordinary object.
 
-A document can refer to anything, so a session only retrieves the URLs its
-`allowRetrieval` allows, and only a file can refer to a file. For more
+A document can refer to anything, so a Hyperjump session only retrieves the URLs
+its `allowRetrieval` allows, and only a file can refer to a file. For more
 information, see [What a session can fetch](allow-retrieval.md).
 
 ## A reference as it's written
@@ -123,10 +124,10 @@ work with references as they're written, see
 
 ## A session keeps its documents
 
-A session keeps every document it retrieves, so it fetches and parses each one
-once, however many references lead to it. Two calls for the same document get
-the same object, even when the second call comes before the first one finishes.
-To see a document that changed, create a new session.
+A Hyperjump session keeps every document it retrieves, so it fetches and parses
+each one once, however many references lead to it. Two calls for the same
+document get the same object, even when the second call comes before the first
+one finishes. To see a document that changed, create a new session.
 
 The session also keeps a document under the URL its response came from, so a
 URL that redirects and the URL it redirects to give you the same document.
@@ -139,10 +140,10 @@ URL that redirects and the URL it redirects to give you the same document.
 await browse(session, url, { priority: "low" });
 ```
 
-If you ask for a document again while the session is still retrieving it, its
-request gets the more urgent of the two priorities. That way an app can load
-documents ahead of time at `"low"` without holding up a document that it needs
-now. For more information, see [Priorities](priorities.md).
+If you ask for a document again while the Hyperjump session is still retrieving
+it, its request gets the more urgent of the two priorities. That way an app can
+load documents ahead of time at `"low"` without holding up a document that it
+needs now. For more information, see [Priorities](priorities.md).
 
 ## Options
 

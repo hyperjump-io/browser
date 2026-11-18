@@ -31,12 +31,12 @@ media type.
 
 ## Errors
 
-As in a browser, a file the session can't read is a network error, not a 404.
-`session.fetch` rejects with a `TypeError` when the file doesn't exist or the
-session can't read it, the URL is a directory, or the method isn't `GET` or `HEAD`. The
-message says which, and the error's `cause` is the error from the filesystem,
-so a file that doesn't exist has a `cause.code` of `"ENOENT"`. For more
-information, see [Errors](errors.md).
+As in a browser, a file the Hyperjump session can't read is a network error, not
+a 404. `session.fetch` rejects with a `TypeError` when the file doesn't exist or
+the session can't read it, the URL is a directory, or the method isn't `GET` or
+`HEAD`. The message says which, and the error's `cause` is the error from the
+filesystem, so a file that doesn't exist has a `cause.code` of `"ENOENT"`. For
+more information, see [Errors](errors.md).
 
 ## Limit what a session can read
 
@@ -51,17 +51,18 @@ nodeTransport({ file: { root: "./site" } });
 A URL outside `root` is a network error, and so is a symbolic link inside
 `root` that points outside it.
 
-`root` limits every session on the stack. A session's `allowRetrieval` limits
-that session, and by default it allows only the files in the working directory.
-For more information, see [What a session can fetch](allow-retrieval.md).
+`root` limits every Hyperjump session on the stack. A session's `allowRetrieval`
+limits that session, and by default it allows only the files in the working
+directory. For more information, see
+[What a session can fetch](allow-retrieval.md).
 
 ## Documents from the web
 
 Only a document from a file can refer to a `file:` URL, so a document from the
-web can't read your files. The session finds the document a request comes from
-by its `initiator`, and refuses a `file:` URL for one that isn't a file with a
-network error. Adding the URL to `allowRetrieval` doesn't change that. A
-redirect can't take a document from the web to a file either.
+web can't read your files. The Hyperjump session finds the document a request
+comes from by its `initiator`, and refuses a `file:` URL for one that isn't a
+file with a network error. Adding the URL to `allowRetrieval` doesn't change
+that. A redirect can't take a document from the web to a file either.
 
 ```typescript
 const page = await session.fetch("https://example.com/page.json");
@@ -91,9 +92,9 @@ pipeline, that's the file's path or the `url` option. Only a tree whose URL is a
 
 ## Symbolic links
 
-A session follows a symbolic link, and the response's URL is the URL of the file it
-points to. Relative references in the file resolve against where the file is,
-not where the link is.
+A Hyperjump session follows a symbolic link, and the response's URL is the URL
+of the file it points to. Relative references in the file resolve against where
+the file is, not where the link is.
 
 ## Leave out file URLs
 

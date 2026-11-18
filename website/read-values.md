@@ -1,10 +1,10 @@
 # Read values
 
-`browse` gives you a target for the value a URL identifies. The `jref`
-functions take a target and read its value or step into, visit, find, and
-select the values under it. They give you targets for those values, which you
-pass to them in turn. They take the Hyperjump session so they can follow the
-references they reach.
+`browse` gives you a target for the value a URL identifies. The `jref` functions
+take a target and read its value or step into, visit, find, and select the
+values under it. They give you targets for those values, which you pass to them
+in turn. They take a [Hyperjump session](hyperjump-sessions.md) so they can
+follow the references they reach.
 
 The examples on this page read Luke's document from a Star Wars API.
 They start from the session and the target that this code makes:
@@ -21,9 +21,9 @@ const luke = await browse(session, "https://swapi.hyperjump.io/api/people/1");
 ## Follow references
 
 Following a reference can mean retrieving a document, so the `jref` functions
-are asynchronous and take the session. One way to step into a target is with
-a selector, which [Select values](#select-values) covers in full. This one
-steps from Luke to his homeworld and then to its name. `jrefValue` gives you
+are asynchronous and take the Hyperjump session. One way to step into a target
+is with a selector, which [Select values](#select-values) covers in full. This
+one steps from Luke to his homeworld and then to its name. `jrefValue` gives you
 the name as a string:
 
 ```typescript
@@ -75,8 +75,8 @@ for an object or an array, because their values could be in other documents.
 Step into those instead. `jrefJsonType` gives you the kind of JSON value a
 target is, such as `"string"` or `"object"`, so you know which to do.
 
-`jrefArrayIter`, `jrefObjectValues`, and `jrefObjectEntries` are async
-iterators over the members of an array or an object. The session follows each
+`jrefArrayIter`, `jrefObjectValues`, and `jrefObjectEntries` are async iterators
+over the members of an array or an object. The Hyperjump session follows each
 member when the loop reaches it, so a loop that stops early retrieves less:
 
 ```typescript
@@ -123,10 +123,10 @@ await jrefVisit(session, luke, (target, key, parent, depth) => {
 });
 ```
 
-The session follows a reference just before the visitor gets its value, so
-returning `SKIP` keeps the session from retrieving the documents under that
-value. That's also how you stop at a depth: return `SKIP` when `depth` is as
-deep as you want to go. If a reference leads back to a value that the walk is
+The Hyperjump session follows a reference just before the visitor gets its
+value, so returning `SKIP` keeps the session from retrieving the documents under
+that value. That's also how you stop at a depth: return `SKIP` when `depth` is
+as deep as you want to go. If a reference leads back to a value that the walk is
 inside, like a recursive definition, the visitor gets that value but not the
 values inside it again, so the walk ends.
 
@@ -163,10 +163,10 @@ const number = await jrefFind(session, luke, { jsonType: "number" });
 const strings = await jrefFindAll(session, luke, { jsonType: "string" });
 ```
 
-`jrefFind` stops at the first value that passes, so the session doesn't
-retrieve anything after it. `jrefFindAll` looks everywhere under the target,
-and it gives you each value once even if more than one reference leads to it.
-In TypeScript, `jrefValue` knows the type of the values that can pass the
+`jrefFind` stops at the first value that passes, so the Hyperjump session
+doesn't retrieve anything after it. `jrefFindAll` looks everywhere under the
+target, and it gives you each value once even if more than one reference leads
+to it. In TypeScript, `jrefValue` knows the type of the values that can pass the
 test, so `jrefValue(session, number)` gives you a `number`.
 
 ## Select values
@@ -225,13 +225,13 @@ if (director) {
 }
 ```
 
-The session only follows a reference if the selector could match the value it
-leads to or something inside it. `> [key=director]` doesn't retrieve any
-characters because none of them can be the film's `director`, and `jrefSelect`
-stops at the first match. A selector without `>` like `[key=name]` can match
-at any depth, so it follows every reference under the value you start from. On
-an API like this one that could be the whole API, so start a selector with `>`
-unless you mean to search everything.
+The Hyperjump session only follows a reference if the selector could match the
+value it leads to or something inside it. `> [key=director]` doesn't retrieve
+any characters because none of them can be the film's `director`, and
+`jrefSelect` stops at the first match. A selector without `>` like `[key=name]`
+can match at any depth, so it follows every reference under the value you start
+from. On an API like this one that could be the whole API, so start a selector
+with `>` unless you mean to search everything.
 
 A selector follows the references it reaches one at a time. To load the
 documents it needs in parallel, see

@@ -66,10 +66,10 @@ const written = await jrefStep(session, "homeworld", luke, {
 const homeworld = await jrefSelect(session, ":scope", written);
 ```
 
-Code that doesn't walk can follow a reference with `browse`. Pass the reference's
-target as `referencedFrom` so the session knows which document the reference
-is in. That document causes the request, and `browse` finds a document that it
-contains without retrieving it:
+Code that doesn't walk can follow a reference with `browse`. Pass the
+reference's target as `referencedFrom` so the Hyperjump session knows which
+document the reference is in. That document causes the request, and `browse`
+finds a document that it contains without retrieving it:
 
 ```typescript
 import { browse, jrefStep } from "@hyperjump/browser";
@@ -114,11 +114,11 @@ const names = await jrefSelectAll(
 );
 ```
 
-The session keeps every document it retrieves, so the walk finds each
+The Hyperjump session keeps every document it retrieves, so the walk finds each
 character's document without retrieving it again. For more information, see
-[Browse to a URL](browse-to-a-url.md#a-session-keeps-its-documents). In Node.js, the
-default stack limits how many requests go to a server at once, so some of them
-wait for a slot:
+[Browse to a URL](browse-to-a-url.md#a-session-keeps-its-documents). In Node.js,
+the default stack limits how many requests go to a server at once, so some of
+them wait for a slot:
 
 ```text
   # url                                          source           stat  0ms                                833ms
@@ -164,16 +164,16 @@ for (const reference of references) {
 }
 ```
 
-Each reference has the document that it's in, so the session knows which
-document causes the request.
+Each reference has the document that it's in, so the Hyperjump session knows
+which document causes the request.
 
 ## Read a tree you parsed
 
-A document that you parsed yourself isn't one the session retrieved, so `browse`
-never gave you a target for it. The `jref` functions take the document where
-they take a target and start from its root, the way a unist utility takes the
-tree. A reference in the document finds the document itself and the documents
-that it contains, without retrieving them:
+A document that you parsed yourself isn't one the Hyperjump session retrieved,
+so `browse` never gave you a target for it. The `jref` functions take the
+document where they take a target and start from its root, the way a unist
+utility takes the tree. A reference in the document finds the document itself
+and the documents that it contains, without retrieving them:
 
 ```typescript
 import { jrefMediaType, jrefSelect } from "@hyperjump/browser";

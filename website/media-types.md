@@ -54,13 +54,13 @@ A plugin is a plain object:
 | `parse(response, session)` | Parses a response into a document. The response's `url` is the document's URL, and the document it returns has that `url`. If the response can't be a document, it throws. The session is for a format that needs other documents to parse one, which it gets with `browse(session, url, { initiator: response, reference: "manual" })`. |
 
 If a document contains other documents that have URLs of their own, return them
-as the document's `embedded` property: an object of documents by their URLs.
-A reference in the document, or in one of the documents it contains, finds them
-there, and the session doesn't retrieve them. A reference in any other document
-doesn't find them, so a document can't change what other documents get. Only
-a document from a file can contain a document with a `file:` URL. The session
-can't use any other document that does, and `browse` rejects with an error whose
-`cause.code` is `"ERR_ABSOLUTE_FILE_URL"`.
+as the document's `embedded` property: an object of documents by their URLs. A
+reference in the document, or in one of the documents it contains, finds them
+there, and the Hyperjump session doesn't retrieve them. A reference in any other
+document doesn't find them, so a document can't change what other documents get.
+Only a document from a file can contain a document with a `file:` URL. The
+session can't use any other document that does, and `browse` rejects with an
+error whose `cause.code` is `"ERR_ABSOLUTE_FILE_URL"`.
 
 A document says what its fragments identify with its `anchors` property: an
 object that has the JSON Pointer to a node for each fragment that names one.
@@ -76,8 +76,8 @@ refers to as its `href`.
 
 ## Which plugin parses a response
 
-A session chooses the plugin from the response's `Content-Type` header. The most
-specific match wins:
+A Hyperjump session chooses the plugin from the response's `Content-Type`
+header. The most specific match wins:
 
 1. A plugin for that media type
 2. A plugin for its structured suffix. The JSON plugin parses
@@ -104,9 +104,9 @@ If no plugin matches, `browse` rejects with an error whose `cause.code` is
 
 ## The `Accept` header
 
-A session sends an `Accept` header that lists its media types in order. To tell
-servers which one you prefer, give a plugin a `quality`. The built-in plugins
-are plain objects too, so copy one to change it:
+A Hyperjump session sends an `Accept` header that lists its media types in
+order. To tell servers which one you prefer, give a plugin a `quality`. The
+built-in plugins are plain objects too, so copy one to change it:
 
 ```typescript
 import {
