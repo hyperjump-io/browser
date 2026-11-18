@@ -87,7 +87,8 @@ export type BrowseOptions = {
    * Where the reference that's being followed is: a target whose document
    * it's in, or the document. A document that one contains is found before
    * anything is retrieved, and it's what caused the request, instead of
-   * `initiator`. A document the session didn't retrieve, like a tree from
+   * `initiator`, and a relative URL is resolved against its URL. For a
+   * target, that's its `document`. A document the session didn't retrieve, like a tree from
    * a unified pipeline, has no record, so the request comes from its URL,
    * and only one that's a `file:` URL can refer to a file.
    */
@@ -168,7 +169,8 @@ export type BrowseTarget<S, O> = unknown extends SessionNode<S> ? Target
  * fragment identifies, which is the document's root without one, and the
  * document it's in. The document says what a fragment identifies, with its
  * `anchors`. A
- * relative URL is resolved against the session's context URL.
+ * relative URL is resolved against the session's context URL, or with
+ * `referencedFrom`, against the URL of that document.
  *
  * If the node is a reference, it's followed, and so is any reference that
  * leads to, until there's a value, so the target's document is the one the

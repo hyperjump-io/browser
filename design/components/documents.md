@@ -228,6 +228,11 @@ a hypermedia browser, and the stack is how it retrieves.
   reference from that document, which is how the `jref*` functions
   follow one (see [Browsing](browsing.md)). Only the document is read, so
   a node a unist utility found in a tree is followed with the tree.
+  - A relative URL is resolved against the document's URL, as a reference
+    in it is, not against the context URL. A reference is followed from
+    its document, and the context URL isn't where it's written. For a
+    target, it's the target's `document`, which contains any document its
+    node is in.
   - A document the session didn't retrieve, like a tree from a unified
     pipeline, is followed from like any other: it has what it contains
     and what its fragments identify. It has no record, since it wasn't

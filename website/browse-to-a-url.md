@@ -43,7 +43,9 @@ information, see [Read values](read-values.md).
 
 `browse` resolves a relative URL the way a web browser does. In a browser,
 that's against the page. In Node.js, it's against the working directory, so
-`browse(session, "data/film.json")` reads a file.
+`browse(session, "data/film.json")` reads a file. With `referencedFrom`, a
+relative URL resolves against the URL of the document that you're following
+the reference from, the way the reference does.
 
 ## What a URL identifies
 

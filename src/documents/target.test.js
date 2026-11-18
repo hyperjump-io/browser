@@ -163,6 +163,20 @@ describe("targets", () => {
   });
 });
 
+describe("referencedFrom", () => {
+  test("a relative URL is resolved against the URL of the document it's referenced from", async () => {
+    const { session } = site({});
+    const mine = { ...bundleDocument({ a: 1 }, "https://a.test/dir/mine"), anchors: { here: "/a" } };
+    const other = bundleDocument(2, "https://a.test/dir/other");
+    const from = { ...bundleDocument({ b: 3 }, "https://a.test/dir/from"), embedded: { "https://a.test/dir/mine": mine, "https://a.test/dir/other": other } };
+    expect(jsonValue((await browse(session, "mine#here", { referencedFrom: from })).node)).to.equal(1);
+    expect(jsonValue((await browse(session, "other", { referencedFrom: from })).node)).to.equal(2);
+
+    const target = await browse(session, "mine", { referencedFrom: from, reference: "manual" });
+    expect(jsonValue((await browse(session, "#/b", { referencedFrom: target })).node), "a target's document, which contains the one it's in").to.equal(3);
+  });
+});
+
 describe("fragments", () => {
   test("a document without anchors has no fragments, so any identifies the whole document", async () => {
     const { session } = site({});

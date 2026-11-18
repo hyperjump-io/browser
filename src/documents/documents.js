@@ -90,7 +90,9 @@ const documentsKey = {};
 export const browse = async (session, url, given) => {
   /** @type API.BrowseOptions */
   const options = given ?? {};
-  const { documentUrl, fragment } = parseUrl(session, url);
+  // A relative URL is relative to the document it's referenced from
+  const base = options.referencedFrom ? /** @type DocumentNode */ (startOf(options.referencedFrom).document).url : session.contextUrl;
+  const { documentUrl, fragment } = parseUrl(url, base);
   const priority = prioritySignal(options.priority);
   const reached = await entryFor(session, documentUrl, options, priority);
   // The session's type says what its documents and nodes are
@@ -137,7 +139,7 @@ const targetIn = async (session, reached, documentUrl, fragment, priority, follo
       );
     }
 
-    ({ documentUrl, fragment } = parseUrl(session, node.href));
+    ({ documentUrl, fragment } = parseUrl(node.href, session.contextUrl));
     const next = await referenced(session, documentUrl, entry, priority);
     entry = next.entry;
     fragment = next.fragment ?? fragment;
@@ -226,10 +228,10 @@ const prioritySignal = (priority) => priority instanceof PrioritySignal ? priori
 /**
  * A URL as a document's URL and a fragment, which stays percent-encoded
  *
- * @type (session: API.DocumentSession, url: string | URL) => { documentUrl: string, fragment: string }
+ * @type (url: string | URL, base: string | undefined) => { documentUrl: string, fragment: string }
  */
-const parseUrl = (session, url) => {
-  const parsed = new URL(url, session.contextUrl);
+const parseUrl = (url, base) => {
+  const parsed = new URL(url, base);
   const fragment = parsed.hash.slice(1);
   parsed.hash = "";
   return { documentUrl: parsed.href, fragment };
