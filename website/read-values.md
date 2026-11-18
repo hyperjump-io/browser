@@ -6,7 +6,7 @@ values under it. They give you targets for those values, which you pass to them
 in turn. They take a [Hyperjump session](hyperjump-sessions.md) so they can
 follow the references they reach.
 
-The examples on this page read Luke's document from a Star Wars API.
+Most of the examples on this page read Luke's document from a Star Wars API.
 They start from the session and the target that this code makes:
 
 ```typescript
@@ -111,22 +111,64 @@ is shorter. To do something at every value, use `jrefVisit`.
 `jrefVisit` walks a target and every value under it depth first in document
 order, following references along the way. It works like `visit` from
 `unist-util-visit`, and its visitor returns the same `CONTINUE`, `SKIP`, and
-`EXIT` values. The visitor gets each value's target with the key it's at, the
-target that has it, and its depth below the target you started from:
+`EXIT` values.
+
+A walk follows every reference under the target, and on the Star Wars API
+everything under Luke is the whole API, because his films refer to their
+characters and planets, and those refer to more. Walks are for documents whose
+references don't lead that far, like this team, where people refer to each
+other:
+
+```jref title="team.jref"
+{
+  "lead": { "$ref": "#/people/0" },
+  "people": [
+    { "name": "Ada", "email": "ada@example.com" },
+    {
+      "name": "Grace",
+      "email": "grace@example.com",
+      "manager": { "$ref": "#/people/0" }
+    }
+  ]
+}
+```
+
+The file isn't on the Star Wars API, so this Hyperjump session has the default
+`allowRetrieval`, which allows the files in the working directory. The visitor
+gets each value's target with the key it's at, the target that has it, and its
+depth below the target you started from. This prints an outline of the team
+without going into anyone's manager:
 
 ```typescript
 import { CONTINUE, jrefVisit, SKIP } from "@hyperjump/browser";
 
-await jrefVisit(session, luke, (target, key, parent, depth) => {
-  console.log(depth, key);
-  return key === "films" ? SKIP : CONTINUE;
+const files = new Hyperjump();
+const team = await browse(files, "./team.jref");
+await jrefVisit(files, team, (target, key, parent, depth) => {
+  console.log(`${"  ".repeat(depth)}${key ?? "team"}`);
+  return key === "manager" ? SKIP : CONTINUE;
 });
 ```
 
-The Hyperjump session follows a reference just before the visitor gets its
-value, so returning `SKIP` keeps the session from retrieving the documents under
-that value. That's also how you stop at a depth: return `SKIP` when `depth` is
-as deep as you want to go. If a reference leads back to a value that the walk is
+```text
+team
+  lead
+    name
+    email
+  people
+    0
+      name
+      email
+    1
+      name
+      email
+      manager
+```
+
+The session follows a reference just before the visitor gets its value, so
+returning `SKIP` keeps the session from retrieving the documents under that
+value. That's also how you stop at a depth: return `SKIP` when `depth` is as
+deep as you want to go. If a reference leads back to a value that the walk is
 inside, like a recursive definition, the visitor gets that value but not the
 values inside it again, so the walk ends.
 
@@ -134,40 +176,62 @@ To visit only some values, put a test before the visitor like you would with
 `unist-util-visit`. A string matches a node's `type`, an object matches nodes
 with the same properties, a function gets the target and matches the ones it
 returns `true` for, and an array matches what any test in it matches. A
-node's `jsonType` is the kind of JSON value it holds, such as `"number"`. In
+node's `jsonType` is the kind of JSON value it holds, such as `"string"`. In
 TypeScript, `jrefValue` knows the type of a value that matches. This example
-prints every number, including the ones in the documents that Luke's
-references lead to:
+prints every string:
 
 ```typescript
-await jrefVisit(session, luke, { jsonType: "number" }, async (target, key) => {
-  console.log(key, await jrefValue(session, target));
+await jrefVisit(files, team, { jsonType: "string" }, async (target, key) => {
+  console.log(key, await jrefValue(files, target));
 });
 ```
 
-The walk still goes through the values that don't match and follows their
-references to find what's under them.
+```text
+name Ada
+email ada@example.com
+name Ada
+email ada@example.com
+name Grace
+email grace@example.com
+name Ada
+email ada@example.com
+```
+
+The visitor gets Ada's name and email each time the walk reaches her, through
+`lead`, `people`, and Grace's `manager`. The walk still goes through the values
+that don't match and follows their references to find what's under them.
 
 ## Find values
 
 `jrefFind` gives you the first value under a target that passes a test, or
 `undefined` if none does. `jrefFindAll` gives you every value that passes. They
 take the same tests as `jrefVisit` and look in the same order it visits, so
-they follow references along the way. This finds Luke's first number and every
-string in the documents that his references lead to:
+they follow references along the way. They're for searching a document when
+you don't know where the values are. A function test gets each value's target
+and the key it's at, so this finds every email in the team:
 
 ```typescript
-import { jrefFind, jrefFindAll } from "@hyperjump/browser";
+import { jrefFindAll } from "@hyperjump/browser";
 
-const number = await jrefFind(session, luke, { jsonType: "number" });
-const strings = await jrefFindAll(session, luke, { jsonType: "string" });
+const emails = await jrefFindAll(files, team, (target, key) => key === "email");
+for (const email of emails) {
+  console.log(await jrefValue(files, email));
+}
 ```
 
-`jrefFind` stops at the first value that passes, so the Hyperjump session
-doesn't retrieve anything after it. `jrefFindAll` looks everywhere under the
-target, and it gives you each value once even if more than one reference leads
-to it. In TypeScript, `jrefValue` knows the type of the values that can pass the
-test, so `jrefValue(session, number)` gives you a `number`.
+```text
+ada@example.com
+grace@example.com
+```
+
+A visit gets Ada's email three times, but `jrefFindAll` gives you each value
+once. `jrefFind` stops at the first value that passes, so the Hyperjump session
+doesn't retrieve anything after it. To reach values by their path, use a
+selector.
+
+In TypeScript, an object test narrows what they find, so with
+`{ jsonType: "string" }`, `jrefValue` gives you a `string`. A function test
+narrows only if it's a type predicate.
 
 ## Select values
 
