@@ -193,13 +193,16 @@ make it `null` so the items after it keep their positions.
 ## Build nodes
 
 If you build nodes of your own, use `appendToLocation` to give them a
-`location`. It adds a property name or array index to the JSON Pointer of the
-parent's `location`. It encodes the result the way the parser does, so you can
-compare it to the locations the parser made:
+`location`. It gives you the parent's `location` with a property name or array
+index added to its JSON Pointer, and it doesn't change the parent. It encodes
+the location the way the parser does, so you can compare it to the locations
+the parser made. This builds the node for a property `a b` of `x` with
+`fromJs`:
 
 ```typescript
 import {
   appendToLocation,
+  fromJs,
   fromJson,
   hasStatus,
   jsonPointerGet
@@ -208,8 +211,9 @@ import {
 const { document } = fromJson(`{ "x": {} }`, "https://example.com/doc");
 if (hasStatus(document, "success", "recovered")) {
   const parent = jsonPointerGet("/x", document.children[0]);
-  appendToLocation("a b", parent.location);
+  const location = appendToLocation("a b", parent.location);
   // "https://example.com/doc#/x/a%20b"
+  const node = fromJs(42, location);
 }
 ```
 
