@@ -224,10 +224,10 @@ export class HttpCache {
       return response;
     }
 
-    response.clone().arrayBuffer()
-      .then(async (buffer) => {
-        if (max === undefined || buffer.byteLength <= max) {
-          await this.#storePut(this.#fullEntry(request, timed, new Uint8Array(buffer)));
+    readUpTo(response.clone().body, max ?? Infinity)
+      .then(async (body) => {
+        if (body) {
+          await this.#storePut(this.#fullEntry(request, timed, body));
         }
       }, () => {
         // A body that failed or was aborted isn't stored
@@ -465,4 +465,43 @@ const markCache = (response, cache) => {
     setResponseMeta(response, { cache });
   }
   return response;
+};
+
+/**
+ * A body's bytes, unless there are more than `max`, which stops reading it
+ * and cancels it as soon as they're more. A body's `Content-Length` can be
+ * missing, or be the length of the compressed body, so only what's read
+ * says how big it is.
+ *
+ * @type (body: ReadableStream<Uint8Array> | null, max: number) => Promise<Uint8Array | undefined>
+ */
+const readUpTo = async (body, max) => {
+  if (body === null) {
+    return new Uint8Array(0);
+  }
+
+  const reader = body.getReader();
+  /** @type Uint8Array[] */
+  const chunks = [];
+  let length = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    length += value.byteLength;
+    if (length > max) {
+      await reader.cancel();
+      return;
+    }
+    chunks.push(value);
+  }
+
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
 };

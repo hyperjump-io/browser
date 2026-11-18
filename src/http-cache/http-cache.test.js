@@ -341,6 +341,60 @@ describe("the HTTP cache", () => {
     expect(await cache.store.match("file:///project/a.json"), "nothing was stored").to.eql([]);
   });
 
+  describe("maxBodySize", () => {
+    /**
+     * A cacheable response without a `Content-Length`, whose body is 100
+     * chunks of 1024 bytes, read only as they're pulled
+     *
+     * @type () => { stack: ReturnType<typeof fetcher>, pulled: () => number, cancelled: () => boolean }
+     */
+    const streamed = () => {
+      let pulled = 0;
+      let cancelled = false;
+      const stack = fetcher(() => new Response(new ReadableStream({
+        type: "bytes",
+        pull: (controller) => {
+          pulled++;
+          controller.enqueue(new Uint8Array(1024));
+          if (pulled === 100) {
+            controller.close();
+          }
+        },
+        cancel: () => {
+          cancelled = true;
+        }
+      }), { headers: { "cache-control": "max-age=60" } }));
+      return { stack, pulled: () => pulled, cancelled: () => cancelled };
+    };
+
+    test("a body bigger than maxBodySize isn't stored, and it's read only until it's bigger, without a Content-Length", async () => {
+      const { stack, pulled, cancelled } = streamed();
+      const cache = new HttpCache(stack, { maxBodySize: 4096 });
+      const session = testHyperjump(cache, { allow: ["https://a.test/"] });
+
+      // Like a response a caller doesn't use, so only the stored copy reads it
+      const response = await session.fetch("https://a.test/big");
+      await response.body?.cancel();
+      await settle();
+
+      expect(pulled()).to.be.lessThan(10);
+      expect(cancelled()).to.equal(true);
+      expect(await cache.store.match("https://a.test/big"), "nothing was stored").to.eql([]);
+    });
+
+    test("a body within maxBodySize is stored, without a Content-Length", async () => {
+      const { stack } = streamed();
+      const cache = new HttpCache(stack, { maxBodySize: 200 * 1024 });
+      const session = testHyperjump(cache, { allow: ["https://a.test/"] });
+
+      await (await session.fetch("https://a.test/big")).arrayBuffer();
+      await settle();
+
+      const [stored] = await cache.store.match("https://a.test/big");
+      expect(stored.body.byteLength).to.equal(100 * 1024);
+    });
+  });
+
   test("in a browser, it throws", () => {
     expect(() => browserHttpCache()).to.throw(/isn't supported in a browser/);
     expect(() => new BrowserHttpCache(defaultTransport())).to.throw(/isn't supported in a browser/);

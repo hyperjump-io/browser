@@ -61,7 +61,11 @@ export type HttpCacheOptions = {
    */
   heuristic?: (response: { url: string; status: number; headers: Headers }) => number | undefined;
 
-  /** Bodies bigger than this many bytes aren't stored */
+  /**
+   * Bodies bigger than this many bytes aren't stored. The copy that's read to
+   * be stored stops as soon as it's bigger, whatever `Content-Length` says,
+   * so a response never takes more memory than this to store.
+   */
   maxBodySize?: number;
 
   /**

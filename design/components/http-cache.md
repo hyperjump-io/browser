@@ -31,7 +31,10 @@ it's a private cache, like a browser's.
 - A successful `POST`, `PUT`, `PATCH`, or `DELETE` removes what's stored for
   its URL, and for its `Location` and `Content-Location` on the same origin.
 - A response is stored while the caller reads it: a clone is read for the
-  store, so the caller's body streams.
+  store, so the caller's body streams. The clone is read a chunk at a time,
+  and once it's bigger than `maxBodySize` it's cancelled and nothing is
+  stored. `Content-Length` can be missing, or be the length of the
+  compressed body, so what's read is all that says how big it is.
 - Runtimes give a decoded body, so a stored response doesn't have its
   `Content-Encoding`, and its `Content-Length` is the decoded length.
 - Headers about one connection (`Connection`, `Keep-Alive`,
