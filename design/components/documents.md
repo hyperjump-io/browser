@@ -100,6 +100,14 @@ a hypermedia browser, and the stack is how it retrieves.
   a redirect led or the file a symlink points to. A document that's
   reached at a URL the session already has a document for is that
   document, so there's one for a URL however it was reached.
+- A redirect's `Location` can have a fragment, which the Fetch standard
+  has win over the request's. The response's URL never has one, so it's
+  the last URL in `responseMeta(response).redirects`. `browse` uses it
+  instead of the fragment it was asked for, for the URL it's given and a
+  reference it follows. The session keeps it for the URL that redirected,
+  because the document is fetched once, and not for the URL the redirect
+  led to, which has no redirect when it's asked for itself. A document
+  that's found embedded in another isn't fetched, so it has none.
   - It isn't kept under its own `url`. A media type whose documents say
     what their URL is, like one with an identifier in it, gives a document
     that `url`, and its nodes' locations start with it. If that were where

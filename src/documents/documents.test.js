@@ -287,6 +287,44 @@ describe("documents", () => {
       await expect(browse(session, "https://a.test/self")).rejects.toMatchObject({ cause: { code: "ERR_REFERENCE_CYCLE" } });
     });
 
+    describe("a redirect's fragment", () => {
+      /** @type Record<string, [string, Record<string, string>, number?]> */
+      const pages = {
+        "/to-bar": ["", { location: "/doc#/bar" }, 302],
+        "/to-doc": ["", { location: "/doc" }, 302],
+        "/doc": [`{ "foo": "foo", "bar": "bar" }`, jref],
+        "/refers": [`{ "a": { "$ref": "/to-bar" } }`, jref]
+      };
+
+      test("identifies the value, instead of the URL's own, as the Fetch standard has a Location's fragment win", async () => {
+        const { session } = site(pages);
+
+        expect(jsonValue((await browse(session, "https://a.test/to-bar")).node)).to.equal("bar");
+        expect(jsonValue((await browse(session, "https://a.test/to-bar#/foo")).node), "the URL's own").to.equal("bar");
+      });
+
+      test("is kept for the URL that redirected, and not for where it led", async () => {
+        const { session, requests } = site(pages);
+        await browse(session, "https://a.test/to-bar");
+
+        expect(jsonValue((await browse(session, "https://a.test/to-bar")).node), "again").to.equal("bar");
+        expect((await browse(session, "https://a.test/doc")).node.jsonType, "where it led is the root").to.equal("object");
+        expect(requests.map(({ url }) => url), "where it led isn't fetched again").to.eql(["https://a.test/to-bar", "https://a.test/doc#/bar"]);
+      });
+
+      test("a redirect without one leaves the URL's own", async () => {
+        const { session } = site(pages);
+
+        expect(jsonValue((await browse(session, "https://a.test/to-doc#/foo")).node)).to.equal("foo");
+      });
+
+      test("a reference that's redirected leads to it", async () => {
+        const { session } = site(pages);
+
+        expect(jsonValue((await browse(session, "https://a.test/refers#/a")).node)).to.equal("bar");
+      });
+    });
+
     describe("maxReferences", () => {
       /**
        * Documents that are each a reference to the next, without end

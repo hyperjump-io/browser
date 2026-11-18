@@ -130,7 +130,9 @@ document get the same object, even when the second call comes before the first
 one finishes. To see a document that changed, create a new session.
 
 The session also keeps a document under the URL its response came from, so a
-URL that redirects and the URL it redirects to give you the same document.
+URL that redirects and the URL it redirects to give you the same document. If a
+redirect's `Location` has a fragment, `browse` gives you the value it
+identifies, instead of the one your URL's fragment does, as `fetch` does.
 
 ## Priority
 

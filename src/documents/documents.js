@@ -48,13 +48,26 @@ import { responseMeta, withUrl } from "../response-meta.js";
  *
  * `maxReferences` is the session's, or the default.
  *
+ * `redirected` is the fragment a redirect led to, by the URL that was asked
+ * for. A document is fetched once, so it's kept for whoever asks for the URL
+ * after.
+ *
  * @typedef {{
  *   mediaTypes: readonly MediaTypePlugin[],
  *   accept: string,
  *   maxReferences: number,
  *   entries: Map<string, Kept>,
- *   retrieved: WeakMap<DocumentNode, Entry>
+ *   retrieved: WeakMap<DocumentNode, Entry>,
+ *   redirected: Map<string, string>
  * }} Documents
+ */
+
+/**
+ * The entry for a URL, with the fragment a redirect led to, if it led to
+ * one, which identifies the value instead of the URL's own, as the Fetch
+ * standard has a `Location`'s fragment win
+ *
+ * @typedef {{ entry: Entry, fragment: string | undefined }} Reached
  */
 
 /**
@@ -79,22 +92,25 @@ export const browse = async (session, url, given) => {
   const options = given ?? {};
   const { documentUrl, fragment } = parseUrl(session, url);
   const priority = prioritySignal(options.priority);
-  const entry = await entryFor(session, documentUrl, options, priority);
+  const reached = await entryFor(session, documentUrl, options, priority);
   // The session's type says what its documents and nodes are
-  return /** @type never */ (await targetIn(session, entry, documentUrl, fragment, priority, options.reference !== "manual"));
+  return /** @type never */ (await targetIn(session, reached, documentUrl, fragment, priority, options.reference !== "manual"));
 };
 
 /**
  * What a fragment identifies in a document, as a target. To `follow`, a
  * reference is followed, and so is any that leads to, until there's a
  * value. Each one can lead to a new document, so following more than
- * `maxReferences` is an error, before the next one is retrieved.
+ * `maxReferences` is an error, before the next one is retrieved. Where a
+ * redirect led to a fragment, it's that fragment's value.
  *
- * @type (session: API.DocumentSession, entry: Entry, documentUrl: string, fragment: string, priority: PrioritySignal, follow: boolean) => Promise<API.Target<DocumentNode, JrefNode>>
+ * @type (session: API.DocumentSession, reached: Reached, documentUrl: string, fragment: string, priority: PrioritySignal, follow: boolean) => Promise<API.Target<DocumentNode, JrefNode>>
  */
-const targetIn = async (session, entry, documentUrl, fragment, priority, follow) => {
+const targetIn = async (session, reached, documentUrl, fragment, priority, follow) => {
   /** @type string[] */
   const chain = [];
+  let { entry } = reached;
+  fragment = reached.fragment ?? fragment;
 
   for (;;) {
     const href = `${documentUrl}#${fragment}`;
@@ -122,7 +138,9 @@ const targetIn = async (session, entry, documentUrl, fragment, priority, follow)
     }
 
     ({ documentUrl, fragment } = parseUrl(session, node.href));
-    entry = await referenced(session, documentUrl, entry, priority);
+    const next = await referenced(session, documentUrl, entry, priority);
+    entry = next.entry;
+    fragment = next.fragment ?? fragment;
   }
 };
 
@@ -157,7 +175,7 @@ const fragmentPointer = (document, fragment) => {
  * for. With `referencedFrom`, it's the document a reference in that
  * target's document, or in that document, leads to.
  *
- * @type (session: API.DocumentSession, url: string, options: API.BrowseOptions, priority: PrioritySignal) => Promise<Entry>
+ * @type (session: API.DocumentSession, url: string, options: API.BrowseOptions, priority: PrioritySignal) => Promise<Reached>
  */
 const entryFor = (session, url, options, priority) => {
   const { referencedFrom } = options;
@@ -183,13 +201,13 @@ const entryOf = (session, from) => {
 /**
  * The entry for the document a reference in `from`'s document leads to. A
  * document that `from`'s contains, or that's contained with it, is found
- * before anything the session has or fetches.
+ * before anything the session has or fetches, and it isn't redirected.
  *
- * @type (session: API.DocumentSession, url: string, from: Entry, priority: PrioritySignal) => Promise<Entry>
+ * @type (session: API.DocumentSession, url: string, from: Entry, priority: PrioritySignal) => Promise<Reached>
  */
 const referenced = async (session, url, from, priority) => {
   const document = from.embedded.get(url);
-  return document ? { ...from, document } : load(session, url, causeOf(from), priority);
+  return document ? { entry: { ...from, document }, fragment: undefined } : load(session, url, causeOf(from), priority);
 };
 
 /**
@@ -221,7 +239,7 @@ const parseUrl = (session, url) => {
 const documentsOf = (session) => session.state(documentsKey, () => {
   const mediaTypes = session.config.mediaTypes ?? defaultMediaTypes;
   const maxReferences = limit("maxReferences", session.config.maxReferences ?? MAX_REFERENCES);
-  return { mediaTypes, accept: acceptHeader(mediaTypes), maxReferences, entries: new Map(), retrieved: new WeakMap() };
+  return { mediaTypes, accept: acceptHeader(mediaTypes), maxReferences, entries: new Map(), retrieved: new WeakMap(), redirected: new Map() };
 });
 
 /**
@@ -244,19 +262,21 @@ const documentsOf = (session) => session.state(documentsKey, () => {
  * refusal. `allowRetrieval` is the session's, so a document the session
  * has passed it already.
  *
- * @type (session: API.DocumentSession, url: string, cause: Cause, priority: PrioritySignal) => Promise<Entry>
+ * @type (session: API.DocumentSession, url: string, cause: Cause, priority: PrioritySignal) => Promise<Reached>
  */
 const load = (session, url, cause, priority) => {
   const referrer = referrerFor(cause.initiator, cause.referrer);
   if (!canRefer(url, referrer)) {
-    return retrieve(session, url, cause, priority).then(({ entry }) => entry);
+    return retrieve(session, url, cause, priority).then(({ entry }) => ({ entry, fragment: undefined }));
   }
 
-  const { entries } = documentsOf(session);
+  const { entries, redirected } = documentsOf(session);
+  /** @type (entry: Entry) => Reached */
+  const reachedFrom = (entry) => ({ entry, fragment: redirected.get(url) });
   const existing = entries.get(url);
   if (existing) {
     return existing.loading
-      .then((entry) => referable(entry, url, referrer))
+      .then((entry) => reachedFrom(referable(entry, url, referrer)))
       .finally(existing.priority.add(priority));
   }
 
@@ -265,7 +285,10 @@ const load = (session, url, cause, priority) => {
   /** @type Kept */
   const kept = {
     priority: group,
-    loading: retrieve(session, url, cause, group.signal).then(({ entry, responseUrl }) => {
+    loading: retrieve(session, url, cause, group.signal).then(({ entry, responseUrl, fragment }) => {
+      if (fragment !== undefined) {
+        redirected.set(url, fragment);
+      }
       const reached = entries.get(responseUrl);
       if (reached && reached !== kept) {
         return reached.loading;
@@ -280,7 +303,7 @@ const load = (session, url, cause, priority) => {
       entries.delete(url);
     }
   });
-  return kept.loading.finally(leave);
+  return kept.loading.then(reachedFrom).finally(leave);
 };
 
 /**
@@ -299,18 +322,23 @@ const referable = (entry, url, referrer) => {
 };
 
 /**
- * A document's entry, and the URL its response came from
+ * A document's entry, the URL its response came from, and the fragment a
+ * redirect led to, if one did. The URL that's fetched has no fragment, so
+ * the last URL a redirect led to only has one a `Location` gave.
  *
- * @type (session: API.DocumentSession, url: string, cause: Cause, priority: PrioritySignal) => Promise<{ entry: Entry, responseUrl: string }>
+ * @type (session: API.DocumentSession, url: string, cause: Cause, priority: PrioritySignal) => Promise<{ entry: Entry, responseUrl: string, fragment: string | undefined }>
  */
 const retrieve = async (session, url, cause, priority) => {
   const { mediaTypes, accept, retrieved } = documentsOf(session);
   const response = await session.fetch(url, { ...cause, headers: { accept }, priority });
 
   try {
-    // A response a redirect led to has the request's fragment
+    // A response's URL has no fragment, but a redirect's can
     const responseUrl = new URL(response.url);
     responseUrl.hash = "";
+    const redirects = responseMeta(response).redirects;
+    const landed = redirects && new URL(redirects[redirects.length - 1]).hash;
+    const fragment = landed ? landed.slice(1) : undefined;
 
     if (!response.ok) {
       throw codedError(`'${relativeFileUrl(responseUrl.href)}' can't be used, because its response's status is ${response.status}`, { code: "ERR_HTTP_STATUS", status: response.status }, responseUrl.href);
@@ -335,7 +363,7 @@ const retrieve = async (session, url, cause, priority) => {
     /** @type Entry */
     const entry = { document, record: responseMeta(response).record, embedded: embeddedIn(document), container: document };
     retrieved.set(document, entry);
-    return { entry, responseUrl: responseUrl.href };
+    return { entry, responseUrl: responseUrl.href, fragment };
   } catch (error) {
     // A body that wasn't read holds its file or connection
     if (!response.bodyUsed) {
