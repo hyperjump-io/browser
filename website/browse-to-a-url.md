@@ -153,7 +153,7 @@ needs now. For more information, see [Priorities](priorities.md).
 | --- | --- |
 | `priority` | `"high"`, `"auto"`, or `"low"`, or a `PriorityController`'s signal. The references that `browse` follows have it too. For more information, see [Priority](#priority). |
 | `reference` | `"follow"`, the default, follows a reference to the value it leads to. `"manual"` gives you the target as it's written. For more information, see [A reference as it's written](#a-reference-as-its-written). |
-| `referencedFrom` | The target or the document that has the reference you're following. `browse` finds a document that it contains without retrieving it. For more information, see [Follow a reference](references.md#follow-a-reference). |
+| `referencedFrom` | The target or the document that has the reference you're following. `browse` finds a document that it contains without retrieving it. For more information, see [Read a tree you parsed](references.md#read-a-tree-you-parsed). |
 | `initiator` | The response of the request that caused this one, or its record. Only a `file:` document can refer to a `file:` URL. For more information, see [File URLs](file-urls.md#documents-from-the-web). |
 
 ## Errors

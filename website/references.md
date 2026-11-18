@@ -19,11 +19,11 @@ const luke = await browse(session, "https://swapi.hyperjump.io/api/people/1");
 
 Every `jref` function takes `reference: "manual"` as its last argument, like
 `browse` does. With it, the function doesn't follow references, so it reads the
-tree as it's written and a reference is a target like any other. This finds
-every reference in a document, each with the document it's in:
+tree as it's written and a reference is a target like any other. This lists
+what a film refers to. `jrefHref` gives you the URL that a reference refers to:
 
 ```typescript
-import { browse, jrefFindAll } from "@hyperjump/browser";
+import { browse, jrefFindAll, jrefHref } from "@hyperjump/browser";
 
 const url = "https://swapi.hyperjump.io/api/films/1";
 const film = await browse(session, url, { reference: "manual" });
@@ -32,7 +32,7 @@ const references = await jrefFindAll(session, film, "reference", {
 });
 
 for (const reference of references) {
-  console.log(reference.node.href);
+  console.log(jrefHref(reference));
 }
 ```
 
@@ -45,42 +45,25 @@ throws a `TypeError` instead of walking.
 `jrefStep(session, "homeworld", luke, { reference: "manual" })` is the
 reference to Luke's homeworld and not the homeworld.
 
-Documents are also [unist](https://github.com/syntax-tree/unist) trees, so the
-unified ecosystem's utilities and the `json` functions work on a target's
-`document` and `node`. They read a tree as it's written and give you nodes. For
-more information, see [Parse JSON and JRef](parsing.md).
-
 ## Follow a reference
 
-A walk that starts at a reference starts at the value it leads to. The
-selector `:scope` matches only where a walk starts, so it follows a reference
-and gives you the value it leads to. For any other target, it gives you the
-target unchanged:
+`jrefFollow` gives you the value that a reference leads to. If that value is
+another reference, it follows that one too. For a target that isn't a
+reference, it gives you the target:
 
 ```typescript
-import { jrefSelect, jrefStep } from "@hyperjump/browser";
+import { jrefFollow, jrefStep } from "@hyperjump/browser";
 
 const written = await jrefStep(session, "homeworld", luke, {
   reference: "manual"
 });
-const homeworld = await jrefSelect(session, ":scope", written);
+const homeworld = await jrefFollow(session, written);
 ```
 
-Code that doesn't walk can follow a reference with `browse`. Pass the
-reference's target as `referencedFrom` so the Hyperjump session knows which
-document the reference is in. That document causes the request, and `browse`
-finds a document that it contains without retrieving it:
-
-```typescript
-import { browse, jrefStep } from "@hyperjump/browser";
-
-const written = await jrefStep(session, "homeworld", luke, {
-  reference: "manual"
-});
-const homeworld = written.node.type === "reference"
-  ? await browse(session, written.node.href, { referencedFrom: written })
-  : written;
-```
+It follows the reference from the document that the reference is in, like the
+other `jref` functions do. That document causes the request, so the Hyperjump
+session knows whether it may refer to a file, and a reference finds a document
+that its document contains without retrieving it.
 
 ## Load references in parallel
 
@@ -88,10 +71,11 @@ The `jref` functions follow each reference when they reach it, and wait for it
 before they go on. That's what lets a walk that stops early, or a selector that
 can't match under a value, skip retrieving the rest. It also means the documents
 that a walk reaches load one after another. To load them all at once, find the
-references as they're written, follow them together with `browse`, and then walk:
+references as they're written, follow them together with `jrefFollow`, and then
+walk:
 
 ```typescript
-import { browse, jrefSelectAll } from "@hyperjump/browser";
+import { browse, jrefFollow, jrefSelectAll } from "@hyperjump/browser";
 
 const film = await browse(session, "https://swapi.hyperjump.io/api/films/1");
 
@@ -101,11 +85,9 @@ const characters = await jrefSelectAll(
   film,
   { reference: "manual" }
 );
-await Promise.all(characters.map((character) =>
-  character.node.type === "reference"
-    ? browse(session, character.node.href, { referencedFrom: character })
-    : character
-));
+await Promise.all(
+  characters.map((character) => jrefFollow(session, character))
+);
 
 const names = await jrefSelectAll(
   session,
@@ -146,10 +128,10 @@ wouldn't have reached. Find only the references that you know the walk needs.
 A walk that can't follow a reference throws what `browse` throws, such as a network
 error or an `ERR_HTTP_STATUS` error. To report every broken reference instead of
 stopping at the first, find the references as they're written, and follow each
-one with `browse`:
+one with `jrefFollow`. `jrefLocation` gives you the URL of where a reference is:
 
 ```typescript
-import { browse, jrefFindAll } from "@hyperjump/browser";
+import { jrefFindAll, jrefFollow, jrefLocation } from "@hyperjump/browser";
 
 const references = await jrefFindAll(session, film, "reference", {
   reference: "manual"
@@ -157,15 +139,12 @@ const references = await jrefFindAll(session, film, "reference", {
 
 for (const reference of references) {
   try {
-    await browse(session, reference.node.href, { referencedFrom: reference });
+    await jrefFollow(session, reference);
   } catch (error) {
-    console.log(`${reference.node.location}: ${(error as Error).message}`);
+    console.log(`${jrefLocation(reference)}: ${(error as Error).message}`);
   }
 }
 ```
-
-Each reference has the document that it's in, so the Hyperjump session knows
-which document causes the request.
 
 ## Read a tree you parsed
 
