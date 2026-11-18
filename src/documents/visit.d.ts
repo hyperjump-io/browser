@@ -219,7 +219,9 @@ export type WalkOptions = {
    * It's only an error if the walk would go under a node at `maxDepth`:
    * the visitor didn't skip it, it isn't a reference back to a node that's
    * being walked, it has members, and for a selector, one of them could
-   * match or have a match under it. It's 1000 by default, the deepest a
+   * match or have a match under it. A find or a selection walks under a
+   * node once, so a deeper way to reach a node it walked under already
+   * isn't an error. It's 1000 by default, the deepest a
    * parsed document can nest. `Infinity` doesn't limit the depth.
    */
   maxDepth?: number;
