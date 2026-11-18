@@ -179,24 +179,41 @@ export const jrefObjectKeys = /** @type typeof API.jrefObjectKeys */ ((
 ) => fromStart(session, from, options, (target) => pipe(jsonObjectKeys(/** @type Walked */ (target.node)), map((/** @type string */ key) => key))));
 
 // eslint-disable-next-line @stylistic/no-extra-parens
+export const jrefJsonType = /** @type typeof API.jrefJsonType */ (async (
+  /** @type DocumentSession */ session,
+  /** @type From */ from,
+  /** @type API.StepOptions | undefined */ options
+) => parsedNode(await stepStart(session, from, isManual(options)), "type").jsonType);
+
+// eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefValue = /** @type typeof API.jrefValue */ (async (
   /** @type DocumentSession */ session,
   /** @type From */ from,
   /** @type API.StepOptions | undefined */ options
 ) => {
-  const node = /** @type Walked */ ((await stepStart(session, from, isManual(options))).node);
-  // A document's root can be a value that couldn't be parsed. A missing
-  // one isn't there, as it isn't for `browse`, and an invalid one has no
-  // value to give, as it has no JSON for `toJson`.
-  if (node.type === "json-missing") {
-    throw missingValueError(node.location);
-  }
-  if (node.type === "json-invalid") {
-    throw codedError(`Can't get the value of an invalid value: '${/** @type {{ raw: string }} */ (/** @type unknown */ (node)).raw}' at ${relativeFileUrl(node.location)}`, { code: "ERR_INVALID_VALUE" }, node.location);
-  }
+  const node = parsedNode(await stepStart(session, from, isManual(options)), "value");
   if (node.jsonType === "object" || node.jsonType === "array") {
     throw codedError(`Can't get the value of an ${node.jsonType} at ${relativeFileUrl(node.location)}. Step into it instead.`, { code: "ERR_STRUCTURED_VALUE" }, node.location);
   }
 
   return jsonValue(node);
 });
+
+/**
+ * A target's node, which a document's root can have in place of a value
+ * that couldn't be parsed. A missing one isn't there, as it isn't for
+ * `browse`, and an invalid one has no type or value to give, as it has no
+ * JSON for `toJson`.
+ *
+ * @type (target: WalkedTarget, what: "type" | "value") => Walked
+ */
+const parsedNode = (target, what) => {
+  const node = /** @type Walked */ (target.node);
+  if (node.type === "json-missing") {
+    throw missingValueError(node.location);
+  }
+  if (node.type === "json-invalid") {
+    throw codedError(`Can't get the ${what} of an invalid value: '${/** @type {{ raw: string }} */ (/** @type unknown */ (node)).raw}' at ${relativeFileUrl(node.location)}`, { code: "ERR_INVALID_VALUE" }, node.location);
+  }
+  return node;
+};

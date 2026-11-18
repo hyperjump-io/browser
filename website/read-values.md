@@ -72,23 +72,26 @@ await jrefValue(session, name); // "Tatooine"
 `jrefValue` gives you the value of a string, number, boolean, or null as plain
 JavaScript. It throws an error whose `cause.code` is `"ERR_STRUCTURED_VALUE"`
 for an object or an array, because their values could be in other documents.
-Step into those instead.
+Step into those instead. `jrefJsonType` gives you the kind of JSON value a
+target is, such as `"string"` or `"object"`, so you know which to do.
 
 `jrefArrayIter`, `jrefObjectValues`, and `jrefObjectEntries` are async
 iterators over the members of an array or an object. The session follows each
 member when the loop reaches it, so a loop that stops early retrieves less:
 
 ```typescript
-import { jrefArrayIter, jrefObjectEntries } from "@hyperjump/browser";
+import { jrefArrayIter, jrefJsonType, jrefObjectEntries } from "@hyperjump/browser";
 
 const films = await jrefStep(session, "films", luke);
 for await (const film of jrefArrayIter(session, films)) {
   console.log(await jrefValue(session, await jrefStep(session, "title", film)));
 }
 
-const fields = ["name", "height", "mass"];
 for await (const [key, value] of jrefObjectEntries(session, luke)) {
-  if (fields.includes(key)) {
+  const jsonType = await jrefJsonType(session, value);
+  if (jsonType === "object" || jsonType === "array") {
+    console.log(key, jsonType);
+  } else {
     console.log(key, await jrefValue(session, value));
   }
 }
@@ -275,6 +278,7 @@ a reference starts at what it leads to, unless the options have
 | --- | --- |
 | `jrefStep(session, key, target, options)` | The member at a property name or an array index |
 | `jrefValue(session, target, options)` | The value of a string, number, boolean, or null as JavaScript |
+| `jrefJsonType(session, target, options)` | The kind of JSON value: `"object"`, `"array"`, `"string"`, `"number"`, `"boolean"`, or `"null"` |
 | `jrefArrayIter(session, target, options)` | The items of an array, as an async iterator |
 | `jrefObjectValues(session, target, options)` | The values of an object's properties, as an async iterator |
 | `jrefObjectEntries(session, target, options)` | An object's property names and values, as an async iterator |

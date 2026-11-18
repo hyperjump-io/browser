@@ -1,6 +1,7 @@
 import type { DocumentSession, SessionDocument, Start, StartTarget, Target } from "./documents.d.ts";
 import type { Followed, IsManual } from "./visit.d.ts";
 import type { AnyJsonNode, JsonMemberValue, JsonTypeValue } from "../json/jsonast-util.d.ts";
+import type { JsonType } from "../json/jsonast.d.ts";
 
 /**
  * Options for the functions that step into a target one level or read its
@@ -90,6 +91,21 @@ export const jrefObjectHas: (session: DocumentSession, key: string, target: Star
  * @throws What `browse` throws, from `next()`, if it follows a reference.
  */
 export const jrefObjectKeys: (session: DocumentSession, target: Start<AnyJsonNode>, options?: StepOptions) => AsyncIteratorObject<string, undefined, unknown>;
+
+/**
+ * The kind of JSON value a target is: `"object"`, `"array"`, `"string"`,
+ * `"number"`, `"boolean"`, or `"null"`. If the target is a reference, it's
+ * the kind of value that it leads to, unless `reference` is `"manual"`,
+ * and then it's `"object"`, the reference as it's written. It's for
+ * telling what to do with a value before reading it, like whether to get
+ * its value with {@link jrefValue} or step into it.
+ *
+ * @throws An `Error` whose `cause.code` is `ERR_POINTER_NOT_FOUND` for a
+ * document with nothing in it, or `ERR_INVALID_VALUE` for one whose root
+ * couldn't be parsed.
+ * @throws What `browse` throws, if it follows a reference.
+ */
+export const jrefJsonType: (session: DocumentSession, target: Start<AnyJsonNode>, options?: StepOptions) => Promise<JsonType>;
 
 /**
  * The value of a target whose node is a string, number, boolean, or null,

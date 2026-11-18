@@ -16,6 +16,7 @@ take the session to follow references with, and a target to start from.
 | `jsonObjectHas(key, node)` | `jrefObjectHas(session, key, target)` |
 | `jsonObjectKeys(node)` | `jrefObjectKeys(session, target)` |
 | `jsonValue(node)` | `jrefValue(session, target)` |
+| `node.jsonType` | `jrefJsonType(session, target)` |
 | `visit(tree, test, visitor)` (`unist-util-visit`) | `jrefVisit(session, target, test, visitor)` |
 | `find(tree, test)` (`unist-util-find`) | `jrefFind(session, target, test)`, `jrefFindAll(session, target, test)` |
 | `select(selector, tree)` (`unist-util-select`) | `jrefSelect(session, selector, target)` |
@@ -70,7 +71,16 @@ take the session to follow references with, and a target to start from.
     too. A missing value is only looked for in a node that has one, which
     only a parse that failed does, so the pipeline is one step for any
     other node.
-  - `jrefObjectHas`, `jrefObjectKeys`, and `jrefValue` take the session
+  - `jrefJsonType` is a node's `jsonType`, with the target followed. Code
+    that decides what to do with a value, like whether to get its value
+    or step into it, asks it instead of reading the target's node. A
+    target is what's passed to the `jref*` functions. Its node can also
+    be a reference, from `reference: "manual"`, and then its `jsonType`
+    is `"object"`, the reference as it's written.
+    - Rejected: a type predicate on the target, like `isJrefString`.
+      Following the target is async, so it can't narrow it, and one
+      for each kind of value is six functions for one question.
+  - `jrefObjectHas`, `jrefObjectKeys`, `jrefJsonType`, and `jrefValue` take the session
     and are async, because the target can be a reference, which they
     follow like every step does (see below). They don't follow the
     members, since reading a property name doesn't need them.
@@ -83,9 +93,9 @@ take the session to follow references with, and a target to start from.
   - A document's root can be a value that couldn't be parsed, which a
     `json*` function doesn't take. `jrefStep` into one is an
     `ERR_POINTER_NOT_INDEXABLE`, as `jsonPointerGet` has for a pointer
-    that goes into one. `jrefValue` of a missing one is an
-    `ERR_POINTER_NOT_FOUND`, as `browse` has, and of an invalid one an
-    `ERR_INVALID_VALUE`, as `toJson` has.
+    that goes into one. `jrefValue` and `jrefJsonType` of a missing one
+    are an `ERR_POINTER_NOT_FOUND`, as `browse` has, and of an invalid
+    one an `ERR_INVALID_VALUE`, as `toJson` has.
   - `jrefValue` throws for an object or an array
     (`ERR_STRUCTURED_VALUE`), which `jsonValue` doesn't. Getting their
     value would mean following every reference in them, which could

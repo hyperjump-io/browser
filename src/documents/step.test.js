@@ -3,7 +3,7 @@ import { unified } from "unified";
 import { visit } from "unist-util-visit";
 import { browse } from "./documents.js";
 import { jrefSelect, jrefSelectAll } from "./select.js";
-import { jrefArrayIter, jrefObjectEntries, jrefObjectHas, jrefObjectKeys, jrefObjectValues, jrefStep, jrefValue } from "./step.js";
+import { jrefArrayIter, jrefJsonType, jrefObjectEntries, jrefObjectHas, jrefObjectKeys, jrefObjectValues, jrefStep, jrefValue } from "./step.js";
 import { jrefFind, jrefFindAll, jrefVisit } from "./visit.js";
 import { Hyperjump } from "../hyperjump.js";
 import { fetcher } from "../layers.js";
@@ -147,12 +147,15 @@ describe("stepping", () => {
       await expect(jrefStep(session, "a", empty)).rejects.toThrow(coded("ERR_POINTER_NOT_INDEXABLE", "https://a.test/mine#"));
       await expect(jrefStep(session, "a", empty)).rejects.toThrow("Can't index into a missing value at https://a.test/mine#");
       await expect(jrefValue(session, empty)).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#"));
+      await expect(jrefJsonType(session, empty)).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#"));
 
       const invalid = parse(`@`);
       await expect(jrefStep(session, "a", invalid)).rejects.toThrow(coded("ERR_POINTER_NOT_INDEXABLE", "https://a.test/mine#"));
       await expect(jrefStep(session, "a", invalid)).rejects.toThrow("Can't index into an invalid value at https://a.test/mine#");
       await expect(jrefValue(session, invalid)).rejects.toThrow(coded("ERR_INVALID_VALUE", "https://a.test/mine#"));
       await expect(jrefValue(session, invalid)).rejects.toThrow("Can't get the value of an invalid value: '@' at https://a.test/mine#");
+      await expect(jrefJsonType(session, invalid)).rejects.toThrow(coded("ERR_INVALID_VALUE", "https://a.test/mine#"));
+      await expect(jrefJsonType(session, invalid)).rejects.toThrow("Can't get the type of an invalid value: '@' at https://a.test/mine#");
     });
 
     test("a value that's missing from a parse that failed isn't there to step to or to get", async () => {
@@ -368,6 +371,11 @@ describe("stepping", () => {
       expect(await jrefValue(session, reference)).to.equal("d");
     });
 
+    test("jrefJsonType is the type of the value the reference leads to", async () => {
+      const { session, reference } = await referenceAt("c");
+      expect(await jrefJsonType(session, reference)).to.equal("array");
+    });
+
     test("with reference: \"manual\", the reference is read as it's written", async () => {
       const { session, reference, requests } = await referenceAt("b");
       const manual = /** @type const */ ({ reference: "manual" });
@@ -376,6 +384,7 @@ describe("stepping", () => {
       expect(await jrefObjectHas(session, "$ref", reference, manual)).to.equal(true);
       expect((await Array.fromAsync(jrefObjectEntries(session, reference, manual))).map(([key]) => key)).to.eql(["$ref"]);
       await expect(jrefValue(session, reference, manual)).rejects.toThrow(coded("ERR_STRUCTURED_VALUE", "https://a.test/a#/b"));
+      expect(await jrefJsonType(session, reference, manual)).to.equal("object");
       expect(requests).to.eql(["/a"]);
     });
 
@@ -386,6 +395,23 @@ describe("stepping", () => {
       const keys = jrefObjectKeys(session, reference);
       await expect(keys.next()).rejects.toThrow(coded("ERR_HTTP_STATUS", "https://a.test/missing"));
       expect(await keys.next()).to.eql({ value: undefined, done: true });
+    });
+  });
+
+  describe("jrefJsonType", () => {
+    test("is the kind of JSON value", async () => {
+      const { session } = site({ "/a": [{}, [], "a", 1, true, null] });
+      const types = [];
+      for await (const item of jrefArrayIter(session, await browse(session, "https://a.test/a"))) {
+        types.push(await jrefJsonType(session, item));
+      }
+      expect(types).to.eql(["object", "array", "string", "number", "boolean", "null"]);
+    });
+
+    test("doesn't follow the members", async () => {
+      const { session, requests } = site({ "/a": { b: { $ref: "/b" } }, "/b": 1 });
+      expect(await jrefJsonType(session, await browse(session, "https://a.test/a"))).to.equal("object");
+      expect(requests).to.eql(["/a"]);
     });
   });
 
