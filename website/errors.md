@@ -1,7 +1,7 @@
 # Errors
 
-When a request fails, `session.fetch` rejects with a network error, the
-`TypeError` that `fetch` rejects with. A browser gives a network error for a
+When a request fails, `session.fetch` rejects with a `TypeError` the way
+`fetch` does for a network error. A browser gives a network error for a
 file that doesn't exist, a scheme it doesn't support, and a redirect it won't
 follow, so a Hyperjump session does too. A failure is never an error response
 like a 404, because no server answered.
@@ -37,8 +37,9 @@ const load = async (url: string) => {
 ```
 
 When the filesystem or the network fails, `cause` is the error it gave, with
-its code. Node.js's own `fetch` gives the reason the same way. An aborted request rejects with the signal's reason, as it does
-with `fetch`, so it isn't a network error.
+its code. Node.js's own `fetch` gives the reason the same way. An aborted
+request rejects with the signal's reason, as it does with `fetch`, so it isn't
+a network error.
 
 ## Codes
 
