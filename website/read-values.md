@@ -106,12 +106,31 @@ result from what comes back, like a function that turns a document into
 something else one property at a time. To reach a value by a path, a selector
 is shorter. To do something at every value, use `jrefVisit`.
 
+## Walk a document
+
+`jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` walk
+a document. A document is a [unist](https://github.com/syntax-tree/unist) tree,
+the kind of syntax tree that the [unified](https://unifiedjs.com/) ecosystem
+uses for Markdown and HTML, and each of its values is a node. The walks are the
+unist utilities `unist-util-visit` and `unist-util-select` for a tree with its
+references followed, so if you know those, you know how these work.
+
+You don't read a node yourself, but tests and selectors match a value by the
+properties of its node:
+
+| Property | Description |
+| --- | --- |
+| `type` | `"json"` for a JSON or JRef value, or `"reference"` for a reference that a walk with `reference: "manual"` reaches. A media type can have types of its own. |
+| `jsonType` | The kind of JSON value: `"object"`, `"array"`, `"string"`, `"number"`, `"boolean"`, or `"null"` |
+| `value` | The value of a string, number, boolean, or null |
+
+For more information about the trees, see [Parse JSON and JRef](parsing.md).
+
 ## Visit every value
 
 `jrefVisit` walks a target and every value under it depth first in document
-order, following references along the way. It works like `visit` from
-`unist-util-visit`, and its visitor returns the same `CONTINUE`, `SKIP`, and
-`EXIT` values.
+order, following references along the way. Its visitor returns the same
+`CONTINUE`, `SKIP`, and `EXIT` values as `unist-util-visit`'s.
 
 A walk follows every reference under the target, and on the Star Wars API
 everything under Luke is the whole API, because his films refer to their
