@@ -17,6 +17,9 @@ take the session to follow references with, and a target to start from.
 | `jsonObjectKeys(node)` | `jrefObjectKeys(session, target)` |
 | `jsonValue(node)` | `jrefValue(session, target)` |
 | `node.jsonType` | `jrefJsonType(session, target)` |
+| `node.href` | `jrefHref(target)` |
+| `node.location` | `jrefLocation(target)` |
+| | `jrefFollow(session, target)` |
 | `visit(tree, test, visitor)` (`unist-util-visit`) | `jrefVisit(session, target, test, visitor)` |
 | `find(tree, test)` (`unist-util-find`) | `jrefFind(session, target, test)`, `jrefFindAll(session, target, test)` |
 | `select(selector, tree)` (`unist-util-select`) | `jrefSelect(session, selector, target)` |
@@ -80,6 +83,29 @@ take the session to follow references with, and a target to start from.
     - Rejected: a type predicate on the target, like `isJrefString`.
       Following the target is async, so it can't narrow it, and one
       for each kind of value is six functions for one question.
+  - `jrefFollow` gives what a target leads to: the value a reference
+    refers to, followed until it isn't a reference, or the target itself.
+    It's what every step and walk does to the target it starts at, for
+    code that has a reference as it's written and follows it itself, like
+    code that loads references in parallel or reports each one that's
+    broken.
+    - Rejected: `browse` with the reference's `href` and the reference as
+      `referencedFrom`, behind a check that it's a reference. Every caller
+      wrote the same three lines and read the target's node to do it.
+    - Rejected: `jrefSelect(session, ":scope", target)`. It works, but a
+      selector that only matches where it starts doesn't say that it
+      follows.
+  - `jrefHref` and `jrefLocation` read the target as it's written, so they
+    don't take the session and aren't async. `jrefHref` is a reference's
+    URL, resolved, and `undefined` for any other value, which is never
+    followed, so it's also how code tells a reference from a value.
+    `jrefLocation` is where the target's value is, and a reference's is
+    where the reference is, because that's what identifies it, like the
+    place to report a reference that's broken.
+    - Rejected: following the target for `jrefLocation`, like the step
+      functions do. Where a reference leads is `jrefLocation` of what
+      `jrefFollow` gives, and where a reference is would need
+      `reference: "manual"` on every call.
   - `jrefObjectHas`, `jrefObjectKeys`, `jrefJsonType`, and `jrefValue` take the session
     and are async, because the target can be a reference, which they
     follow like every step does (see below). They don't follow the

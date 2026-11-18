@@ -1,6 +1,6 @@
 import { pipe } from "@hyperjump/pact";
 import { filter, flatMap, map } from "@hyperjump/pact/async";
-import { missingValueError, startOf } from "./start.js";
+import { hasValue, missingValueError, startOf } from "./start.js";
 import { follow, isManual } from "./walk.js";
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
@@ -177,6 +177,29 @@ export const jrefObjectKeys = /** @type typeof API.jrefObjectKeys */ ((
   /** @type From */ from,
   /** @type API.StepOptions | undefined */ options
 ) => fromStart(session, from, options, (target) => pipe(jsonObjectKeys(/** @type Walked */ (target.node)), map((/** @type string */ key) => key))));
+
+// eslint-disable-next-line @stylistic/no-extra-parens
+export const jrefFollow = /** @type typeof API.jrefFollow */ (async (
+  /** @type DocumentSession */ session,
+  /** @type From */ from
+) => {
+  const target = startOf(from);
+  if (!hasValue(target)) {
+    throw missingValueError(/** @type {{ location: string }} */ (target.node).location);
+  }
+  return follow(session, target, target.node);
+});
+
+// eslint-disable-next-line @stylistic/no-extra-parens
+export const jrefHref = /** @type typeof API.jrefHref */ ((/** @type From */ from) => {
+  const node = /** @type {{ type: string, href?: string }} */ (startOf(from).node);
+  return node.type === "reference" ? node.href : undefined;
+});
+
+// eslint-disable-next-line @stylistic/no-extra-parens
+export const jrefLocation = /** @type typeof API.jrefLocation */ ((/** @type From */ from) => {
+  return /** @type {{ location: string }} */ (startOf(from).node).location;
+});
 
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefJsonType = /** @type typeof API.jrefJsonType */ (async (

@@ -3,7 +3,7 @@ import { unified } from "unified";
 import { visit } from "unist-util-visit";
 import { browse } from "./documents.js";
 import { jrefSelect, jrefSelectAll } from "./select.js";
-import { jrefArrayIter, jrefJsonType, jrefObjectEntries, jrefObjectHas, jrefObjectKeys, jrefObjectValues, jrefStep, jrefValue } from "./step.js";
+import { jrefArrayIter, jrefFollow, jrefHref, jrefJsonType, jrefLocation, jrefObjectEntries, jrefObjectHas, jrefObjectKeys, jrefObjectValues, jrefStep, jrefValue } from "./step.js";
 import { jrefFind, jrefFindAll, jrefVisit } from "./visit.js";
 import { Hyperjump } from "../hyperjump.js";
 import { fetcher } from "../layers.js";
@@ -395,6 +395,63 @@ describe("stepping", () => {
       const keys = jrefObjectKeys(session, reference);
       await expect(keys.next()).rejects.toThrow(coded("ERR_HTTP_STATUS", "https://a.test/missing"));
       expect(await keys.next()).to.eql({ value: undefined, done: true });
+    });
+  });
+
+  describe("jrefFollow", () => {
+    test("is what a reference leads to, followed until it isn't a reference", async () => {
+      const { session, requests } = site({ "/a": { b: { $ref: "/b" } }, "/b": { $ref: "/c" }, "/c": 42 });
+      const reference = await browse(session, "https://a.test/a#/b", { reference: "manual" });
+      const followed = await jrefFollow(session, reference);
+      expect(toJson(followed.node)).to.equal(`42`);
+      expect(followed.document).to.equal((await browse(session, "https://a.test/c")).document);
+      expect(requests).to.eql(["/a", "/b", "/c"]);
+    });
+
+    test("is the target itself if it isn't a reference", async () => {
+      const { session } = site({ "/a": { b: 1 } });
+      const subject = await browse(session, "https://a.test/a");
+      expect(await jrefFollow(session, subject)).to.equal(subject);
+    });
+
+    test("a reference that can't be followed rejects", async () => {
+      const { session } = site({ "/a": { b: { $ref: "/missing" } } });
+      const reference = await browse(session, "https://a.test/a#/b", { reference: "manual" });
+      await expect(jrefFollow(session, reference)).rejects.toThrow(coded("ERR_HTTP_STATUS", "https://a.test/missing"));
+    });
+
+    test("a document with nothing in it has nothing to follow", async () => {
+      const { session } = site({});
+      const empty = unified()
+        .use(jrefParse, { url: "https://a.test/mine", accept: "failure" })
+        .parse(``);
+      await expect(jrefFollow(session, empty)).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#"));
+    });
+  });
+
+  describe("jrefHref and jrefLocation", () => {
+    test("jrefHref is the resolved URL of a reference, and undefined for any other value", async () => {
+      const { session, requests } = site({ "/a": { b: { $ref: "/b#/c" }, d: 1 } });
+      const reference = await browse(session, "https://a.test/a#/b", { reference: "manual" });
+      expect(jrefHref(reference)).to.equal("https://a.test/b#/c");
+      expect(jrefHref(await browse(session, "https://a.test/a#/d"))).to.equal(undefined);
+      expect(requests, "it doesn't follow the reference").to.eql(["/a"]);
+    });
+
+    test("jrefLocation is where the value is, and where a reference is, not where it leads", async () => {
+      const { session } = site({ "/a": { b: { $ref: "/b" }, d: 1 }, "/b": 2 });
+      expect(jrefLocation(await browse(session, "https://a.test/a#/d"))).to.equal("https://a.test/a#/d");
+      const reference = await browse(session, "https://a.test/a#/b", { reference: "manual" });
+      expect(jrefLocation(reference)).to.equal("https://a.test/a#/b");
+      expect(jrefLocation(await browse(session, "https://a.test/a#/b"))).to.equal("https://a.test/b#");
+    });
+
+    test("they take a document for its root", () => {
+      const tree = unified()
+        .use(jrefParse, { url: "https://a.test/mine" })
+        .parse(`{ "$ref": "other" }`);
+      expect(jrefHref(tree)).to.equal("https://a.test/other");
+      expect(jrefLocation(tree)).to.equal("https://a.test/mine#");
     });
   });
 

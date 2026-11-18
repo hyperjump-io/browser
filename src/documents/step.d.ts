@@ -1,4 +1,4 @@
-import type { DocumentSession, SessionDocument, Start, StartTarget, Target } from "./documents.d.ts";
+import type { DocumentSession, FollowedNode, SessionDocument, SessionNode, Start, StartTarget, Target } from "./documents.d.ts";
 import type { Followed, IsManual } from "./visit.d.ts";
 import type { AnyJsonNode, JsonMemberValue, JsonTypeValue } from "../json/jsonast-util.d.ts";
 import type { JsonType } from "../json/jsonast.d.ts";
@@ -91,6 +91,44 @@ export const jrefObjectHas: (session: DocumentSession, key: string, target: Star
  * @throws What `browse` throws, from `next()`, if it follows a reference.
  */
 export const jrefObjectKeys: (session: DocumentSession, target: Start<AnyJsonNode>, options?: StepOptions) => AsyncIteratorObject<string, undefined, unknown>;
+
+/**
+ * Target `T` once it's followed in session `S`. A target that can't be a
+ * reference is itself. A reference can lead to a document in any of the
+ * session's media types.
+ */
+export type FollowedTarget<S, T> = T extends Target<infer D, infer N>
+  ? [Extract<N, { type: "reference" }>] extends [never] ? T
+      : Target<D, FollowedNode<N>> | Target<SessionDocument<S>, FollowedNode<SessionNode<S>>>
+  : never;
+
+/**
+ * What a target leads to: the value a reference refers to, followed until
+ * it's a value that isn't a reference, or the target itself if it isn't a
+ * reference. It's what the other `jref*` functions do with the target they
+ * start at, for code that follows a reference it has as it's written, like
+ * one from `reference: "manual"`.
+ *
+ * @throws An `Error` whose `cause.code` is `ERR_POINTER_NOT_FOUND` for a
+ * document with nothing in it.
+ * @throws What `browse` throws, if it follows a reference.
+ */
+export const jrefFollow: <S extends DocumentSession, T extends Start<AnyJsonNode>>(session: S, target: T) => Promise<FollowedTarget<S, StartTarget<T>>>;
+
+/**
+ * The URL a reference refers to, resolved against its document's URL, or
+ * `undefined` if the target isn't a reference. It reads the target as it's
+ * written, so it doesn't take the session: a target that's followed is
+ * never a reference.
+ */
+export const jrefHref: (target: Start) => string | undefined;
+
+/**
+ * The URL that identifies a target's value. Its fragment is a JSON Pointer
+ * to where the value is in its document. A reference's location is where
+ * the reference is, not where it leads, so it doesn't take the session.
+ */
+export const jrefLocation: (target: Start) => string;
 
 /**
  * The kind of JSON value a target is: `"object"`, `"array"`, `"string"`,
