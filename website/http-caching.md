@@ -158,8 +158,31 @@ anywhere:
 | `status`, `statusText` | The response's status |
 | `headers` | The response's headers, as `[name, value]` pairs |
 | `body` | The response's body, as a `Uint8Array` |
-| `requestHeaders` | The headers of the request it was for, as `[name, value]` pairs, to match a `Vary` |
+| `requestHeaders` | The headers of the request it was for that the response's `Vary` names, as `[name, value]` pairs |
 | `requestTime`, `responseTime` | When the cache sent the request and when its response came, in milliseconds since the epoch |
+
+A URL can have an entry for each variant, such as one for each language when a
+response has `Vary: Accept-Language`. `put` replaces the entry that's for the
+same variant and keeps the others. `varyMatches(entry, requestHeaders)` says
+whether an entry is for a request with those headers, so a store can tell
+which one to replace:
+
+```typescript
+import { varyMatches, type CachedEntry, type CacheStore } from "@hyperjump/browser";
+
+const entries = new Map<string, CachedEntry[]>();
+
+const store: CacheStore = {
+  match: (url) => entries.get(url) ?? [],
+  put: (entry) => {
+    const requestHeaders = new Headers(entry.requestHeaders);
+    const others = (entries.get(entry.url) ?? [])
+      .filter((existing) => !varyMatches(existing, requestHeaders));
+    entries.set(entry.url, [entry, ...others]);
+  },
+  delete: (url) => { entries.delete(url); }
+};
+```
 
 ## Remove a response
 

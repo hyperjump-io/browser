@@ -8,8 +8,9 @@ request or the response, or passes the request to the layer below.
   a whole stack. A stack is a fetcher, so it can be wrapped again, given to a
   session, or tested by itself.
 - A layer is a fetcher with an `inner`, the fetcher it wraps, so a stack can
-  be walked (`layersOf`) and a layer found in it by its class
-  (`findLayer`). That's for code that uses a stack, like an application that
+  be walked and a layer found in it by its class (`findLayer`). Walking
+  it (`layersOf`) is the library's own, so `inner` isn't a promise to
+  applications. That's for code that uses a stack, like an application that
   purges its cache. A layer doesn't find another (see
   [How layers communicate](../principles/how-layers-communicate.md)).
 - Each built-in layer is a class whose constructor takes the fetcher it

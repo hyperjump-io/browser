@@ -98,3 +98,21 @@ fold from competing with the style sheet the page is waiting for.
 | `isDelayable` | Which requests the throttle can hold back. The default is requests with priority `"low"`. |
 
 A held request whose priority you raise starts right away.
+
+## Priorities in your own layer
+
+A layer reads a request's priority as `ctx.priority`, a `PrioritySignal`. Its
+`value` is the priority now, and it dispatches a `"change"` event when the
+priority changes, the way an `AbortSignal` dispatches `"abort"`.
+`priorityRank` orders them, with `high` as `0` and `low` as `2`, so you can sort
+waiting requests:
+
+```typescript
+import { priorityRank } from "@hyperjump/browser";
+
+waiting.sort((a, b) => priorityRank[a.priority.value] - priorityRank[b.priority.value]);
+```
+
+To give the layer below a priority that doesn't change, pass it
+`PrioritySignal.of("high")` in a copy of the context, such as
+`inner.fetch(request, { ...ctx, priority: PrioritySignal.of("high") })`.

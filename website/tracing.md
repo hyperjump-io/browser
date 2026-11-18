@@ -76,8 +76,9 @@ them at once, see
 
 ## Records
 
-A response's record is `responseMeta(response).record`. It has what the request
-asked for, what each layer did, and how it ended:
+A response's record is `responseMeta(response).record`, a `FetchRecord`. The
+Hyperjump session makes it, so you don't. It has what the request asked for,
+what each layer did, and how it ended:
 
 | Property | Description |
 | --- | --- |

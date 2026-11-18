@@ -13,6 +13,16 @@
   (`#next-task`).
 - There's one entry point, `@hyperjump/browser`. The package has no side
   effects, so a bundler drops what isn't imported.
+- What the entry point exports is the public API. A module that has
+  functions only the library uses, next to ones applications use, is
+  exported by name, so `index.js` lists the ones that are public:
+  `PriorityGroup`, `layersOf`, `parseCacheControl`, `acceptHeader`, and
+  `mediaTypeForExtension` aren't. An export that's public is in the user
+  docs.
+  - Moving the library's own functions to modules of their own was
+    rejected. `mediaTypeForExtension` and `mediaTypeForContentType` are
+    the same kind of function, and a module for each would be split by who
+    uses it, not by what it does.
 - `index.js` imports the parts with versions through their subpath imports,
   and `index.d.ts` exports their declarations directly, because a part and
   its browser version have the same declaration.

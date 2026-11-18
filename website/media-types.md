@@ -102,6 +102,17 @@ file's name. The longest extension that matches wins, so a plugin for
 If no plugin matches, `browse` rejects with an error whose `cause.code` is
 `"ERR_UNSUPPORTED_MEDIA_TYPE"`.
 
+`mediaTypeForContentType(mediaTypes, contentType)` chooses the same way, so
+you can find the plugin for a response that you fetched yourself. It's
+`undefined` if no plugin matches:
+
+```typescript
+import { defaultMediaTypes, mediaTypeForContentType } from "@hyperjump/browser";
+
+const response = await session.fetch("https://example.com/person.json");
+const plugin = mediaTypeForContentType(defaultMediaTypes, response.headers.get("content-type"));
+```
+
 ## The `Accept` header
 
 A Hyperjump session sends an `Accept` header that lists its media types in

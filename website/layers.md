@@ -69,6 +69,38 @@ A request's own `signal` aborts when the caller aborts or the Hyperjump session
 closes. If your layer makes a new request, give it a signal, such as
 `ctx.session.signal`, which aborts when the session closes.
 
+## Wrap a response's body
+
+A response knows things that a new `Response` doesn't, such as its record and
+where it came from (see [Where a response came from](#where-a-response-came-from)).
+To change a response's body or keep a copy of it, use these functions, which
+keep what the response knows:
+
+| Function | Description |
+| --- | --- |
+| `replaceBody(response, body)` | The same response with another body, such as a stream that decompresses it. Its status, headers, URL, and `redirected` are kept. It doesn't work for an opaque response. |
+| `trackBody(response, done, onChunk)` | Calls `done` once, when the body has been read to the end, cancelled, or failed, or right away if there's no body. `onChunk` gets each chunk as the body is read. Return the response that `trackBody` returns, not the one you gave it. |
+| `cloneResponse(response)` | `response.clone()`, and the clone knows what the response does |
+
+This layer marks each request's record with how many bytes its body had:
+
+```typescript
+import { layer, trackBody } from "@hyperjump/browser";
+
+const bodySize = layer(async (request, ctx, inner) => {
+  const response = await inner.fetch(request, ctx);
+  let bytes = 0;
+  return trackBody(
+    response,
+    () => ctx.record.mark("body-size", { bytes }),
+    (chunk) => { bytes += chunk.byteLength; }
+  );
+});
+```
+
+`trackBody` is also how a layer holds something for as long as a body is being
+read, such as a slot in a queue: release it in `done`.
+
 ## Write a layer as a class
 
 A layer that needs methods or state of its own is a class with an `inner`
@@ -128,7 +160,9 @@ findLayer(stack, RequestCounter)?.count(session); // 3
 
 ## Find a layer in a stack
 
-`findLayer` finds a layer in a stack by its class, so you can call its methods:
+`findLayer` finds a layer in a stack by its class, so you can call its methods.
+Each built-in layer's class is exported for this: `HttpCache`, `Scheduler`,
+`Throttle`, and the transport's `SchemeTransport`.
 
 ```typescript
 import { findLayer, HttpCache } from "@hyperjump/browser";

@@ -105,6 +105,11 @@ give it to `defaultTransport`, to `nodeTransport`'s `schemes`, or to `with`.
 
 ## Functions
 
+`defaultTransport` and `nodeTransport` make a `SchemeTransport`, which gives
+each request to the fetcher for its URL's scheme. `new SchemeTransport(schemes)`
+makes one with only the schemes you give it, and its `schemes` property has
+them, by scheme.
+
 | Function | Description |
 | --- | --- |
 | `defaultTransport(extra)` | A transport for `http:`, `https:`, and `data:`, and the schemes in `extra` |
