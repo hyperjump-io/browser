@@ -6,6 +6,7 @@ import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "./coded-error.js";
 import { appendToLocation } from "./location.js";
 import { parseDocumentUrl } from "./document-url.js";
+import { isJsonPointer } from "./json-pointer-syntax.js";
 
 /**
  * @import {
@@ -285,8 +286,8 @@ const stringifyObject = (node, space, depth) => {
 
 /** @type (pointer: string) => string[] */
 const pointerSegments = (pointer) => {
-  if (pointer.length > 0 && !pointer.startsWith("/")) {
-    throw Error("Invalid JSON Pointer");
+  if (!isJsonPointer(pointer)) {
+    throw TypeError(`'${pointer}' isn't a JSON Pointer`);
   }
 
   /** @type string[] */

@@ -180,7 +180,8 @@ export const jsonStep: <N extends AnyJsonNode>(key: string, node: N) => JsonMemb
  * @throws What {@link jsonStep} throws if the pointer doesn't resolve. A
  * pointer that goes into a missing or invalid value is
  * `ERR_POINTER_NOT_INDEXABLE` too, at that value's location.
- * @throws An `Error` if `pointer` isn't a JSON Pointer.
+ * @throws A `TypeError` if `pointer` isn't a JSON Pointer: one that isn't
+ * empty and doesn't start with `/`, or has a `~` that isn't `~0` or `~1`.
  */
 export const jsonPointerGet: <N extends AnyJsonNode>(pointer: string, tree: N) => N | JsonMemberValue<N>;
 

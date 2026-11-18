@@ -152,6 +152,11 @@ with the URL you gave `fromJson` or `fromJs`.
 | `ERR_POINTER_DUPLICATE_PROPERTY` | Names a property that the object has more than once |
 | `ERR_POINTER_NOT_INDEXABLE` | Steps into a value that isn't an object or an array |
 
+A string that isn't a JSON Pointer is a mistake in your code, not in the
+document, so `jsonPointerGet` throws a `TypeError` without a code. A pointer
+starts with `/` unless it's empty, and a `~` in it is only `~0`, for a `~`, or
+`~1`, for a `/`.
+
 Error messages often end up in logs and bug reports. To keep them from revealing
 where your files are, the message shows a `file:` URL relative to the working
 directory, such as `data/person.json#/name`. If you want your own messages to

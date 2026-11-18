@@ -149,8 +149,10 @@ a hypermedia browser, and the stack is how it retrieves.
     pointer if it's there, and otherwise a JSON Pointer that's
     percent-encoded. A JRef document's is `{}`.
   - A fragment that's neither is an `ERR_ANCHOR_NOT_FOUND`. One that
-    doesn't percent-decode, like `/a%`, isn't a JSON Pointer, so it's
-    one too.
+    doesn't percent-decode, like `/a%`, or has a `~` that isn't `~0` or
+    `~1`, like `/a~2`, isn't a JSON Pointer, so it's one too. It's checked
+    before `jsonPointerGet` is called, whose `TypeError` is for a caller's
+    mistake, and a fragment is the document's.
   - An anchor's key is the fragment as it is in a URL, percent-encoded.
 - A plugin's `parse` gives a document the documents it contains
   (`embedded`), parsed, by the URL each says it has. A reference looks in

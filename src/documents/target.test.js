@@ -213,6 +213,14 @@ describe("fragments", () => {
     await expect(getting).rejects.toMatchObject({ cause: { code: "ERR_ANCHOR_NOT_FOUND", anchor: "/a%" }, url: "https://a.test/mine" });
   });
 
+  test("a fragment with a ~ that isn't an escape isn't a JSON Pointer, so it's an anchor that isn't found", async () => {
+    const { session } = site({});
+    const mine = bundleDocument({ a: 1 }, "https://a.test/mine");
+    const from = { ...bundleDocument(null, "https://a.test/from"), embedded: { "https://a.test/mine": mine } };
+    const getting = browse(session, "https://a.test/mine#/a~2", { referencedFrom: from });
+    await expect(getting).rejects.toMatchObject({ cause: { code: "ERR_ANCHOR_NOT_FOUND", anchor: "/a~2" }, url: "https://a.test/mine" });
+  });
+
   test("a document a document contains has its own anchors", async () => {
     const { session } = site({});
     const contained = { ...bundleDocument({ a: 1 }, "https://a.test/x"), anchors: { here: "/a" } };

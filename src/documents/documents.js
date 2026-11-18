@@ -2,6 +2,7 @@ import { canRefer, referrerFor, refusedReferenceResponse } from "../file-referen
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
 import { jsonPointerGet } from "../json/jsonast-util.js";
+import { isJsonPointer } from "../json/json-pointer-syntax.js";
 import { limit } from "./limit.js";
 import { missingValueError, startOf } from "./start.js";
 import { acceptHeader, defaultMediaTypes, mediaTypeForContentType, mediaTypeForExtension } from "../media-types/media-types.js";
@@ -165,7 +166,7 @@ const fragmentPointer = (document, fragment) => {
   }
 
   const pointer = percentDecoded(fragment);
-  if (pointer === undefined || (pointer !== "" && !pointer.startsWith("/"))) {
+  if (pointer === undefined || !isJsonPointer(pointer)) {
     throw codedError(`There's no '${fragment}' anchor in '${relativeFileUrl(document.url)}'`, { code: "ERR_ANCHOR_NOT_FOUND", anchor: fragment }, document.url);
   }
 

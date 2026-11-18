@@ -189,6 +189,23 @@ describe("jsonast-util", async () => {
     });
   });
 
+  describe("JSON Pointer syntax", () => {
+    const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a/b": { "~": 1 } }`, "https://example.com/doc").document.children[0]);
+
+    test("~1 is a / and ~0 is a ~", () => {
+      expect(jsonValue(/** @type JsonTolerantNode */ (jsonPointerGet("/a~1b/~0", subject)))).to.equal(1);
+    });
+
+    test("a pointer that isn't empty and doesn't start with / isn't one, which is the caller's mistake", () => {
+      expect(() => jsonPointerGet("a", subject)).to.throw(TypeError, "'a' isn't a JSON Pointer");
+    });
+
+    test("a ~ that isn't ~0 or ~1 isn't an escape, so the pointer isn't one", () => {
+      expect(() => jsonPointerGet("/a~2b", subject)).to.throw(TypeError, "'/a~2b' isn't a JSON Pointer");
+      expect(() => jsonPointerGet("/a~", subject)).to.throw(TypeError, "'/a~' isn't a JSON Pointer");
+    });
+  });
+
   describe("JSON Pointer error messages", () => {
     test("say the location from the node", () => {
       const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": { "b": 1 } }`, "https://example.com/doc").document.children[0]);
