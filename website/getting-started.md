@@ -44,7 +44,8 @@ import {
   Hyperjump,
   browse,
   jrefSelect,
-  jrefSelectAll
+  jrefSelectAll,
+  jrefValue
 } from "@hyperjump/browser";
 
 const session = new Hyperjump({
@@ -69,22 +70,18 @@ with selectors, like you'd find elements in a web page with CSS. `jrefSelect`
 takes the session so it can follow references, and it returns a target for the
 first value that matches. A selector that starts with `>` matches what's
 directly inside the target you give it, and `[key=title]` matches the value of
-the `title` property. A node's `jsonType` is the kind of JSON value it holds, so
-`[jsonType=string]` says the title is a string. A string, number, boolean, or
-null node has its value as plain JavaScript in `value`:
+the `title` property. `jrefValue` gives you the value of a string, number,
+boolean, or null as plain JavaScript:
 
 ```typescript
-const title = await jrefSelect(
-  session,
-  "> [key=title][jsonType=string]",
-  aNewHope
-);
-title?.node.value; // "A New Hope"
+const title = await jrefSelect(session, "> [key=title]", aNewHope);
+if (title) {
+  console.log(jrefValue(title)); // A New Hope
+}
 ```
 
 `jrefSelect` returns `undefined` if nothing matches, like when the film doesn't
-have a title or its title isn't a string. TypeScript knows from the selector that
-the node of a target it returns is a string node.
+have a title.
 
 The film's `characters` property is where the references come in. Each `>` in a
 selector steps one level deeper, and `*` matches any value. `jrefSelectAll`
@@ -94,12 +91,12 @@ of every character in the film:
 ```typescript
 const names = await jrefSelectAll(
   session,
-  "> [key=characters] > * > [key=name][jsonType=string]",
+  "> [key=characters] > * > [key=name]",
   aNewHope
 );
 
 for (const name of names) {
-  console.log(name.node.value);
+  console.log(jrefValue(name));
 }
 ```
 
@@ -155,10 +152,12 @@ const session = new Hyperjump();
 const luke = await browse(session, "./api/people/1.jref");
 const name = await jrefSelect(
   session,
-  "> [key=homeworld] > [key=name][jsonType=string]",
+  "> [key=homeworld] > [key=name]",
   luke
 );
-name?.node.value; // "Tatooine"
+if (name) {
+  console.log(jrefValue(name)); // Tatooine
+}
 ```
 
 Everything after `browse` is the same code you used for the API. Keep in mind that
