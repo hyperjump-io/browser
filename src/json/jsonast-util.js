@@ -42,7 +42,21 @@ export const fromJs = (js, location) => {
 /** @type typeof API.toJson */
 export const toJson = (node, options = {}) => {
   const valueNode = presentValue(node);
-  return valueNode ? stringifyValue(valueNode, options.space ?? "", 1) : "";
+  return valueNode ? stringifyValue(valueNode, indentation(options.space), 1) : "";
+};
+
+/**
+ * The indentation for each level from a `space` option, the way
+ * `JSON.stringify` reads its `space`: a number is that many spaces and a
+ * string is itself, each up to 10
+ *
+ * @type (space: string | number | undefined) => string
+ */
+const indentation = (space) => {
+  if (typeof space === "number") {
+    return " ".repeat(Math.max(0, Math.min(10, Math.trunc(space))));
+  }
+  return (space ?? "").slice(0, 10);
 };
 
 // RFC 6901: array-index = %x30 / ( %x31-39 *(%x30-39) )

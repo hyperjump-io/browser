@@ -40,6 +40,10 @@ describe("jsonast-util", async () => {
       test(`${entry.name.substring(2)} with spaces`, () => {
         expect(toJson(parse(json), { space: "  " })).to.eql(JSON.stringify(JSON.parse(json), null, "  "));
       });
+
+      test(`${entry.name.substring(2)} with a number of spaces`, () => {
+        expect(toJson(parse(json), { space: 2 })).to.eql(JSON.stringify(JSON.parse(json), null, 2));
+      });
     } else if (entry.name.startsWith("n_")) {
       test(entry.name.substring(2), () => {
         expect(fromJson(json, "https://example.com/doc").status).not.to.equal("success");
@@ -307,6 +311,22 @@ describe("jsonast-util", async () => {
     expect(toJson(b[1])).to.equal(`2`);
 
     expect(generator.next().done).to.equal(true);
+  });
+
+  describe("space", () => {
+    const json = `{ "a": [1, { "b": 2 }] }`;
+
+    test.each([
+      ["a number of spaces", 4],
+      ["more than 10 spaces", 12],
+      ["a fraction of spaces", 2.7],
+      ["no spaces", 0],
+      ["a negative number of spaces", -1],
+      ["a string longer than 10", "-".repeat(12)],
+      ["an empty string", ""]
+    ])("%s is like JSON.stringify", (_name, space) => {
+      expect(toJson(parse(json), { space })).to.equal(JSON.stringify(JSON.parse(json), null, space));
+    });
   });
 });
 

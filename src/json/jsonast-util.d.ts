@@ -125,10 +125,11 @@ export const fromJs: (js: ReadonlyJson, location: string) => JsonNode;
 export type ToJsonOptions = {
   /**
    * The indentation for each level, like the `space` of
-   * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify | JSON.stringify}.
-   * Without it, the JSON is on one line.
+   * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify | JSON.stringify}:
+   * a number of spaces, or a string. Either is up to 10. Without it, the
+   * JSON is on one line.
    */
-  space?: string;
+  space?: string | number;
 };
 
 /**
