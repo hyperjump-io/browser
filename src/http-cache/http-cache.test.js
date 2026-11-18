@@ -301,6 +301,45 @@ describe("the HTTP cache", () => {
     }
   });
 
+  test("a stale response that's served again while it's refreshed isn't refreshed again", async () => {
+    let now = 0;
+    let requests = 0;
+    /** @type () => void */
+    let release = () => {};
+    const released = new Promise((resolve) => {
+      release = () => resolve(undefined);
+    });
+    const cache = new HttpCache(fetcher(async () => {
+      if (requests++ > 0) {
+        // The refresh waits until the test lets it answer
+        await released;
+      }
+      return new Response(`v${requests}`, { headers: { "cache-control": "max-age=1, stale-while-revalidate=60" } });
+    }), { now: () => now });
+    const session = testHyperjump(cache, { allow: ["https://a.test/"] });
+    await (await session.fetch("https://a.test/")).text();
+    await settle();
+
+    now += 5000;
+    for (let hit = 0; hit < 5; hit++) {
+      const stale = await session.fetch("https://a.test/");
+      expect(responseMeta(stale).cache).to.equal("stale");
+      await stale.text();
+    }
+    expect(requests, "one refresh for all of them").to.equal(2);
+
+    release();
+    await settle();
+    const refreshed = await session.fetch("https://a.test/");
+    expect(await refreshed.text()).to.equal("v2");
+    expect(responseMeta(refreshed).cache).to.equal("hit");
+
+    now += 5000;
+    await (await session.fetch("https://a.test/")).text();
+    await settle();
+    expect(requests, "stale again, it's refreshed again").to.equal(3);
+  });
+
   test("in a shared cache, s-maxage is the lifetime, and a response past it isn't served stale", async () => {
     const { server, get, advance } = await setup({ shared: true });
     try {

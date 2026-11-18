@@ -26,6 +26,11 @@ it's a private cache, like a browser's.
   it. It's `redirect: "manual"`, so it refreshes the response that was
   served, even a redirect. The stale response is marked
   `cache:background-revalidate`.
+- A stored response is refreshed in the background once at a time, like a
+  browser's cache does. One that's served stale again while it's refreshed
+  doesn't start another. The cache keeps what it's refreshing by URL and
+  the request headers its `Vary` names, which say which variant it is. It's
+  the layer's, like the store, so sessions on one stack share it.
   - Refreshing it with the stale response's context was rejected. What
     the refresh did was marked on a record that had ended, so a trace and
     a HAR export gave a hit from the cache the time the refresh took. It's the origin allowing a stale response, so a request

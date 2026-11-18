@@ -56,6 +56,15 @@ export class HttpCache {
   #onStoreError;
 
   /**
+   * The stored responses being refreshed in the background, by `variantKey`,
+   * so a stale response that's served again while it's refreshed isn't
+   * refreshed again
+   *
+   * @type Set<string>
+   */
+  #refreshing = new Set();
+
+  /**
    * @param {Fetcher} inner
    * @param {API.HttpCacheOptions} [options]
    */
@@ -145,25 +154,44 @@ export class HttpCache {
       // the request and not past its own lifetime
       const wantsFresh = requestCacheControl.has("max-age") || requestCacheControl.has("min-fresh");
       if (staleAllowed && !wantsFresh && staleWhileRevalidate !== undefined && staleBy <= staleWhileRevalidate) {
-        // The refresh is a request of the session's, with its own record, so
-        // it isn't this one's, which ends now, and the caller aborting
-        // doesn't stop it. It goes down the stack again, to this cache, which
-        // revalidates it for `no-cache`. Nobody is waiting for it, so it's
-        // low priority, and it refreshes this response, even a redirect.
-        ctx.record.mark("cache:background-revalidate");
-        ctx.session.fetch(request.url, {
-          method: request.method,
-          headers: request.headers,
-          cache: "no-cache",
-          priority: "low",
-          redirect: "manual",
-          initiator: ctx.record
-        }).then((response) => response.body?.cancel(), () => {});
+        this.#refresh(entry, request, ctx);
         return this.#serve(entry, request, "stale", age);
       }
     }
 
     return this.#revalidate(entry, request, ctx);
+  }
+
+  /**
+   * Refresh a stale response in the background, unless it's being refreshed
+   * already. The refresh is a request of the session's, with its own record,
+   * so it isn't this one's, which ends now, and the caller aborting doesn't
+   * stop it. It goes down the stack again, to this cache, which revalidates
+   * it for `no-cache`. Nobody is waiting for it, so it's low priority, and it
+   * refreshes this response, even a redirect.
+   *
+   * @type (entry: API.CachedEntry, request: Request, ctx: FetchContext) => void
+   */
+  #refresh(entry, request, ctx) {
+    const key = variantKey(entry);
+    if (this.#refreshing.has(key)) {
+      return;
+    }
+
+    this.#refreshing.add(key);
+    ctx.record.mark("cache:background-revalidate");
+    ctx.session.fetch(request.url, {
+      method: request.method,
+      headers: request.headers,
+      cache: "no-cache",
+      priority: "low",
+      redirect: "manual",
+      initiator: ctx.record
+    })
+      .then((response) => response.body?.cancel(), () => {})
+      .finally(() => {
+        this.#refreshing.delete(key);
+      });
   }
 
   /** @type (request: Request) => Promise<API.CachedEntry | undefined> */
@@ -432,6 +460,14 @@ const effectiveMode = (request, mode) => {
   }
   return mode;
 };
+
+/**
+ * What identifies a stored response: its URL and the request headers its
+ * `Vary` names, which are all that's stored of its request
+ *
+ * @type (entry: API.CachedEntry) => string
+ */
+const variantKey = (entry) => JSON.stringify([entry.url, entry.requestHeaders]);
 
 /** @type (url: string) => string */
 const cacheKey = (url) => {
