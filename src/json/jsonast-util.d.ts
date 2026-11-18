@@ -1,29 +1,30 @@
 import type { Position } from "unist";
 import type {
   Json,
-  JsonCommentNode,
   JsonDocumentNode,
   JsonErrorNode,
   JsonMissingNode,
   JsonNode,
   JsonPropertyNameNode,
   JsonParseStatus,
-  JsonTolerantNode,
   ReadonlyJson
 } from "./jsonast.d.ts";
 
 /**
- * Parse a JSON string into a JSON AST. `url` is the document's URL, which
- * every node's location starts with.
+ * Parse a JSON string into a JSON document, whose root is the AST of the
+ * value, like `fromMarkdown` from `mdast-util-from-markdown`. `url` is the
+ * document's URL, which every node's location starts with. It's the
+ * document the `jref*` functions read, and that the JSON media type and
+ * `rejsonParse` make.
  *
  * Nothing in the document makes it throw. Malformed input produces an AST
- * whenever possible and the result's `status` says how much to trust it. See
- * {@link JsonParseResult}.
+ * whenever possible and the document's `status` says how much to trust it.
+ * See {@link JsonParseResult}.
  *
  * @throws {TypeError} If `url` isn't a URL or has a fragment. It's the
  *   caller's mistake, not the document's.
  */
-export const fromJson: (json: string, url: string, options?: JsonOptions) => JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode>;
+export const fromJson: (json: string, url: string, options?: JsonOptions) => JsonParseResult<JsonDocumentNode>;
 
 /**
  * Check a document's parse status. Unlike checking `document.status`
@@ -48,23 +49,15 @@ export type JsonOptions = {
 };
 
 /**
- * The result of a parse. Discriminate on `status` to get the type of the AST.
- * Only a `failure` can contain {@link JsonErrorNode}s. `S` is the AST type for
- * `success` and `recovered`, `F` is the AST type for `failure`, and `E` is
+ * The result of a parse: the document, which has any parse status, and
+ * every syntax error found, in document order. {@link hasStatus} narrows
+ * the document by its status. `D` is the type of the document, and `E` is
  * the type of the errors.
- *
- * Every syntax error found is in `errors`, in document order.
  */
-export type JsonParseResult<S, F, E = JsonSyntaxError> = {
-  /**
-   * Every comment, in document order. It's empty unless comments are allowed.
-   */
-  comments: JsonCommentNode[];
-} & (
-  { status: "success"; node: S; errors: [] }
-  | { status: "recovered"; node: S; errors: E[] }
-  | { status: "failure"; node: F; errors: E[] }
-);
+export type JsonParseResult<D, E = JsonSyntaxError> = {
+  document: D;
+  errors: E[];
+};
 
 /**
  * A syntax error found by the parser. It's plain data. Use

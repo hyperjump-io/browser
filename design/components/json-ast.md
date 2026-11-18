@@ -7,8 +7,8 @@ unified, and editors can find the node at the cursor.
 
 The parser is a hand-written scanner and recursive descent parser, ported
 from `json-language-server`. Parsing never
-throws. `fromJson` and `fromJref` always build an AST and return a parse
-status with it:
+throws. `fromJson` and `fromJref` always build an AST and return it as
+the root of a document, whose parse status is one of:
 
 - `success`: the input is valid
 - `recovered`: every syntax error was resolved by interpreting the intent,
@@ -17,10 +17,10 @@ status with it:
   or input had to be discarded. For JRef, a `$ref` that isn't a valid
   reference is a failure too (see [Transforming](#transforming)).
 
-- The result's type discriminates on the status, so only a failure can
-  contain `json-invalid` and `json-missing` nodes. `JsonNode` takes a type
-  parameter for those nodes, which defaults to `never`, so complete trees
-  are typed as before. `hasStatus` narrows document nodes by status.
+- Only a failure can contain `json-invalid` and `json-missing` nodes.
+  `JsonNode` takes a type parameter for those nodes, which defaults to
+  `never`, so complete trees are typed as before. `hasStatus` narrows a
+  document by its status.
 - Syntax errors are plain objects in `errors`, with specific `ruleId`s and
   positions. `jsonSyntaxErrorMessage` describes one. They become
   `VFileMessage`s where they're reported or thrown, by the unified plugins
@@ -33,8 +33,7 @@ status with it:
   with no value extends the same way, so the cursor is inside it while
   typing the value. The missing value node stays zero width after the
   colon.
-- `allowComments` supports JSONC. Comments are listed on the document node
-  and in parse results.
+- `allowComments` supports JSONC. Comments are listed on the document node.
 - Nesting is limited to 1000 levels instead of overflowing the stack.
   Recovery heuristics run in linear time regardless of the input.
 - A duplicated property name fails `jsonStep`.
@@ -163,9 +162,31 @@ status with it:
   - Making up a URL for a file without a path was rejected. Its relative
     references would resolve against a URL that nothing said the document
     has.
-- `jrefParse`'s document has `anchors`, as the JRef media type's does, so
-  a tree from a pipeline says what its fragments identify and is read
-  as it is (see [Documents](documents.md)).
+- `fromJson` and `fromJref` return `{ document, errors }`: the document,
+  with the AST as its root, its URL, its comments, and for JRef its
+  `anchors`, and the syntax errors next to it. It's what
+  `fromMarkdown` from `mdast-util-from-markdown` does, which returns the
+  root and not the first node in it. The document's `url` is the one the
+  parse makes from what it's given, which its nodes' locations start with.
+  The JSON and JRef media types and the unified parse plugins make their
+  documents with them, so a document is the same wherever it's parsed, and
+  code that has text parses one without a media type or unified.
+  - A document can have any parse status, like a tree from unified's
+    `parse`. A media type throws for one that isn't a `success`, and a
+    parse plugin reports its errors on the file.
+  - `fromJref`'s document has `anchors`, so a document parsed outside a
+    session says what its fragments identify and is read as it is (see
+    [Documents](documents.md)).
+  - Rejected: a result with the root `node`, its `status`, and its
+    `comments`, typed by its status. The status and comments are the
+    document's, so the four places that make a document each built one
+    from it by hand, and nothing gave code that has text a document to
+    read with the `jref*` functions.
+  - Rejected: a second pair of functions that return a document, next to
+    ones that return the root. They'd be two ways to parse the same text.
+  - Rejected: parsing with a media type's `parse`, given a source made by
+    hand. A media type is how a session picks the parser for a response,
+    and its `parse` throws for a syntax error.
 - `appendToLocation` caches the encoded form of each segment, because
   encoding was most of the time `fromJs` took (see
   [Node locations](../benchmarks/node-locations.md)).

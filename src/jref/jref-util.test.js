@@ -12,7 +12,7 @@ describe("JRef", () => {
   describe("parse", () => {
     describe("scalars", () => {
       test("null", () => {
-        const subject = fromJref(`null`, testContext).node;
+        const subject = fromJref(`null`, testContext).document.children[0];
         expect(subject).to.eql({
           type: "json",
           jsonType: "null",
@@ -26,7 +26,7 @@ describe("JRef", () => {
       });
 
       test("true", () => {
-        const subject = fromJref(`true`, testContext).node;
+        const subject = fromJref(`true`, testContext).document.children[0];
         expect(subject).to.eql({
           type: "json",
           jsonType: "boolean",
@@ -40,7 +40,7 @@ describe("JRef", () => {
       });
 
       test("false", () => {
-        const subject = fromJref(`false`, testContext).node;
+        const subject = fromJref(`false`, testContext).document.children[0];
         expect(subject).to.eql({
           type: "json",
           jsonType: "boolean",
@@ -54,7 +54,7 @@ describe("JRef", () => {
       });
 
       test("integers", () => {
-        const subject = fromJref(`1`, testContext).node;
+        const subject = fromJref(`1`, testContext).document.children[0];
         expect(subject).to.eql({
           type: "json",
           jsonType: "number",
@@ -68,7 +68,7 @@ describe("JRef", () => {
       });
 
       test("real numbers", () => {
-        const subject = fromJref(`1.34`, testContext).node;
+        const subject = fromJref(`1.34`, testContext).document.children[0];
         expect(subject).to.eql({
           type: "json",
           jsonType: "number",
@@ -82,7 +82,7 @@ describe("JRef", () => {
       });
 
       test("negative numbers", () => {
-        const subject = fromJref(`-1.34`, testContext).node;
+        const subject = fromJref(`-1.34`, testContext).document.children[0];
         expect(subject).to.eql({
           type: "json",
           jsonType: "number",
@@ -96,7 +96,7 @@ describe("JRef", () => {
       });
 
       test("exponential numbers", () => {
-        const subject = fromJref(`-1e34`, testContext).node;
+        const subject = fromJref(`-1e34`, testContext).document.children[0];
         expect(subject).to.eql({
           type: "json",
           jsonType: "number",
@@ -110,7 +110,7 @@ describe("JRef", () => {
       });
 
       test("reference", () => {
-        const subject = fromJref(`{ "$ref": "./foo" }`, testContext).node;
+        const subject = fromJref(`{ "$ref": "./foo" }`, testContext).document.children[0];
         expect(subject).to.eql({
           type: "reference",
           jsonType: "object",
@@ -156,7 +156,7 @@ describe("JRef", () => {
 
     describe("array", () => {
       test("empty", () => {
-        const subject = fromJref(`[]`, testContext).node;
+        const subject = fromJref(`[]`, testContext).document.children[0];
         expect(subject).to.eql({
           type: "json",
           jsonType: "array",
@@ -172,7 +172,7 @@ describe("JRef", () => {
       test("non-empty", () => {
         const subject = fromJref(`[
   "foo"
-]`, testContext).node;
+]`, testContext).document.children[0];
         expect(subject).to.eql({
           type: "json",
           jsonType: "array",
@@ -199,7 +199,7 @@ describe("JRef", () => {
       test("reference", () => {
         const subject = fromJref(`[
   { "$ref": "./foo" }
-]`, testContext).node;
+]`, testContext).document.children[0];
         expect(subject).to.eql({
           type: "json",
           jsonType: "array",
@@ -256,7 +256,7 @@ describe("JRef", () => {
 
     describe("object", () => {
       test("empty", () => {
-        const subject = fromJref(`{}`, testContext).node;
+        const subject = fromJref(`{}`, testContext).document.children[0];
         expect(subject).to.eql({
           type: "json",
           jsonType: "object",
@@ -272,7 +272,7 @@ describe("JRef", () => {
       test("non-empty", () => {
         const subject = fromJref(`{
   "foo": 42
-}`, testContext).node;
+}`, testContext).document.children[0];
         expect(subject).to.eql({
           type: "json",
           jsonType: "object",
@@ -317,7 +317,7 @@ describe("JRef", () => {
       test("reference", () => {
         const subject = fromJref(`{
   "foo": { "$ref": "./foo" }
-}`, testContext).node;
+}`, testContext).document.children[0];
         expect(subject).to.eql({
           type: "json",
           jsonType: "object",
@@ -390,15 +390,44 @@ describe("JRef", () => {
       });
 
       test("reference in the properties of a reference", () => {
-        const subject = /** @type JrefNode */ (fromJref(`{ "$ref": "./foo", "bar": { "$ref": "./bar" } }`, testContext).node);
+        const subject = /** @type JrefNode */ (fromJref(`{ "$ref": "./foo", "bar": { "$ref": "./bar" } }`, testContext).document.children[0]);
         expect(subject).to.include({ type: "reference", href: "https://test.hyperjump.com/foo" });
         expect(jsonStep("bar", subject)).to.include({ type: "reference", href: "https://test.hyperjump.com/bar" });
       });
 
       test("$ref that isn't a string", () => {
-        const subject = fromJref(`{ "$ref": 42 }`, testContext).node;
+        const subject = fromJref(`{ "$ref": 42 }`, testContext).document.children[0];
         expect(subject).to.include({ type: "json" });
       });
+    });
+  });
+
+  describe("the document", () => {
+    test("is the AST as the root of a document, with its URL, comments, and anchors", () => {
+      const { document, errors } = fromJref(`{ "a": { "$ref": "#/b" } } // c`, testContext, { allowComments: true });
+      expect(document).to.include({ type: "jref-document", status: "success", url: testContext });
+      expect(document.anchors).to.eql({});
+      expect(document.comments.map(({ value }) => value)).to.eql([" c"]);
+      expect(toJson(document.children[0])).to.equal(`{"a":{"$ref":"#/b"}}`);
+      expect(errors).to.eql([]);
+    });
+
+    test("has any parse status, with the errors next to it", () => {
+      const { document, errors } = fromJref(`{ "$ref": "//[" }`, testContext);
+      expect(document.status).to.equal("failure");
+      expect(errors.map(({ ruleId }) => ruleId)).to.eql(["invalid-reference"]);
+    });
+
+    test("a document with nothing in it has a missing value as its root", () => {
+      const { document } = fromJref(``, testContext);
+      expect(document.status).to.equal("failure");
+      expect(document.children[0]).to.include({ type: "json-missing" });
+    });
+
+    test("its URL is the one its nodes' locations start with", () => {
+      const { document } = fromJref(`1`, "HTTPS://Test.Hyperjump.com");
+      expect(document.url).to.equal(testContext);
+      expect(document.children[0].location).to.equal(`${testContext}#`);
     });
   });
 

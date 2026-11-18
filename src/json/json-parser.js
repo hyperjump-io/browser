@@ -15,12 +15,24 @@ import { appendToLocation } from "./location.js";
  *   JsonPropertyNode,
  *   JsonTolerantNode
  * } from "./jsonast.d.ts"
- * @import { JsonOptions, JsonParseResult, JsonSyntaxError, JsonSyntaxErrorCode } from "./jsonast-util.d.ts"
+ * @import { JsonOptions, JsonSyntaxError, JsonSyntaxErrorCode } from "./jsonast-util.d.ts"
  * @import * as API from "./jsonast-util.d.ts"
  */
 
 /**
  * @typedef {JsonTolerantNode | JsonErrorNode} JsonValueNode
+ */
+
+/**
+ * What a parse found: the root value, how parsing went, and the errors and
+ * comments. `fromJson` and `fromJref` make a document of it.
+ *
+ * @typedef {{
+ *   status: JsonParseStatus,
+ *   node: JsonValueNode,
+ *   errors: JsonSyntaxError[],
+ *   comments: JsonCommentNode[]
+ * }} ParsedJson
  */
 
 /**
@@ -88,7 +100,7 @@ export const jsonSyntaxErrorMessage = (error) => MESSAGES[error.ruleId](error.ac
  * Parse JSON text into a JSON AST, recovering from syntax errors wherever
  * possible. Every error found is returned along with the best-effort AST.
  *
- * @type (text: string, url: string, options?: JsonOptions) => JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode>
+ * @type (text: string, url: string, options?: JsonOptions) => ParsedJson
  */
 export const parseJson = (text, url, options = {}) => {
   const lineStarts = findLineStarts(text);
@@ -681,9 +693,7 @@ export const parseJson = (text, url, options = {}) => {
   /** @type JsonParseStatus */
   const status = syntaxErrors.length === 0 ? "success" : failed ? "failure" : "recovered";
 
-  // The status is what decides the type of the node, which is checked by the
-  // tests rather than the type system
-  return /** @type JsonParseResult<JsonNode, JsonTolerantNode | JsonErrorNode> */ ({ status, node, errors: syntaxErrors, comments });
+  return { status, node, errors: syntaxErrors, comments };
 };
 
 /** @type (text: string) => number[] */

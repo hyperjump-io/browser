@@ -4,8 +4,7 @@ import { parseDocumentUrl } from "../json/document-url.js";
 
 /**
  * @import { JsonErrorNode, JsonTolerantNode } from "../json/jsonast.js"
- * @import { JsonParseResult, JsonSyntaxError } from "../json/jsonast-util.js"
- * @import { JrefErrorNode, JrefNode, JrefTolerantNode } from "./jref-ast.d.ts"
+ * @import { JrefDocumentNode } from "./jref-ast.d.ts"
  * @import * as API from "./jref-util.d.ts"
  */
 
@@ -20,21 +19,24 @@ export const fromJref = (jref, url, options = {}) => {
   /** @type API.JrefSyntaxError[] */
   const referenceErrors = [];
   annotateReferences(result.node, documentUrl, referenceErrors);
-  if (referenceErrors.length === 0) {
-    return result;
-  }
 
   // Both lists are in document order, and so is their merge
-  const errors = [...result.errors, ...referenceErrors]
-    .sort((a, b) => a.place.start.line - b.place.start.line || a.place.start.column - b.place.start.column);
+  const errors = referenceErrors.length === 0
+    ? result.errors
+    : [...result.errors, ...referenceErrors]
+        .sort((a, b) => a.place.start.line - b.place.start.line || a.place.start.column - b.place.start.column);
 
-  // The status is what decides the type of the node, which is checked by the
-  // tests rather than the type system
-  return /** @type JsonParseResult<JrefNode, JrefTolerantNode | JrefErrorNode, JsonSyntaxError | API.JrefSyntaxError> */ ({
-    ...result,
-    status: "failure",
-    errors
+  // The status is what decides the type of the children, which is checked
+  // by the tests rather than the type system
+  const document = /** @type JrefDocumentNode */ ({
+    type: "jref-document",
+    status: referenceErrors.length === 0 ? result.status : "failure",
+    children: [result.node],
+    comments: result.comments,
+    url: documentUrl,
+    anchors: {}
   });
+  return { document, errors };
 };
 
 /** @type typeof API.jrefSyntaxErrorMessage */

@@ -55,7 +55,7 @@ describe("node locations", () => {
   });
 
   test("the parser encodes locations", () => {
-    const root = /** @type any */ (fromJson(`{ "a b": [1], "c<d": 2 }`, "https://example.com").node);
+    const root = /** @type any */ (fromJson(`{ "a b": [1], "c<d": 2 }`, "https://example.com").document.children[0]);
 
     expect(root.children[0].children[1].location).to.equal("https://example.com/#/a%20b");
     expect(root.children[0].children[1].children[0].location).to.equal("https://example.com/#/a%20b/0");

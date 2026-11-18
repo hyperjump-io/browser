@@ -584,7 +584,7 @@ describe("stepping", () => {
 });
 
 /** @type (value: Json, url: string) => JrefNode */
-const jrefNode = (value, url) => /** @type JrefNode */ (fromJref(JSON.stringify(value), url).node);
+const jrefNode = (value, url) => /** @type JrefNode */ (fromJref(JSON.stringify(value), url).document.children[0]);
 
 /**
  * A made-up format with embedded documents: JSON with a `main` JRef value

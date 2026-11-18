@@ -1104,7 +1104,7 @@ describe("nesting depth", () => {
   });
 
   test("a container that's too deep is a failure", () => {
-    expect(fromJson(nested(1001), url).status).toBe("failure");
+    expect(fromJson(nested(1001), url).document.status).toBe("failure");
   });
 });
 
@@ -1176,14 +1176,14 @@ describe("JSONC", () => {
   });
 
   test("a document with comments is a success with the flag", () => {
-    const { status, node } = fromJson(`{ "a": 1 } // done`, url, { allowComments: true });
+    const { document: { status, children: [node] } } = fromJson(`{ "a": 1 } // done`, url, { allowComments: true });
 
     expect(status).toBe("success");
     expect(toJson(node)).toBe(`{"a":1}`);
   });
 
   test("a document with comments is recovered without the flag", () => {
-    expect(fromJson(`{ "a": 1 } // done`, url).status).toBe("recovered");
+    expect(fromJson(`{ "a": 1 } // done`, url).document.status).toBe("recovered");
   });
 
   test("a comment marker inside a string isn't a comment", () => {
@@ -1201,7 +1201,7 @@ describe("JSONC", () => {
   });
 
   test("fromJref takes the flag", () => {
-    const { node } = fromJref(`{ "$ref": "foo" /* a reference */ }`, "https://example.com/main.jref", { allowComments: true });
+    const { document: { children: [node] } } = fromJref(`{ "$ref": "foo" /* a reference */ }`, "https://example.com/main.jref", { allowComments: true });
 
     expect(node).toMatchObject({ type: "reference", href: "https://example.com/foo" });
   });
@@ -1215,7 +1215,7 @@ describe("JSONC", () => {
 
 describe("comments in the AST", () => {
   test("are listed in document order with their kind, text, and position", () => {
-    const { comments } = fromJson(`// first\n{ "a" /* second */: 1 }`, url, { allowComments: true });
+    const { document: { comments } } = fromJson(`// first\n{ "a" /* second */: 1 }`, url, { allowComments: true });
 
     expect(comments).toEqual([
       {
@@ -1240,39 +1240,39 @@ describe("comments in the AST", () => {
   });
 
   test("an unclosed block comment runs to the end of the document", () => {
-    const { comments } = fromJson(`1 /* open`, url, { allowComments: true });
+    const { document: { comments } } = fromJson(`1 /* open`, url, { allowComments: true });
 
     expect(comments).toMatchObject([{ kind: "block", value: " open" }]);
   });
 
   test("aren't collected without the flag", () => {
-    const { comments } = fromJson(`1 // one`, url);
+    const { document: { comments } } = fromJson(`1 // one`, url);
 
     expect(comments).toEqual([]);
   });
 
   test("aren't children of any node", () => {
-    const { node } = fromJson(`[1, /* two */ 2]`, url, { allowComments: true });
+    const { document: { children: [node] } } = fromJson(`[1, /* two */ 2]`, url, { allowComments: true });
 
     expect(itemValues(node)).toEqual([1, 2]);
   });
 
   test("are returned with the AST", () => {
-    const { node, comments } = fromJson(`// one\n[1]`, url, { allowComments: true });
+    const { document: { children: [node], comments } } = fromJson(`// one\n[1]`, url, { allowComments: true });
 
     expect(toJson(node)).toBe(`[1]`);
     expect(comments).toMatchObject([{ kind: "line", value: " one" }]);
   });
 
   test("are returned with the AST from a JRef parse", () => {
-    const { node, comments } = fromJref(`{ "$ref": "foo" } // done`, "https://example.com/main.jref", { allowComments: true });
+    const { document: { children: [node], comments } } = fromJref(`{ "$ref": "foo" } // done`, "https://example.com/main.jref", { allowComments: true });
 
     expect(node).toMatchObject({ type: "reference" });
     expect(comments).toMatchObject([{ kind: "line", value: " done" }]);
   });
 
   test("are returned even when there are syntax errors", () => {
-    const { status, comments } = fromJson(`[1,] // done`, url, { allowComments: true });
+    const { document: { status, comments } } = fromJson(`[1,] // done`, url, { allowComments: true });
 
     expect(status).toBe("recovered");
     expect(comments).toMatchObject([{ value: " done" }]);
@@ -1283,7 +1283,7 @@ describe("parse status", () => {
   test("valid input is a success", () => {
     const result = fromJson(`{ "a": [1, "two", null] }`, url);
 
-    expect(result.status).toBe("success");
+    expect(result.document.status).toBe("success");
     expect(result.errors).toEqual([]);
   });
 
@@ -1304,7 +1304,7 @@ describe("parse status", () => {
     ["an extra comma between properties", `{ "a": 1,, "b": 2 }`],
     ["an unclosed object followed by the next array item", `[{ "a": 1, { "b": 2 }]`]
   ])("%s is recovered", (_description, json) => {
-    expect(fromJson(json, url).status).toBe("recovered");
+    expect(fromJson(json, url).document.status).toBe("recovered");
   });
 
   test.each([
@@ -1318,21 +1318,21 @@ describe("parse status", () => {
     ["content after the document", `[1] [2]`],
     ["a container that's too deep", "[".repeat(1001) + "]".repeat(1001)]
   ])("%s is a failure", (_description, json) => {
-    expect(fromJson(json, url).status).toBe("failure");
+    expect(fromJson(json, url).document.status).toBe("failure");
   });
 
   test("a recoverable error doesn't hide a failure", () => {
-    expect(fromJson(`[1, 2, ] [3]`, url).status).toBe("failure");
+    expect(fromJson(`[1, 2, ] [3]`, url).document.status).toBe("failure");
   });
 
   test("a recovered AST is typed without error nodes", () => {
-    const result = fromJson(`{ a: 1 }`, url);
-    if (result.status === "failure") {
+    const { document } = fromJson(`{ a: 1 }`, url);
+    if (!hasStatus(document, "success", "recovered")) {
       expect.fail("Expected the parse to recover");
     }
 
     /** @type JsonNode */
-    const node = result.node;
+    const node = document.children[0];
     expect(toJson(node)).toBe(`{"a":1}`);
   });
 });
@@ -1377,14 +1377,14 @@ describe("hasStatus", () => {
 
 describe("jref with errors", () => {
   test("a $ref without a value isn't a reference", () => {
-    const { node, errors } = fromJref(`{ "$ref": }`, "https://example.com/main.jref");
+    const { document: { children: [node] }, errors } = fromJref(`{ "$ref": }`, "https://example.com/main.jref");
 
     expect(node).toMatchObject({ type: "json", jsonType: "object" });
     expect(errors.map((error) => error.ruleId)).toEqual(["value-expected"]);
   });
 
   test("references are still found around errors", () => {
-    const { node } = fromJref(`[{ "$ref": "foo" }, , ]`, "https://example.com/main.jref");
+    const { document: { children: [node] } } = fromJref(`[{ "$ref": "foo" }, , ]`, "https://example.com/main.jref");
 
     expect(node).toMatchObject({
       jsonType: "array",
@@ -1399,9 +1399,9 @@ describe("invalid references", () => {
   test("a $ref that isn't a URL is an invalid reference", () => {
     const result = fromJref(`{ "$ref": "//[" }`, base);
 
-    expect(result.status).toBe("failure");
-    expect(result.node).toMatchObject({ type: "invalid-reference", jsonType: "object" });
-    expect(result.node).not.toHaveProperty("href");
+    expect(result.document.status).toBe("failure");
+    expect(result.document.children[0]).toMatchObject({ type: "invalid-reference", jsonType: "object" });
+    expect(result.document.children[0]).not.toHaveProperty("href");
     expect(result.errors).toEqual([{
       source: "jref",
       ruleId: "invalid-reference",
@@ -1414,13 +1414,13 @@ describe("invalid references", () => {
   });
 
   test("an invalid reference keeps its properties", () => {
-    const { node } = fromJref(`{ "$ref": "//[", "foo": 42 }`, base);
+    const { document: { children: [node] } } = fromJref(`{ "$ref": "//[", "foo": 42 }`, base);
 
     expect([...jsonObjectKeys(/** @type JsonNode */ (node))]).toEqual(["$ref", "foo"]);
   });
 
   test("a reference that doesn't resolve to a URL is an invalid reference", () => {
-    const { status, node, errors } = fromJref(`{ "$ref": "b" }`, "urn:example:a");
+    const { document: { status, children: [node] }, errors } = fromJref(`{ "$ref": "b" }`, "urn:example:a");
 
     expect(status).toBe("failure");
     expect(node).toMatchObject({ type: "invalid-reference" });
@@ -1428,7 +1428,7 @@ describe("invalid references", () => {
   });
 
   test("an invalid reference makes a recovered parse a failure", () => {
-    const { status, errors } = fromJref(`{ "$ref": "//[", }`, base);
+    const { document: { status }, errors } = fromJref(`{ "$ref": "//[", }`, base);
 
     expect(status).toBe("failure");
     expect(errors.map((error) => error.ruleId)).toEqual(["invalid-reference", "trailing-comma"]);
@@ -1441,7 +1441,7 @@ describe("invalid references", () => {
   });
 
   test("valid references in the same document are still references", () => {
-    const { node } = fromJref(`[{ "$ref": "//[" }, { "$ref": "foo" }]`, base);
+    const { document: { children: [node] } } = fromJref(`[{ "$ref": "//[" }, { "$ref": "foo" }]`, base);
 
     expect(node).toMatchObject({
       children: [{ type: "invalid-reference" }, { type: "reference", href: "https://example.com/foo" }]
@@ -1463,13 +1463,13 @@ describe("invalid references", () => {
   ])("a $ref that's an absolute file: URL is an invalid reference: %s", (reference) => {
     const result = fromJref(JSON.stringify({ $ref: reference }), "file:///home/me/project/main.jref");
 
-    expect(result.status).toBe("failure");
-    expect(result.node).toMatchObject({ type: "invalid-reference" });
+    expect(result.document.status).toBe("failure");
+    expect(result.document.children[0]).toMatchObject({ type: "invalid-reference" });
     expect(result.errors).toMatchObject([{ source: "jref", ruleId: "absolute-file-reference", actual: reference }]);
   });
 
   test("a relative reference in a file is a reference", () => {
-    const { status, node } = fromJref(`{ "$ref": "../other/a.json" }`, "file:///home/me/project/main.jref");
+    const { document: { status, children: [node] } } = fromJref(`{ "$ref": "../other/a.json" }`, "file:///home/me/project/main.jref");
 
     expect(status).toBe("success");
     expect(node).toMatchObject({ type: "reference", href: "file:///home/me/other/a.json" });
@@ -1548,19 +1548,19 @@ const item = (node, index) => {
  * @type (json: string) => JsonDocumentNode
  */
 const jsonDocument = (json) => {
-  const { status, node, comments } = fromJson(json, url);
+  const { document: { status, children: [node], comments } } = fromJson(json, url);
   return /** @type JsonDocumentNode */ ({ type: "json-document", status, children: [node], comments, url });
 };
 
 /** @type (jref: string) => JrefDocumentNode */
 const jrefDocument = (jref) => {
-  const { status, node, comments } = fromJref(jref, url);
+  const { document: { status, children: [node], comments } } = fromJref(jref, url);
   return /** @type JrefDocumentNode */ ({ type: "jref-document", status, children: [node], comments, url });
 };
 
 /** @type (json: string) => TolerantValue */
 const tree = (json) => {
-  return fromJson(json, url).node;
+  return fromJson(json, url).document.children[0];
 };
 
 /** @type (node: { position?: Position }) => { offset: number | undefined, length: number } */
@@ -1574,6 +1574,6 @@ const span = (node) => {
 
 /** @type (json: string, options?: JsonOptions) => { root: TolerantValue, errors: TestError[] } */
 const parse = (json, options) => {
-  const { node, errors } = fromJson(json, url, options);
+  const { document: { children: [node] }, errors } = fromJson(json, url, options);
   return { root: node, errors: errors.map(toError) };
 };

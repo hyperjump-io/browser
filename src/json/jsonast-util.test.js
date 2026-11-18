@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import { describe, test, expect, beforeEach } from "vitest";
 import {
   fromJson,
+  hasStatus,
   jsonSyntaxErrorMessage,
   toJson,
   jsonObjectHas,
@@ -46,7 +47,7 @@ describe("jsonast-util", async () => {
       });
     } else if (entry.name.startsWith("n_")) {
       test(entry.name.substring(2), () => {
-        expect(fromJson(json, "https://example.com/doc").status).not.to.equal("success");
+        expect(fromJson(json, "https://example.com/doc").document.status).not.to.equal("success");
       });
     }
   }
@@ -105,7 +106,7 @@ describe("jsonast-util", async () => {
     });
 
     test("values that couldn't be parsed", () => {
-      const node = /** @type JsonNode */ (fromJson(`{ "foo": , "bar": [1, , NaN, 2], "baz": True }`, "https://example.com/doc").node);
+      const node = /** @type JsonNode */ (fromJson(`{ "foo": , "bar": [1, , NaN, 2], "baz": True }`, "https://example.com/doc").document.children[0]);
       const subject = jsonValue(node);
       expect(subject).to.eql({ bar: [1, null, null, 2] });
     });
@@ -190,31 +191,31 @@ describe("jsonast-util", async () => {
 
   describe("JSON Pointer error messages", () => {
     test("say the location from the node", () => {
-      const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": { "b": 1 } }`, "https://example.com/doc").node);
+      const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": { "b": 1 } }`, "https://example.com/doc").document.children[0]);
       expect(() => jsonPointerGet("/a/c", subject)).to.throw("Property 'c' doesn't exist at https://example.com/doc#/a/c");
       expect(() => jsonPointerGet("/a/c", subject)).toThrow(coded("ERR_POINTER_NOT_FOUND", "https://example.com/doc#/a/c"));
     });
 
     test("say the location of a missing value", () => {
-      const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": }`, "https://example.com/doc").node);
+      const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": }`, "https://example.com/doc").document.children[0]);
       expect(() => jsonPointerGet("/a/b", subject)).to.throw("Can't index into a missing value at https://example.com/doc#/a");
       expect(() => jsonPointerGet("/a/b", subject)).toThrow(coded("ERR_POINTER_NOT_INDEXABLE", "https://example.com/doc#/a"));
     });
 
     test("say the location of a missing root", () => {
-      const subject = /** @type JsonTolerantNode */ (fromJson(``, "https://example.com/doc").node);
+      const subject = /** @type JsonTolerantNode */ (fromJson(``, "https://example.com/doc").document.children[0]);
       expect(() => jsonPointerGet("/a", subject)).to.throw("Can't index into a missing value at https://example.com/doc#");
       expect(() => jsonPointerGet("/a", subject)).toThrow(coded("ERR_POINTER_NOT_INDEXABLE", "https://example.com/doc#"));
     });
 
     test("say the location of an invalid value", () => {
-      const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": NaN }`, "https://example.com/doc").node);
+      const subject = /** @type JsonTolerantNode */ (fromJson(`{ "a": NaN }`, "https://example.com/doc").document.children[0]);
       expect(() => jsonPointerGet("/a/b", subject)).to.throw("Can't index into an invalid value at https://example.com/doc#/a");
       expect(() => jsonPointerGet("/a/b", subject)).toThrow(coded("ERR_POINTER_NOT_INDEXABLE", "https://example.com/doc#/a"));
     });
 
     test("say a file URL relative to the working directory", () => {
-      const subject = /** @type JsonTolerantNode */ (fromJson(`{}`, `${pathToFileURL(cwd()).href}/data/a.json`).node);
+      const subject = /** @type JsonTolerantNode */ (fromJson(`{}`, `${pathToFileURL(cwd()).href}/data/a.json`).document.children[0]);
       expect(() => jsonPointerGet("/a", subject)).to.throw("Property 'a' doesn't exist at data/a.json#/a");
       expect(() => jsonPointerGet("/a", subject)).toThrow(coded("ERR_POINTER_NOT_FOUND", `${pathToFileURL(cwd()).href}/data/a.json#/a`));
     });
@@ -313,6 +314,28 @@ describe("jsonast-util", async () => {
     expect(generator.next().done).to.equal(true);
   });
 
+  describe("the document", () => {
+    test("is the AST as the root of a document, with its URL and comments", () => {
+      const { document, errors } = fromJson(`[1] // c`, "https://example.com/doc", { allowComments: true });
+      expect(document).to.include({ type: "json-document", status: "success", url: "https://example.com/doc" });
+      expect(document.comments.map(({ value }) => value)).to.eql([" c"]);
+      expect(toJson(document.children[0])).to.equal(`[1]`);
+      expect(errors).to.eql([]);
+    });
+
+    test("has any parse status, with the errors next to it", () => {
+      const { document, errors } = fromJson(`[1,]`, "https://example.com/doc");
+      expect(document.status).to.equal("recovered");
+      expect(errors.map(({ ruleId }) => ruleId)).to.eql(["trailing-comma"]);
+    });
+
+    test("its URL is the one its nodes' locations start with", () => {
+      const { document } = fromJson(`1`, "HTTPS://Example.com");
+      expect(document.url).to.equal("https://example.com/");
+      expect(document.children[0].location).to.equal("https://example.com/#");
+    });
+  });
+
   describe("space", () => {
     const json = `{ "a": [1, { "b": 2 }] }`;
 
@@ -336,9 +359,9 @@ describe("jsonast-util", async () => {
  * @type (json: string) => JsonNode
  */
 const parse = (json) => {
-  const result = fromJson(json, "https://example.com/doc");
-  if (result.status !== "success") {
-    throw Error(jsonSyntaxErrorMessage(result.errors[0]));
+  const { document, errors } = fromJson(json, "https://example.com/doc");
+  if (!hasStatus(document, "success")) {
+    throw Error(jsonSyntaxErrorMessage(errors[0]));
   }
-  return result.node;
+  return document.children[0];
 };

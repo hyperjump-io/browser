@@ -1,4 +1,4 @@
-import { fromJson, jsonSyntaxErrorMessage } from "../json/jsonast-util.js";
+import { hasStatus, fromJson, jsonSyntaxErrorMessage } from "../json/jsonast-util.js";
 import { documentSyntaxError } from "./syntax-error.js";
 
 /**
@@ -12,17 +12,10 @@ export const jsonMediaType = Object.freeze({
 
   /** @type typeof API.jsonMediaType.parse */
   parse: async (response) => {
-    const result = fromJson(await response.text(), response.url);
-    if (result.status !== "success") {
-      throw documentSyntaxError(result.errors[0], jsonSyntaxErrorMessage, response.url);
+    const { document, errors } = fromJson(await response.text(), response.url);
+    if (!hasStatus(document, "success")) {
+      throw documentSyntaxError(errors[0], jsonSyntaxErrorMessage, response.url);
     }
-
-    return {
-      type: "json-document",
-      status: result.status,
-      children: [result.node],
-      comments: [],
-      url: response.url
-    };
+    return document;
   }
 });

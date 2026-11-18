@@ -1,10 +1,13 @@
 import type { Position } from "unist";
 import type { JsonDocumentNode, JsonParseStatus } from "../json/jsonast.d.ts";
 import type { JsonOptions, JsonParseResult, JsonSyntaxError } from "../json/jsonast-util.d.ts";
-import type { JrefDocumentNode, JrefErrorNode, JrefNode, JrefTolerantNode } from "./jref-ast.d.ts";
+import type { JrefDocumentNode } from "./jref-ast.d.ts";
 
 /**
- * Parse a JRef string into a JRef AST.
+ * Parse a JRef string into a JRef document, whose root is the AST of the
+ * value. It has `anchors`, so it says what its fragments identify. It's the
+ * document the `jref*` functions read, and that the JRef media type and
+ * `jrefParse` make.
  *
  * References are resolved against `url`, the document's URL.
  *
@@ -16,7 +19,7 @@ import type { JrefDocumentNode, JrefErrorNode, JrefNode, JrefTolerantNode } from
  * @throws {TypeError} If `url` isn't a URL or has a fragment. It's the
  *   caller's mistake, not the document's.
  */
-export const fromJref: (json: string, url: string, options?: JsonOptions) => JsonParseResult<JrefNode, JrefTolerantNode | JrefErrorNode, JsonSyntaxError | JrefSyntaxError>;
+export const fromJref: (json: string, url: string, options?: JsonOptions) => JsonParseResult<JrefDocumentNode, JsonSyntaxError | JrefSyntaxError>;
 
 /**
  * An error in JRef that's valid JSON. It's plain data, like a

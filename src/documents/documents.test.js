@@ -90,7 +90,7 @@ describe("documents", () => {
         parse: async (response) => {
           const text = await response.text();
           const url = /** @type {{ id: string }} */ (JSON.parse(text)).id;
-          const node = /** @type JrefNode */ (fromJref(text, url).node);
+          const node = /** @type JrefNode */ (fromJref(text, url).document.children[0]);
           return { type: "self-identified-document", children: [node], url };
         }
       };
@@ -113,7 +113,7 @@ describe("documents", () => {
         parse: async (response, session) => {
           const describedBy = /describedby="([^"]*)"/.exec(response.headers.get("content-type") ?? "")?.[1] ?? "";
           const description = /** @type DocumentNode */ ((await browse(session, new URL(describedBy, response.url), { initiator: response, reference: "manual" })).document);
-          return { type: "described-document", children: [fromJref(await response.text(), response.url).node, ...description.children], url: response.url };
+          return { type: "described-document", children: [fromJref(await response.text(), response.url).document.children[0], ...description.children], url: response.url };
         }
       };
       const { session } = site({
@@ -472,7 +472,7 @@ describe("documents", () => {
 const bundle = (main, embedded) => JSON.stringify({ main, embedded });
 
 /** @type (value: Json, url: string) => JrefNode */
-const jrefNode = (value, url) => /** @type JrefNode */ (fromJref(JSON.stringify(value), url).node);
+const jrefNode = (value, url) => /** @type JrefNode */ (fromJref(JSON.stringify(value), url).document.children[0]);
 
 /** @type MediaTypePlugin<DocumentNode<JrefNode>> */
 const bundleMediaType = {

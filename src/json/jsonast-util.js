@@ -11,6 +11,7 @@ import { parseDocumentUrl } from "./document-url.js";
  * @import {
  *   Json,
  *   JsonArrayNode,
+ *   JsonDocumentNode,
  *   JsonInvalidNode,
  *   JsonNode,
  *   JsonObjectNode,
@@ -23,7 +24,21 @@ import { parseDocumentUrl } from "./document-url.js";
  */
 
 /** @type typeof API.fromJson */
-export const fromJson = (json, url, options = {}) => parseJson(json, parseDocumentUrl(url), options);
+export const fromJson = (json, url, options = {}) => {
+  const documentUrl = parseDocumentUrl(url);
+  const { status, node, errors, comments } = parseJson(json, documentUrl, options);
+
+  // The status is what decides the type of the children, which is checked
+  // by the tests rather than the type system
+  const document = /** @type JsonDocumentNode */ ({
+    type: "json-document",
+    status: status,
+    children: [node],
+    comments: comments,
+    url: documentUrl
+  });
+  return { document, errors };
+};
 
 // A function's return type isn't inferred as a type predicate, so the
 // function is cast to the declared type rather than annotated with it.
