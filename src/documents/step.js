@@ -1,5 +1,5 @@
 import { pipe } from "@hyperjump/pact";
-import { filter, map } from "@hyperjump/pact/async";
+import { filter, flatMap, map } from "@hyperjump/pact/async";
 import { missingValueError, startOf } from "./start.js";
 import { follow, isManual } from "./walk.js";
 import { relativeFileUrl } from "../file-urls.js";
@@ -27,7 +27,7 @@ export const jrefStep = /** @type typeof API.jrefStep */ (async (
   /** @type From */ from,
   /** @type API.StepOptions | undefined */ options
 ) => {
-  const target = startOf(from);
+  const target = await stepStart(session, from, isManual(options));
   const node = /** @type Walked */ (target.node);
   // A document's root can be a value that couldn't be parsed, which
   // `jsonStep` doesn't take. It's the error `jsonPointerGet` has for a
@@ -43,6 +43,33 @@ export const jrefStep = /** @type typeof API.jrefStep */ (async (
   }
   return follow(session, target, member, isManual(options));
 });
+
+/**
+ * The target a step starts at. A reference is followed, the way a walk
+ * follows the target it starts at, unless the options say not to. Any
+ * other target is the one that was given.
+ *
+ * @type (session: DocumentSession, from: From, manual: boolean) => WalkedTarget | Promise<WalkedTarget>
+ */
+const stepStart = (session, from, manual) => {
+  const target = startOf(from);
+  return manual ? /** @type WalkedTarget */ (target) : follow(session, target, target.node);
+};
+
+/**
+ * An iterator of what's in the target a step starts at. A start that's a
+ * reference is followed when the iterator is first read, as a member is
+ * followed when it's reached, and only it is waited for.
+ *
+ * @type <T>(session: DocumentSession, from: From, options: API.StepOptions | undefined, iterate: (target: WalkedTarget, manual: boolean) => AsyncIteratorObject<T, undefined, unknown>) => AsyncIteratorObject<T, undefined, unknown>
+ */
+const fromStart = (session, from, options, iterate) => {
+  const manual = isManual(options);
+  const target = /** @type WalkedTarget */ (startOf(from));
+  return manual || /** @type {{ type: string }} */ (target.node).type !== "reference"
+    ? iterate(target, manual)
+    : /** @type any */ (pipe([target], flatMap(async (/** @type WalkedTarget */ reference) => iterate(await follow(session, reference, reference.node), manual))));
+};
 
 /**
  * What to call a node that's in place of a value that couldn't be parsed,
@@ -120,40 +147,44 @@ export const jrefArrayIter = /** @type typeof API.jrefArrayIter */ ((
   /** @type DocumentSession */ session,
   /** @type From */ from,
   /** @type API.StepOptions | undefined */ options
-) => {
-  const target = startOf(from);
-  return /** @type any */ (members(session, target, childrenOf(target, "array"), false, isManual(options), memberOnly));
-});
+) => fromStart(session, from, options, (target, manual) => members(session, target, childrenOf(target, "array"), false, manual, memberOnly)));
 
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefObjectValues = /** @type typeof API.jrefObjectValues */ ((
   /** @type DocumentSession */ session,
   /** @type From */ from,
   /** @type API.StepOptions | undefined */ options
-) => {
-  const target = startOf(from);
-  return /** @type any */ (members(session, target, childrenOf(target, "object"), true, isManual(options), memberOnly));
-});
+) => fromStart(session, from, options, (target, manual) => members(session, target, childrenOf(target, "object"), true, manual, memberOnly)));
 
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefObjectEntries = /** @type typeof API.jrefObjectEntries */ ((
   /** @type DocumentSession */ session,
   /** @type From */ from,
   /** @type API.StepOptions | undefined */ options
-) => {
-  const target = startOf(from);
-  return /** @type any */ (members(session, target, childrenOf(target, "object"), true, isManual(options), withKey));
-});
-
-/** @type typeof API.jrefObjectHas */
-export const jrefObjectHas = (key, from) => jsonObjectHas(key, /** @type Walked */ (startOf(from).node));
-
-/** @type typeof API.jrefObjectKeys */
-export const jrefObjectKeys = (from) => jsonObjectKeys(/** @type Walked */ (startOf(from).node));
+) => fromStart(session, from, options, (target, manual) => members(session, target, childrenOf(target, "object"), true, manual, withKey)));
 
 // eslint-disable-next-line @stylistic/no-extra-parens
-export const jrefValue = /** @type typeof API.jrefValue */ ((/** @type From */ from) => {
-  const node = /** @type Walked */ (startOf(from).node);
+export const jrefObjectHas = /** @type typeof API.jrefObjectHas */ (async (
+  /** @type DocumentSession */ session,
+  /** @type string */ key,
+  /** @type From */ from,
+  /** @type API.StepOptions | undefined */ options
+) => jsonObjectHas(key, /** @type Walked */ ((await stepStart(session, from, isManual(options))).node)));
+
+// eslint-disable-next-line @stylistic/no-extra-parens
+export const jrefObjectKeys = /** @type typeof API.jrefObjectKeys */ ((
+  /** @type DocumentSession */ session,
+  /** @type From */ from,
+  /** @type API.StepOptions | undefined */ options
+) => fromStart(session, from, options, (target) => pipe(jsonObjectKeys(/** @type Walked */ (target.node)), map((/** @type string */ key) => key))));
+
+// eslint-disable-next-line @stylistic/no-extra-parens
+export const jrefValue = /** @type typeof API.jrefValue */ (async (
+  /** @type DocumentSession */ session,
+  /** @type From */ from,
+  /** @type API.StepOptions | undefined */ options
+) => {
+  const node = /** @type Walked */ ((await stepStart(session, from, isManual(options))).node);
   // A document's root can be a value that couldn't be parsed. A missing
   // one isn't there, as it isn't for `browse`, and an invalid one has no
   // value to give, as it has no JSON for `toJson`.

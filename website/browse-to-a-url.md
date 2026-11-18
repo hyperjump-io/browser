@@ -32,7 +32,7 @@ const url = "https://swapi.hyperjump.io/api/people/1#/homeworld";
 const homeworld = await browse(session, url);
 const name = await jrefSelect(session, "> [key=name]", homeworld);
 if (name) {
-  console.log(jrefValue(name)); // Tatooine
+  console.log(await jrefValue(session, name)); // Tatooine
 }
 ```
 

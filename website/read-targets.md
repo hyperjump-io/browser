@@ -91,7 +91,7 @@ import { jrefStep, jrefValue } from "@hyperjump/browser";
 
 const homeworld = await jrefStep(session, "homeworld", luke);
 const name = await jrefStep(session, "name", homeworld);
-jrefValue(name); // "Tatooine"
+await jrefValue(session, name); // "Tatooine"
 ```
 
 `jrefValue` gives you the value of a string, number, boolean, or null as plain
@@ -108,7 +108,7 @@ import { jrefArrayIter, jrefObjectEntries } from "@hyperjump/browser";
 
 const films = await jrefStep(session, "films", luke);
 for await (const film of jrefArrayIter(session, films)) {
-  console.log(jrefValue(await jrefStep(session, "title", film)));
+  console.log(await jrefValue(session, await jrefStep(session, "title", film)));
 }
 
 for await (const [key, value] of jrefObjectEntries(session, luke)) {
@@ -116,9 +116,9 @@ for await (const [key, value] of jrefObjectEntries(session, luke)) {
 }
 ```
 
-`jrefObjectKeys` gives you an object's property names and `jrefObjectHas` says
-whether it has one. Neither takes the session, because reading a name doesn't
-follow anything.
+`jrefObjectKeys` gives you an object's property names as an async iterator, and
+`jrefObjectHas` says whether it has one. Neither follows the members, because
+reading a name doesn't need them.
 
 Use these functions when your code decides what to step into and builds a
 result from what comes back, like a function that turns a document into
@@ -286,17 +286,19 @@ A selector made of `>` steps only goes as deep as it's written, like
 
 ## Functions
 
-Each `target` can also be a document, which starts at its root.
+Each `target` can also be a document, which starts at its root. A target that's
+a reference starts at what it leads to, unless the options have
+`reference: "manual"`.
 
 | Function | Description |
 | --- | --- |
 | `jrefStep(session, key, target, options)` | The member at a property name or an array index |
-| `jrefValue(target)` | The value of a string, number, boolean, or null as JavaScript |
+| `jrefValue(session, target, options)` | The value of a string, number, boolean, or null as JavaScript |
 | `jrefArrayIter(session, target, options)` | The items of an array, as an async iterator |
 | `jrefObjectValues(session, target, options)` | The values of an object's properties, as an async iterator |
 | `jrefObjectEntries(session, target, options)` | An object's property names and values, as an async iterator |
-| `jrefObjectKeys(target)` | An object's property names |
-| `jrefObjectHas(key, target)` | Whether an object has a property |
+| `jrefObjectKeys(session, target, options)` | An object's property names, as an async iterator |
+| `jrefObjectHas(session, key, target, options)` | Whether an object has a property |
 | `jrefVisit(session, target, test, visitor, options)` | Visits the target and every value under it. The `test` is optional. |
 | `jrefFind(session, target, test, options)` | The first value that passes the test, or `undefined` |
 | `jrefFindAll(session, target, test, options)` | Every value that passes the test |

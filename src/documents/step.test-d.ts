@@ -43,18 +43,18 @@ for await (const item of jrefArrayIter(session, target, { reference: "manual" })
   yes<Equal<Extract<typeof item.node, { type: "reference" }> extends never ? false : true, true>>();
 }
 
-// Property names need no session
-yes<Equal<ReturnType<typeof jrefObjectHas>, boolean>>();
-for (const key of jrefObjectKeys(target)) {
+// Property names are read from what a reference leads to, so they're async
+yes<Equal<ReturnType<typeof jrefObjectHas>, Promise<boolean>>>();
+for await (const key of jrefObjectKeys(session, target)) {
   yes<Equal<typeof key, string>>();
 }
 
 // A value is a scalar, and it's its node's kind of value if that's known
-yes<Equal<ReturnType<typeof jrefValue<Reached & { jsonType: "number" }>>, number>>();
-const scalar = jrefValue(target);
+yes<Equal<ReturnType<typeof jrefValue<Reached & { jsonType: "number" }>>, Promise<number>>>();
+const scalar = await jrefValue(session, target);
 yes<Equal<typeof scalar, string | number | boolean | null>>();
 declare const text: Target<unknown, JsonNode & { jsonType: "string" }>;
-const string = jrefValue(text);
+const string = await jrefValue(session, text);
 yes<Equal<typeof string, string>>();
 
 // A walk that doesn't follow references reaches references
@@ -80,7 +80,7 @@ const writtenInDocument = await jrefStep(session, "a", document, { reference: "m
 yes<Equal<typeof writtenInDocument, Target<JrefMediaTypeDocument, JrefNode>>>();
 const selectedInDocument = await jrefSelect(session, "> [key=a][jsonType=string]", document);
 yes<Equal<NonNullable<typeof selectedInDocument>["node"]["value"], string>>();
-jrefObjectHas("a", document);
+await jrefObjectHas(session, "a", document);
 await jrefVisit(session, document, () => {});
 
 // So is a tree from a unified pipeline, whatever its parse status. What's

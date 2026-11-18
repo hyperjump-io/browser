@@ -13,9 +13,9 @@ take the session to follow references with, and a target to start from.
 | `jsonArrayIter(node)` | `jrefArrayIter(session, target)` |
 | `jsonObjectValues(node)` | `jrefObjectValues(session, target)` |
 | `jsonObjectEntries(node)` | `jrefObjectEntries(session, target)` |
-| `jsonObjectHas(key, node)` | `jrefObjectHas(key, target)` |
-| `jsonObjectKeys(node)` | `jrefObjectKeys(target)` |
-| `jsonValue(node)` | `jrefValue(target)` |
+| `jsonObjectHas(key, node)` | `jrefObjectHas(session, key, target)` |
+| `jsonObjectKeys(node)` | `jrefObjectKeys(session, target)` |
+| `jsonValue(node)` | `jrefValue(session, target)` |
 | `visit(tree, test, visitor)` (`unist-util-visit`) | `jrefVisit(session, target, test, visitor)` |
 | `find(tree, test)` (`unist-util-find`) | `jrefFind(session, target, test)`, `jrefFindAll(session, target, test)` |
 | `select(selector, tree)` (`unist-util-select`) | `jrefSelect(session, selector, target)` |
@@ -70,9 +70,16 @@ take the session to follow references with, and a target to start from.
     too. A missing value is only looked for in a node that has one, which
     only a parse that failed does, so the pipeline is one step for any
     other node.
-  - `jrefObjectHas` and `jrefObjectKeys` don't take the session. Nothing
-    needs following to read a property name, but with them code that
-    reads targets doesn't switch between targets and nodes.
+  - `jrefObjectHas`, `jrefObjectKeys`, and `jrefValue` take the session
+    and are async, because the target can be a reference, which they
+    follow like every step does (see below). They don't follow the
+    members, since reading a property name doesn't need them.
+    `jrefObjectKeys` is an async iterator like the other iterators.
+    - Rejected: not taking the session, because nothing needs following to
+      read a name or a scalar. That's only true of a target that isn't a
+      reference. Given one from `reference: "manual"`, they read the
+      reference as the object it's written as, so `jrefObjectKeys` gave
+      `["$ref"]`, which looks like an answer and isn't one.
   - A document's root can be a value that couldn't be parsed, which a
     `json*` function doesn't take. `jrefStep` into one is an
     `ERR_POINTER_NOT_INDEXABLE`, as `jsonPointerGet` has for a pointer
@@ -102,8 +109,9 @@ take the session to follow references with, and a target to start from.
     be making targets. The step functions return targets, so nothing is
     made by hand.
 - `reference: "manual"` doesn't follow references, like `browse`'s option. A
-  step function gives the member as it's written, in the same document,
-  which can be a reference. A walk visits or selects the tree as it's
+  step function reads the target it starts at as it's written and gives
+  the member as it's written, in the same document, which can be a
+  reference. A walk visits or selects the tree as it's
   written, as targets, and doesn't follow the target it starts at, so a
   `"reference"` test or `[type=reference]` finds the references in a
   document, each with the document it's followed from. What's returned is
@@ -150,12 +158,13 @@ take the session to follow references with, and a target to start from.
 - There's no `jrefPointerGet`. A JSON Pointer in a JRef fragment doesn't go
   through references, so `browse` with a fragment does the one correct thing,
   which is to follow the reference the pointer ends at.
-- A walk that starts at a reference starts at what it leads to, following
-  it the way it follows every member. So a target whose node is a
-  reference, like one from `jrefStep` with `reference: "manual"`, is
-  passed as it is, and the nodes of the targets `browse` and the `jref*`
-  functions return are followed (`FollowedNode`) unless they're told not
-  to. The starting target is followed after the
+- A walk or a step that starts at a reference starts at what it leads to,
+  following it the way it follows every member. An iterator follows it
+  when it's first read, as it follows a member when it's reached. So a
+  target whose node is a reference, like one from `jrefStep` with
+  `reference: "manual"`, is passed as it is, and the nodes of the targets
+  `browse` and the `jref*` functions return are followed (`FollowedNode`)
+  unless they're told not to. The starting target is followed after the
   selector and the options are checked, so a call that's a mistake doesn't
   retrieve anything. A target that isn't followed is returned as it is,
   not as a copy.

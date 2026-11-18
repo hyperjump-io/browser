@@ -146,13 +146,13 @@ describe("stepping", () => {
       const empty = parse(``);
       await expect(jrefStep(session, "a", empty)).rejects.toThrow(coded("ERR_POINTER_NOT_INDEXABLE", "https://a.test/mine#"));
       await expect(jrefStep(session, "a", empty)).rejects.toThrow("Can't index into a missing value at https://a.test/mine#");
-      expect(() => jrefValue(empty)).toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#"));
+      await expect(jrefValue(session, empty)).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#"));
 
       const invalid = parse(`@`);
       await expect(jrefStep(session, "a", invalid)).rejects.toThrow(coded("ERR_POINTER_NOT_INDEXABLE", "https://a.test/mine#"));
       await expect(jrefStep(session, "a", invalid)).rejects.toThrow("Can't index into an invalid value at https://a.test/mine#");
-      expect(() => jrefValue(invalid)).toThrow(coded("ERR_INVALID_VALUE", "https://a.test/mine#"));
-      expect(() => jrefValue(invalid)).toThrow("Can't get the value of an invalid value: '@' at https://a.test/mine#");
+      await expect(jrefValue(session, invalid)).rejects.toThrow(coded("ERR_INVALID_VALUE", "https://a.test/mine#"));
+      await expect(jrefValue(session, invalid)).rejects.toThrow("Can't get the value of an invalid value: '@' at https://a.test/mine#");
     });
 
     test("a value that's missing from a parse that failed isn't there to step to or to get", async () => {
@@ -311,13 +311,81 @@ describe("stepping", () => {
       expect(await items.next()).to.eql({ value: undefined, done: true });
     });
 
-    test("jrefObjectKeys and jrefObjectHas read property names, which need no following", async () => {
+    test("jrefObjectKeys and jrefObjectHas read property names, without following the members", async () => {
       const { session, requests } = site({ "/a": { a: 1, b: { $ref: "/b" } } });
       const subject = await browse(session, "https://a.test/a");
-      expect([...jrefObjectKeys(subject)]).to.eql(["a", "b"]);
-      expect(jrefObjectHas("b", subject)).to.equal(true);
-      expect(jrefObjectHas("c", subject)).to.equal(false);
+      expect(await Array.fromAsync(jrefObjectKeys(session, subject))).to.eql(["a", "b"]);
+      expect(await jrefObjectHas(session, "b", subject)).to.equal(true);
+      expect(await jrefObjectHas(session, "c", subject)).to.equal(false);
       expect(requests).to.eql(["/a"]);
+    });
+  });
+
+  describe("starting at a reference", () => {
+    const pages = {
+      "/a": { b: { $ref: "/b" }, c: { $ref: "/c" }, d: { $ref: "/d" } },
+      "/b": { name: "b", items: [1, 2] },
+      "/c": [1, 2],
+      "/d": "d"
+    };
+
+    /** @param {string} key */
+    const referenceAt = async (key) => {
+      const { session, requests } = site(pages);
+      const reference = await browse(session, `https://a.test/a#/${key}`, { reference: "manual" });
+      return { session, reference, requests };
+    };
+
+    test("jrefStep steps into what the reference leads to", async () => {
+      const { session, reference } = await referenceAt("b");
+      const name = await jrefStep(session, "name", reference);
+      expect(toJson(name.node)).to.equal(`"b"`);
+      expect(name.node.location).to.equal("https://a.test/b#/name");
+    });
+
+    test("the iterators iterate what the reference leads to, and follow it when they're first read", async () => {
+      const { session, reference, requests } = await referenceAt("c");
+      const items = jrefArrayIter(session, reference);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(requests, "it isn't followed until it's read").to.eql(["/a"]);
+      expect((await Array.fromAsync(items)).map(({ node }) => toJson(node))).to.eql([`1`, `2`]);
+      expect(requests).to.eql(["/a", "/c"]);
+
+      const b = await referenceAt("b");
+      expect((await Array.fromAsync(jrefObjectValues(b.session, b.reference))).map(({ node }) => toJson(node))).to.eql([`"b"`, `[1,2]`]);
+      expect((await Array.fromAsync(jrefObjectEntries(b.session, b.reference))).map(([key]) => key)).to.eql(["name", "items"]);
+    });
+
+    test("jrefObjectKeys and jrefObjectHas read the object the reference leads to", async () => {
+      const { session, reference } = await referenceAt("b");
+      expect(await Array.fromAsync(jrefObjectKeys(session, reference))).to.eql(["name", "items"]);
+      expect(await jrefObjectHas(session, "name", reference)).to.equal(true);
+      expect(await jrefObjectHas(session, "$ref", reference)).to.equal(false);
+    });
+
+    test("jrefValue is the value the reference leads to", async () => {
+      const { session, reference } = await referenceAt("d");
+      expect(await jrefValue(session, reference)).to.equal("d");
+    });
+
+    test("with reference: \"manual\", the reference is read as it's written", async () => {
+      const { session, reference, requests } = await referenceAt("b");
+      const manual = /** @type const */ ({ reference: "manual" });
+      expect(toJson((await jrefStep(session, "$ref", reference, manual)).node)).to.equal(`"/b"`);
+      expect(await Array.fromAsync(jrefObjectKeys(session, reference, manual))).to.eql(["$ref"]);
+      expect(await jrefObjectHas(session, "$ref", reference, manual)).to.equal(true);
+      expect((await Array.fromAsync(jrefObjectEntries(session, reference, manual))).map(([key]) => key)).to.eql(["$ref"]);
+      await expect(jrefValue(session, reference, manual)).rejects.toThrow(coded("ERR_STRUCTURED_VALUE", "https://a.test/a#/b"));
+      expect(requests).to.eql(["/a"]);
+    });
+
+    test("a reference that can't be followed rejects", async () => {
+      const { session } = site({ "/a": { b: { $ref: "/missing" } } });
+      const reference = await browse(session, "https://a.test/a#/b", { reference: "manual" });
+      await expect(jrefValue(session, reference)).rejects.toThrow(coded("ERR_HTTP_STATUS", "https://a.test/missing"));
+      const keys = jrefObjectKeys(session, reference);
+      await expect(keys.next()).rejects.toThrow(coded("ERR_HTTP_STATUS", "https://a.test/missing"));
+      expect(await keys.next()).to.eql({ value: undefined, done: true });
     });
   });
 
@@ -326,7 +394,7 @@ describe("stepping", () => {
       const { session } = site({ "/a": ["a", 1, true, null] });
       const values = [];
       for await (const item of jrefArrayIter(session, await browse(session, "https://a.test/a"))) {
-        values.push(jrefValue(item));
+        values.push(await jrefValue(session, item));
       }
       expect(values).to.eql(["a", 1, true, null]);
     });
@@ -334,10 +402,10 @@ describe("stepping", () => {
     test("throws for an object or an array, which could have references", async () => {
       const { session } = site({ "/a": { b: [] } });
       const subject = await browse(session, "https://a.test/a");
-      expect(() => jrefValue(subject)).to.throw("Can't get the value of an object at https://a.test/a#. Step into it instead.");
-      expect(() => jrefValue(subject)).toThrow(coded("ERR_STRUCTURED_VALUE", "https://a.test/a#"));
+      await expect(jrefValue(session, subject)).rejects.toThrow("Can't get the value of an object at https://a.test/a#. Step into it instead.");
+      await expect(jrefValue(session, subject)).rejects.toThrow(coded("ERR_STRUCTURED_VALUE", "https://a.test/a#"));
       const b = await jrefStep(session, "b", subject);
-      expect(() => jrefValue(b)).toThrow(coded("ERR_STRUCTURED_VALUE", "https://a.test/a#/b"));
+      await expect(jrefValue(session, b)).rejects.toThrow(coded("ERR_STRUCTURED_VALUE", "https://a.test/a#/b"));
     });
   });
 

@@ -2,13 +2,18 @@ import type { DocumentSession, SessionDocument, Start, StartTarget, Target } fro
 import type { Followed, IsManual } from "./visit.d.ts";
 import type { AnyJsonNode, JsonMemberValue, JsonTypeValue } from "../json/jsonast-util.d.ts";
 
-/** Options for the functions that step into a target one level */
+/**
+ * Options for the functions that step into a target one level or read its
+ * node. Like a walk, they start at what a target that's a reference leads
+ * to, unless `reference` is `"manual"`.
+ */
 export type StepOptions = {
   /**
-   * What to do with a member that's a reference, like `browse`'s option.
-   * `"follow"`, the default, follows it, and any reference that leads to,
-   * until there's a value. `"manual"` doesn't, so the member's target is
-   * the node as it's written, in the same document.
+   * What to do with a reference, like `browse`'s option. `"follow"`, the
+   * default, follows the target if it's a reference, and a member that's
+   * one, and any reference that leads to, until there's a value.
+   * `"manual"` doesn't, so the target is read as it's written, and a
+   * member's target is the node as it's written, in the same document.
    */
   reference?: "follow" | "manual";
 };
@@ -27,7 +32,8 @@ export type MemberTarget<S, T, O = StepOptions> = T extends Target<infer D, infe
 /**
  * The member of a target's node at `key`, the name of a property of an
  * object or the index of an item of an array, as a target. A reference is
- * followed, unless `reference` is `"manual"`.
+ * followed, the target's own and the member's, unless `reference` is
+ * `"manual"`.
  *
  * It's for code that decides what to step into and builds a result from
  * what comes back. To reach a value by a path, use `jrefSelect`, and to do
@@ -46,8 +52,10 @@ export const jrefStep: <S extends DocumentSession, T extends Start<AnyJsonNode>,
  * The items of an array as targets, in order. Each one that's a reference
  * is followed when the iterator reaches it, unless `reference` is
  * `"manual"`, so a loop that stops early retrieves less. An item that's
- * missing from a parse that failed is left out. It has no items if the
- * node isn't an array.
+ * missing from a parse that failed is left out. If the target is a
+ * reference, they're the items of what it leads to, which is followed
+ * when the iterator is first read. It has no items if the node isn't an
+ * array.
  *
  * @throws What `browse` throws, from `next()`, if it follows a reference.
  */
@@ -67,17 +75,26 @@ export const jrefObjectValues: <S extends DocumentSession, T extends Start<AnyJs
 export const jrefObjectEntries: <S extends DocumentSession, T extends Start<AnyJsonNode>, const O extends StepOptions = StepOptions>(session: S, target: T, options?: O) => AsyncIteratorObject<[string, MemberTarget<S, StartTarget<T>, O>], undefined, unknown>;
 
 /**
- * Whether an object has a property. Nothing needs following to read a
- * property name, so it doesn't take the session.
+ * Whether an object has a property. If the target is a reference, it's
+ * the object that it leads to, unless `reference` is `"manual"`.
+ *
+ * @throws What `browse` throws, if it follows a reference.
  */
-export const jrefObjectHas: (key: string, target: Start<AnyJsonNode>) => boolean;
+export const jrefObjectHas: (session: DocumentSession, key: string, target: Start<AnyJsonNode>, options?: StepOptions) => Promise<boolean>;
 
-/** The property names of an object, in order. It has none if the node isn't an object. */
-export const jrefObjectKeys: (target: Start<AnyJsonNode>) => IteratorObject<string, undefined, unknown>;
+/**
+ * The property names of an object, in order. If the target is a
+ * reference, they're the names of the object that it leads to, unless
+ * `reference` is `"manual"`. It has none if the node isn't an object.
+ *
+ * @throws What `browse` throws, from `next()`, if it follows a reference.
+ */
+export const jrefObjectKeys: (session: DocumentSession, target: Start<AnyJsonNode>, options?: StepOptions) => AsyncIteratorObject<string, undefined, unknown>;
 
 /**
  * The value of a target whose node is a string, number, boolean, or null,
- * as JavaScript.
+ * as JavaScript. If the target is a reference, it's the value that it
+ * leads to, unless `reference` is `"manual"`.
  *
  * @throws An `Error` whose `cause.code` is `ERR_STRUCTURED_VALUE` for an
  * array or object. Getting their value would need to follow the references
@@ -85,8 +102,9 @@ export const jrefObjectKeys: (target: Start<AnyJsonNode>) => IteratorObject<stri
  * @throws An `Error` whose `cause.code` is `ERR_POINTER_NOT_FOUND` for a
  * document with nothing in it, or `ERR_INVALID_VALUE` for one whose root
  * couldn't be parsed.
+ * @throws What `browse` throws, if it follows a reference.
  */
 export const jrefValue: {
-  <N extends AnyJsonNode & { jsonType: "null" | "boolean" | "number" | "string" }>(target: Start<N>): JsonTypeValue[N["jsonType"]];
-  (target: Start<AnyJsonNode>): string | number | boolean | null;
+  <N extends AnyJsonNode & { jsonType: "null" | "boolean" | "number" | "string" }>(session: DocumentSession, target: Start<N>, options?: StepOptions): Promise<JsonTypeValue[N["jsonType"]]>;
+  (session: DocumentSession, target: Start<AnyJsonNode>, options?: StepOptions): Promise<string | number | boolean | null>;
 };

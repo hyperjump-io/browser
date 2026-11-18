@@ -15,7 +15,7 @@ const session = new Hyperjump({
 
 const url = "https://swapi.hyperjump.io/api/films/1#/director";
 const director = await browse(session, url);
-jrefValue(director); // "George Lucas"
+await jrefValue(session, director); // "George Lucas"
 ```
 
 It retrieves documents the way a web browser does. Requests belong to a

@@ -76,7 +76,7 @@ boolean, or null as plain JavaScript:
 ```typescript
 const title = await jrefSelect(session, "> [key=title]", aNewHope);
 if (title) {
-  console.log(jrefValue(title)); // A New Hope
+  console.log(await jrefValue(session, title)); // A New Hope
 }
 ```
 
@@ -96,7 +96,7 @@ const names = await jrefSelectAll(
 );
 
 for (const name of names) {
-  console.log(jrefValue(name));
+  console.log(await jrefValue(session, name));
 }
 ```
 
@@ -156,7 +156,7 @@ const name = await jrefSelect(
   luke
 );
 if (name) {
-  console.log(jrefValue(name)); // Tatooine
+  console.log(await jrefValue(session, name)); // Tatooine
 }
 ```
 
