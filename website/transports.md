@@ -11,7 +11,7 @@ A URL whose scheme the transport doesn't have is a network error whose
 `cause.code` is `"ERR_UNKNOWN_URL_SCHEME"`:
 
 ```text
-The 'mem:' scheme isn't supported, so 'mem:/person' can't be fetched
+The 'tag:' scheme isn't supported, so 'tag:example.com,2026:person' can't be fetched
 ```
 
 ## Add a scheme
@@ -31,10 +31,10 @@ import {
 } from "@hyperjump/browser";
 
 const documents: Record<string, string> = {
-  "mem:/person": `{ "name": "Luke Skywalker" }`
+  "tag:example.com,2026:person": `{ "name": "Luke Skywalker" }`
 };
 
-const memory = fetcher((request) => {
+const tags = fetcher((request) => {
   const url = new URL(request.url);
   url.hash = "";
   const body = documents[url.href];
@@ -50,11 +50,11 @@ const memory = fetcher((request) => {
 });
 
 const session = new Hyperjump({
-  stack: defaultTransport({ "mem:": memory }),
-  allowRetrieval: ["mem:/"]
+  stack: defaultTransport({ "tag:": tags }),
+  allowRetrieval: Object.keys(documents)
 });
 
-const name = await browse(session, "mem:/person#/name");
+const name = await browse(session, "tag:example.com,2026:person#/name");
 ```
 
 A fetcher works the way `fetch` does:
@@ -80,26 +80,28 @@ a scheme of your own. For more information, see
 `http:` and `https:` URLs unless the session's `redirectSchemes` includes your
 scheme. For more information, see [Redirects](redirects.md).
 
-## Replace a scheme
-
-A fetcher for a scheme that the transport already has replaces it. On a server,
-`nodeTransport` takes its extra schemes as its `schemes` option:
+On a server, `nodeTransport` takes its extra schemes as its `schemes` option:
 
 ```typescript
 import { nodeTransport } from "@hyperjump/browser";
 
-const transport = nodeTransport({ schemes: { "mem:": memory } });
+const transport = nodeTransport({ schemes: { "tag:": tags } });
 ```
 
 A transport doesn't change after it's made. `with(schemes)` gives you a copy
-with more schemes, or with some replaced:
+with more schemes:
 
 ```typescript
-const transport = defaultTransport().with({ "mem:": memory });
+const transport = defaultTransport().with({ "tag:": tags });
 ```
 
 Layers go on a transport the same way whatever its schemes are. For more
 information, see [Layers](layers.md).
+
+## Replace a scheme
+
+A fetcher for a scheme that the transport already has replaces it, whether you
+give it to `defaultTransport`, to `nodeTransport`'s `schemes`, or to `with`.
 
 ## Functions
 
