@@ -190,7 +190,9 @@ describe("redirects", () => {
     const server = await redirectServer();
     try {
       const session = testHyperjump(nodeTransport(), { allow: [server.url] });
-      await expect(session.fetch(`${server.url}/to-file`)).rejects.toThrow(/isn't allowed/);
+      const fetching = session.fetch(`${server.url}/to-file`);
+      await expect(fetching).rejects.toThrow(/A redirect can't lead to a file/);
+      await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_UNSAFE_REDIRECT" } });
     } finally {
       await server.close();
     }
@@ -210,6 +212,11 @@ describe("redirects", () => {
     } finally {
       await server.close();
     }
+  });
+
+  test("redirectSchemes can't have file:, because a redirect can't lead to a file", () => {
+    expect(() => testHyperjump(defaultTransport(), { redirectSchemes: ["http:", "https:", "file:"] })).toThrow(TypeError);
+    expect(() => testHyperjump(defaultTransport(), { redirectSchemes: ["FILE:"] })).toThrow("'redirectSchemes' can't have file:");
   });
 });
 

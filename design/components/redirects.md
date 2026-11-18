@@ -22,10 +22,26 @@ It follows the Fetch standard:
 - More than 20 redirects (`maxRedirects`) is a network error.
 
 And it's stricter than `fetch` in two ways: a redirect can only lead to
-`http:` or `https:` (`redirectSchemes`), so a server can't send a request to
-`file:`, even when the transport has it, and only to a URL the session's
+`http:` or `https:` (`redirectSchemes`), and only to a URL the session's
 `allowRetrieval` allows (see [What a session can fetch](allow-retrieval.md)).
 Both are checked before the redirect is followed.
+
+A redirect can never lead to `file:`, even when the transport has it, and
+`redirectSchemes` can't have it: the session's constructor throws a
+`TypeError`. A redirect is what a server says, and a server can't choose
+which of the application's files a request reads. A file the application
+wants a URL to answer with is the registry's, or a layer's that answers
+the URL with it (see [`file:` from `file:`](file-references.md)).
+
+- `file:` in `redirectSchemes` as an opt-in was rejected. A redirect from
+  any server the session fetches from would read any file
+  `allowRetrieval` allows, for the application's own requests and a
+  `file:` document's, and what it read would be a `file:` document whose
+  references can read more. The stack can't tell a redirect a layer made
+  from one a server made, and nothing needs a redirect for what the
+  registry and a layer already do.
+- Ignoring `file:` in `redirectSchemes` was rejected. A session made with
+  it would seem to allow what it doesn't.
 
 The session's headers are for the URL each step leads to, not the ones the
 step before it got (see [Request headers](request-headers.md)). The

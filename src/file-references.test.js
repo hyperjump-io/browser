@@ -78,13 +78,6 @@ describe("file: references", () => {
       expect(new Set(referrers)).to.eql(new Set(["about:client"]));
     });
 
-    test("a redirect can't lead a document without a record to a file", async () => {
-      const session = testHyperjump(fetcher((request) => request.url.startsWith("file:")
-        ? new Response(`from ${request.url}`)
-        : new Response(null, { status: 302, headers: { location: "file:///project/a.json" } })), { allow: ["file:///project/"], redirectSchemes: ["http:", "https:", "file:"] });
-      await expect(session.fetch("https://a.test/start", { referrer: "https://a.test/page.json" })).rejects.toThrow(/led to .* which isn't allowed from 'https:\/\/a.test\/page.json'/);
-    });
-
     test("a refused reference is recorded, without the session's headers", async () => {
       let called = false;
       const { session } = setup({ headers: { "file:///project/": () => {
@@ -104,7 +97,7 @@ describe("file: references", () => {
       expect(ended.map((record) => [record.url, record.requestHeaders, record.error instanceof TypeError])).to.eql([["file:///project/a.json", [], true]]);
     });
 
-    test("a redirect can't lead a document from the web to a file", async () => {
+    test("a redirect can't lead to a file, even the application's own request or one from a file", async () => {
       /** @type string[] */
       const fetched = [];
       const session = testHyperjump(fetcher((request) => {
@@ -112,18 +105,15 @@ describe("file: references", () => {
         return request.url.startsWith("file:")
           ? new Response(`from ${request.url}`)
           : new Response(null, { status: 302, headers: { location: "file:///project/a.json" } });
-      }), { allow: ["file:///project/"], redirectSchemes: ["http:", "https:", "file:"] });
+      }), { allow: ["file:///project/"] });
       const page = await session.fetch("file:///project/page.json");
-      const web = await session.fetch("https://a.test/page.json", { redirect: "manual" });
       fetched.length = 0;
 
-      const fetching = session.fetch("https://a.test/start", { initiator: web });
-      await expect(fetching).rejects.toThrow(`Fetching 'https://a.test/start' led to '${relativeFileUrl("file:///project/a.json")}', which isn't allowed from 'https://a.test/page.json'. Only a file: document can refer to a file: URL.`);
-      await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
-      expect(fetched).to.eql(["https://a.test/start"]);
-
-      expect(await (await session.fetch("https://a.test/start", { initiator: page })).text(), "from a file").to.equal("from file:///project/a.json");
-      expect(await (await session.fetch("https://a.test/start")).text(), "from the application").to.equal("from file:///project/a.json");
+      const fetching = session.fetch("https://a.test/start");
+      await expect(fetching).rejects.toThrow(`'https://a.test/start' redirected to a file: URL, '${relativeFileUrl("file:///project/a.json")}'. A redirect can't lead to a file.`);
+      await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_UNSAFE_REDIRECT" }, url: "file:///project/a.json" });
+      await expect(session.fetch("https://a.test/start", { initiator: page }), "from a file").rejects.toMatchObject({ cause: { code: "ERR_UNSAFE_REDIRECT" } });
+      expect(fetched).to.eql(["https://a.test/start", "https://a.test/start"]);
     });
 
     test("a response from a file isn't used for a document from the web, and its body is cancelled", async () => {

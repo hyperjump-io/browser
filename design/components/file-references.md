@@ -25,9 +25,10 @@ URL.
 - The session checks it with `allowRetrieval`, everywhere `allowRetrieval`
   is checked (see [What a session can fetch](allow-retrieval.md)): the URL
   that's asked for, before its headers are found, where each redirect
-  leads, and a response's URL that isn't the one asked for. So a redirect,
-  even with `file:` in `redirectSchemes`, or a layer that answers a URL
-  like `urn:` with a file, can't take a document from the web to a file.
+  leads, and a response's URL that isn't the one asked for. So a layer
+  that answers a URL like `urn:` with a file can't take a document from
+  the web to a file. A redirect can't lead to a file at all (see
+  [Redirects](redirects.md)).
   It's checked first, because adding the URL to `allowRetrieval` wouldn't
   help, and before the registry is asked, whose answers `allowRetrieval`
   doesn't apply to (see [The registry](registry.md)). A registry's
@@ -93,8 +94,8 @@ Rejected:
 ## Known limitations
 
 - A document that's being retrieved is shared by whoever asks for it while
-  it is, and it's retrieved for the first. If a redirect it follows is
-  refused for that one, because it leads to a file and the first is from
+  it is, and it's retrieved for the first. If its response is refused for
+  that one, because a layer answered it with a file and the first is from
   the web, the others get the refusal too, though they could have
   retrieved it. They can ask for it again.
 

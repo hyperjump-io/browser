@@ -22,6 +22,23 @@ import { relativeFileUrl } from "./file-urls.js";
 
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
 
+/**
+ * The schemes a session's redirects can lead to: its `redirectSchemes`, or
+ * `http:` and `https:`. A redirect can never lead to a file, because it's
+ * what a server says, and a server can't choose which of the application's
+ * files a request reads. A file is the registry's, or a layer's that
+ * answers a URL with it, so `file:` is a mistake in the session's options.
+ *
+ * @type (schemes: string[] | undefined) => string[]
+ * @throws {TypeError} If `file:` is one of them.
+ */
+export const redirectSchemesOf = (schemes = ["http:", "https:"]) => {
+  if (schemes.some((scheme) => scheme.toLowerCase() === "file:")) {
+    throw TypeError("A redirect can't lead to a file: URL, so 'redirectSchemes' can't have file:. To answer a URL with a file, use a registry or a layer.");
+  }
+  return [...schemes];
+};
+
 /** Headers about a request's body, which go when a redirect makes it a GET */
 const bodyHeaders = ["content-encoding", "content-language", "content-location", "content-type", "content-length"];
 
@@ -66,6 +83,9 @@ export const follow = async (stack, request, ctx, policy, added) => {
       throw networkError(`'${relativeFileUrl(request.url)}' redirected more than ${policy.max} times, the limit in 'maxRedirects'`, { code: "ERR_TOO_MANY_REDIRECTS" }, request.url);
     }
     const target = new URL(location, response.url || current.url);
+    if (target.protocol === "file:") {
+      throw networkError(`'${relativeFileUrl(current.url)}' redirected to a file: URL, '${relativeFileUrl(target.href)}'. A redirect can't lead to a file.`, { code: "ERR_UNSAFE_REDIRECT" }, target.href);
+    }
     if (!policy.schemes.includes(target.protocol)) {
       throw networkError(`'${relativeFileUrl(current.url)}' redirected to a ${target.protocol} URL, '${relativeFileUrl(target.href)}', which isn't allowed. Add the scheme to 'redirectSchemes' to allow it.`, { code: "ERR_UNSAFE_REDIRECT" }, target.href);
     }

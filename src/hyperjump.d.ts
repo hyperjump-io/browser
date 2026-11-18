@@ -51,7 +51,10 @@ export interface HyperjumpConfig {
 
   /**
    * The schemes a redirect can lead to. Default `["http:", "https:"]`, as in
-   * browsers, so a server can't send a request to `file:` or `data:`.
+   * browsers, so a server can't send a request to `data:`. A redirect can
+   * never lead to `file:`, so the session's constructor throws a `TypeError`
+   * if it's one of them. To answer a URL with a file, use a registry or a
+   * layer.
    */
   redirectSchemes?: string[];
 }

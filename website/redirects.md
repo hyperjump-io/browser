@@ -25,9 +25,8 @@ It follows redirects the way `fetch` does:
 - More than 20 redirects is a network error. To change that, use the session's
   `maxRedirects` option.
 
-A redirect can only lead to an `http:` or `https:` URL, so a server can't send
-a request to a `file:` URL. To allow other schemes, use the session's
-`redirectSchemes` option:
+A redirect can only lead to an `http:` or `https:` URL. To allow other schemes,
+use the session's `redirectSchemes` option:
 
 ```typescript
 const session = new Hyperjump({
@@ -35,6 +34,11 @@ const session = new Hyperjump({
   redirectSchemes: ["http:", "https:", "data:"]
 });
 ```
+
+A redirect can never lead to a `file:` URL, so a server can't choose which of
+your files a request reads. `redirectSchemes` can't include `file:`, and
+`new Hyperjump` throws a `TypeError` if it does. To answer a URL with a file,
+use a [registry](registries.md) or a [layer](layers.md).
 
 A redirect can only lead to a URL that the session's `allowRetrieval` allows.
 For more information, see [What a session can fetch](allow-retrieval.md).

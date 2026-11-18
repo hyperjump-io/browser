@@ -1,7 +1,7 @@
 import { responseMeta, setResponseMeta, trackBody, withUrl } from "./response-meta.js";
 import { PrioritySignal } from "./priority.js";
 import { recordChunk, recordEnd, recordResponse, startRecord } from "./fetch-record.js";
-import { follow, sentHeaders } from "./redirects.js";
+import { follow, redirectSchemesOf, sentHeaders } from "./redirects.js";
 import { urlEntries } from "./url-entries.js";
 import { headersFor } from "./request-headers.js";
 import { allows, realEntries, refused, resolveAllowRetrieval } from "./allowed-urls.js";
@@ -75,7 +75,7 @@ export class Hyperjump {
     this.#allowRetrieval = resolveAllowRetrieval(config.allowRetrieval, this.#contextUrl, defaultAllowRetrieval);
     this.#policy = {
       max: config.maxRedirects ?? 20,
-      schemes: [...config.redirectSchemes ?? ["http:", "https:"]],
+      schemes: redirectSchemesOf(config.redirectSchemes),
       headers: (url) => headersFor(this.#headers, url),
       allows: (url) => this.#allows(url)
     };
