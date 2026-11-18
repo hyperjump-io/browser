@@ -7,3 +7,4 @@ one experiment per file, with the date it was first recorded.
 - [Reviver and second pass](reviver-second-pass.md) (2026-11-01)
 - [Async steps as written](manual-steps.md) (2026-11-16)
 - [Pausing walks](pausing-walks.md) (2026-11-18)
+- [Revisits](revisits.md) (2026-11-18)

@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { visit } from "unist-util-visit";
-import { CONTINUE, EXIT, SKIP, jrefVisit } from "./visit.js";
+import { CONTINUE, EXIT, SKIP, jrefFindAll, jrefVisit } from "./visit.js";
 import { browse } from "./documents.js";
 import { jrefMediaType } from "../media-types/jref-media-type.js";
 import { toJson } from "../json/jsonast-util.js";
@@ -192,6 +192,105 @@ describe("jrefVisit", () => {
       const subject = await browse(session, "https://a.test/subject");
 
       await expect(jrefVisit(session, subject, () => {}, { maxDepth })).rejects.toThrow(RangeError);
+    });
+  });
+
+  describe("maxRevisits", () => {
+    /**
+     * A document whose levels each refer to the next one twice, so the
+     * value at the last level is gone under 2^levels times
+     *
+     * @type (levels: number) => Record<string, Json>
+     */
+    const doubling = (levels) => {
+      /** @type Record<string, Json> */
+      const document = {};
+      for (let level = 0; level < levels; level++) {
+        document[`l${level}`] = [{ $ref: `#/l${level + 1}` }, { $ref: `#/l${level + 1}` }];
+      }
+      document[`l${levels}`] = { last: true };
+      return document;
+    };
+
+    test("going back under a value too many times is an error with a code and the value's location", async () => {
+      const { session } = site({ "/subject": doubling(30) });
+      const subject = await browse(session, "https://a.test/subject");
+
+      // The default stops it well before the 2^30 times it would go under
+      // the last level, which a depth-first walk goes back under first
+      const visiting = jrefVisit(session, subject, () => {});
+
+      await expect(visiting).rejects.toThrow(coded("ERR_MAX_REVISITS", "https://a.test/subject#/l30"));
+      await expect(visiting).rejects.toMatchObject({ cause: { maxRevisits: 10_000 } });
+    });
+
+    test("a value used in more places than maxRevisits isn't an error, because each reference to it is reached first", async () => {
+      const { session } = site({
+        "/subject": { uses: Array.from({ length: 50 }, () => ({ $ref: "#/shared" })), shared: { value: 1 } }
+      });
+      const subject = await browse(session, "https://a.test/subject");
+
+      let visits = 0;
+      await jrefVisit(session, subject, () => {
+        visits++;
+      }, { maxRevisits: 10 });
+
+      // The root, the array, the shared value and its member 51 times each
+      expect(visits).to.equal(2 + 2 * 51);
+    });
+
+    test("nested sharing isn't an error until it's gone back under a value 10 times for each value it's reached", async () => {
+      // `inner` is gone under 100 times, after reaching fewer than 50 values
+      const { session } = site({
+        "/subject": {
+          uses: Array.from({ length: 10 }, () => ({ $ref: "#/outer" })),
+          outer: Array.from({ length: 10 }, () => ({ $ref: "#/inner" })),
+          inner: { value: 1 }
+        }
+      });
+      const subject = await browse(session, "https://a.test/subject");
+
+      let inner = 0;
+      await jrefVisit(session, subject, (_target, key) => {
+        if (key === "value") {
+          inner++;
+        }
+      }, { maxRevisits: 10 });
+
+      expect(inner).to.equal(10 * 10 + 10 + 1);
+    });
+
+    test("it can be smaller", async () => {
+      const { session } = site({ "/subject": doubling(10) });
+      const subject = await browse(session, "https://a.test/subject");
+
+      await expect(jrefVisit(session, subject, () => {}, { maxRevisits: 10 })).rejects.toThrow(coded("ERR_MAX_REVISITS", "https://a.test/subject#/l10"));
+    });
+
+    test("Infinity doesn't limit it", async () => {
+      const { session } = site({ "/subject": doubling(10) });
+      const subject = await browse(session, "https://a.test/subject");
+
+      let visits = 0;
+      await jrefVisit(session, subject, () => {
+        visits++;
+      }, { maxRevisits: Infinity });
+
+      expect(visits).to.be.greaterThan(2 ** 11);
+    });
+
+    test("a find goes under a value once, so it isn't limited", async () => {
+      const { session } = site({ "/subject": doubling(30) });
+      const subject = await browse(session, "https://a.test/subject");
+
+      expect(await jrefFindAll(session, subject, { jsonType: "boolean" })).to.have.length(1);
+    });
+
+    test.each([[-1], [1.5], [Number.NaN]])("%s is a RangeError", async (maxRevisits) => {
+      const { session } = site({ "/subject": 1 });
+      const subject = await browse(session, "https://a.test/subject");
+
+      await expect(jrefVisit(session, subject, () => {}, { maxRevisits })).rejects.toThrow(RangeError);
     });
   });
 

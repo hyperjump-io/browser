@@ -410,12 +410,42 @@ take the session to follow references with, and a target to start from.
 - `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it
   too. They walk under a value once, so they cost the document and not
   the tree, but a document can still be large, or lead to many more.
-- A limit on what a visit does was considered, and isn't here yet. A
-  limit on the number of visits has no default that's right: a broad walk
-  that's shallow, like every person in a film, makes many visits
-  correctly. A limit on how many times a walk goes under the same node
-  stops a document that doubles at each level after a few levels, and
-  allows a value that a document uses many times.
+- A signal stops a walk only if the application passes one, so a visit
+  also has a guard, `maxRevisits` (`VisitOptions`), like `maxDepth`. It's
+  an `ERR_MAX_REVISITS` to go back under a node more than `maxRevisits`
+  times, 10,000 by default, and more than 10 times for each node the visit
+  has reached, with the references it followed.
+  - A value that's used in many places is gone under once for each
+    reference to it, and the visit reaches each of those references first,
+    so that alone is never an error, however large the document. Going
+    back under a node more times than there are nodes takes sharing that's
+    nested, values that are used in values that are used, and going back
+    10 times more takes it many times over. A document that refers to each
+    level twice from the one above is past that within a few levels, so
+    it's stopped when it reaches the 10,000, about 30,000 visits.
+  - Comparing with the nodes reached makes it a rule about the shape of
+    the documents and not their size. Correct schemas have nested sharing
+    too: a grammar whose definitions refer to each other went back under a
+    node 1.5 times for each node it reached, and a large schema 0.7 times,
+    17,137 times in all. The measurements are in
+    [Revisits](../benchmarks/revisits.md).
+  - The visit keeps every node it reaches to count them, which costs a
+    visit that follows references 10–15%. A visit with
+    `reference: "manual"` walks a tree, which has each node once, so it
+    doesn't keep anything. A find or a selection walks under a node once,
+    so it doesn't take `maxRevisits`.
+  - A limit on the number of visits was rejected. A broad walk that's
+    shallow, like every person in a film, makes many visits correctly, so
+    no default is right.
+  - A limit on how many times a visit goes back under a node, with no
+    comparison, was rejected. The large schema goes back under one 17,137
+    times, so a default that allows documents like it lets a hostile one
+    run ten times longer.
+  - Comparing with the references the visit followed, and not every node,
+    was rejected. It's cheaper, but the large schema's sharing is nested,
+    so it was an error for a correct document.
+  - Comparing with the nodes reached without a multiple was rejected. The
+    large schema is within 1.4 times of it.
 
 ## Selecting
 

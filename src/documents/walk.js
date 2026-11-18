@@ -127,13 +127,20 @@ export const memberEntries = (node) => {
  *
  * @type (options: WalkOptions | undefined) => number
  */
-export const maxDepth = (options) => {
-  const depth = options?.maxDepth ?? MAX_DEPTH;
-  if (depth !== Infinity && (!Number.isInteger(depth) || depth < 0)) {
-    throw RangeError(`'maxDepth' has to be a whole number that isn't negative, or Infinity, not ${depth}`);
+export const maxDepth = (options) => limit("maxDepth", options?.maxDepth ?? MAX_DEPTH);
+
+/**
+ * A limit from a walk's options. One that isn't a whole number from 0, or
+ * `Infinity`, is a mistake in the call.
+ *
+ * @type (name: string, value: number) => number
+ */
+export const limit = (name, value) => {
+  if (value !== Infinity && (!Number.isInteger(value) || value < 0)) {
+    throw RangeError(`'${name}' has to be a whole number that isn't negative, or Infinity, not ${value}`);
   }
 
-  return depth;
+  return value;
 };
 
 /**

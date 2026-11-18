@@ -168,18 +168,22 @@ type HasProperties<N, O> = N extends unknown
  * @throws An `Error` whose `cause.code` is `ERR_MAX_DEPTH` if it would go
  * more than {@link WalkOptions.maxDepth} levels below the node. The cause
  * has the `maxDepth`, and its `url` is the node it would go under.
+ * @throws An `Error` whose `cause.code` is `ERR_MAX_REVISITS` if it would
+ * go back under a node more than {@link VisitOptions.maxRevisits} times,
+ * and more than 10 times for each value it's reached. The cause has the
+ * `maxRevisits`, and its `url` is the node.
  * @throws What `browse` throws, if it follows a reference.
  * @throws A `TypeError` if a test isn't `null`, `undefined`, a string, an
  * object, a function, or an array of strings, objects, and functions, or
  * if it only passes a reference, like `"reference"`, and the walk follows
  * references, so it never reaches one.
- * @throws A `RangeError` if `maxDepth` isn't a whole number that isn't
- * negative, or `Infinity`.
+ * @throws A `RangeError` if `maxDepth` or `maxRevisits` isn't a whole
+ * number that isn't negative, or `Infinity`.
  * @throws The signal's `reason` if {@link WalkOptions.signal} is aborted.
  */
 export const jrefVisit: {
-  <S extends DocumentSession, T extends Start<AnyJsonNode>, const C extends JrefTest<WalkTarget<S, StartTarget<T>, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, visitor: JrefVisitor<WalkTarget<S, StartTarget<T>, O>, JrefTestedTarget<WalkTarget<S, StartTarget<T>, O>, C>>, options?: O): Promise<void>;
-  <S extends DocumentSession, T extends Start<AnyJsonNode>, const O extends WalkOptions = WalkOptions>(session: S, target: T, visitor: JrefVisitor<WalkTarget<S, StartTarget<T>, O>>, options?: O): Promise<void>;
+  <S extends DocumentSession, T extends Start<AnyJsonNode>, const C extends JrefTest<WalkTarget<S, StartTarget<T>, O>>, const O extends VisitOptions = VisitOptions>(session: S, target: T, test: C, visitor: JrefVisitor<WalkTarget<S, StartTarget<T>, O>, JrefTestedTarget<WalkTarget<S, StartTarget<T>, O>, C>>, options?: O): Promise<void>;
+  <S extends DocumentSession, T extends Start<AnyJsonNode>, const O extends VisitOptions = VisitOptions>(session: S, target: T, visitor: JrefVisitor<WalkTarget<S, StartTarget<T>, O>>, options?: O): Promise<void>;
 };
 
 /**
@@ -249,4 +253,27 @@ export type WalkOptions = {
    * `AbortSignal.timeout(ms)`, or a request to cancel can abort it.
    */
   signal?: AbortSignal;
+};
+
+/**
+ * Options for {@link jrefVisit}, which visits a value each place it is
+ */
+export type VisitOptions = WalkOptions & {
+  /**
+   * How many times a visit can go back under the same value before it's an
+   * `Error` whose `cause.code` is `ERR_MAX_REVISITS`, unless it's reached
+   * more than a tenth that many values. A value that's used in many places
+   * is gone under once for each, and the visit reaches each reference to it
+   * first, so that's never an error. A value that's used in values that are
+   * used, many times over, is gone under many times more than there are
+   * values, like in a document that refers to each level twice from the one
+   * above, which a visit can't finish.
+   *
+   * It's a guard, like {@link WalkOptions.maxDepth}, and it's checked
+   * before anything under the value is followed. It's 10,000 by default,
+   * and `Infinity` doesn't limit it. A visit with `reference: "manual"`
+   * walks the tree as it's written, which has each value once, so it's
+   * never an error then.
+   */
+  maxRevisits?: number;
 };

@@ -349,9 +349,26 @@ A selector made of `>` steps only goes as deep as it's written, like
 `jrefVisit` goes inside a value each time a reference leads to it, so a visit
 costs as much as the document would if you replaced every reference with what it
 leads to. A document of a few kilobytes whose values each refer to the next one
-twice is too big to visit that way. If you visit documents you don't control,
-pass a `signal` so the walk can't run forever. This one gives up after a
-second:
+twice is too big to visit that way, so `jrefVisit` stops if it goes back inside
+the same value too many times. It throws an error whose `cause.code` is
+`"ERR_MAX_REVISITS"`, and the error's `url` is the value.
+
+A value that many references lead to is fine however many there are, because
+the visit reaches each of those references first. It's only an error once the
+visit has gone back inside a value more than 10,000 times and more than 10
+times for each value it has reached. That takes values inside values that are
+used over and over, like the levels of that document. If you expect a visit to
+do that, pass a bigger `maxRevisits` or `Infinity`:
+
+```typescript
+await jrefVisit(session, target, visitor, { maxRevisits: 100_000 });
+```
+
+A visit with `reference: "manual"` reads the tree as it's written, which has
+each value once, so it never throws this error.
+
+To give up on a walk for another reason, like taking too long, pass a `signal`.
+This one gives up after a second:
 
 ```typescript
 await jrefVisit(session, target, visitor, { signal: AbortSignal.timeout(1000) });
@@ -364,7 +381,7 @@ every document it reaches. A document the walk is waiting for isn't aborted,
 because another walk might need it too.
 
 `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` go inside each
-value only once, so they don't have this problem, but they take a `signal` too.
+value only once, so they don't take `maxRevisits`, but they take a `signal` too.
 To visit each value once, skip the ones you've already visited:
 
 ```typescript
@@ -410,6 +427,7 @@ a reference starts at what it leads to, unless the options have
 | --- | --- |
 | `reference` | `"follow"`, the default, follows references. `"manual"` reads the tree as it's written. For more information, see [Follow references yourself](references.md#read-the-tree-as-its-written). |
 | `maxDepth` | How many levels below the target a walk can go. The default is 1000. Only `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it. For more information, see [How deep a walk goes](#how-deep-a-walk-goes). |
+| `maxRevisits` | How many times a visit can go back inside the same value, unless it has reached more than a tenth that many values. The default is 10,000. Only `jrefVisit` takes it. For more information, see [Stop a walk](#stop-a-walk). |
 | `signal` | An `AbortSignal` that stops a walk. Only `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it. For more information, see [Stop a walk](#stop-a-walk). |
 
 When these functions follow a reference, they throw what `browse` throws. For

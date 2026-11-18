@@ -1,5 +1,7 @@
 import { hasValue, startOf } from "./start.js";
-import { follow, isManual, maxDepth, maxDepthError, memberEntries, pace, unreachableReferenceError } from "./walk.js";
+import { follow, isManual, limit, maxDepth, maxDepthError, memberEntries, pace, unreachableReferenceError } from "./walk.js";
+import { relativeFileUrl } from "../file-urls.js";
+import { codedError } from "../json/coded-error.js";
 
 /**
  * @import * as API from "./visit.d.ts"
@@ -25,28 +27,50 @@ export const jrefVisit = /** @type typeof API.jrefVisit */ (
    * @param {DocumentSession} session
    * @param {Target | DocumentNode} from
    * @param {API.JrefTest<any> | API.JrefVisitor<any>} testOrVisitor
-   * @param {API.JrefVisitor<any> | API.WalkOptions} [visitorOrOptions]
-   * @param {API.WalkOptions} [options]
+   * @param {API.JrefVisitor<any> | API.VisitOptions} [visitorOrOptions]
+   * @param {API.VisitOptions} [options]
    */
   (session, from, testOrVisitor, visitorOrOptions, options) => visitFrom(session, from, testOrVisitor, visitorOrOptions, options, undefined)
 );
 
 /**
+ * The default `maxRevisits`: how many times a visit can go back under the
+ * same node, or more if it's reached a tenth that many nodes
+ */
+const MAX_REVISITS = 10_000;
+
+/**
+ * How many times a visit can go back under the same node for each node
+ * it's reached. Going back under a node more times than there are nodes
+ * takes sharing that's nested, which correct documents have too, like a
+ * grammar whose definitions refer to each other. The most measured in a
+ * real schema is 1.5, and a document that doubles at each level is past
+ * any multiple within a few levels (see `design/benchmarks/revisits.md`).
+ */
+const REVISITS_PER_NODE = 10;
+
+/**
  * `jrefVisit`, with the nodes that have been walked under for a walk that
  * finds (`walked` in `Visit`)
  *
- * @type (session: DocumentSession, from: Target | DocumentNode, testOrVisitor: API.JrefTest<any> | API.JrefVisitor<any>, visitorOrOptions: API.JrefVisitor<any> | API.WalkOptions | undefined, options: API.WalkOptions | undefined, walked: Set<Walked> | undefined) => Promise<void>
+ * @type (session: DocumentSession, from: Target | DocumentNode, testOrVisitor: API.JrefTest<any> | API.JrefVisitor<any>, visitorOrOptions: API.JrefVisitor<any> | API.VisitOptions | undefined, options: API.VisitOptions | undefined, walked: Set<Walked> | undefined) => Promise<void>
  */
 const visitFrom = async (session, from, testOrVisitor, visitorOrOptions, options, walked) => {
   const [check, visit, walkOptions] = typeof visitorOrOptions === "function"
     ? [convertTest(/** @type API.JrefTest<any> */ (testOrVisitor)), visitorOrOptions, options]
-    : [() => true, /** @type API.JrefVisitor<any> */ (testOrVisitor), visitorOrOptions];
+    : [() => true, /** @type API.JrefVisitor<any> */ (testOrVisitor), /** @type API.VisitOptions | undefined */ (visitorOrOptions)];
 
   const manual = isManual(walkOptions);
   if (!manual && typeof visitorOrOptions === "function" && onlyReferences(/** @type API.JrefTest<any> */ (testOrVisitor))) {
     throw unreachableReferenceError("a test that only passes a reference");
   }
-  const walk = { session, maxDepth: maxDepth(walkOptions), manual, ancestors: new Set(), walked, check, visitor: visit, signal: walkOptions?.signal, steps: 0 };
+  const maxRevisits = limit("maxRevisits", walkOptions?.maxRevisits ?? MAX_REVISITS);
+  // A walk that finds goes under a node once, and one that doesn't follow
+  // references walks a tree, which has each node once
+  const revisits = walked || manual || maxRevisits === Infinity
+    ? undefined
+    : { max: maxRevisits, reached: new Set(), times: new Map() };
+  const walk = { session, maxDepth: maxDepth(walkOptions), manual, ancestors: new Set(), walked, revisits, check, visitor: visit, signal: walkOptions?.signal, steps: 0 };
   // A walk that's aborted already doesn't retrieve the target it starts at
   walk.signal?.throwIfAborted();
   // A walk that starts at a reference starts at what it leads to, like a
@@ -113,15 +137,32 @@ export const jrefFindAll = /** @type typeof API.jrefFindAll */ (async (
  * for each level. A visit doesn't have it, because it visits a value each
  * place it is.
  *
+ * `revisits` is for a visit that follows references, which can go under a
+ * node more than once (see `Revisits`).
+ *
  * @typedef {{
  *   session: DocumentSession;
  *   maxDepth: number;
  *   manual: boolean;
  *   ancestors: Set<Walked>;
  *   walked: Set<Walked> | undefined;
+ *   revisits: Revisits | undefined;
  *   check: Check;
  *   visitor: API.JrefVisitor<any>;
  * } & Pace} Visit
+ */
+
+/**
+ * What a visit keeps for `maxRevisits`: how many times it's gone back under
+ * each node, and every node it's reached, with the references it followed.
+ * A value that's used in many places is gone under once for each reference
+ * to it, and each of those references is reached first, so going back
+ * under a node many times more than the nodes the visit has reached takes
+ * values that are used in values that are used, many times over. A
+ * document that refers to each level twice from the one above does that
+ * within a few levels.
+ *
+ * @typedef {{ max: number; reached: Set<unknown>; times: Map<Walked, number> }} Revisits
  */
 
 /**
@@ -145,19 +186,26 @@ const visitTarget = async (walk, target, key, parent, depth) => {
   }
 
   const { node } = target;
+  walk.revisits?.reached.add(node);
   if (action === SKIP || walk.ancestors.has(node) || walk.walked?.has(node)) {
     return CONTINUE;
   }
 
+  const members = memberEntries(node);
+  if (walk.revisits && members.length > 0) {
+    goUnder(walk.revisits, node);
+  }
+
   walk.ancestors.add(node);
   try {
-    for (const [memberKey, memberNode] of memberEntries(node)) {
+    for (const [memberKey, memberNode] of members) {
       // It's checked before a member is followed, so a walk that's too deep
       // doesn't retrieve anything under the limit
       if (depth >= walk.maxDepth) {
         throw maxDepthError(walk.maxDepth, node.location);
       }
 
+      walk.revisits?.reached.add(memberNode);
       const followed = follow(walk.session, target, memberNode, walk.manual);
       const member = followed instanceof Promise ? await followed : followed;
       if (await visitTarget(walk, member, memberKey, target, depth + 1) === EXIT) {
@@ -170,6 +218,31 @@ const visitTarget = async (walk, target, key, parent, depth) => {
 
   walk.walked?.add(node);
   return CONTINUE;
+};
+
+/**
+ * Count going under a node, which throws if it's gone back under it
+ * `maxRevisits` times, and `REVISITS_PER_NODE` times for each node it's
+ * reached. It's
+ * checked before anything under the node is followed.
+ *
+ * @type (revisits: Revisits, node: Walked) => void
+ */
+const goUnder = (revisits, node) => {
+  const times = revisits.times.get(node);
+  if (times === undefined) {
+    revisits.times.set(node, 0);
+    return;
+  }
+
+  if (times >= revisits.max && times >= REVISITS_PER_NODE * revisits.reached.size) {
+    throw codedError(
+      `Going back under ${relativeFileUrl(node.location)} more than ${times} times, ${REVISITS_PER_NODE} for each of the ${revisits.reached.size} values the visit has reached. A value that's used in values that are used, many times over, makes a visit too big to finish. If that's expected, use a bigger 'maxRevisits', or Infinity.`,
+      { code: "ERR_MAX_REVISITS", maxRevisits: revisits.max },
+      node.location
+    );
+  }
+  revisits.times.set(node, times + 1);
 };
 
 /**
