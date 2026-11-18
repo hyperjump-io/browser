@@ -307,8 +307,7 @@ a reference starts at what it leads to, unless the options have
 
 | Option | Description |
 | --- | --- |
-| `reference` | `"follow"`, the default, follows references. `"manual"` reads the tree as it's written. For more information, see
-[Follow references yourself](references.md#read-the-tree-as-its-written). |
+| `reference` | `"follow"`, the default, follows references. `"manual"` reads the tree as it's written. For more information, see [Follow references yourself](references.md#read-the-tree-as-its-written). |
 | `maxDepth` | How many levels below the target a walk can go. The default is 1000. Only `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it. For more information, see [How deep a walk goes](#how-deep-a-walk-goes). |
 
 When these functions follow a reference, they throw what `browse` throws. For
