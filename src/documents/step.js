@@ -191,9 +191,16 @@ export const jrefFollow = /** @type typeof API.jrefFollow */ (async (
 });
 
 // eslint-disable-next-line @stylistic/no-extra-parens
-export const jrefHref = /** @type typeof API.jrefHref */ ((/** @type From */ from) => {
-  const node = /** @type {{ type: string, href?: string }} */ (startOf(from).node);
-  return node.type === "reference" ? node.href : undefined;
+export const jrefIsReference = /** @type typeof API.jrefIsReference */ ((/** @type Target */ target) => {
+  return /** @type {{ type: string }} */ (target.node).type === "reference";
+});
+
+// eslint-disable-next-line @stylistic/no-extra-parens
+export const jrefHref = /** @type typeof API.jrefHref */ ((/** @type Target */ target) => {
+  if (!jrefIsReference(target)) {
+    throw TypeError(`Only a reference has an href, not the value at ${relativeFileUrl(/** @type {{ location: string }} */ (target.node).location)}`);
+  }
+  return /** @type {{ href: string }} */ (target.node).href;
 });
 
 // eslint-disable-next-line @stylistic/no-extra-parens

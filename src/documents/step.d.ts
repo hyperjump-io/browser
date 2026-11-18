@@ -116,12 +116,26 @@ export type FollowedTarget<S, T> = T extends Target<infer D, infer N>
 export const jrefFollow: <S extends DocumentSession, T extends Start<AnyJsonNode>>(session: S, target: T) => Promise<FollowedTarget<S, StartTarget<T>>>;
 
 /**
- * The URL a reference refers to, resolved against its document's URL, or
- * `undefined` if the target isn't a reference. It reads the target as it's
- * written, so it doesn't take the session: a target that's followed is
- * never a reference.
+ * A target whose node is a reference, of any tree: what a reference needs
+ * to be followed
  */
-export const jrefHref: (target: Start) => string | undefined;
+export type ReferenceTarget = Target<unknown, { type: "reference"; href: string }>;
+
+/**
+ * Whether a target is a reference. It reads the target as it's written,
+ * so it doesn't take the session: a target that's followed is never a
+ * reference, and only one from `reference: "manual"` can be. It narrows
+ * the target for {@link jrefHref}.
+ */
+export const jrefIsReference: <T extends Target>(target: T) => target is T & ReferenceTarget;
+
+/**
+ * The URL a reference refers to, resolved against its document's URL. It
+ * reads the target as it's written, like {@link jrefIsReference}.
+ *
+ * @throws A `TypeError` if the target isn't a reference.
+ */
+export const jrefHref: (target: ReferenceTarget) => string;
 
 /**
  * The URL that identifies a target's value. Its fragment is a JSON Pointer

@@ -336,7 +336,8 @@ a reference starts at what it leads to, unless the options have
 | `jrefStep(session, key, target, options)` | The member at a property name or an array index |
 | `jrefValue(session, target, options)` | The value of a string, number, boolean, or null as JavaScript |
 | `jrefFollow(session, target)` | What a reference leads to, or the target if it isn't a reference. For more information, see [Follow a reference](references.md#follow-a-reference). |
-| `jrefHref(target)` | The URL a reference refers to, or `undefined` if the target isn't a reference |
+| `jrefIsReference(target)` | Whether the target is a reference. Only a target from `reference: "manual"` can be. |
+| `jrefHref(target)` | The URL a reference refers to. It throws a `TypeError` if the target isn't a reference. |
 | `jrefLocation(target)` | The URL that identifies the target's value. For a reference, it's where the reference is. |
 | `jrefJsonType(session, target, options)` | The kind of JSON value: `"object"`, `"array"`, `"string"`, `"number"`, `"boolean"`, or `"null"` |
 | `jrefArrayIter(session, target, options)` | The items of an array, as an async iterator |

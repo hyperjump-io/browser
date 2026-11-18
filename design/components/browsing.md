@@ -17,6 +17,7 @@ take the session to follow references with, and a target to start from.
 | `jsonObjectKeys(node)` | `jrefObjectKeys(session, target)` |
 | `jsonValue(node)` | `jrefValue(session, target)` |
 | `node.jsonType` | `jrefJsonType(session, target)` |
+| `node.type === "reference"` | `jrefIsReference(target)` |
 | `node.href` | `jrefHref(target)` |
 | `node.location` | `jrefLocation(target)` |
 | | `jrefFollow(session, target)` |
@@ -95,13 +96,21 @@ take the session to follow references with, and a target to start from.
     - Rejected: `jrefSelect(session, ":scope", target)`. It works, but a
       selector that only matches where it starts doesn't say that it
       follows.
-  - `jrefHref` and `jrefLocation` read the target as it's written, so they
-    don't take the session and aren't async. `jrefHref` is a reference's
-    URL, resolved, and `undefined` for any other value, which is never
-    followed, so it's also how code tells a reference from a value.
-    `jrefLocation` is where the target's value is, and a reference's is
-    where the reference is, because that's what identifies it, like the
-    place to report a reference that's broken.
+  - `jrefIsReference`, `jrefHref`, and `jrefLocation` read the target as
+    it's written, so they don't take the session and aren't async. A
+    followed target is never a reference, so `jrefIsReference` is only
+    `true` for one from `reference: "manual"`, which can be a reference or
+    a value. It's a type predicate, so it narrows the target for
+    `jrefHref`, which is a reference's URL, resolved, and throws a
+    `TypeError` for any other target, because asking for it is a mistake
+    in the call. `jrefLocation` is where the target's value is, and a
+    reference's is where the reference is, because that's what identifies
+    it, like the place to report a reference that's broken.
+    - Rejected: `jrefHref` giving `undefined` for a target that isn't a
+      reference, as the way to tell. A call that gets a URL doesn't say
+      it's asking a question, and every URL it gives would need a check
+      for `undefined`, even where a test like `"reference"` already
+      found only references.
     - Rejected: following the target for `jrefLocation`, like the step
       functions do. Where a reference leads is `jrefLocation` of what
       `jrefFollow` gives, and where a reference is would need

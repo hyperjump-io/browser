@@ -3,7 +3,7 @@ import { unified } from "unified";
 import { visit } from "unist-util-visit";
 import { browse } from "./documents.js";
 import { jrefSelect, jrefSelectAll } from "./select.js";
-import { jrefArrayIter, jrefFollow, jrefHref, jrefJsonType, jrefLocation, jrefObjectEntries, jrefObjectHas, jrefObjectKeys, jrefObjectValues, jrefStep, jrefValue } from "./step.js";
+import { jrefArrayIter, jrefFollow, jrefHref, jrefIsReference, jrefJsonType, jrefLocation, jrefObjectEntries, jrefObjectHas, jrefObjectKeys, jrefObjectValues, jrefStep, jrefValue } from "./step.js";
 import { jrefFind, jrefFindAll, jrefVisit } from "./visit.js";
 import { Hyperjump } from "../hyperjump.js";
 import { fetcher } from "../layers.js";
@@ -429,13 +429,29 @@ describe("stepping", () => {
     });
   });
 
-  describe("jrefHref and jrefLocation", () => {
-    test("jrefHref is the resolved URL of a reference, and undefined for any other value", async () => {
-      const { session, requests } = site({ "/a": { b: { $ref: "/b#/c" }, d: 1 } });
+  describe("jrefIsReference, jrefHref, and jrefLocation", () => {
+    test("jrefIsReference is whether the target is a reference, as it's written", async () => {
+      const { session, requests } = site({ "/a": { b: { $ref: "/b" }, d: 1 }, "/b": 2 });
+      expect(jrefIsReference(await browse(session, "https://a.test/a#/b", { reference: "manual" }))).to.equal(true);
+      expect(jrefIsReference(await browse(session, "https://a.test/a#/d"))).to.equal(false);
+      expect(requests).to.eql(["/a"]);
+      expect(jrefIsReference(await browse(session, "https://a.test/a#/b")), "a followed target never is").to.equal(false);
+    });
+
+    test("jrefHref is the resolved URL of a reference, without following it", async () => {
+      const { session, requests } = site({ "/a": { b: { $ref: "/b#/c" } } });
       const reference = await browse(session, "https://a.test/a#/b", { reference: "manual" });
+      if (!jrefIsReference(reference)) {
+        throw Error("Expected a reference");
+      }
       expect(jrefHref(reference)).to.equal("https://a.test/b#/c");
-      expect(jrefHref(await browse(session, "https://a.test/a#/d"))).to.equal(undefined);
-      expect(requests, "it doesn't follow the reference").to.eql(["/a"]);
+      expect(requests).to.eql(["/a"]);
+    });
+
+    test("jrefHref throws for a target that isn't a reference", async () => {
+      const { session } = site({ "/a": { d: 1 } });
+      const d = await browse(session, "https://a.test/a#/d");
+      expect(() => jrefHref(/** @type any */ (d))).to.throw(TypeError, "Only a reference has an href, not the value at https://a.test/a#/d");
     });
 
     test("jrefLocation is where the value is, and where a reference is, not where it leads", async () => {
@@ -446,11 +462,10 @@ describe("stepping", () => {
       expect(jrefLocation(await browse(session, "https://a.test/a#/b"))).to.equal("https://a.test/b#");
     });
 
-    test("they take a document for its root", () => {
+    test("jrefLocation takes a document for its root", () => {
       const tree = unified()
         .use(jrefParse, { url: "https://a.test/mine" })
         .parse(`{ "$ref": "other" }`);
-      expect(jrefHref(tree)).to.equal("https://a.test/other");
       expect(jrefLocation(tree)).to.equal("https://a.test/mine#");
     });
   });
