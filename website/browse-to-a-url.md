@@ -42,8 +42,9 @@ that the node is in. When a `jref` function follows a reference in the node,
 the request comes from that document.
 To read a target and step into it, see [Read targets](read-targets.md).
 
-`browse` resolves a relative URL the way the session does. In Node.js, that's
-against the working directory, so `browse(session, "data/film.json")` reads a file.
+`browse` resolves a relative URL the way a web browser does. In a browser,
+that's against the page. In Node.js, it's against the working directory, so
+`browse(session, "data/film.json")` reads a file.
 
 ## What a URL identifies
 
