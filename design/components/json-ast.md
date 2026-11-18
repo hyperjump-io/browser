@@ -166,7 +166,17 @@ the root of a document, whose parse status is one of:
   encodes in a fragment, and `%`, so a pointer with a `%` decodes to
   itself (`appendToLocation`). A location is its own `href`, so it's a
   URL like any other and isn't parsed again (see
-  [Identifiers are URLs](../principles/identifiers-are-urls.md)). A
+  [Identifiers are URLs](../principles/identifiers-are-urls.md)).
+  - Known limitation: a name with a lone surrogate, like one from a
+    `\uD800` escape, has a location that doesn't lead back to it. A URL
+    can't have a lone surrogate, so it's U+FFFD there, as the URL Standard
+    makes it, and its location is a `"\uFFFD"` name's. RFC 8259 says
+    what an unpaired surrogate does is unpredictable. The name keeps its
+    value, and nothing tells nodes apart by their locations, because two
+    documents can say they have the same URL.
+  - A lone surrogate in a name as a syntax error was rejected, and so was
+    reading it as U+FFFD. Either one changes what a document that
+    `JSON.parse` reads means, for a name no URL can have. A
   document's URL comes from outside, so `fromJson` and `fromJref` parse
   it, and one with a fragment throws, because its locations would have two.
   `fromJs` parses its root's location, and one without a fragment is a
