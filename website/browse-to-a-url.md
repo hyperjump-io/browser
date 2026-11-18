@@ -2,20 +2,22 @@
 
 `browse` retrieves a document through a Hyperjump session and gives you a target
 for the value its URL identifies: the value's node and the document that the
-node is in. A document can refer to values in other documents, and `browse`
-follows those references for you, the way a web browser follows redirects:
+node is in. A document can refer to values in other documents, and you don't
+follow those references yourself. In a web browser, you click a link, and the
+browser resolves its URL, requests it and shows you the page it leads to. In a
+Hyperjump session, you navigate to a reference, and `browse` resolves its URL,
+retrieves the document it leads to and gives you the value it refers to:
 
 ```typescript
-import { Hyperjump, browse, jrefValue } from "@hyperjump/browser";
+import { Hyperjump, browse } from "@hyperjump/browser";
 
 const session = new Hyperjump({
   allowRetrieval: ["https://swapi.hyperjump.io/"]
 });
 
-const url = "https://swapi.hyperjump.io/api/films/1#/director";
-const director = await browse(session, url);
-jrefValue(director); // "George Lucas"
-director.document.url; // "https://swapi.hyperjump.io/api/films/1"
+const url = "https://swapi.hyperjump.io/api/people/1#/homeworld";
+const homeworld = await browse(session, url);
+homeworld.document.url; // "https://swapi.hyperjump.io/api/planets/1"
 ```
 
 A target's `node` is a node of a JSON abstract syntax tree (AST), which has its
