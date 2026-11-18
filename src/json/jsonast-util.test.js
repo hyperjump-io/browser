@@ -4,6 +4,7 @@ import { cwd } from "node:process";
 import { pathToFileURL } from "node:url";
 import { describe, test, expect, beforeEach } from "vitest";
 import {
+  fromJs,
   fromJson,
   hasStatus,
   jsonSyntaxErrorMessage,
@@ -186,6 +187,14 @@ describe("jsonast-util", async () => {
 
     test("'-' refers to a nonexistent element", () => {
       expect(() => jsonStep("-", subject)).toThrow(coded("ERR_POINTER_NOT_FOUND"));
+    });
+  });
+
+  describe("fromJs", () => {
+    test("a number that isn't finite isn't JSON, so it's the caller's mistake", () => {
+      expect(() => fromJs([Infinity], "https://example.com/doc")).to.throw(TypeError, "Infinity isn't a JSON number");
+      expect(() => fromJs(-Infinity, "https://example.com/doc")).to.throw(TypeError, "-Infinity isn't a JSON number");
+      expect(() => fromJs(NaN, "https://example.com/doc")).to.throw(TypeError, "NaN isn't a JSON number");
     });
   });
 

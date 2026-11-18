@@ -343,6 +343,9 @@ const jsToNode = (js, location) => {
       };
 
     case "number":
+      if (!Number.isFinite(js)) {
+        throw TypeError(`${js} isn't a JSON number`);
+      }
       return {
         type: "json",
         jsonType: "number",

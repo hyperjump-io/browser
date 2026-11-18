@@ -101,6 +101,7 @@ export type JsonSyntaxErrorCode
     | "invalid-escape"
     | "invalid-character"
     | "number-invalid"
+    | "number-out-of-range"
     | "invalid-literal"
     | "comment-not-allowed"
     | "comment-not-closed"
@@ -111,7 +112,8 @@ export type JsonSyntaxErrorCode
  * root node's location, like `https://example.com/doc#/a`. A URL without a
  * fragment is a document's, so its root is `#`.
  *
- * @throws {TypeError} If `location` isn't a URL.
+ * @throws {TypeError} If `location` isn't a URL, or a value isn't JSON,
+ * like a number that isn't finite.
  */
 export const fromJs: (js: ReadonlyJson, location: string) => JsonNode;
 

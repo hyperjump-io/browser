@@ -211,6 +211,18 @@ describe("tolerant parse", () => {
     ]);
   });
 
+  test("a number too big to be a JavaScript number is out of range, as RFC 8259 allows", () => {
+    const { errors } = parse(`[1e999, -1e999, 1e-999]`);
+
+    expect(errors, "one too small is 0, which a number can be").toEqual([
+      { code: "number-out-of-range", offset: 1, length: 5, found: "1e999" },
+      { code: "number-out-of-range", offset: 8, length: 6, found: "-1e999" }
+    ]);
+    const { document } = fromJson(`[1e999]`, url);
+    expect(document.status).toBe("failure");
+    expect(/** @type any */ (document.children[0]).children[0].type).toBe("json-invalid");
+  });
+
   test("hex notation is not a valid JSON number", () => {
     const { errors } = parse(`{ "a": 0x1F }`);
 

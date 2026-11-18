@@ -36,6 +36,22 @@ the root of a document, whose parse status is one of:
 - `allowComments` supports JSONC. Comments are listed on the document node.
 - Nesting is limited to 1000 levels instead of overflowing the stack.
   Recovery heuristics run in linear time regardless of the input.
+- A number past a JavaScript number's range, like `1e999`, is
+  `number-out-of-range`, a `json-invalid` node, so the parse is a failure.
+  RFC 8259 allows a limit on a number's range. Its value would be
+  `Infinity`, which isn't JSON, so no tree has a number that can't be
+  written back, and `fromJs` throws a `TypeError` for a number that isn't
+  finite. JSONTestSuite leaves these to the implementation (its `i_`
+  files), and its overflow cases are `n_` here.
+  - A number too small to be one, like `1e-999`, is 0, and a whole
+    number past 2^53 loses precision, as in `JSON.parse`. Each is a JSON
+    number, so it's written back as one.
+  - `Infinity`, as `JSON.parse` has it, was rejected. `toJson` would
+    write it as `null`, as `JSON.stringify` does, and a value would change
+    without an error.
+  - Writing it back as `1e999` was rejected too. A tree would have a
+    number `fromJs` can't take, and `jsonValue` would give a value that
+    isn't JSON.
 - A duplicated property name fails `jsonStep`.
 
 ## Transforming

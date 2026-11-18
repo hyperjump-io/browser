@@ -36,6 +36,10 @@ Each error is plain data with a `ruleId` and a `place`. The `ruleId` is a name
 such as `"trailing-comma"`. To turn an error into a message for people to read,
 use `jsonSyntaxErrorMessage`.
 
+A number too big for JavaScript, such as `1e999`, is a `"number-out-of-range"`
+error, so the parse fails. In `JSON.parse`, it would be `Infinity`, which JSON
+can't represent.
+
 The second argument of `fromJson` is the document's URL, which every node's
 `location` starts with. It has to be an absolute URL without a fragment, or
 `fromJson` throws a `TypeError`. With the

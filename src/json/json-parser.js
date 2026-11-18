@@ -77,6 +77,7 @@ const MESSAGES = {
   "invalid-escape": () => "Invalid escape sequence",
   "invalid-character": () => "Control characters are not allowed in strings",
   "number-invalid": (found) => `'${found}' is not a valid number`,
+  "number-out-of-range": (found) => `'${found}' is too big to be a number`,
   "invalid-literal": (found) => `'${found}' is not a valid value`,
   "comment-not-allowed": () => "Comments are not allowed in JSON",
   "comment-not-closed": () => "Comment is missing its closing '*/'",
@@ -635,6 +636,13 @@ export const parseJson = (text, url, options = {}) => {
       case "number":
         if (!NUMBER.test(token.value)) {
           report("number-invalid", token.offset, token.length, token.value);
+          return parseInvalid(valueLocation);
+        }
+        // RFC 8259 allows a limit on a number's range. One past a
+        // JavaScript number's would be Infinity, which isn't JSON, so it
+        // couldn't be written back. One too small to be a number is 0.
+        if (!Number.isFinite(Number(token.value))) {
+          report("number-out-of-range", token.offset, token.length, token.value);
           return parseInvalid(valueLocation);
         }
         return parseScalar({ jsonType: "number", value: Number(token.value) }, valueLocation);
