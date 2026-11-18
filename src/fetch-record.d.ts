@@ -23,6 +23,9 @@ export type Observer = (event: TraceEvent) => void;
  * `ctx.record`. A record is made by the session.
  */
 export class FetchRecord {
+  /** The session makes a record, so it isn't made with `new` */
+  private constructor();
+
   /** Unique in the process, in the order requests started */
   readonly id: number;
   readonly url: string;

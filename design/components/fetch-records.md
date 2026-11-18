@@ -15,6 +15,10 @@ what each layer did with it, and how it ended. A response has it as
   else can. The record gives this module its state, in a `WeakMap`, when
   it's made, and the session writes it with `recordResponse`,
   `recordChunk`, and `recordEnd`. To everyone else, a record is read-only.
+- Only the session makes a record, with `startRecord`. `FetchRecord` is
+  exported so a record can be checked for with `instanceof`, and its
+  declared constructor is private, so `new FetchRecord()` is a type error,
+  not a record that throws when it's made.
 - `initiator` is the record of the request that caused this one. The caller
   gives the earlier request's response or record, and the records make a
   tree. It's what caused a request, not only for watching: only a `file:`
