@@ -4,7 +4,7 @@ import { hasValue, missingValueError, startOf } from "./start.js";
 import { follow, isManual } from "./walk.js";
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
-import { jsonObjectHas, jsonObjectKeys, jsonStep, jsonValue } from "../json/jsonast-util.js";
+import { jsonStep, jsonValue } from "../json/jsonast-util.js";
 import { appendToLocation } from "../json/location.js";
 
 /**
@@ -169,14 +169,27 @@ export const jrefObjectHas = /** @type typeof API.jrefObjectHas */ (async (
   /** @type string */ key,
   /** @type From */ from,
   /** @type API.StepOptions | undefined */ options
-) => jsonObjectHas(key, /** @type Walked */ ((await stepStart(session, from, isManual(options))).node)));
+) => {
+  const node = /** @type Walked */ ((await stepStart(session, from, isManual(options))).node);
+  // A value that's missing from a parse that failed isn't a member
+  return node.jsonType === "object" && node.children.some((propertyNode) => propertyNode.children[0].value === key && !missingValue(propertyNode));
+});
 
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefObjectKeys = /** @type typeof API.jrefObjectKeys */ ((
   /** @type DocumentSession */ session,
   /** @type From */ from,
   /** @type API.StepOptions | undefined */ options
-) => fromStart(session, from, options, (target) => pipe(jsonObjectKeys(/** @type Walked */ (target.node)), map((/** @type string */ key) => key))));
+) => fromStart(session, from, options, (target) => {
+  const children = /** @type readonly any[] */ (childrenOf(target, "object"));
+  // Only a parse that failed has a missing value, as for the members
+  return children.some(missingValue)
+    ? pipe(children, filter((propertyNode) => !missingValue(propertyNode)), map(keyOf))
+    : pipe(children, map(keyOf));
+}));
+
+/** @type (propertyNode: any) => string */
+const keyOf = (propertyNode) => propertyNode.children[0].value;
 
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefFollow = /** @type typeof API.jrefFollow */ (async (

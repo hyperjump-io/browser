@@ -77,7 +77,8 @@ export const jrefObjectEntries: <S extends DocumentSession, T extends Start<AnyJ
 
 /**
  * Whether an object has a property. If the target is a reference, it's
- * the object that it leads to, unless `reference` is `"manual"`.
+ * the object that it leads to, unless `reference` is `"manual"`. A
+ * property whose value is missing from a parse that failed isn't one.
  *
  * @throws What `browse` throws, if it follows a reference.
  */
@@ -86,7 +87,8 @@ export const jrefObjectHas: (session: DocumentSession, key: string, target: Star
 /**
  * The property names of an object, in order. If the target is a
  * reference, they're the names of the object that it leads to, unless
- * `reference` is `"manual"`. It has none if the node isn't an object.
+ * `reference` is `"manual"`. A property whose value is missing from a
+ * parse that failed is left out. It has none if the node isn't an object.
  *
  * @throws What `browse` throws, from `next()`, if it follows a reference.
  */

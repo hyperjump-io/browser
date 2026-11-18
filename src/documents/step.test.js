@@ -167,6 +167,18 @@ describe("stepping", () => {
       await expect(jrefStep(session, "a", tree)).rejects.toThrow("There's no value at https://a.test/mine#/a");
       await expect(browse(session, "https://a.test/mine#/a", { referencedFrom: tree })).rejects.toThrow(coded("ERR_POINTER_NOT_FOUND", "https://a.test/mine#/a"));
     });
+
+    test("a value that's missing from a parse that failed isn't a member, to any of the object functions", async () => {
+      const { session } = site({});
+      const tree = unified()
+        .use(jrefParse, { url: "https://a.test/mine", accept: "failure" })
+        .parse(`{ "a": , "b": 1 }`);
+      expect(await jrefObjectHas(session, "a", tree)).to.equal(false);
+      expect(await jrefObjectHas(session, "b", tree)).to.equal(true);
+      expect(await Array.fromAsync(jrefObjectKeys(session, tree))).to.eql(["b"]);
+      expect((await Array.fromAsync(jrefObjectEntries(session, tree))).map(([key]) => key)).to.eql(["b"]);
+      expect(await Array.fromAsync(jrefObjectValues(session, tree))).to.have.length(1);
+    });
   });
 
   describe("embedded documents", () => {

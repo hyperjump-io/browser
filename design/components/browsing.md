@@ -61,7 +61,10 @@ take the session to follow references with, and a target to start from.
   - The iterators (`jrefArrayIter`, `jrefObjectValues`,
     `jrefObjectEntries`) follow a member when a loop reaches it, so a
     loop that stops early retrieves less. They leave out a member that's
-    missing from a parse that failed, as the walks do.
+    missing from a parse that failed, as the walks do, and so do
+    `jrefObjectKeys` and `jrefObjectHas`, so every `jref*` function has
+    the same members. `jsonObjectKeys` and `jsonObjectHas` have it,
+    because they read the tree as it's written.
   - `jrefStep` to a member that's missing from a parse that failed is an
     `ERR_POINTER_NOT_FOUND`, as it is for a property that doesn't exist,
     and so is `browse` with a fragment that ends at one. `jsonStep` gives
