@@ -91,9 +91,10 @@ information, see [What a session can fetch](allow-retrieval.md).
 
 `browse` follows a reference unless you tell it not to. With
 `reference: "manual"`, it gives you the target the URL identifies as it's
-written, even when its node is a reference. It works like `redirect: "manual"`
-does for a request. The target's `document` is then always the document at the
-URL, which is how you get a whole document:
+written, even when its node is a reference. It works like `fetch`'s
+`redirect: "manual"` option, which gives you a redirect instead of following
+it. The target's `document` is then always the document at the URL, which is
+how you get a whole document:
 
 ```typescript
 const url = "https://swapi.hyperjump.io/api/films/1";
