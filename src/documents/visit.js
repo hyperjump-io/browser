@@ -1,5 +1,5 @@
 import { hasValue, startOf } from "./start.js";
-import { follow, isManual, maxDepth, maxDepthError, memberEntries } from "./walk.js";
+import { follow, isManual, maxDepth, maxDepthError, memberEntries, unreachableReferenceError } from "./walk.js";
 
 /**
  * @import * as API from "./visit.d.ts"
@@ -34,6 +34,9 @@ export const jrefVisit = /** @type typeof API.jrefVisit */ (
       : [() => true, /** @type API.JrefVisitor<any> */ (testOrVisitor), visitorOrOptions];
 
     const manual = isManual(walkOptions);
+    if (!manual && typeof visitorOrOptions === "function" && onlyReferences(/** @type API.JrefTest<any> */ (testOrVisitor))) {
+      throw unreachableReferenceError("a test that only passes a reference");
+    }
     const walk = { session, maxDepth: maxDepth(walkOptions), manual, ancestors: new Set(), check, visitor: visit };
     // A walk that starts at a reference starts at what it leads to, like a
     // walk that reaches one
@@ -168,6 +171,17 @@ const convertTest = (test) => {
     return convertCheck(/** @type API.JrefCheck<any> */ (test));
   }
 };
+
+/**
+ * Whether a test can only pass a reference: a `"reference"` type, an
+ * object whose `type` is `"reference"`, or an array of only those. A
+ * function could pass anything, so it isn't one.
+ *
+ * @type (test: API.JrefTest<any>) => boolean
+ */
+const onlyReferences = (test) => Array.isArray(test)
+  ? test.length > 0 && test.every(onlyReferences)
+  : test === "reference" || (typeof test === "object" && test !== null && /** @type {{ type?: unknown }} */ (test).type === "reference");
 
 /** @type (check: API.JrefCheck<any>) => Check */
 const convertCheck = (check) => {

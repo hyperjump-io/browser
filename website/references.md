@@ -36,6 +36,11 @@ for (const reference of references) {
 }
 ```
 
+Without `reference: "manual"`, a walk follows every reference it reaches, so it
+never reaches one. A test or a selector that matches only references, like
+`"reference"` or `[type=reference]`, can't find anything then, so the function
+throws a `TypeError` instead of walking.
+
 `jrefStep` and the iterators take it too, so
 `jrefStep(session, "homeworld", luke, { reference: "manual" })` is the
 reference to Luke's homeworld and not the homeworld.

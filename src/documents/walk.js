@@ -106,6 +106,18 @@ export const maxDepth = (options) => {
 };
 
 /**
+ * A walk that follows references was asked to find them. Every reference
+ * it reaches is followed, and so is the one it starts at, so no node it
+ * reaches is one, and what it was asked for can't be found. It's a mistake
+ * in the call, so it's a `TypeError`, before anything is retrieved.
+ *
+ * @type (what: string) => TypeError
+ */
+export const unreachableReferenceError = (what) => TypeError(
+  `A walk that follows references never reaches one, so ${what} can't match anything. To find references, pass reference: "manual".`
+);
+
+/**
  * A walk would go under a node at its `maxDepth`
  *
  * @type (maxDepth: number, location: string) => Error

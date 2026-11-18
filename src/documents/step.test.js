@@ -458,10 +458,29 @@ describe("stepping", () => {
       expect(requests).to.eql(["/a"]);
     });
 
-    test("without it, a reference is never found, because it's followed", async () => {
+    test("without it, a reference is never reached, so looking only for one is a TypeError before anything is retrieved", async () => {
+      const { session, requests } = site({ "/a": { a: { $ref: "/b" } }, "/b": 2 });
+      const subject = await browse(session, "https://a.test/a");
+      const start = await browse(session, "https://a.test/a#/a", { reference: "manual" });
+      const message = `A walk that follows references never reaches one, so a test that only passes a reference can't match anything. To find references, pass reference: "manual".`;
+
+      await expect(jrefFindAll(session, subject, "reference")).rejects.toThrow(TypeError);
+      await expect(jrefFindAll(session, subject, "reference")).rejects.toThrow(message);
+      await expect(jrefFind(session, start, { type: "reference" })).rejects.toThrow(TypeError);
+      await expect(jrefVisit(session, subject, ["reference", { type: "reference", href: "https://a.test/b" }], () => {})).rejects.toThrow(TypeError);
+      await expect(jrefSelectAll(session, "[type=reference]", subject)).rejects.toThrow(`A walk that follows references never reaches one, so '[type=reference]' can't match anything. To find references, pass reference: "manual".`);
+      await expect(jrefSelect(session, ":scope[type=reference] > [key=$ref]", start)).rejects.toThrow(TypeError);
+      await expect(jrefSelect(session, "reference, > [key=a] reference", subject)).rejects.toThrow(TypeError);
+      expect(requests).to.eql(["/a"]);
+    });
+
+    test("a test or a selector that can also match something else isn't an error", async () => {
       const { session } = site({ "/a": { a: { $ref: "/b" } }, "/b": 2 });
       const subject = await browse(session, "https://a.test/a");
-      expect(await jrefFindAll(session, subject, "reference")).to.eql([]);
+
+      expect(await jrefFindAll(session, subject, ["reference", "json"])).to.have.length(2);
+      expect(await jrefFindAll(session, subject, (target) => /** @type {{ type: string }} */ (target.node).type === "reference")).to.eql([]);
+      expect(await jrefSelectAll(session, "[type=reference], > [key=a]", subject)).to.have.length(1);
     });
   });
 });

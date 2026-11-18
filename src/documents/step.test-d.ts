@@ -1,6 +1,6 @@
 // What the step functions' types say about what they return. It's only
 // type-checked.
-import { browse, Hyperjump, jrefArrayIter, jrefFind, jrefObjectEntries, jrefObjectHas, jrefObjectKeys, jrefObjectValues, jrefSelect, jrefStep, jrefValue, jrefVisit } from "../index.js";
+import { browse, Hyperjump, jrefArrayIter, jrefFind, jrefFindAll, jrefObjectEntries, jrefObjectHas, jrefObjectKeys, jrefObjectValues, jrefSelect, jrefStep, jrefValue, jrefVisit } from "../index.js";
 import type { FollowedNode, JrefDocumentNode, JrefMediaTypeDocument, JrefNode, JsonMediaTypeDocument, JsonNode, Target } from "../index.js";
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
@@ -66,8 +66,16 @@ await jrefVisit(session, target, (visited) => {
 }, { maxDepth: 10 });
 const reference = await jrefFind(session, target, "reference", { reference: "manual" });
 yes<Equal<NonNullable<typeof reference>["node"]["type"], "reference">>();
+// Without it, a test that only passes a reference throws, so there's no
+// result, but a test that nothing passes finds nothing
 const never = await jrefFind(session, target, "reference");
-yes<Equal<typeof never, undefined>>();
+yes<Equal<typeof never, never>>();
+const neverAll = await jrefFindAll(session, target, { type: "reference" });
+yes<Equal<typeof neverAll, never>>();
+const nothing = await jrefFind(session, target, { jsonType: "nonsense" });
+yes<Equal<typeof nothing, undefined>>();
+const either = await jrefFind(session, target, ["reference", "json"]);
+yes<Equal<typeof either extends undefined ? true : false, false>>();
 const selected = await jrefSelect(session, "> [key=a]", target, { reference: "manual" });
 yes<Equal<Extract<NonNullable<typeof selected>["node"], { type: "reference" }> extends never ? false : true, true>>();
 

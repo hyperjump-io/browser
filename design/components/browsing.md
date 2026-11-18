@@ -271,6 +271,21 @@ take the session to follow references with, and a target to start from.
 - They're for finding by what a node is. A selector finds by where a node
   is, and it can rule out a member by its key before following it, so
   `jrefSelect` retrieves less for a path.
+- A walk that follows references never reaches one, because each one it
+  reaches is followed, and so is the one it starts at. A test that can
+  only pass a reference, a `"reference"` type, an object whose `type` is
+  `"reference"`, or an array of only those, can't find anything then, so
+  `jrefVisit`, `jrefFind`, and `jrefFindAll` throw a `TypeError` for it
+  before anything is retrieved. It's a mistake in the call, and walking
+  instead would retrieve everything the walk reaches, and in documents
+  that refer to each other visit them over and over, to say it found
+  nothing.
+  - A function test isn't checked, because it can pass anything. A test
+    with a part that can pass something else isn't either, because the
+    call still finds something.
+  - Returning nothing, which the types already say, was rejected. Code
+    that isn't type-checked gets no hint, and the walk can run until
+    `maxDepth`.
 
 ## How deep a walk goes
 
@@ -392,4 +407,7 @@ take the session to follow references with, and a target to start from.
     other properties don't say what kind of value a node is.
 - To find references without following them, select with
   `reference: "manual"`. Otherwise the nodes a walk reaches are followed,
-  so `[type=reference]` never matches.
+  so `[type=reference]` never matches. A selector whose every complex
+  selector needs a reference, by the `reference` type or
+  `[type=reference]`, is a `TypeError`, like a test that only passes one
+  (see Finding).

@@ -1,5 +1,5 @@
 import { hasValue, startOf } from "./start.js";
-import { follow, isManual, maxDepth, maxDepthError, memberEntries } from "./walk.js";
+import { follow, isManual, maxDepth, maxDepthError, memberEntries, unreachableReferenceError } from "./walk.js";
 
 /**
  * @import * as API from "./select.d.ts"
@@ -42,7 +42,7 @@ export const jrefSelect = /** @type typeof API.jrefSelect */ (async (
 ) => {
   /** @type WalkedTarget | undefined */
   let found;
-  await select(session, parseSelector(selector), target, maxDepth(options), isManual(options), (matched) => {
+  await select(session, selector, target, maxDepth(options), isManual(options), (matched) => {
     found = matched;
     return true;
   });
@@ -60,7 +60,7 @@ export const jrefSelectAll = /** @type typeof API.jrefSelectAll */ (async (
   // A node reached through more than one reference is selected once
   /** @type Map<Walked, WalkedTarget> */
   const found = new Map();
-  await select(session, parseSelector(selector), target, maxDepth(options), isManual(options), (matched) => {
+  await select(session, selector, target, maxDepth(options), isManual(options), (matched) => {
     if (!found.has(matched.node)) {
       found.set(matched.node, matched);
     }
@@ -75,9 +75,13 @@ export const jrefSelectAll = /** @type typeof API.jrefSelectAll */ (async (
  * selector at once. A member is only followed if some selector could match
  * it or what's under it, which for a child combinator is known from its key.
  *
- * @type (session: DocumentSession, selectors: Complex[], from: Target | DocumentNode, maxDepth: number, manual: boolean, onMatch: (target: WalkedTarget) => boolean) => Promise<void>
+ * @type (session: DocumentSession, selector: string, from: Target | DocumentNode, maxDepth: number, manual: boolean, onMatch: (target: WalkedTarget) => boolean) => Promise<void>
  */
-const select = async (session, selectors, from, maxDepth, manual, onMatch) => {
+const select = async (session, selector, from, maxDepth, manual, onMatch) => {
+  const selectors = parseSelector(selector);
+  if (!manual && selectors.every(needsReference)) {
+    throw unreachableReferenceError(`'${selector}'`);
+  }
   const target = startOf(from);
   // A document with nothing in it has nothing to select
   if (!hasValue(target)) {
@@ -186,6 +190,16 @@ const selectTarget = async (selection, target, key, depth, states) => {
 
   return false;
 };
+
+/**
+ * Whether a complex selector can only match under a reference or at one,
+ * which a walk that follows references never reaches: a compound of the
+ * `reference` type, or with `[type=reference]`
+ *
+ * @type (complex: Complex) => boolean
+ */
+const needsReference = (complex) => complex.compounds.some((compound) => compound.type === "reference"
+  || compound.attributes.some((attribute) => attribute.name === "type" && attribute.value === "reference"));
 
 /** @type (states: Map<string, State>, state: State) => void */
 const addState = (states, state) => {

@@ -108,6 +108,17 @@ export type JrefTestedTarget<T, C> = C extends null | undefined ? T
       : C extends readonly (infer U)[] ? JrefTestedTarget<T, U>
         : T extends Target<infer D, infer N> ? TargetOf<D, JrefTestedNode<N, C>> : never;
 
+/**
+ * Whether test `C` only passes a reference in a walk that follows them,
+ * which never reaches one, so the walk throws a `TypeError`. A test that
+ * nothing passes as it's written, like a `type` no node has, isn't one,
+ * because the walk finds nothing instead.
+ */
+export type OnlyPassesReference<S, T, C, O> = IsManual<O> extends true ? false
+  : [JrefTestedTarget<WalkTarget<S, StartTarget<T>, O>, C>] extends [never]
+      ? [JrefTestedTarget<WrittenTarget<StartTarget<T>>, C>] extends [never] ? false : true
+      : false;
+
 /** A target with a node of type `N`, or nothing if there's no such node */
 export type TargetOf<D, N> = [N] extends [never] ? never : Target<D, N>;
 
@@ -159,7 +170,9 @@ type HasProperties<N, O> = N extends unknown
  * has the `maxDepth`, and its `url` is the node it would go under.
  * @throws What `browse` throws, if it follows a reference.
  * @throws A `TypeError` if a test isn't `null`, `undefined`, a string, an
- * object, a function, or an array of strings, objects, and functions.
+ * object, a function, or an array of strings, objects, and functions, or
+ * if it only passes a reference, like `"reference"`, and the walk follows
+ * references, so it never reaches one.
  * @throws A `RangeError` if `maxDepth` isn't a whole number that isn't
  * negative, or `Infinity`.
  */
@@ -177,7 +190,7 @@ export const jrefVisit: {
  *
  * @throws What {@link jrefVisit} throws.
  */
-export const jrefFind: <S extends DocumentSession, T extends Start<AnyJsonNode>, const C extends JrefTest<WalkTarget<S, StartTarget<T>, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, options?: O) => Promise<JrefTestedTarget<WalkTarget<S, StartTarget<T>, O>, C> | undefined>;
+export const jrefFind: <S extends DocumentSession, T extends Start<AnyJsonNode>, const C extends JrefTest<WalkTarget<S, StartTarget<T>, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, options?: O) => Promise<OnlyPassesReference<S, T, C, O> extends true ? never : JrefTestedTarget<WalkTarget<S, StartTarget<T>, O>, C> | undefined>;
 
 /**
  * Every target under `target`, and `target` itself, that passes a
@@ -186,7 +199,7 @@ export const jrefFind: <S extends DocumentSession, T extends Start<AnyJsonNode>,
  *
  * @throws What {@link jrefVisit} throws.
  */
-export const jrefFindAll: <S extends DocumentSession, T extends Start<AnyJsonNode>, const C extends JrefTest<WalkTarget<S, StartTarget<T>, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, options?: O) => Promise<JrefTestedTarget<WalkTarget<S, StartTarget<T>, O>, C>[]>;
+export const jrefFindAll: <S extends DocumentSession, T extends Start<AnyJsonNode>, const C extends JrefTest<WalkTarget<S, StartTarget<T>, O>>, const O extends WalkOptions = WalkOptions>(session: S, target: T, test: C, options?: O) => Promise<OnlyPassesReference<S, T, C, O> extends true ? never : JrefTestedTarget<WalkTarget<S, StartTarget<T>, O>, C>[]>;
 
 /**
  * Options for the functions that walk everything under a node, following
