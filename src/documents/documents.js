@@ -164,8 +164,8 @@ const fragmentPointer = (document, fragment) => {
     return anchors[fragment];
   }
 
-  const pointer = decodeURIComponent(fragment);
-  if (pointer !== "" && !pointer.startsWith("/")) {
+  const pointer = percentDecoded(fragment);
+  if (pointer === undefined || (pointer !== "" && !pointer.startsWith("/"))) {
     throw codedError(`There's no '${fragment}' anchor in '${relativeFileUrl(document.url)}'`, { code: "ERR_ANCHOR_NOT_FOUND", anchor: fragment }, document.url);
   }
 
@@ -221,6 +221,20 @@ const referenced = async (session, url, from, priority) => {
  * @type (entry: Entry) => Cause
  */
 const causeOf = (entry) => entry.record ? { initiator: entry.record } : { referrer: entry.container.url };
+
+/**
+ * A percent-encoded fragment, decoded, or `undefined` if it isn't
+ * percent-encoded, like `/a%`
+ *
+ * @type (fragment: string) => string | undefined
+ */
+const percentDecoded = (fragment) => {
+  try {
+    return decodeURIComponent(fragment);
+  } catch {
+    return undefined;
+  }
+};
 
 /** @type (priority: API.BrowseOptions["priority"]) => PrioritySignal */
 const prioritySignal = (priority) => priority instanceof PrioritySignal ? priority : PrioritySignal.of(priority ?? "auto");

@@ -38,6 +38,13 @@ its fragments identify. JSON and JRef are built in.
   - The JSON and JRef plugins take only a response's `text` and `url`
     (`ParseSource`), which is all they read. A plugin that's read the text
     already gives them the text as it is, without making a new `Response`.
+- A URL a plugin puts in a document, a reference's `href` or an
+  `embedded` document's, is a URL, because a plugin checks what it reads
+  from the document. The JRef plugin makes a `$ref` that doesn't resolve
+  an `invalid-reference`. A plugin that gives `browse` one that isn't a
+  URL has a bug, and `browse` throws the `TypeError` that `new URL` does.
+  - Giving it a code, like a document that can't be used, was rejected.
+    It would make a plugin's bug look like a problem with the document.
 - The JSON and JRef plugins only make a document for a parse whose status
   is `success`. Anything else rejects with a `SyntaxError` whose message
   says the first error and where it is. Its `cause` is the error, which is

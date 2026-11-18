@@ -148,7 +148,9 @@ a hypermedia browser, and the stack is how it retrieves.
   - With `anchors`, even with none in it, a fragment is an anchor's
     pointer if it's there, and otherwise a JSON Pointer that's
     percent-encoded. A JRef document's is `{}`.
-  - A fragment that's neither is an `ERR_ANCHOR_NOT_FOUND`.
+  - A fragment that's neither is an `ERR_ANCHOR_NOT_FOUND`. One that
+    doesn't percent-decode, like `/a%`, isn't a JSON Pointer, so it's
+    one too.
   - An anchor's key is the fragment as it is in a URL, percent-encoded.
 - A plugin's `parse` gives a document the documents it contains
   (`embedded`), parsed, by the URL each says it has. A reference looks in
