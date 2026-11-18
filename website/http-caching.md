@@ -56,6 +56,14 @@ Like `fetch`, `session.fetch` takes a `cache` option:
 A request with a conditional header such as `If-None-Match` bypasses the cache,
 as it does in a browser.
 
+The default transport gives the cache mode to the runtime's `fetch`, so the
+request has the headers that `fetch` adds for it, even without an HTTP cache
+in the stack. `no-store` and `reload` send `Pragma: no-cache` and
+`Cache-Control: no-cache`, and `no-cache` sends `Cache-Control: max-age=0`, so
+a cache between you and the server doesn't answer instead. In a browser, the
+browser's own cache follows the mode. A request whose mode is `only-if-cached`
+fails with a network error when it reaches the network, without being sent.
+
 ## Responses without a lifetime
 
 The cache can still keep a response that doesn't say how long it's fresh for:

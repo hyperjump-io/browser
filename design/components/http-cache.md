@@ -28,8 +28,11 @@ it's a private cache, like a browser's.
   them. With `only-if-cached`, nothing can be sent, so a stored response
   answers it whole, which a server can do too (RFC 9110 §14.2).
 - The cache mode is the Fetch standard's, from `fetch(url, { cache })`,
-  given to the stack as `ctx.cacheMode`. A runtime on a server ignores
-  `Request.cache` or refuses some of its values, so it isn't on the request.
+  given to the stack as `ctx.cacheMode`. It isn't on the request, because
+  Node.js's `fetch` refuses `only-if-cached` there unless the mode is
+  `same-origin`, and then sends it, since it has no cache. The network
+  fetcher gives the runtime the mode (see
+  [The scheme transport](scheme-transport.md)).
   As in the Fetch standard, a request that's already conditional bypasses
   the cache, and `only-if-cached` is a network error when nothing's stored.
 - A successful `POST`, `PUT`, `PATCH`, or `DELETE` removes what's stored for

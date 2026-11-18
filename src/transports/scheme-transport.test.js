@@ -4,6 +4,11 @@ import { SchemeTransport, defaultTransport } from "./scheme-transport.js";
 import { fetcher } from "../layers.js";
 import { responseMeta } from "../response-meta.js";
 import { testHyperjump } from "../test-helpers/hyperjump.js";
+import { startServer } from "../test-helpers/server.js";
+
+/**
+ * @import { CacheMode } from "../hyperjump.d.ts"
+ */
 
 describe("the scheme transport", () => {
   test("gives a request to the fetcher for its scheme", async () => {
@@ -48,6 +53,52 @@ describe("the scheme transport", () => {
     const reason = new Error("stop");
     const fetching = testHyperjump(defaultTransport(), { allow: ["http://127.0.0.1:1/"] }).fetch("http://127.0.0.1:1/a.json", { signal: AbortSignal.abort(reason) });
     await expect(fetching).rejects.toBe(reason);
+  });
+
+  describe("the cache mode", () => {
+    test("is the runtime's, so it sends the headers the Fetch standard adds for it", async () => {
+      const server = await startServer((request, response) => {
+        response.end(JSON.stringify({ pragma: request.headers.pragma ?? null, cacheControl: request.headers["cache-control"] ?? null }));
+      });
+      try {
+        const session = testHyperjump(defaultTransport(), { allow: [server.url] });
+        /** @type (cache: CacheMode, init?: RequestInit) => Promise<unknown> */
+        const sent = async (cache, init = {}) => (await session.fetch(`${server.url}/`, { cache, ...init })).json();
+
+        expect(await sent("default")).to.eql({ pragma: null, cacheControl: null });
+        expect(await sent("no-store")).to.eql({ pragma: "no-cache", cacheControl: "no-cache" });
+        expect(await sent("reload")).to.eql({ pragma: "no-cache", cacheControl: "no-cache" });
+        expect(await sent("no-cache")).to.eql({ pragma: null, cacheControl: "max-age=0" });
+        expect(await sent("force-cache")).to.eql({ pragma: null, cacheControl: null });
+        expect(await sent("reload", { headers: { "cache-control": "max-age=5" } }), "a request's own wins").to.eql({ pragma: "no-cache", cacheControl: "max-age=5" });
+        expect(await sent("reload", { method: "POST", body: "b" }), "with a body").to.eql({ pragma: "no-cache", cacheControl: "no-cache" });
+      } finally {
+        await server.close();
+      }
+    });
+
+    test("only-if-cached that reaches the network is a miss, and it isn't sent", async () => {
+      const server = await startServer((_request, response) => {
+        response.end("sent");
+      });
+      try {
+        const session = testHyperjump(defaultTransport(), { allow: [server.url] });
+
+        const fetching = session.fetch(`${server.url}/`, { cache: "only-if-cached" });
+
+        await expect(fetching).rejects.toThrow(TypeError);
+        await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_CACHE_MISS" } });
+        expect(server.requests).to.eql([]);
+      } finally {
+        await server.close();
+      }
+    });
+
+    test("isn't for a URL that isn't HTTP", async () => {
+      const session = testHyperjump(defaultTransport(), { allow: ["data:"] });
+
+      expect(await (await session.fetch("data:text/plain,hi", { cache: "only-if-cached" })).text()).to.equal("hi");
+    });
   });
 });
 

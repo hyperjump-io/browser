@@ -3,7 +3,7 @@ import { networkError, setResponseMeta } from "../response-meta.js";
 
 /**
  * @import * as API from "./scheme-transport.d.ts"
- * @import { Fetcher } from "../layers.d.ts"
+ * @import { FetchContext, Fetcher } from "../layers.d.ts"
  */
 
 /** @implements API.SchemeTransport */
@@ -31,16 +31,42 @@ export class SchemeTransport {
 
 /** @type typeof API.networkFetcher */
 export const networkFetcher = fetcher(async (request, ctx) => {
+  const sent = withCacheMode(request, ctx.cacheMode);
   ctx.record.mark("network:start", { priority: ctx.priority.value });
   let response;
   try {
-    response = await globalThis.fetch(request);
+    response = await globalThis.fetch(sent);
   } catch (error) {
     throw fetchFailed(request, error);
   }
   ctx.record.mark("network:response", { status: response.status });
   return setResponseMeta(response, { source: "network" });
 });
+
+/**
+ * A request with the session's cache mode, for the runtime. The session
+ * doesn't put it on the request, so the layers have it from the context,
+ * but the runtime follows it: it sends the headers the Fetch standard adds
+ * for it, like `Pragma: no-cache` for `reload`, so a cache between here and
+ * the server doesn't answer, and a browser's own cache follows it.
+ *
+ * `only-if-cached` that reaches the network is a miss, because no cache
+ * above had it. It's never sent: Node.js's `fetch` has no cache, so it
+ * sends it, and a browser refuses it for another origin.
+ *
+ * @type (request: Request, mode: FetchContext["cacheMode"]) => Request
+ * @throws {TypeError} A network error, if it's `only-if-cached`.
+ */
+const withCacheMode = (request, mode) => {
+  const { protocol } = new URL(request.url);
+  if (mode === "default" || (protocol !== "http:" && protocol !== "https:")) {
+    return request;
+  }
+  if (mode === "only-if-cached") {
+    throw networkError(`'${request.url}' isn't in a cache, and its cache mode is "only-if-cached"`, { code: "ERR_CACHE_MISS" }, request.url);
+  }
+  return new Request(request, { cache: mode });
+};
 
 /**
  * A runtime's network error says only that the fetch failed, like Node.js's
