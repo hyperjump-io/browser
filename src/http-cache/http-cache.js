@@ -131,7 +131,10 @@ export class HttpCache {
         return this.#serve(entry, request, "hit");
       }
 
-      const staleAllowed = !responseCacheControl.has("must-revalidate") && !(this.shared && responseCacheControl.has("proxy-revalidate"));
+      // `s-maxage` has `proxy-revalidate`'s meaning in a shared cache (RFC
+      // 9111 §5.2.2.10), so neither lets one serve it stale
+      const staleAllowed = !responseCacheControl.has("must-revalidate")
+        && !(this.shared && (responseCacheControl.has("proxy-revalidate") || responseCacheControl.has("s-maxage")));
       const maxStale = requestCacheControl.get("max-stale");
       if (staleAllowed && maxStale !== undefined && (maxStale === "" || staleBy <= Number(maxStale))) {
         return this.#serve(entry, request, "stale");

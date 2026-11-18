@@ -59,6 +59,14 @@ const routes = {
     response.setHeader("cache-control", "max-age=1, stale-while-revalidate=60");
     response.end(`swr ${Math.random()}`);
   },
+  "/s-maxage": (_request, response) => {
+    response.setHeader("cache-control", "max-age=600, s-maxage=10");
+    response.end(`s-maxage ${Math.random()}`);
+  },
+  "/s-maxage-swr": (_request, response) => {
+    response.setHeader("cache-control", "s-maxage=1, stale-while-revalidate=60");
+    response.end(`s-maxage-swr ${Math.random()}`);
+  },
   "/item": (request, response) => {
     response.setHeader("cache-control", "max-age=60");
     response.end(request.method === "POST" ? "updated" : "item");
@@ -288,6 +296,41 @@ describe("the HTTP cache", () => {
       expect(refresh.priority).to.equal("low");
       expect(refresh.marks.map(({ name }) => name)).to.include("network:start");
       expect(refresh.endTime).not.to.equal(undefined);
+    } finally {
+      await server.close();
+    }
+  });
+
+  test("in a shared cache, s-maxage is the lifetime, and a response past it isn't served stale", async () => {
+    const { server, get, advance } = await setup({ shared: true });
+    try {
+      const first = await get("/s-maxage");
+      advance(5);
+      expect((await get("/s-maxage")).cache).to.equal("hit");
+
+      advance(15);
+      const maxStale = await get("/s-maxage", { headers: { "cache-control": "max-stale" } });
+      expect(maxStale.cache, "max-stale").not.to.equal("stale");
+      expect(maxStale.body).not.to.equal(first.body);
+
+      await get("/s-maxage-swr");
+      advance(5);
+      expect((await get("/s-maxage-swr")).cache, "stale-while-revalidate").not.to.equal("stale");
+    } finally {
+      await server.close();
+    }
+  });
+
+  test("in a private cache, s-maxage doesn't apply", async () => {
+    const { server, get, advance } = await setup();
+    try {
+      await get("/s-maxage");
+      advance(20);
+      expect((await get("/s-maxage")).cache, "fresh by max-age").to.equal("hit");
+
+      await get("/s-maxage-swr");
+      advance(5);
+      expect((await get("/s-maxage-swr")).cache, "stale-while-revalidate").to.equal("stale");
     } finally {
       await server.close();
     }

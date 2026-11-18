@@ -4,7 +4,10 @@ An HTTP cache by RFC 9111, with the Fetch standard's cache modes. By default
 it's a private cache, like a browser's.
 
 - Freshness is from `s-maxage` (a shared cache), `max-age`, or `Expires`,
-  and age is worked out as RFC 9111 §4.2.3 says.
+  and age is worked out as RFC 9111 §4.2.3 says. In a shared cache,
+  `s-maxage` means `proxy-revalidate` too (RFC 9111 §5.2.2.10), so a
+  response past it is revalidated, and neither `max-stale` nor
+  `stale-while-revalidate` serves it stale.
 - A response that doesn't say its lifetime gets one by heuristic, only for
   the statuses RFC 9111 allows: the application's `heuristic` first, then a
   day for a 301 or a 308, then a tenth of the time since `Last-Modified`.

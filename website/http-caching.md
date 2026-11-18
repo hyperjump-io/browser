@@ -89,7 +89,7 @@ httpCache({
 | Option | Description |
 | --- | --- |
 | `store` | Where the cache keeps responses. The default is a new `MemoryCacheStore`. |
-| `shared` | `true` for a shared cache, like a proxy's, which uses `s-maxage` and doesn't store `private` responses |
+| `shared` | `true` for a shared cache, like a proxy's, which uses `s-maxage`, never serves a response stale once it's past its `s-maxage`, and doesn't store `private` responses |
 | `heuristic` | A function that gives a lifetime in seconds for a response that doesn't say one. It gets `{ url, status, headers }` and returns a number, or `undefined` to leave the response to the rules in [Responses without a lifetime](#responses-without-a-lifetime). |
 | `permanentRedirectLifetime` | Seconds that a 301 or 308 without a lifetime is fresh for. The default is a day. `0` leaves them to `heuristicFraction`. |
 | `heuristicFraction` | The part of the time since `Last-Modified` that a response is fresh for. The default is 0.1. |
