@@ -19,7 +19,8 @@ It follows redirects the way `fetch` does:
 - A 301 or 302 changes a `POST` to a `GET`, and a 303 changes anything but `GET`
   and `HEAD` to a `GET`. Either way, the body isn't sent again.
 - A 307 or 308 sends the same method and body again.
-- It doesn't send `Authorization` to another origin.
+- It doesn't send `Authorization`, `Cookie`, or `Proxy-Authorization` to
+  another origin.
 - Each step gets the Hyperjump session's headers for the URL it leads to. For
   more information, see [Hyperjump sessions](hyperjump-sessions.md#headers).
 - More than 20 redirects is a network error. To change that, use the session's

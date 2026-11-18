@@ -83,10 +83,10 @@ describe("redirects", () => {
       const post = async (status) => (await session.fetch(`${server.url}/r/${status}/echo`, { method: "POST", body: "payload", headers: { "content-type": "text/plain" } })).json();
 
       for (const status of [301, 302, 303]) {
-        expect(await post(status), `${status} makes a POST a GET without its body`).to.eql({ path: "/echo", method: "GET", body: "", contentType: null, authorization: null, apiKey: null });
+        expect(await post(status), `${status} makes a POST a GET without its body`).to.eql({ path: "/echo", method: "GET", body: "", contentType: null, authorization: null, cookie: null, proxyAuthorization: null, apiKey: null });
       }
       for (const status of [307, 308]) {
-        expect(await post(status), `${status} sends the method and body again`).to.eql({ path: "/echo", method: "POST", body: "payload", contentType: "text/plain", authorization: null, apiKey: null });
+        expect(await post(status), `${status} sends the method and body again`).to.eql({ path: "/echo", method: "POST", body: "payload", contentType: "text/plain", authorization: null, cookie: null, proxyAuthorization: null, apiKey: null });
       }
       expect((await (await session.fetch(`${server.url}/r/302/echo`, { method: "PUT", body: "x" })).json()).method, "302 only changes POST").to.equal("PUT");
       expect((await (await session.fetch(`${server.url}/r/303/echo`, { method: "PUT", body: "x" })).json()).method, "303 changes anything but GET and HEAD").to.equal("GET");
@@ -95,16 +95,17 @@ describe("redirects", () => {
     }
   });
 
-  test("Authorization isn't sent to another origin", async () => {
+  test("Authorization, Cookie, and Proxy-Authorization aren't sent to another origin, like Node.js's fetch", async () => {
     const other = await redirectServer();
     const server = await redirectServer(() => other.url);
     try {
       const session = testHyperjump(defaultTransport(), { allow: [server.url, other.url] });
-      const headers = { authorization: "Bearer secret" };
-      expect((await (await session.fetch(`${server.url}/r/302/echo`, { headers })).json()).authorization).to.equal("Bearer secret");
+      const headers = { "authorization": "Bearer secret", "cookie": "session=secret", "proxy-authorization": "Basic secret", "x-api-key": "key" };
+      const same = await (await session.fetch(`${server.url}/r/302/echo`, { headers })).json();
+      expect(same, "to the same origin").to.include({ authorization: "Bearer secret", cookie: "session=secret", proxyAuthorization: "Basic secret", apiKey: "key" });
       const crossed = await session.fetch(`${server.url}/to-other`, { method: "POST", body: "b", headers });
       const json = await crossed.json();
-      expect(json.authorization).to.equal(null);
+      expect(json, "to another origin").to.include({ authorization: null, cookie: null, proxyAuthorization: null, apiKey: "key" });
       expect(json.body).to.equal("b");
       expect(crossed.url).to.equal(`${other.url}/echo`);
     } finally {
@@ -262,6 +263,8 @@ const redirectServer = async (otherOrigin) => startServer(async (request, respon
     body,
     contentType: request.headers["content-type"] ?? null,
     authorization: request.headers.authorization ?? null,
+    cookie: request.headers.cookie ?? null,
+    proxyAuthorization: request.headers["proxy-authorization"] ?? null,
     apiKey: request.headers["x-api-key"] ?? null
   }));
 });

@@ -103,8 +103,9 @@ const session = new Hyperjump({
 
 Each redirect gets the headers for the URL it leads to, not the ones for the URL
 before it. A credential doesn't follow a redirect to another origin, or out of
-the path it's for. Headers that a request sets itself follow redirects, as they
-do with `fetch`, except `Authorization` to another origin.
+the path it's for. Headers that a request sets itself follow redirects, except
+`Authorization`, `Cookie`, and `Proxy-Authorization` to another origin, as
+with `fetch` in Node.js.
 
 To send a header to every URL, such as `User-Agent`, write a layer. For more
 information, see [Layers](layers.md#write-a-layer).

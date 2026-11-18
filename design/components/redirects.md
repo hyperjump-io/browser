@@ -17,7 +17,11 @@ It follows the Fetch standard:
   `HEAD` a `GET`, without the body or the headers about it. A 307 or 308
   sends the method and body again, so a request with a body is cloned before
   each step, to have the body for the next.
-- `Authorization` isn't sent to another origin.
+- `Authorization`, `Cookie`, and `Proxy-Authorization`, the credentials
+  HTTP defines, aren't sent to another origin. The Fetch standard drops
+  only `Authorization`, because a page can't set the others: a browser
+  sends its own cookies for each origin. On a server, a request can have
+  them, and Node.js's `fetch` drops all three, so the session does too.
 - A URL a redirect leads to without a fragment gets the original's.
 - More than 20 redirects (`maxRedirects`) is a network error.
 

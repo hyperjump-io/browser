@@ -58,8 +58,11 @@ Rejected:
   be the stack's, which sessions share, so sessions with different
   credentials couldn't share a stack. Credentials are about who's fetching,
   like what a session can fetch.
-- Dropping more headers on a redirect to another origin, as `Authorization`
-  is. A list of names misses the ones it doesn't have, like `X-API-Key`.
+- A list of every header a credential could be in, to drop on a redirect
+  to another origin. A list of names misses the ones it doesn't have, like
+  `X-API-Key`, so a credential like that goes in the session's `headers`,
+  which are worked out again for each URL. The credentials HTTP defines
+  are dropped (see [Redirects](redirects.md)).
 
 ## Known limitations
 
@@ -68,9 +71,11 @@ Rejected:
   session's request for the same URL, unless it has a `Vary` on them.
   Sessions with different credentials for the same URL need stacks that
   don't share a cache store.
-- A request's own headers follow redirects as they do in `fetch`, to every
-  URL but `Authorization` to another origin. A credential that should stay
-  with its URL goes in the session's `headers`.
+- A request's own headers follow redirects to every URL, but
+  `Authorization`, `Cookie`, and `Proxy-Authorization` to another origin
+  (see [Redirects](redirects.md)). A credential in another header, like
+  `X-API-Key`, follows a redirect anywhere, so a credential that should
+  stay with its URL goes in the session's `headers`.
 - A request's record has the headers its first step was sent with, the
   session's and credentials too, so a trace or a HAR export has them (see
   [Fetch records](fetch-records.md)).

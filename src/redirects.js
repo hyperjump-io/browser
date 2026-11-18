@@ -39,6 +39,14 @@ export const redirectSchemesOf = (schemes = ["http:", "https:"]) => {
   return [...schemes];
 };
 
+/**
+ * The credentials HTTP defines (RFC 9110 and RFC 6265), which a redirect
+ * doesn't send to another origin. A browser doesn't let a page set `Cookie`
+ * or `Proxy-Authorization`, and sends its own cookies for each origin, and
+ * Node.js's `fetch` drops all three.
+ */
+const credentialHeaders = ["authorization", "cookie", "proxy-authorization"];
+
 /** Headers about a request's body, which go when a redirect makes it a GET */
 const bodyHeaders = ["content-encoding", "content-language", "content-location", "content-type", "content-length"];
 
@@ -164,7 +172,8 @@ export const sentHeaders = (own, added) => {
 /**
  * The request a redirect leads to, by the Fetch standard: a 301 or 302 makes
  * a POST a GET, and a 303 makes anything but GET or HEAD a GET, without the
- * body. `Authorization` isn't sent to another origin.
+ * body. `Authorization`, `Cookie`, and `Proxy-Authorization` aren't sent to
+ * another origin.
  *
  * @type (previous: Request, target: URL, status: number) => Request
  */
@@ -185,7 +194,9 @@ const nextHop = (previous, target, status) => {
     }
   }
   if (new URL(previous.url).origin !== target.origin) {
-    headers.delete("authorization");
+    for (const name of credentialHeaders) {
+      headers.delete(name);
+    }
   }
 
   return new Request(target, {
