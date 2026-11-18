@@ -35,6 +35,18 @@ const routes = {
     }
     response.end("etag body");
   },
+  "/aged": (request, response) => {
+    response.setHeader("etag", "\"aged\"");
+    response.setHeader("cache-control", "max-age=3600");
+    if (request.headers["if-none-match"] === "\"aged\"") {
+      response.statusCode = 304;
+      response.end();
+      return;
+    }
+    // From a cache in front of the origin, like a CDN's
+    response.setHeader("age", "3000");
+    response.end("aged body");
+  },
   "/no-cache": (request, response) => {
     response.setHeader("etag", "\"nc\"");
     response.setHeader("cache-control", "no-cache");
@@ -171,6 +183,23 @@ describe("the HTTP cache", () => {
       advance(5);
       expect((await get("/etag")).cache, "fresh again after revalidating").to.equal("hit");
       expect(hits("/etag")).to.equal(2);
+    } finally {
+      await server.close();
+    }
+  });
+
+  test("a 304 without an Age is as old as it is, not as old as what it validated", async () => {
+    const { server, get, advance, hits } = await setup();
+    try {
+      await get("/aged");
+      advance(601);
+      expect((await get("/aged")).cache, "3000 seconds old, and 601 more, is stale").to.equal("revalidated");
+
+      advance(601);
+      const again = await get("/aged");
+      expect(again.cache, "fresh for an hour from the 304").to.equal("hit");
+      expect(Number(again.response.headers.get("age"))).to.be.lessThan(700);
+      expect(hits("/aged")).to.equal(2);
     } finally {
       await server.close();
     }

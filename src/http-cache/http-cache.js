@@ -479,9 +479,18 @@ const cacheKey = (url) => {
 /** @type (entry: API.CachedEntry, name: string) => string | undefined */
 const header = (entry, name) => entry.headers.find(([key]) => key.toLowerCase() === name)?.[1];
 
-/** @type (entry: API.CachedEntry, timed: Timed, request: Request) => API.CachedEntry */
+/**
+ * A stored response with a 304's headers (RFC 9111, section 4.3.4). Its age
+ * is the 304's, as its `Date` and its request and response times are, so a
+ * 304 without an `Age` is as old as it is. With the stored response's `Age`,
+ * a response that was old when it was stored would be as old again after
+ * every 304, and go stale as soon.
+ *
+ * @type (entry: API.CachedEntry, timed: Timed, request: Request) => API.CachedEntry
+ */
 const mergeNotModified = (entry, { response, requestTime, responseTime }, request) => {
   const headers = new Headers(entry.headers);
+  headers.delete("age");
   for (const [name, value] of withoutHopByHop(response.headers)) {
     if (!notUpdatedBy304.has(name)) {
       headers.set(name, value);

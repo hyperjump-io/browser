@@ -16,6 +16,16 @@ it's a private cache, like a browser's.
   away.
 - A stale response with an `ETag` or `Last-Modified` is revalidated, and a
   304's headers are merged into what's stored.
+  - The stored response's age is the 304's, so a 304 without an `Age` is
+    as old as it is. Its age is figured from its `Date` and the times of
+    its request and response, and the `Age` that goes with them is its
+    own. A response that was 50 minutes old when a CDN gave it, with an
+    hour's `max-age`, is fresh for an hour after the origin's 304.
+  - Keeping the stored `Age` when a 304 has none, which RFC 9111's
+    section 4.3.4 allows, was rejected. It mixes two responses in one age:
+    the response that was 50 minutes old would be 50 minutes old again
+    after every 304, and revalidated every 10 minutes for as long as it's
+    stored.
 - `stale-while-revalidate` serves the stale response and refreshes it in
   the background. The refresh is a request of the session's,
   `session.fetch` with `cache: "no-cache"`, so it goes down the stack
