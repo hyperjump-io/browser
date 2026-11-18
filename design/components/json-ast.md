@@ -92,6 +92,13 @@ the root of a document, whose parse status is one of:
   node is only in the tolerant types, and a `success` or `recovered` tree's
   references can all be followed. A `$ref` that isn't a string isn't a
   reference, so it's an ordinary object.
+  - Known limitation: Node.js's URL parser (in 26.3.1) resolves a
+    reference with a fragment against a base with an opaque path, like
+    `x#a` against `urn:example:a`, to `urn:example:a/x#a`. By the URL
+    Standard, only a reference that starts with `#` resolves against one,
+    as `x` without the fragment doesn't, so in Node.js that `$ref` is a
+    reference, not an invalid reference. It's the platform's, and a
+    reference is resolved with `URL.parse`, so it isn't worked around.
   - `jrefSyntaxErrorMessage` describes JRef's errors and JSON's, and
     `reportSyntaxErrors` takes the message function, so `json/` doesn't
     know JRef's messages.
