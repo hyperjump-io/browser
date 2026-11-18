@@ -136,6 +136,31 @@ describe("jrefSelect", () => {
     expect(await jrefSelectAll(session, "[key=child]", subject)).to.eql([subject]);
   });
 
+  test("a value reached again is matched, but what's under it isn't walked again with the same selectors", async () => {
+    // Each level refers to the next one twice, so walking under every
+    // place a value is would match the last one 2^20 times
+    /** @type Record<string, unknown> */
+    const document = { last: 1 };
+    for (let level = 0; level < 20; level++) {
+      document[`l${level}`] = [{ $ref: `#/l${level + 1}` }, { $ref: `#/l${level + 1}` }];
+    }
+    document.l20 = { $ref: "#/last" };
+    const { session } = site({ "/doc": /** @type any */ (document) });
+    const root = await browse(session, "https://a.test/doc");
+    const last = await browse(session, "https://a.test/doc#/last");
+    let matches = 0;
+    Object.defineProperty(last.node, "tested", {
+      get: () => {
+        matches++;
+        return undefined;
+      }
+    });
+
+    expect(await jrefSelectAll(session, "[tested]", root)).to.eql([]);
+    // At `last`, at `l20`, and at each of `l19`'s references
+    expect(matches).to.equal(4);
+  });
+
   describe("maxDepth", () => {
     const pages = {
       "/pages/1": { next: { $ref: "2" } },

@@ -90,7 +90,7 @@ const select = async (session, selector, from, maxDepth, manual, onMatch) => {
   const states = selectors.map((complex) => ({ complex, index: 0, descendant: true }));
   // A selection that starts at a reference starts at what it leads to, like
   // a walk that reaches one
-  await selectTarget({ session, maxDepth, manual, ancestors: new Map(), onMatch }, await follow(session, target, target.node, manual), undefined, 0, states);
+  await selectTarget({ session, maxDepth, manual, ancestors: new Map(), walked: new Map(), onMatch }, await follow(session, target, target.node, manual), undefined, 0, states);
 };
 
 /**
@@ -102,11 +102,18 @@ const select = async (session, selector, from, maxDepth, manual, onMatch) => {
  * They're the nodes and not their locations, because two documents can say
  * they have the same URL. `onMatch` returns `true` to stop.
  *
+ * `walked` is the states each node has been walked under with. A node
+ * that's reached again is matched with its key, but what's under it isn't
+ * walked again with the same states, because it would match what it
+ * matched. Without it, a document that refers to each level twice from the
+ * one above would take twice as long for each level.
+ *
  * @typedef {{
  *   session: DocumentSession;
  *   maxDepth: number;
  *   manual: boolean;
  *   ancestors: Map<Walked, Set<string>>;
+ *   walked: Map<Walked, Set<string>>;
  *   onMatch: (target: WalkedTarget) => boolean;
  * }} Selection
  */
@@ -153,7 +160,8 @@ const selectTarget = async (selection, target, key, depth, states) => {
   // matched, but what's under it is already being walked
   const signature = [...next.keys()].sort().join(",");
   const walking = selection.ancestors.get(node) ?? new Set();
-  if (walking.has(signature)) {
+  const walked = selection.walked.get(node) ?? new Set();
+  if (walking.has(signature) || walked.has(signature)) {
     return false;
   }
 
@@ -188,6 +196,8 @@ const selectTarget = async (selection, target, key, depth, states) => {
     }
   }
 
+  walked.add(signature);
+  selection.walked.set(node, walked);
   return false;
 };
 

@@ -313,6 +313,12 @@ take the session to follow references with, and a target to start from.
   reached through more than one reference, and so one target for it. A visit has it each time,
   because a visitor can keep state by where a node is, but a list of what
   was found would only repeat it.
+- So a find walks under a value once. A value it reaches again is tested
+  with its key and parent, but what's under it isn't walked again: it
+  would be tested with the same keys and parents and find only what was
+  found. Walking under it each time, as a visit does, costs the document
+  as a tree, and a document of a few kilobytes that refers to each level
+  twice from the one above is a tree too big to walk.
 - They're for finding by what a node is. A selector finds by where a node
   is, and it can rule out a member by its key before following it, so
   `jrefSelect` retrieves less for a path.
@@ -356,7 +362,9 @@ take the session to follow references with, and a target to start from.
 - It's only an error if the walk would go under a node at `maxDepth`: the
   visitor didn't skip it, it isn't a reference back to a node that's being
   walked, it has members, and for a selector, one of them could match or
-  have a match under it. It's checked before a member is followed, so a
+  have a match under it. For a find or a selection, it also isn't a node
+  that was walked under already, so a second way to reach one that's
+  deeper isn't an error, because it would find nothing new. It's checked before a member is followed, so a
   walk that's too deep doesn't retrieve anything past `maxDepth`.
 - The error's `url` is the node the walk would go under, because that's
   where to look for what leads deeper, and its cause has the `maxDepth`.
@@ -404,6 +412,11 @@ take the session to follow references with, and a target to start from.
   back to couldn't. In `{ "y": 1, "x": { "$ref": "#" } }`, `[key=x] [key=y]`
   matches `/x/y`, which the root's walk couldn't match. The states a node
   is walked with are finite, so a cycle still ends.
+- A node is walked under once with the same states, like a find walks
+  under a value once. One it reaches again is matched with its key, but
+  what's under it would match what it matched, so it isn't walked again.
+  What a selection costs is the document's nodes times the states they're
+  reached with, not the document as a tree.
   - Not walking under a reference back to a node that's being walked, as
     `jrefVisit` doesn't, was rejected. A visit's node is the same wherever
     it's reached, but a selector's partial matches aren't, so it would miss

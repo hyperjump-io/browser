@@ -28,26 +28,34 @@ export const jrefVisit = /** @type typeof API.jrefVisit */ (
    * @param {API.JrefVisitor<any> | API.WalkOptions} [visitorOrOptions]
    * @param {API.WalkOptions} [options]
    */
-  async (session, from, testOrVisitor, visitorOrOptions, options) => {
-    const [check, visit, walkOptions] = typeof visitorOrOptions === "function"
-      ? [convertTest(/** @type API.JrefTest<any> */ (testOrVisitor)), visitorOrOptions, options]
-      : [() => true, /** @type API.JrefVisitor<any> */ (testOrVisitor), visitorOrOptions];
-
-    const manual = isManual(walkOptions);
-    if (!manual && typeof visitorOrOptions === "function" && onlyReferences(/** @type API.JrefTest<any> */ (testOrVisitor))) {
-      throw unreachableReferenceError("a test that only passes a reference");
-    }
-    const walk = { session, maxDepth: maxDepth(walkOptions), manual, ancestors: new Set(), check, visitor: visit };
-    // A walk that starts at a reference starts at what it leads to, like a
-    // walk that reaches one
-    const target = startOf(from);
-    // A document with nothing in it has nothing to visit
-    if (!hasValue(target)) {
-      return;
-    }
-    await visitTarget(walk, await follow(session, target, target.node, manual), undefined, undefined, 0);
-  }
+  (session, from, testOrVisitor, visitorOrOptions, options) => visitFrom(session, from, testOrVisitor, visitorOrOptions, options, undefined)
 );
+
+/**
+ * `jrefVisit`, with the nodes that have been walked under for a walk that
+ * finds (`walked` in `Visit`)
+ *
+ * @type (session: DocumentSession, from: Target | DocumentNode, testOrVisitor: API.JrefTest<any> | API.JrefVisitor<any>, visitorOrOptions: API.JrefVisitor<any> | API.WalkOptions | undefined, options: API.WalkOptions | undefined, walked: Set<Walked> | undefined) => Promise<void>
+ */
+const visitFrom = async (session, from, testOrVisitor, visitorOrOptions, options, walked) => {
+  const [check, visit, walkOptions] = typeof visitorOrOptions === "function"
+    ? [convertTest(/** @type API.JrefTest<any> */ (testOrVisitor)), visitorOrOptions, options]
+    : [() => true, /** @type API.JrefVisitor<any> */ (testOrVisitor), visitorOrOptions];
+
+  const manual = isManual(walkOptions);
+  if (!manual && typeof visitorOrOptions === "function" && onlyReferences(/** @type API.JrefTest<any> */ (testOrVisitor))) {
+    throw unreachableReferenceError("a test that only passes a reference");
+  }
+  const walk = { session, maxDepth: maxDepth(walkOptions), manual, ancestors: new Set(), walked, check, visitor: visit };
+  // A walk that starts at a reference starts at what it leads to, like a
+  // walk that reaches one
+  const target = startOf(from);
+  // A document with nothing in it has nothing to visit
+  if (!hasValue(target)) {
+    return;
+  }
+  await visitTarget(walk, await follow(session, target, target.node, manual), undefined, undefined, 0);
+};
 
 // eslint-disable-next-line @stylistic/no-extra-parens
 export const jrefFind = /** @type typeof API.jrefFind */ (async (
@@ -58,10 +66,10 @@ export const jrefFind = /** @type typeof API.jrefFind */ (async (
 ) => {
   /** @type WalkedTarget | undefined */
   let found;
-  await jrefVisit(session, /** @type never */ (target), test, (foundTarget) => {
+  await visitFrom(session, target, test, (foundTarget) => {
     found = /** @type WalkedTarget */ (foundTarget);
     return EXIT;
-  }, options);
+  }, options, new Set());
 
   return found;
 });
@@ -76,11 +84,11 @@ export const jrefFindAll = /** @type typeof API.jrefFindAll */ (async (
   // A node reached through more than one reference is found once
   /** @type Map<Walked, WalkedTarget> */
   const found = new Map();
-  await jrefVisit(session, /** @type never */ (target), test, (/** @type WalkedTarget */ foundTarget) => {
+  await visitFrom(session, target, test, (/** @type WalkedTarget */ foundTarget) => {
     if (!found.has(foundTarget.node)) {
       found.set(foundTarget.node, foundTarget);
     }
-  }, options);
+  }, options, new Set());
 
   return [...found.values()];
 });
@@ -95,11 +103,20 @@ export const jrefFindAll = /** @type typeof API.jrefFindAll */ (async (
  * descended into. They're the nodes and not their locations, because two
  * documents can say they have the same URL.
  *
+ * `walked` is the nodes that everything under has been walked, for a walk
+ * that finds. A node that's reached again is tested with its key and
+ * parent, but what's under it isn't walked again. It would be tested with
+ * the same keys and parents and find what was found, and a document that
+ * refers to each level twice from the one above would take twice as long
+ * for each level. A visit doesn't have it, because it visits a value each
+ * place it is.
+ *
  * @typedef {{
  *   session: DocumentSession;
  *   maxDepth: number;
  *   manual: boolean;
  *   ancestors: Set<Walked>;
+ *   walked: Set<Walked> | undefined;
  *   check: Check;
  *   visitor: API.JrefVisitor<any>;
  * }} Visit
@@ -121,7 +138,7 @@ const visitTarget = async (walk, target, key, parent, depth) => {
   }
 
   const { node } = target;
-  if (action === SKIP || walk.ancestors.has(node)) {
+  if (action === SKIP || walk.ancestors.has(node) || walk.walked?.has(node)) {
     return CONTINUE;
   }
 
@@ -144,6 +161,7 @@ const visitTarget = async (walk, target, key, parent, depth) => {
     walk.ancestors.delete(node);
   }
 
+  walk.walked?.add(node);
   return CONTINUE;
 };
 
