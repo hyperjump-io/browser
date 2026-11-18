@@ -1,28 +1,30 @@
 # Parse JSON and JRef
 
 You can use the JSON and JRef parsers on their own, without a Hyperjump session.
-They parse into a JSON abstract syntax tree (AST), which is a
-[unist](https://github.com/syntax-tree/unist) tree with a position for every
-value.
+They parse text into a document whose root is a JSON abstract syntax tree (AST)
+of the value. The document is a [unist](https://github.com/syntax-tree/unist)
+tree with a position for every value, and it's what the `jref` functions read.
 
 ## Parse
 
-`fromJson` parses JSON text. It never throws. Instead, it recovers from syntax
-errors where it can and returns every error it found:
+`fromJson` parses JSON text into a document. It never throws. Instead, it
+recovers from syntax errors where it can and returns every error it found next
+to the document:
 
 ```typescript
 import { fromJson, jsonSyntaxErrorMessage } from "@hyperjump/browser";
 
-const result = fromJson(`{ "a": [1, 2,] }`, "https://example.com/doc");
-result.status; // "recovered"
-result.node; // The AST
+const json = `{ "a": [1, 2,] }`;
+const { document, errors } = fromJson(json, "https://example.com/doc");
+document.status; // "recovered"
+document.children[0]; // The AST of the value
 
-const [error] = result.errors;
+const [error] = errors;
 error.ruleId; // "trailing-comma"
 jsonSyntaxErrorMessage(error); // "Trailing commas are not allowed"
 ```
 
-The `status` says how parsing went:
+The document's `status` says how parsing went:
 
 | Status | Meaning |
 | --- | --- |
@@ -38,18 +40,19 @@ The second argument of `fromJson` is the document's URL, which every node's
 `location` starts with. It has to be an absolute URL without a fragment, or
 `fromJson` throws a `TypeError`. With the
 `allowComments` option, `fromJson` accepts `//` and `/* */` comments the way
-JSON with Comments (JSONC) does. Comments aren't part of the AST. The result
+JSON with Comments (JSONC) does. Comments aren't part of the AST. The document
 lists them in `comments` in the order they appear:
 
 ```typescript
 const json = `{ "a": 1 // one
 }`;
-const result = fromJson(json, "https://example.com/doc", {
+const { document } = fromJson(json, "https://example.com/doc", {
   allowComments: true
 });
 
-result.node.location; // "https://example.com/doc#"
-result.comments[0].value; // " one"
+document.url; // "https://example.com/doc"
+document.children[0].location; // "https://example.com/doc#"
+document.comments[0].value; // " one"
 ```
 
 `fromJref` parses JRef the same way. Each reference node gets an `href`, which
@@ -59,7 +62,7 @@ is the reference resolved against the document's URL:
 import { fromJref } from "@hyperjump/browser";
 
 const jref = `{ "x": { "$ref": "#/y" }, "y": 1 }`;
-const { node } = fromJref(jref, "https://example.com/doc");
+const { document } = fromJref(jref, "https://example.com/doc");
 ```
 
 `fromJref` takes the `allowComments` option too.
@@ -74,10 +77,11 @@ syntax errors too:
 ```typescript
 import { fromJref, jrefSyntaxErrorMessage } from "@hyperjump/browser";
 
-const result = fromJref(`{ "$ref": "//[" }`, "https://example.com/doc");
-result.status; // "failure"
-result.node.type; // "invalid-reference"
-jrefSyntaxErrorMessage(result.errors[0]);
+const jref = `{ "$ref": "//[" }`;
+const { document, errors } = fromJref(jref, "https://example.com/doc");
+document.status; // "failure"
+document.children[0].type; // "invalid-reference"
+jrefSyntaxErrorMessage(errors[0]);
 // "'//[' is not a valid reference"
 ```
 
@@ -85,6 +89,10 @@ A `$ref` that's an absolute `file:` URL, such as `file:///home/me/a.json`, isn't
 a reference either, because it only works on one machine and says where that
 machine's files are. To refer to a file from a file, use a relative reference.
 Its error's `ruleId` is `"absolute-file-reference"`.
+
+To follow the references in a document you parsed, pass it to the `jref`
+functions. For more information, see
+[Read a tree you parsed](references.md#read-a-tree-you-parsed).
 
 ## Read the AST
 
@@ -98,25 +106,26 @@ node with a JSON Pointer and then reads the node's value and its position:
 ```typescript
 import {
   fromJson,
+  hasStatus,
   jsonSyntaxErrorMessage,
   jsonValue,
   jsonPointerGet
 } from "@hyperjump/browser";
 
 const json = `{ "a": { "b": [10, 20] } }`;
-const result = fromJson(json, "https://example.com/doc");
-if (result.status === "failure") {
-  throw new Error(jsonSyntaxErrorMessage(result.errors[0]));
+const { document, errors } = fromJson(json, "https://example.com/doc");
+if (!hasStatus(document, "success", "recovered")) {
+  throw new Error(jsonSyntaxErrorMessage(errors[0]));
 }
 
-const twenty = jsonPointerGet("/a/b/1", result.node);
+const twenty = jsonPointerGet("/a/b/1", document.children[0]);
 jsonValue(twenty); // 20
 twenty.position?.start; // { line: 1, column: 20, offset: 19 }
 ```
 
-The example checks the `status` first because only a parse whose status is
-`"failure"` can have error nodes. After that check, TypeScript knows that the
-AST has none.
+The example checks the status with `hasStatus` first because only a document
+whose status is `"failure"` can have error nodes. After that check, TypeScript
+knows that the AST has none.
 
 These are the functions for reading the AST:
 
@@ -155,7 +164,8 @@ that its `type` is `"json"` first:
 ```typescript
 import { fromJson, jsonPointerGet } from "@hyperjump/browser";
 
-const { node } = fromJson(`{ "a": }`, "https://example.com/doc");
+const { document } = fromJson(`{ "a": }`, "https://example.com/doc");
+const [node] = document.children;
 if (node.type === "json") {
   jsonPointerGet("/a", node); // undefined
 
@@ -191,12 +201,13 @@ compare it to the locations the parser made:
 import {
   appendToLocation,
   fromJson,
+  hasStatus,
   jsonPointerGet
 } from "@hyperjump/browser";
 
-const result = fromJson(`{ "x": {} }`, "https://example.com/doc");
-if (result.status !== "failure") {
-  const parent = jsonPointerGet("/x", result.node);
+const { document } = fromJson(`{ "x": {} }`, "https://example.com/doc");
+if (hasStatus(document, "success", "recovered")) {
+  const parent = jsonPointerGet("/x", document.children[0]);
   appendToLocation("a b", parent.location);
   // "https://example.com/doc#/x/a%20b"
 }

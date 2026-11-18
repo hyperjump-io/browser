@@ -171,21 +171,28 @@ for (const reference of references) {
 
 ## Read a tree you parsed
 
-A document that you parsed yourself isn't one the Hyperjump session retrieved,
-so `browse` never gave you a target for it. Pass the document to a `jref`
-function instead of a target, and it starts from the document's root. A
+A document that you parsed yourself, such as with
+[`fromJref`](parsing.md#parse), isn't one the Hyperjump session
+retrieved, so `browse` never gave you a target for it. Pass the document to a
+`jref` function instead of a target, and it starts from the document's root. A
 reference in the document finds the document itself and the documents that it
 contains, without retrieving them:
 
 ```typescript
-import { jrefMediaType, jrefSelect } from "@hyperjump/browser";
+import { fromJref, hasStatus, jrefSelect } from "@hyperjump/browser";
 
-const mine = await jrefMediaType.parse({
-  text: async () => `{ "luke": { "$ref": "/api/people/1" } }`,
-  url: "https://swapi.hyperjump.io/mine"
-});
-const luke = await jrefSelect(session, "> [key=luke]", mine);
+const { document } = fromJref(
+  `{ "luke": { "$ref": "/api/people/1" } }`,
+  "https://swapi.hyperjump.io/mine"
+);
+if (hasStatus(document, "success")) {
+  const luke = await jrefSelect(session, "> [key=luke]", document);
+}
 ```
+
+A document that you parse can have syntax errors, so check its status first.
+In TypeScript, `hasStatus` also narrows the document's type, so a document with
+the status `"success"` has no error nodes.
 
 A reference that the session retrieves comes from the document's URL, so only
 a document whose URL is a `file:` URL can refer to a file. For more
