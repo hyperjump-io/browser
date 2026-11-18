@@ -45,6 +45,29 @@ throws a `TypeError` instead of walking.
 `jrefStep(session, "homeworld", luke, { reference: "manual" })` is the
 reference to Luke's homeworld and not the homeworld.
 
+A step can give you a reference or a value, so `jrefIsReference` says which one
+you have. In TypeScript, it also narrows the target to a reference for
+`jrefHref`. This lists which of Luke's properties are references:
+
+```typescript
+import { jrefHref, jrefIsReference, jrefObjectEntries } from "@hyperjump/browser";
+
+const manual = { reference: "manual" } as const;
+for await (const [key, value] of jrefObjectEntries(session, luke, manual)) {
+  if (jrefIsReference(value)) {
+    console.log(key, jrefHref(value));
+  }
+}
+```
+
+```text
+homeworld https://swapi.hyperjump.io/api/planets/1
+```
+
+`jrefHref` throws a `TypeError` for a target that isn't a reference. A test
+like `"reference"` only finds references, so the first example doesn't need to
+check.
+
 ## Follow a reference
 
 `jrefFollow` gives you the value that a reference leads to. If that value is
