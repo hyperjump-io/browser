@@ -172,10 +172,10 @@ for (const reference of references) {
 ## Read a tree you parsed
 
 A document that you parsed yourself isn't one the Hyperjump session retrieved,
-so `browse` never gave you a target for it. The `jref` functions take the
-document where they take a target and start from its root, the way a unist
-utility takes the tree. A reference in the document finds the document itself
-and the documents that it contains, without retrieving them:
+so `browse` never gave you a target for it. Pass the document to a `jref`
+function instead of a target, and it starts from the document's root. A
+reference in the document finds the document itself and the documents that it
+contains, without retrieving them:
 
 ```typescript
 import { jrefMediaType, jrefSelect } from "@hyperjump/browser";
