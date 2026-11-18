@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
-import { mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { defaultTransport } from "../transports/scheme-transport.js";
 import { responseMeta } from "../response-meta.js";
 import { HttpCache } from "./http-cache.js";
@@ -145,6 +145,17 @@ describe("the file cache store", () => {
     }
     expect(present, "2 was the least recently used").to.eql([1, 3, 4]);
     expect(await store.size()).to.be.lessThanOrEqual(store.maxSize);
+  });
+
+  test.skipIf(process.platform === "win32")("its files and the directories made for them are only the user's", async () => {
+    const root = join(await directory(), "cache");
+    const store = new FileCacheStore({ directory: root });
+    await store.put(entry("https://a.test/", "private"));
+
+    const [file] = await files(root);
+    expect((await stat(file)).mode & 0o777).to.equal(0o600);
+    expect((await stat(dirname(file))).mode & 0o777).to.equal(0o700);
+    expect((await stat(root)).mode & 0o777).to.equal(0o700);
   });
 
   test("names files by a hash of the URL, so a URL is never a path", async () => {

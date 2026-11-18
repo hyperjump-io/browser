@@ -207,7 +207,7 @@ export class HttpCache {
 
     const timed = await this.#fetchTimed(conditional, ctx);
     if (timed.response.status === 304 && (etag || lastModified)) {
-      const updated = mergeNotModified(entry, timed);
+      const updated = mergeNotModified(entry, timed, request);
       await this.#storePut(updated);
       return this.#serve(updated, request, "revalidated");
     }
@@ -260,7 +260,7 @@ export class HttpCache {
       statusText: response.statusText,
       headers: [...headers],
       body,
-      requestHeaders: [...request.headers],
+      requestHeaders: variedHeaders(request.headers, headers),
       requestTime,
       responseTime
     };
@@ -428,8 +428,8 @@ const cacheKey = (url) => {
 /** @type (entry: API.CachedEntry, name: string) => string | undefined */
 const header = (entry, name) => entry.headers.find(([key]) => key.toLowerCase() === name)?.[1];
 
-/** @type (entry: API.CachedEntry, timed: Timed) => API.CachedEntry */
-const mergeNotModified = (entry, { response, requestTime, responseTime }) => {
+/** @type (entry: API.CachedEntry, timed: Timed, request: Request) => API.CachedEntry */
+const mergeNotModified = (entry, { response, requestTime, responseTime }, request) => {
   const headers = new Headers(entry.headers);
   for (const [name, value] of withoutHopByHop(response.headers)) {
     if (!notUpdatedBy304.has(name)) {
@@ -437,8 +437,22 @@ const mergeNotModified = (entry, { response, requestTime, responseTime }) => {
     }
   }
   response.body?.cancel().catch(() => {});
-  return { ...entry, headers: [...headers], requestTime, responseTime };
+  return { ...entry, headers: [...headers], requestHeaders: variedHeaders(request.headers, headers), requestTime, responseTime };
 };
+
+/**
+ * The request headers a response's `Vary` names, which is all that's
+ * compared to choose it (`varyMatches`). Only those are stored, so a
+ * credential the response doesn't vary by isn't kept with it, in memory or
+ * on disk. A 304 can change `Vary`, so a response it updates takes them
+ * from the request that revalidated it, which matched the stored ones.
+ *
+ * @type (requestHeaders: Headers, responseHeaders: Headers) => [string, string][]
+ */
+const variedHeaders = (requestHeaders, responseHeaders) => (responseHeaders.get("vary") ?? "").split(",")
+  .map((name) => name.trim().toLowerCase())
+  .filter((name) => name !== "" && requestHeaders.has(name))
+  .map((name) => [name, /** @type string */ (requestHeaders.get(name))]);
 
 /** @type (source: Headers) => Headers */
 const withoutHopByHop = (source) => {

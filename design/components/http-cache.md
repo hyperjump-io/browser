@@ -35,6 +35,14 @@ it's a private cache, like a browser's.
   and once it's bigger than `maxBodySize` it's cancelled and nothing is
   stored. `Content-Length` can be missing, or be the length of the
   compressed body, so what's read is all that says how big it is.
+- A stored response keeps only the request headers its `Vary` names,
+  which is all that's compared to choose it. A credential, like the
+  session's `Authorization` or a request's `Cookie`, isn't kept with a
+  response that doesn't vary by it, in memory or on disk. A 304 can change
+  `Vary`, so a response it updates takes them from the request that
+  revalidated it, which matched the stored ones.
+  - Keeping every request header was rejected. Nothing reads the others,
+    and a store on disk would write every credential to a file.
 - Runtimes give a decoded body, so a stored response doesn't have its
   `Content-Encoding`, and its `Content-Length` is the decoded length.
 - Headers about one connection (`Connection`, `Keep-Alive`,

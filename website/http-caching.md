@@ -120,7 +120,10 @@ httpCache({
 | `maxSize` | How many bytes the store keeps on disk. There's no limit by default. |
 
 `FileCacheStore` writes each file under a temporary name and then renames it,
-so processes that share the directory never see part of a file. With
+so processes that share the directory never see part of a file. Only your user
+can read its files and the directories it makes. The cache keeps only the
+request headers that a response's `Vary` names, so it doesn't write credentials
+such as `Authorization` to disk unless a response varies by them. With
 `maxSize`, it removes the least recently used responses when the cache
 grows past it. When several processes write to the same directory, the limit is
 only approximate. `FileCacheStore` treats a damaged file as a miss and removes it.

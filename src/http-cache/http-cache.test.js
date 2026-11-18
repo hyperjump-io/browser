@@ -341,6 +341,45 @@ describe("the HTTP cache", () => {
     expect(await cache.store.match("file:///project/a.json"), "nothing was stored").to.eql([]);
   });
 
+  describe("the request headers that are stored", () => {
+    test("are only the ones its Vary names, so credentials aren't kept with it", async () => {
+      const cache = new HttpCache(fetcher((request) => new Response("hi", {
+        headers: { "cache-control": "max-age=60", ...request.url.endsWith("/varies") ? { vary: "Accept-Language" } : {} }
+      })));
+      const session = testHyperjump(cache, { allow: ["https://a.test/"], headers: { "https://a.test/": { authorization: "Bearer secret" } } });
+      const init = { headers: { "cookie": "session=secret", "accept-language": "en" } };
+
+      for (const url of ["https://a.test/varies", "https://a.test/plain"]) {
+        await (await session.fetch(url, init)).text();
+      }
+      await settle();
+
+      const [varies] = await cache.store.match("https://a.test/varies");
+      expect(varies.requestHeaders).to.eql([["accept-language", "en"]]);
+      const [plain] = await cache.store.match("https://a.test/plain");
+      expect(plain.requestHeaders).to.eql([]);
+    });
+
+    test("are the ones a 304's Vary names, from the request that revalidated it", async () => {
+      let requests = 0;
+      const cache = new HttpCache(fetcher((request) => requests++ === 0
+        ? new Response("hi", { headers: { "cache-control": "no-cache", "etag": "\"1\"", "vary": "Accept" } })
+        : new Response(null, { status: request.headers.has("if-none-match") ? 304 : 200, headers: { etag: "\"1\"", vary: "Accept, Accept-Language" } })));
+      const session = testHyperjump(cache, { allow: ["https://a.test/"] });
+      const init = { headers: { "accept": "text/plain", "accept-language": "en", "authorization": "Bearer secret" } };
+
+      await (await session.fetch("https://a.test/", init)).text();
+      await settle();
+      const revalidated = await session.fetch("https://a.test/", init);
+      await revalidated.text();
+      await settle();
+
+      expect(responseMeta(revalidated).cache).to.equal("revalidated");
+      const [stored] = await cache.store.match("https://a.test/");
+      expect(stored.requestHeaders).to.eql([["accept", "text/plain"], ["accept-language", "en"]]);
+    });
+  });
+
   describe("maxBodySize", () => {
     /**
      * A cacheable response without a `Content-Length`, whose body is 100

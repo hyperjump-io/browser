@@ -9,6 +9,10 @@ Node.js, and its browser version throws (see [Packaging](packaging.md)).
 - A file is named by a SHA-256 hash of its URL, in one of 256 directories by
   the hash's first two characters, so a URL is never a path and no
   directory gets too big.
+- Its files are only the user's (`0o600`), and so are the directories it
+  makes for them (`0o700`). A response can be private, like one to a
+  request with credentials, and a cache directory can be where other users
+  can read. A directory it's given that exists already keeps its mode.
 - A file is written under a temporary name and renamed, so a reader, even in
   another process, sees the old file or the new one, never part of one. A
   temporary file left by a crash is removed the next time the directory is

@@ -8,7 +8,11 @@ export type CachedEntry = {
   headers: [string, string][];
   body: Uint8Array;
 
-  /** The headers of the request it was for, to match a `Vary` */
+  /**
+   * The headers of the request it was for that its `Vary` names, to match
+   * a `Vary`. Only those are kept, so a credential it doesn't vary by isn't
+   * stored with it.
+   */
   requestHeaders: [string, string][];
 
   /** Milliseconds since the epoch, by the cache's clock */

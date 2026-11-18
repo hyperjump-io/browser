@@ -145,16 +145,18 @@ export class FileCacheStore {
 
   /**
    * Write under a temporary name, then rename, so a reader, even in another
-   * process, never sees part of a file
+   * process, never sees part of a file. Files and the directories made for
+   * them are only the user's, because a response can be private, like one
+   * to a request with credentials.
    *
    * @type (path: string, entries: CachedEntry[]) => Promise<number>
    */
   async #write(path, entries) {
     const data = encode(entries);
-    await mkdir(dirname(path), { recursive: true });
+    await mkdir(dirname(path), { recursive: true, mode: 0o700 });
     const temporary = `${path}.${randomBytes(6).toString("hex")}.tmp`;
     try {
-      await writeFile(temporary, data);
+      await writeFile(temporary, data, { mode: 0o600 });
       await rename(temporary, path);
     } catch (error) {
       await rm(temporary, { force: true });
