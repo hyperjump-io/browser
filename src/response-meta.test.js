@@ -53,6 +53,25 @@ describe("response meta", () => {
       expect(done).to.equal(1);
     });
 
+    test("calls done when the body fails while nothing is reading it", async () => {
+      let done = 0;
+      /** @type ReadableStreamDefaultController<Uint8Array> | undefined */
+      let source;
+      const body = new ReadableStream({
+        start(controller) {
+          source = controller;
+          controller.enqueue(new TextEncoder().encode("abc"));
+        }
+      });
+      const response = trackBody(new Response(body), () => done++);
+      await new Promise((resolve) => setTimeout(resolve));
+      expect(done).to.equal(0);
+      source?.error(new TypeError("aborted"));
+      await new Promise((resolve) => setTimeout(resolve));
+      expect(done).to.equal(1);
+      await expect(response.text()).rejects.toThrow("aborted");
+    });
+
     test("calls done right away for a response without a body", () => {
       let done = 0;
       trackBody(new Response(null, { status: 204 }), () => done++);

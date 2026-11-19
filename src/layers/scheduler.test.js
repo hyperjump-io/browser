@@ -4,7 +4,9 @@ import { PriorityController } from "../priority.js";
 import { responseMeta } from "../response-meta.js";
 import { HttpCache } from "../http-cache/http-cache.js";
 import { Scheduler, scheduler } from "./scheduler.js";
+import { nodeTransport } from "../transports/node-transport.js";
 import { controlled, tick } from "../test-helpers/controlled.js";
+import { startServer } from "../test-helpers/server.js";
 import { testHyperjump } from "../test-helpers/hyperjump.js";
 
 /**
@@ -86,6 +88,29 @@ describe("the scheduler", () => {
     expect(eagerNet.started).to.eql(["a.test/x", "a.test/y"]);
     eagerNet.answer("a.test/y");
     await (await y).text();
+  });
+
+  test("aborting a request or closing its session frees its slot, even if nothing reads the body", async () => {
+    const server = await startServer((_request, response) => {
+      response.write("part of the body");
+    });
+    try {
+      const layer = new Scheduler(nodeTransport(), { perKey: 1 });
+      const aborted = testHyperjump(layer, { allow: [`${server.url}/`] });
+      const controller = new AbortController();
+      await aborted.fetch(`${server.url}/aborted`, { signal: controller.signal });
+      controller.abort();
+      await tick();
+      expect(layer.stats().active, "aborting freed its slot").to.equal(0);
+
+      const closed = testHyperjump(layer, { allow: [`${server.url}/`] });
+      await closed.fetch(`${server.url}/closed`);
+      closed.close();
+      await tick();
+      expect(layer.stats().active, "closing the session freed its slot").to.equal(0);
+    } finally {
+      await server.close();
+    }
   });
 
   test("the wrapped response keeps its status and headers", async () => {

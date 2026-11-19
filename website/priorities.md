@@ -33,7 +33,7 @@ and both after `httpCache`, so a response from the cache never waits.
 By default, the scheduler lets 6 requests to each origin be in flight at once,
 the limit browsers use for HTTP/1.1, and 256 in all. A request over a limit
 waits for a slot. A request holds its slot until you read or cancel its body,
-so read or cancel every body.
+or its `signal` aborts, so do one of those for every response.
 
 | Option | Description |
 | --- | --- |

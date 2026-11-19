@@ -79,7 +79,7 @@ keep what the response knows:
 | Function | Description |
 | --- | --- |
 | `replaceBody(response, body)` | The same response with another body, such as a stream that decompresses it. Its status, headers, URL, and `redirected` are kept. It doesn't work for an opaque response. |
-| `trackBody(response, done, onChunk)` | Calls `done` once, when the body has been read to the end, cancelled, or failed, or right away if there's no body. `onChunk` gets each chunk as the body is read. Return the response that `trackBody` returns, not the one you gave it. |
+| `trackBody(response, done, onChunk)` | Calls `done` once, when the body has been read to the end, cancelled, or failed, or right away if there's no body. A body fails when its request is aborted, even if nothing is reading it. `onChunk` gets each chunk as the body is read. Return the response that `trackBody` returns, not the one you gave it. |
 | `cloneResponse(response)` | `response.clone()`, and the clone knows what the response does |
 
 This layer marks each request's record with how many bytes its body had:

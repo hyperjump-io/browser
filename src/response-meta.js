@@ -91,6 +91,19 @@ const copyMeta = (from, to) => {
 const tracked = (body, done, onChunk) => {
   const reader = body.getReader();
   return new ReadableStream({
+    start(controller) {
+      // A body that fails while nothing is reading it, like one whose request
+      // is aborted, would otherwise only be noticed by the next read. It isn't
+      // returned, because the stream would wait for it to start.
+      void (async () => {
+        try {
+          await reader.closed;
+        } catch (error) {
+          done();
+          controller.error(error);
+        }
+      })();
+    },
     async pull(controller) {
       try {
         const { done: finished, value } = await reader.read();

@@ -13,7 +13,9 @@ stack made it, is its meta (see
   for a layer that wraps a body.
 - `trackBody` is how a layer holds something for as long as a transfer
   lasts, like a connection slot. It calls `done` once, when the body has
-  been read to the end, cancelled, or has failed. A response without a
+  been read to the end, cancelled, or has failed. A body fails when its
+  request is aborted, and that's noticed even while nothing is reading it,
+  so aborting frees what a layer holds. A response without a
   body, or an opaque one, is done right away, because there's nothing to
   wait for and an opaque response can't be rebuilt.
 - A response that's made, like a cache hit, gets the URL it's for

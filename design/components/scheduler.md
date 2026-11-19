@@ -21,6 +21,9 @@ requests start by priority as slots free up.
   transfers, not on requests waiting for headers. `releaseOn: "headers"`
   frees it when the response arrives.
 - Aborting a waiting request takes it out of the queue, and it's never sent.
+  Aborting one that has its response fails its body, which frees its slot
+  even if nothing is reading it. Closing a session aborts its requests, so
+  it frees theirs too.
 - Its counts and queue are the layer's, so every session on the stack shares
   them, because connection limits are the network's, not a page's (see
   [State lives as long as what it's for](../principles/state-lifetimes.md)).
@@ -37,5 +40,6 @@ Rejected:
 
 ## Known limitations
 
-- A body nobody reads or cancels holds its slot. `fetch` in Node.js holds a
-  connection the same way, so bodies need to be read or cancelled anyway.
+- A body nobody reads, cancels, or aborts holds its slot. `fetch` in
+  Node.js holds a connection the same way, so bodies need to be read or
+  cancelled anyway.

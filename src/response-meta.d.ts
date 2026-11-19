@@ -47,7 +47,9 @@ export const replaceBody: (response: Response, body: ReadableStream<Uint8Array> 
 
 /**
  * Call `done` once, when the response's body has been read to the end,
- * cancelled, or has failed, or right away if it has no body or is opaque.
+ * cancelled, or has failed, or right away if it has no body or is opaque. A
+ * body that fails while nothing is reading it, like when its request is
+ * aborted, is done then.
  * Returns the response to give on, whose body is wrapped. `onChunk` sees
  * each chunk as it's read.
  */
