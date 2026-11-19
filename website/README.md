@@ -23,6 +23,10 @@ Hyperjump session, the way the requests of a page load do. Each request goes
 through a stack of layers, such as an HTTP cache, and ends at a transport that
 retrieves it by its URL scheme. On a server, that includes `file:` URLs.
 
+If you use version 1.x, see the
+[1.x README](https://github.com/hyperjump-io/browser/tree/v1#readme). For what
+changed in v2, see [Migrate from v1](migrate-from-v1.md).
+
 ## Contents
 
 - [Install](install.md): install in Node.js and browsers
@@ -45,3 +49,4 @@ retrieves it by its URL scheme. On a server, that includes `file:` URLs.
   - [HTTP caching](http-caching.md): cache responses by their caching headers
   - [Priorities](priorities.md): connection limits, and what loads first
   - [Tracing](tracing.md): see what a session fetched, and why
+- [Migrate from v1](migrate-from-v1.md): what changed, and what to do about it
