@@ -381,7 +381,10 @@ const jsToNode = (js, location) => {
         };
       }
 
-      if (Object.getPrototypeOf(js) === Object.prototype) {
+      // An object without a prototype is a plain object too, as it is to
+      // JSON.stringify
+      const prototype = Object.getPrototypeOf(js);
+      if (prototype === Object.prototype || prototype === null) {
         // `Array.isArray` doesn't narrow out readonly arrays
         const object = /** @type {{ readonly [property: string]: ReadonlyJson }} */ (js);
         /** @type JsonPropertyNode<JsonNode>[] */

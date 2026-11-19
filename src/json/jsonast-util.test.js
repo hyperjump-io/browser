@@ -21,7 +21,7 @@ import {
 import { coded } from "../test-helpers/errors.js";
 
 /**
- * @import { JsonNode, JsonTolerantNode } from "./jsonast.d.ts"
+ * @import { JsonNode, JsonTolerantNode, ReadonlyJson } from "./jsonast.d.ts"
  */
 
 describe("jsonast-util", async () => {
@@ -195,6 +195,15 @@ describe("jsonast-util", async () => {
       expect(() => fromJs([Infinity], "https://example.com/doc")).to.throw(TypeError, "Infinity isn't a JSON number");
       expect(() => fromJs(-Infinity, "https://example.com/doc")).to.throw(TypeError, "-Infinity isn't a JSON number");
       expect(() => fromJs(NaN, "https://example.com/doc")).to.throw(TypeError, "NaN isn't a JSON number");
+    });
+
+    test("an object without a prototype is a JSON object, as it is to JSON.stringify", () => {
+      const record = Object.assign(Object.create(null), { a: 1, ["__proto__"]: 2 });
+      expect(toJson(fromJs(record, "https://example.com/doc"))).to.equal(JSON.stringify(record));
+    });
+
+    test("an object of a class isn't JSON, so it's the caller's mistake", () => {
+      expect(() => fromJs(/** @type ReadonlyJson */ (/** @type unknown */ (new Date(0))), "https://example.com/doc")).to.throw(TypeError, "Not a JSON compatible type: Date");
     });
   });
 
