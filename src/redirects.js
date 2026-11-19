@@ -72,8 +72,8 @@ export const follow = async (stack, request, ctx, policy, added) => {
     const response = await checked(stack.fetch(withHeaders(current, added, "manual"), ctx), current.url, ctx, policy);
 
     if (response.type === "opaqueredirect") {
-      // A browser doesn't say where a redirect leads, so it follows it
-      void spare?.body?.cancel().catch(() => {});
+      // A browser doesn't say where a redirect leads, so it follows it, with
+      // the copy of the body, since the request's was sent
       return checked(stack.fetch(withHeaders(spare ?? current, added, mode), ctx), current.url, ctx, policy);
     }
 

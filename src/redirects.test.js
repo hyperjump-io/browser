@@ -200,6 +200,24 @@ describe("redirects", () => {
     }
   });
 
+  test("a redirect a browser won't say the target of is sent again for the browser to follow, with its body", async () => {
+    /** @type string[] */
+    const sent = [];
+    const session = testHyperjump(fetcher(async (request) => {
+      sent.push(`${request.redirect} ${await request.text()}`);
+      if (request.redirect === "manual") {
+        // What a browser gives for a redirect with redirect: "manual"
+        const response = new Response(null, { status: 200 });
+        Object.defineProperty(response, "type", { value: "opaqueredirect" });
+        return response;
+      }
+      return new Response("followed");
+    }));
+    const response = await session.fetch("https://a.test/form", { method: "POST", body: "payload" });
+    expect(await response.text()).to.equal("followed");
+    expect(sent).to.eql(["manual payload", "follow payload"]);
+  });
+
   test("a server can't send a request to file:, even when the transport has it", async () => {
     const server = await redirectServer();
     try {
