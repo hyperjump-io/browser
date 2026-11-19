@@ -364,13 +364,15 @@ export const parseJson = (text, url, options = {}) => {
 
   /** @type (scalar: JsonScalar, nodeLocation: string) => JsonTolerantNode */
   const parseScalar = (scalar, nodeLocation) => {
-    /** @type JsonTolerantNode */
-    const node = {
+    // The scalar's fields are copied one by one, which is faster than a
+    // spread, so the type of the pair they're from is lost
+    const node = /** @type JsonTolerantNode */ ({
       type: "json",
-      ...scalar,
+      jsonType: scalar.jsonType,
+      value: scalar.value,
       location: nodeLocation,
       position: position(token.offset, token.offset + token.length)
-    };
+    });
     next();
     return node;
   };
