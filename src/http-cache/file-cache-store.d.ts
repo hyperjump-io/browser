@@ -1,7 +1,10 @@
 import type { CachedEntry, CacheStore } from "./http-cache.d.ts";
 
 export type FileCacheStoreOptions = {
-  /** The directory to keep the cache in. It's made if it's missing. */
+  /**
+   * The directory to keep the cache in. It's made if it's missing. It can
+   * have other things in it, which the store leaves alone.
+   */
   directory: string;
 
   /**
@@ -25,7 +28,7 @@ export class FileCacheStore implements CacheStore {
   put(entry: CachedEntry): Promise<void>;
   delete(url: string): Promise<void>;
 
-  /** Remove everything */
+  /** Remove everything the store keeps. What else is in its directory stays. */
   clear(): Promise<void>;
 
   /** How many bytes are on disk, as far as this process knows */

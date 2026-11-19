@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { mkdtemp, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { defaultTransport } from "../transports/scheme-transport.js";
@@ -116,6 +116,27 @@ describe("the file cache store", () => {
     await writeFile(`${path}.abc123.tmp`, "half-written");
     await new FileCacheStore({ directory: dir }).size();
     expect(await files(dir)).to.eql([path]);
+  });
+
+  test("leaves alone what isn't the store's in its directory, when it counts, evicts, and clears", async () => {
+    const dir = await directory();
+    await mkdir(join(dir, "project"));
+    await mkdir(join(dir, "ab"));
+    const others = [join(dir, "project", "important.txt"), join(dir, "project", "draft.tmp"), join(dir, "ab", "notes.tmp"), join(dir, "notes.txt")];
+    for (const other of others) {
+      await writeFile(other, "x".repeat(1000));
+    }
+
+    const store = new FileCacheStore({ directory: dir, maxSize: 100 });
+    expect(await store.size()).to.equal(0);
+    await store.put(entry("https://a.test/1", "1"));
+    await store.put(entry("https://a.test/2", "2"));
+    await store.clear();
+    expect(await store.size()).to.equal(0);
+
+    for (const other of others) {
+      expect(await readFile(other, "utf8"), other).to.equal("x".repeat(1000));
+    }
   });
 
   test("removes the least recently used URLs past maxSize", async () => {

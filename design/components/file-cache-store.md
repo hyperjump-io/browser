@@ -13,6 +13,11 @@ Node.js, and its browser version throws (see [Packaging](packaging.md)).
   makes for them (`0o700`). A response can be private, like one to a
   request with credentials, and a cache directory can be where other users
   can read. A directory it's given that exists already keeps its mode.
+- It only touches what has its names: directories of two hex characters
+  and, in them, files of 62 hex characters and their temporary files. A
+  directory it's given can have other things in it, and counting,
+  eviction, and `clear` leave them alone. `clear` removes a directory of
+  its own only if nothing else is in it.
 - A file is written under a temporary name and renamed, so a reader, even in
   another process, sees the old file or the new one, never part of one. A
   temporary file left by a crash is removed the next time the directory is
@@ -29,6 +34,9 @@ Node.js, and its browser version throws (see [Packaging](packaging.md)).
 
 Rejected:
 
+- Taking over the whole directory, removing everything in it. A directory
+  that's shared, like a project's or the system's temporary one, would
+  lose files the store never wrote.
 - A file for each variant. A put would have to find and replace the
   variant it's for across files, which can't be done atomically.
 - JSON for the whole file, with the body as text or base64. Binary bodies

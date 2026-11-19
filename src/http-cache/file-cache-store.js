@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { mkdir, readFile, readdir, rename, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, rmdir, stat, utimes, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { varyMatches } from "./cache-control.js";
 
@@ -15,6 +15,14 @@ import { varyMatches } from "./cache-control.js";
 
 /** What every file starts with, with the format's version. A file with another is a miss. */
 const magic = Buffer.from("NSC1");
+
+/**
+ * The names the store gives its directories, files, and temporary files.
+ * Anything else in its directory isn't the store's, so it's left alone.
+ */
+const shardName = /^[0-9a-f]{2}$/;
+const fileName = /^[0-9a-f]{62}$/;
+const temporaryName = /^[0-9a-f]{62}\.[0-9a-f]+\.tmp$/;
 
 /** @implements API.FileCacheStore */
 export class FileCacheStore {
@@ -78,7 +86,13 @@ export class FileCacheStore {
 
   /** @type API.FileCacheStore["clear"] */
   async clear() {
-    await rm(this.directory, { recursive: true, force: true });
+    for (const { shard, files, temporaries } of await this.#own()) {
+      for (const path of [...files, ...temporaries]) {
+        await rm(path, { force: true });
+      }
+      // A directory with something that isn't the store's in it stays
+      await rmdir(shard).catch(() => {});
+    }
     this.#index = Promise.resolve(new Map());
   }
 
@@ -185,22 +199,39 @@ export class FileCacheStore {
   async #scan() {
     /** @type Map<string, IndexEntry> */
     const index = new Map();
-    const shards = await readdir(this.directory).catch(() => /** @type string[] */ ([]));
-    for (const shard of shards) {
-      const files = await readdir(join(this.directory, shard)).catch(() => /** @type string[] */ ([]));
-      for (const file of files) {
-        const path = join(this.directory, shard, file);
-        if (file.endsWith(".tmp")) {
-          await rm(path, { force: true });
-          continue;
-        }
+    for (const { files, temporaries } of await this.#own()) {
+      for (const path of temporaries) {
+        await rm(path, { force: true });
+      }
+      for (const path of files) {
         const stats = await stat(path).catch(() => undefined);
-        if (stats) {
+        if (stats?.isFile()) {
           index.set(path, { size: stats.size, used: stats.mtimeMs });
         }
       }
     }
     return index;
+  }
+
+  /**
+   * The store's own directories, with its files and temporary files in each,
+   * by their names
+   *
+   * @type () => Promise<{ shard: string, files: string[], temporaries: string[] }[]>
+   */
+  async #own() {
+    const names = await readdir(this.directory).catch(() => /** @type string[] */ ([]));
+    const shards = [];
+    for (const name of names.filter((name) => shardName.test(name))) {
+      const shard = join(this.directory, name);
+      const entries = await readdir(shard).catch(() => /** @type string[] */ ([]));
+      shards.push({
+        shard,
+        files: entries.filter((entry) => fileName.test(entry)).map((entry) => join(shard, entry)),
+        temporaries: entries.filter((entry) => temporaryName.test(entry)).map((entry) => join(shard, entry))
+      });
+    }
+    return shards;
   }
 
   /** @type () => Promise<void> */
