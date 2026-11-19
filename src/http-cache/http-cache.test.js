@@ -506,6 +506,38 @@ describe("the HTTP cache", () => {
     expect(await get()).to.equal("miss");
   });
 
+  test("a response that's on its way when its URL is invalidated isn't stored", async () => {
+    let state = "old";
+    /** @type (() => void)[] */
+    const finish = [];
+    const cache = new HttpCache(fetcher((request) => {
+      if (request.method === "PUT") {
+        state = "new";
+        return new Response(null, { status: 204 });
+      }
+      const body = state;
+      return new Response(new ReadableStream({
+        start: (controller) => {
+          controller.enqueue(new TextEncoder().encode(body));
+          finish.push(() => controller.close());
+        }
+      }), { headers: { "cache-control": "max-age=600" } });
+    }));
+    const session = testHyperjump(cache);
+    const url = "https://a.test/item";
+
+    const before = await session.fetch(url);
+    await (await session.fetch(url, { method: "PUT", body: "x" })).text();
+    finish.shift()?.();
+    expect(await before.text()).to.equal("old");
+    await settle();
+
+    const after = await session.fetch(url);
+    finish.shift()?.();
+    expect(await after.text()).to.equal("new");
+    expect(responseMeta(after).cache).to.equal("miss");
+  });
+
   test("purge removes a URL", async () => {
     const { server, cache, get } = await setup();
     try {

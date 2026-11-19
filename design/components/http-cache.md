@@ -75,6 +75,17 @@ it's a private cache, like a browser's.
   A `Location` or `Content-Location` that isn't a URL names nothing, so
   it's skipped. The request has succeeded, so it doesn't fail because of
   it.
+  - A response is stored after its body is read, so one that's on its way
+    when its URL is invalidated would put back what the invalidation
+    removed. The cache keeps the requests it's sent until what they got is
+    stored or isn't, and an invalidation marks the ones for its URL, which
+    then aren't stored. One sent before the invalidation's response came
+    could have been answered before or after the change, so it's not
+    stored either.
+  - Counting how many times each URL is invalidated, and not storing a
+    response whose URL's count changed since its request was sent, was
+    rejected. It would keep a count for every URL ever invalidated. What's
+    kept instead is only what's in flight.
 - A response is stored while the caller reads it: a clone is read for the
   store, so the caller's body streams. The clone is read a chunk at a time,
   and once it's bigger than `maxBodySize` it's cancelled and nothing is

@@ -10,7 +10,14 @@ import { nullBodyStatuses } from "../statuses.js";
  * @import { ResponseMeta } from "../response-meta.d.ts"
  */
 
-/** @typedef {{ response: Response, requestTime: number, responseTime: number }} Timed */
+/**
+ * A request that's been sent, until what it got is stored or isn't. A
+ * request to its URL with a method that isn't safe makes what it got
+ * outdated, so it isn't stored.
+ *
+ * @typedef {{ url: string, outdated: boolean }} Sent
+ * @typedef {{ response: Response, requestTime: number, responseTime: number, sent: Sent }} Timed
+ */
 
 /** The statuses RFC 9111 lets a cache give a lifetime to when a response doesn't say one */
 const heuristicallyCacheable = new Set([200, 203, 204, 206, 300, 301, 308, 404, 405, 410, 414, 501]);
@@ -69,6 +76,15 @@ export class HttpCache {
    * @type Set<string>
    */
   #refreshing = new Set();
+
+  /**
+   * The requests that have been sent and whose responses aren't stored yet,
+   * by URL. A response is stored after its body is read, so an invalidation
+   * while it's on its way would otherwise be undone by what it stores.
+   *
+   * @type Map<string, Set<Sent>>
+   */
+  #sent = new Map();
 
   /**
    * @param {Fetcher} inner
@@ -232,9 +248,46 @@ export class HttpCache {
 
   /** @type (request: Request, ctx: FetchContext) => Promise<Timed> */
   async #fetchTimed(request, ctx) {
+    /** @type Sent */
+    const sent = { url: cacheKey(request.url), outdated: false };
+    const forUrl = this.#sent.get(sent.url) ?? new Set();
+    forUrl.add(sent);
+    this.#sent.set(sent.url, forUrl);
+
     const requestTime = this.#now();
-    const response = await this.inner.fetch(request, ctx);
-    return { response, requestTime, responseTime: this.#now() };
+    try {
+      const response = await this.inner.fetch(request, ctx);
+      return { response, requestTime, responseTime: this.#now(), sent };
+    } catch (error) {
+      this.#settled(sent);
+      throw error;
+    }
+  }
+
+  /**
+   * A sent request's response is stored, or won't be
+   *
+   * @type (sent: Sent) => void
+   */
+  #settled(sent) {
+    const forUrl = this.#sent.get(sent.url);
+    forUrl?.delete(sent);
+    if (forUrl?.size === 0) {
+      this.#sent.delete(sent.url);
+    }
+  }
+
+  /**
+   * Store what a sent request got, unless a request that invalidates its URL
+   * came since it was sent
+   *
+   * @type (sent: Sent, entry: API.CachedEntry) => Promise<void>
+   */
+  async #storeSent(sent, entry) {
+    this.#settled(sent);
+    if (!sent.outdated) {
+      await this.#storePut(entry);
+    }
   }
 
   /** @type (entry: API.CachedEntry, request: Request, ctx: FetchContext) => Promise<Response> */
@@ -257,7 +310,7 @@ export class HttpCache {
     const timed = await this.#fetchTimed(conditional, ctx);
     if (timed.response.status === 304 && (etag || lastModified)) {
       const updated = mergeNotModified(entry, timed, request);
-      await this.#storePut(updated);
+      await this.#storeSent(timed.sent, updated);
       return this.#serve(updated, request, "revalidated");
     }
     return this.#storeAndReturn(request, timed);
@@ -270,24 +323,25 @@ export class HttpCache {
    * @type (request: Request, timed: Timed) => Promise<Response>
    */
   async #storeAndReturn(request, timed) {
-    const { response } = timed;
+    const { response, sent } = timed;
     markCache(response, "miss");
-    if (!this.#isStorable(request, response)) {
-      return response;
-    }
     // A body that says it's too big isn't read. One that doesn't say, or
     // whose decoded body is bigger than it says, is found out as it's read.
-    if (Number(response.headers.get("content-length") ?? NaN) > this.#maxBodySize) {
+    if (!this.#isStorable(request, response) || Number(response.headers.get("content-length") ?? NaN) > this.#maxBodySize) {
+      this.#settled(sent);
       return response;
     }
 
     readUpTo(response.clone().body, this.#maxBodySize)
       .then(async (body) => {
         if (body) {
-          await this.#storePut(this.#fullEntry(request, timed, body));
+          await this.#storeSent(sent, this.#fullEntry(request, timed, body));
+        } else {
+          this.#settled(sent);
         }
       }, () => {
         // A body that failed or was aborted isn't stored
+        this.#settled(sent);
       });
     return response;
   }
@@ -436,7 +490,11 @@ export class HttpCache {
       // succeeded, so it doesn't fail because of it.
       const url = target ? URL.parse(target, base) : null;
       if (url?.origin === base.origin) {
-        await this.#storeDelete(cacheKey(url.href));
+        const key = cacheKey(url.href);
+        for (const sent of this.#sent.get(key) ?? []) {
+          sent.outdated = true;
+        }
+        await this.#storeDelete(key);
       }
     }
   }
