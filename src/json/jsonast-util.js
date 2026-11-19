@@ -106,8 +106,11 @@ export const jsonStep = (key, node) => {
         throw pointerError(`'${key}' is not a valid array index`, "ERR_POINTER_INVALID_INDEX", appendToLocation(key, node.location));
       }
       const index = key === "-" ? node.children.length : parseInt(key, 10);
+      // `-` is the item after the last one (RFC 6901), so it never exists.
+      // An index is said as it's written, not as the number it parses to.
       if (!node.children[index]) {
-        throw pointerError(`Index '${index}' doesn't exist`, "ERR_POINTER_NOT_FOUND", appendToLocation(key, node.location));
+        const message = key === "-" ? "'-' is after the last item, so it doesn't exist" : `Index '${key}' doesn't exist`;
+        throw pointerError(message, "ERR_POINTER_NOT_FOUND", appendToLocation(key, node.location));
       }
       return memberValue(node.children[index]);
     }

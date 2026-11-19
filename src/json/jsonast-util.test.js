@@ -258,6 +258,9 @@ describe("jsonast-util", async () => {
     test("say an index that doesn't exist", () => {
       const subject = parse(`[]`);
       expect(() => jsonStep("0", subject)).to.throw("Index '0' doesn't exist at https://example.com/doc#/0");
+      expect(() => jsonStep("-", subject)).to.throw("'-' is after the last item, so it doesn't exist at https://example.com/doc#/-");
+      expect(() => jsonStep("-", subject)).toThrow(coded("ERR_POINTER_NOT_FOUND", "https://example.com/doc#/-"));
+      expect(() => jsonStep("123456789012345678901", subject)).to.throw("Index '123456789012345678901' doesn't exist");
       expect(() => jsonStep("0", subject)).toThrow(coded("ERR_POINTER_NOT_FOUND", "https://example.com/doc#/0"));
     });
   });
