@@ -415,40 +415,48 @@ take the session to follow references with, and a target to start from.
   the tree, but a document can still be large, or lead to many more.
 - A signal stops a walk only if the application passes one, so a visit
   also has a guard, `maxRevisits` (`VisitOptions`), like `maxDepth`. It's
-  an `ERR_MAX_REVISITS` to go back under a node more than `maxRevisits`
-  times, 10,000 by default, and more than 10 times for each node the visit
-  has reached, with the references it followed.
-  - A value that's used in many places is gone under once for each
-    reference to it, and the visit reaches each of those references first,
-    so that alone is never an error, however large the document. Going
-    back under a node more times than there are nodes takes sharing that's
-    nested, values that are used in values that are used, and going back
-    10 times more takes it many times over. A document that refers to each
-    level twice from the one above is past that within a few levels, so
-    it's stopped when it reaches the 10,000, about 30,000 visits.
+  an `ERR_MAX_REVISITS` to visit nodes it's visited before more than
+  `maxRevisits` times in all, 250,000 by default, and more than 100 times
+  for each node the visit has reached, with the references it followed.
+  - A value that's used in many places is visited once for each reference
+    to it, and the visit reaches each of those references first, so that
+    alone is never an error, however large the document. Visiting nodes
+    again more times than there are nodes takes sharing that's nested,
+    values that are used in values that are used, and 100 times more takes
+    it many times over. A document that refers to each level twice from the
+    one above is past that within a few levels, so it's stopped when it
+    reaches the 250,000, in about a second.
   - Comparing with the nodes reached makes it a rule about the shape of
-    the documents and not their size. Correct schemas have nested sharing
-    too: a grammar whose definitions refer to each other went back under a
-    node 1.5 times for each node it reached, and a large schema 0.7 times,
-    17,137 times in all. The measurements are in
-    [Revisits](../benchmarks/revisits.md).
-  - The visit keeps every node it reaches to count them, which costs a
-    visit that follows references 10–15%. A visit with
-    `reference: "manual"` walks a tree, which has each node once, so it
-    doesn't keep anything. A find or a selection walks under a node once,
-    so it doesn't take `maxRevisits`.
+    the documents and not their size, so what a hostile document costs
+    grows with its size: about 100 visits for each of its nodes, 15 seconds
+    for 800 KB. Correct schemas have nested sharing too: a grammar whose
+    definitions refer to each other visited nodes again 180 times for each
+    node it reached, 126,782 times in all, and a large schema 25.5 times.
+    The measurements are in [Revisits](../benchmarks/revisits.md).
+  - The visit keeps every node it reaches and every node it visits to
+    count them, which costs a visit that follows references 10–20%. A
+    visit with `reference: "manual"` walks a tree, which has each node
+    once, so it doesn't keep anything. A find or a selection walks under a
+    node once, so it doesn't take `maxRevisits`.
+  - Counting for each node, how many times the visit goes back under it,
+    was rejected. A big value that's visited again many times is few times
+    for one node, but each time visits all of its nodes, and those nodes
+    make the limit bigger. A document padded with a big value took work
+    that grows with the square of its size: 112 seconds for 21 KB.
   - A limit on the number of visits was rejected. A broad walk that's
     shallow, like every person in a film, makes many visits correctly, so
     no default is right.
-  - A limit on how many times a visit goes back under a node, with no
-    comparison, was rejected. The large schema goes back under one 17,137
+  - A limit on how many times a visit visits nodes again, with no
+    comparison, was rejected. The large schema visits nodes again 619,115
     times, so a default that allows documents like it lets a hostile one
-    run ten times longer.
+    run as long.
   - Comparing with the references the visit followed, and not every node,
     was rejected. It's cheaper, but the large schema's sharing is nested,
     so it was an error for a correct document.
-  - Comparing with the nodes reached without a multiple was rejected. The
-    large schema is within 1.4 times of it.
+  - A smaller default was rejected because of the grammar, which visits
+    nodes again 180 times for each node it reaches. Only the default lets
+    it finish, with twice as much room as it needs. A bigger one lets a
+    small hostile document run longer: a million takes 4 seconds.
 
 ## Selecting
 

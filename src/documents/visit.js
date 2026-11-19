@@ -35,20 +35,20 @@ export const jrefVisit = /** @type typeof API.jrefVisit */ (
 );
 
 /**
- * The default `maxRevisits`: how many times a visit can go back under the
- * same node, or more if it's reached a tenth that many nodes
+ * The default `maxRevisits`: how many times in all a visit can visit a node
+ * it's visited before, or more if it's reached many nodes
  */
-const MAX_REVISITS = 10_000;
+const MAX_REVISITS = 250_000;
 
 /**
- * How many times a visit can go back under the same node for each node
- * it's reached. Going back under a node more times than there are nodes
- * takes sharing that's nested, which correct documents have too, like a
- * grammar whose definitions refer to each other. The most measured in a
- * real schema is 1.5, and a document that doubles at each level is past
- * any multiple within a few levels (see `design/benchmarks/revisits.md`).
+ * How many times a visit can visit nodes again for each node it's reached.
+ * Visiting them again more times than there are nodes takes sharing that's
+ * nested, which correct documents have too, like a grammar whose
+ * definitions refer to each other. The most measured in a real schema is
+ * 180, and a document that doubles at each level is past any multiple
+ * within a few levels (see `design/benchmarks/revisits.md`).
  */
-const REVISITS_PER_NODE = 10;
+const REVISITS_PER_NODE = 100;
 
 /**
  * `jrefVisit`, with the nodes that have been walked under for a walk that
@@ -70,7 +70,7 @@ const visitFrom = async (session, from, testOrVisitor, visitorOrOptions, options
   // references walks a tree, which has each node once
   const revisits = walked || manual || maxRevisits === Infinity
     ? undefined
-    : { max: maxRevisits, reached: new Set(), times: new Map() };
+    : { max: maxRevisits, reached: new Set(), visited: new Set(), total: 0 };
   const walk = { session, maxDepth: maxDepth(walkOptions), manual, ancestors: new Set(), walked, revisits, check, visitor: visit, signal: walkOptions?.signal, steps: 0 };
   // A walk that's aborted already doesn't retrieve the target it starts at
   walk.signal?.throwIfAborted();
@@ -154,16 +154,21 @@ export const jrefFindAll = /** @type typeof API.jrefFindAll */ (async (
  */
 
 /**
- * What a visit keeps for `maxRevisits`: how many times it's gone back under
- * each node, and every node it's reached, with the references it followed.
- * A value that's used in many places is gone under once for each reference
- * to it, and each of those references is reached first, so going back
- * under a node many times more than the nodes the visit has reached takes
- * values that are used in values that are used, many times over. A
- * document that refers to each level twice from the one above does that
- * within a few levels.
+ * What a visit keeps for `maxRevisits`: the nodes it's visited, how many
+ * times in all it's visited one again, and every node it's reached, with
+ * the references it followed. A value that's used in many places is visited
+ * once for each reference to it, and each of those references is reached
+ * first, so visiting nodes again many times more than the nodes the visit
+ * has reached takes values that are used in values that are used, many
+ * times over. A document that refers to each level twice from the one above
+ * does that within a few levels.
  *
- * @typedef {{ max: number; reached: Set<unknown>; times: Map<Walked, number> }} Revisits
+ * The count is of every visit, not of each node's. A big value that's
+ * visited again many times would otherwise be work that grows with the
+ * square of a document's size: each time is under the limit for one node,
+ * and the value's own nodes make the limit bigger.
+ *
+ * @typedef {{ max: number; reached: Set<unknown>; visited: Set<Walked>; total: number }} Revisits
  */
 
 /**
@@ -177,6 +182,9 @@ const visitTarget = async (walk, target, key, parent, depth) => {
   const paced = pace(walk);
   if (paced) {
     await paced;
+  }
+  if (walk.revisits) {
+    visitAgain(walk.revisits, target.node);
   }
 
   // A visitor that isn't async isn't waited for
@@ -193,9 +201,6 @@ const visitTarget = async (walk, target, key, parent, depth) => {
   }
 
   const members = memberEntries(node);
-  if (walk.revisits && members.length > 0) {
-    goUnder(walk.revisits, node);
-  }
 
   walk.ancestors.add(node);
   try {
@@ -222,28 +227,26 @@ const visitTarget = async (walk, target, key, parent, depth) => {
 };
 
 /**
- * Count going under a node, which throws if it's gone back under it
- * `maxRevisits` times, and `REVISITS_PER_NODE` times for each node it's
- * reached. It's
- * checked before anything under the node is followed.
+ * Count visiting a node, which throws if the visit has visited nodes again
+ * `maxRevisits` times in all, and `REVISITS_PER_NODE` times for each node
+ * it's reached. It's checked before the node is visited.
  *
  * @type (revisits: Revisits, node: Walked) => void
  */
-const goUnder = (revisits, node) => {
-  const times = revisits.times.get(node);
-  if (times === undefined) {
-    revisits.times.set(node, 0);
+const visitAgain = (revisits, node) => {
+  if (!revisits.visited.has(node)) {
+    revisits.visited.add(node);
     return;
   }
 
-  if (times >= revisits.max && times >= REVISITS_PER_NODE * revisits.reached.size) {
+  if (revisits.total >= revisits.max && revisits.total >= REVISITS_PER_NODE * revisits.reached.size) {
     throw codedError(
-      `Going back under ${relativeFileUrl(node.location)} more than ${times} times, ${REVISITS_PER_NODE} for each of the ${revisits.reached.size} values the visit has reached. A value that's used in values that are used, many times over, makes a visit too big to finish. If that's expected, use a bigger 'maxRevisits', or Infinity.`,
+      `Visiting ${relativeFileUrl(node.location)} after visiting values again ${revisits.total} times, ${REVISITS_PER_NODE} for each of the ${revisits.reached.size} values the visit has reached. A value that's used in values that are used, many times over, makes a visit too big to finish. If that's expected, use a bigger 'maxRevisits', or Infinity.`,
       { code: "ERR_MAX_REVISITS", maxRevisits: revisits.max },
       node.location
     );
   }
-  revisits.times.set(node, times + 1);
+  revisits.total++;
 };
 
 /**

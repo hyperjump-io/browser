@@ -6,45 +6,57 @@ First recorded 2026-11-18.
 [Stopping a walk](../components/browsing.md#stopping-a-walk)) was chosen
 by visiting the 57 schemas in `sourcemeta/jsonschema-benchmark`, from
 SchemaStore, as JRef with their references followed. References that leave
-a schema's file weren't followed. For each one, the most times the visit
-went back under one node, and the nodes it had reached then:
+a schema's file weren't followed. For each one, how many times in all the
+visit visited a node again, and the nodes it had reached:
 
-| Schema | Nodes | Visits | Most times under one node | Nodes reached then | Times for each node reached |
+| Schema | Size | Visits | Nodes reached | Visited again | For each node reached |
 | --- | --- | --- | --- | --- | --- |
-| `biome` | 75,035 | 638,541 | 17,137 | 24,249 | 0.71 |
-| `cql2` | 1,896 | 127,381 | 1,077 | 703 | 1.53 |
-| `ui5-manifest` | 22,923 | 39,273 | 963 | 7,891 | 0.12 |
-| `tslint` | 9,861 | 24,667 | 407 | 3,538 | 0.12 |
-| `turborepo` | 2,190 | 2,473 | 143 | 777 | 0.18 |
+| `cql2` | 18 KB | 127,381 | 703 | 126,782 | 180 |
+| `biome` | 815 KB | 638,541 | 24,249 | 619,115 | 25.5 |
+| `cmake-presets` | 84 KB | 15,081 | 1,470 | 13,693 | 9.3 |
+| `wrangler` | 366 KB | 49,664 | 5,053 | 44,703 | 8.8 |
+| `gitlab-ci` | 126 KB | 19,998 | 2,295 | 17,845 | 7.8 |
 
-No other schema went back under a node more than 134 times, and 18 never
-went under one twice. One couldn't be visited, because the reference at its
-root leaves the file.
+No other schema visited nodes again more than 7 times for each node it
+reached. The most for each node reached at any point in a visit is the
+most at its end. One schema couldn't be visited, because the reference at
+its root leaves the file.
 
-- A limit of 10,000 with no comparison would be an error for `biome`, whose
-  sharing grows with the document.
-- Comparing with the nodes reached, with a limit of 1,000, would be an
-  error for `cql2`, a grammar whose definitions refer to each other.
-- Comparing with the references followed, and not every node, was an error
-  for `biome`, whose sharing is nested.
-- Comparing with 10 times the nodes reached, with a limit of 10,000, isn't
-  an error for any of them. The nearest are `cql2` at 15% of the multiple and
-  `biome` at 7%.
+- With 100 for each node reached and no limit beside it, `cql2` is an
+  error. Its 126,782 is under the default of 250,000, with twice as much
+  room as it needs.
+- `biome`'s 619,115 is over the default, and under 100 times its nodes,
+  2.4 million, with 4 times as much room as it needs.
 
-A document of 1,673 bytes whose 40 levels each refer to the next one twice
-is an `ERR_MAX_REVISITS` after 30,039 visits, in 188 ms. Without the guard,
-it's 2^40 visits.
+Hostile documents, with the default, and with the guard that counted for
+each node how many times a visit went back under it (10,000, or 10 times
+the nodes reached):
 
-Keeping every node a visit reaches costs a visit that follows references
-10–15%, the median of 5 visits with the guard and with `maxRevisits:
-Infinity`, alternating:
+| Document | Size | Counted for each node | Counted in all |
+| --- | --- | --- | --- |
+| 40 levels, each referring to the next one twice | 1.6 KB | 188 ms | 967 ms |
+| 30 levels like that, to an array of 1,000 `null`s | 6 KB | 7.2 s | 167 ms |
+| The same, with 4,000 `null`s | 21 KB | 112 s | |
+| The same, with 160,000 `null`s | 800 KB | about 30 min | 13.5 s |
+
+With other limits, counted in all:
+
+| Default | For each node reached | 1.6 KB | 800 KB |
+| --- | --- | --- | --- |
+| 250,000 | 100 | 967 ms | 13.5 s |
+| 1,000,000 | 100 | 3.9 s | 15 s |
+| 1,000,000 | 1,000 | 3.9 s | 140 s |
+
+Keeping every node a visit reaches and visits costs a visit that follows
+references 10–20%, the median of 5 visits with the guard and with
+`maxRevisits: Infinity`, alternating:
 
 | Schema | Guard | `Infinity` |
 | --- | --- | --- |
-| `biome` | 3475 ms | 3130 ms |
-| `cql2` | 227 ms | 204 ms |
-| `krakend` | 55 ms | 48 ms |
-| `wrangler` | 63 ms | 55 ms |
+| `biome` | 2943 ms | 2594 ms |
+| `cql2` | 149 ms | 126 ms |
+| `krakend` | 40 ms | 34 ms |
+| `wrangler` | 42 ms | 44 ms |
 
 A visit with `reference: "manual"` doesn't keep them.
 

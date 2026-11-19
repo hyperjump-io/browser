@@ -198,30 +198,30 @@ describe("jrefVisit", () => {
   describe("maxRevisits", () => {
     /**
      * A document whose levels each refer to the next one twice, so the
-     * value at the last level is gone under 2^levels times
+     * value at the last level is visited 2^levels times
      *
-     * @type (levels: number) => Record<string, Json>
+     * @type (levels: number, last?: Json) => Record<string, Json>
      */
-    const doubling = (levels) => {
+    const doubling = (levels, last = { last: true }) => {
       /** @type Record<string, Json> */
       const document = {};
       for (let level = 0; level < levels; level++) {
         document[`l${level}`] = [{ $ref: `#/l${level + 1}` }, { $ref: `#/l${level + 1}` }];
       }
-      document[`l${levels}`] = { last: true };
+      document[`l${levels}`] = last;
       return document;
     };
 
-    test("going back under a value too many times is an error with a code and the value's location", async () => {
+    test("visiting values again too many times is an error with a code and the value's location", async () => {
       const { session } = site({ "/subject": doubling(30) });
       const subject = await browse(session, "https://a.test/subject");
 
-      // The default stops it well before the 2^30 times it would go under
-      // the last level, which a depth-first walk goes back under first
+      // The default stops it well before the 2^30 times it would visit the
+      // last level, which a depth-first walk visits again first
       const visiting = jrefVisit(session, subject, () => {});
 
       await expect(visiting).rejects.toThrow(coded("ERR_MAX_REVISITS", "https://a.test/subject#/l30"));
-      await expect(visiting).rejects.toMatchObject({ cause: { maxRevisits: 10_000 } });
+      await expect(visiting).rejects.toMatchObject({ cause: { maxRevisits: 250_000 } });
     });
 
     test("a value used in more places than maxRevisits isn't an error, because each reference to it is reached first", async () => {
@@ -239,8 +239,8 @@ describe("jrefVisit", () => {
       expect(visits).to.equal(2 + 2 * 51);
     });
 
-    test("nested sharing isn't an error until it's gone back under a value 10 times for each value it's reached", async () => {
-      // `inner` is gone under 100 times, after reaching fewer than 50 values
+    test("nested sharing isn't an error until it's visited values again 100 times for each value it's reached", async () => {
+      // `inner` is visited 111 times, after reaching fewer than 50 values
       const { session } = site({
         "/subject": {
           uses: Array.from({ length: 10 }, () => ({ $ref: "#/outer" })),
@@ -260,11 +260,27 @@ describe("jrefVisit", () => {
       expect(inner).to.equal(10 * 10 + 10 + 1);
     });
 
-    test("it can be smaller", async () => {
-      const { session } = site({ "/subject": doubling(10) });
+    test("a big value that's visited again is counted for each of its values, so the work grows with the document, not its square", async () => {
+      // `l10` has 100 values and is visited 2^10 times. That's few times for
+      // one value, but its values make 100,000 visits.
+      const { session } = site({ "/subject": doubling(10, Array.from({ length: 100 }, () => null)) });
       const subject = await browse(session, "https://a.test/subject");
 
-      await expect(jrefVisit(session, subject, () => {}, { maxRevisits: 10 })).rejects.toThrow(coded("ERR_MAX_REVISITS", "https://a.test/subject#/l10"));
+      let visits = 0;
+      const visiting = jrefVisit(session, subject, () => {
+        visits++;
+      }, { maxRevisits: 10 });
+
+      await expect(visiting).rejects.toMatchObject({ cause: { code: "ERR_MAX_REVISITS" } });
+      // The values are the root, 10 levels of 2 references each, and l10's 101
+      expect(visits).to.be.lessThan(101 * (1 + 10 * 3 + 101));
+    });
+
+    test("it can be smaller", async () => {
+      const { session } = site({ "/subject": doubling(14) });
+      const subject = await browse(session, "https://a.test/subject");
+
+      await expect(jrefVisit(session, subject, () => {}, { maxRevisits: 10 })).rejects.toThrow(coded("ERR_MAX_REVISITS", "https://a.test/subject#/l14/last"));
     });
 
     test("Infinity doesn't limit it", async () => {

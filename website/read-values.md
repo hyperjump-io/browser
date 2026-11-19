@@ -349,19 +349,19 @@ A selector made of `>` steps only goes as deep as it's written, like
 `jrefVisit` goes inside a value each time a reference leads to it, so a visit
 costs as much as the document would if you replaced every reference with what it
 leads to. A document of a few kilobytes whose values each refer to the next one
-twice is too big to visit that way, so `jrefVisit` stops if it goes back inside
-the same value too many times. It throws an error whose `cause.code` is
-`"ERR_MAX_REVISITS"`, and the error's `url` is the value.
+twice is too big to visit that way, so `jrefVisit` stops if it visits values
+again too many times. It throws an error whose `cause.code` is
+`"ERR_MAX_REVISITS"`, and the error's `url` is the value it would visit.
 
 A value that many references lead to is fine however many there are, because
 the visit reaches each of those references first. It's only an error once the
-visit has gone back inside a value more than 10,000 times and more than 10
-times for each value it has reached. That takes values inside values that are
-used over and over, like the levels of that document. If you expect a visit to
-do that, pass a bigger `maxRevisits` or `Infinity`:
+visit has visited values again more than 250,000 times in all, and more than
+100 times for each value it has reached. That takes values inside values that
+are used over and over, like the levels of that document. If you expect a visit
+to do that, pass a bigger `maxRevisits` or `Infinity`:
 
 ```typescript
-await jrefVisit(session, target, visitor, { maxRevisits: 100_000 });
+await jrefVisit(session, target, visitor, { maxRevisits: 1_000_000 });
 ```
 
 A visit with `reference: "manual"` reads the tree as it's written, which has
@@ -427,7 +427,7 @@ a reference starts at what it leads to, unless the options have
 | --- | --- |
 | `reference` | `"follow"`, the default, follows references. `"manual"` reads the tree as it's written. For more information, see [Follow references yourself](references.md#read-the-tree-as-its-written). |
 | `maxDepth` | How many levels below the target a walk can go. The default is 1000. Only `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it. For more information, see [How deep a walk goes](#how-deep-a-walk-goes). |
-| `maxRevisits` | How many times a visit can go back inside the same value, unless it has reached more than a tenth that many values. The default is 10,000. Only `jrefVisit` takes it. For more information, see [Stop a walk](#stop-a-walk). |
+| `maxRevisits` | How many times in all a visit can visit values again, unless it has reached more than a hundredth that many values. The default is 250,000. Only `jrefVisit` takes it. For more information, see [Stop a walk](#stop-a-walk). |
 | `signal` | An `AbortSignal` that stops a walk. Only `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it. For more information, see [Stop a walk](#stop-a-walk). |
 
 When these functions follow a reference, they throw what `browse` throws. For

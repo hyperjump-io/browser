@@ -169,9 +169,10 @@ type HasProperties<N, O> = N extends unknown
  * more than {@link WalkOptions.maxDepth} levels below the node. The cause
  * has the `maxDepth`, and its `url` is the node it would go under.
  * @throws An `Error` whose `cause.code` is `ERR_MAX_REVISITS` if it would
- * go back under a node more than {@link VisitOptions.maxRevisits} times,
- * and more than 10 times for each value it's reached. The cause has the
- * `maxRevisits`, and its `url` is the node.
+ * visit nodes it's visited before more than
+ * {@link VisitOptions.maxRevisits} times in all, and more than 100 times for
+ * each value it's reached. The cause has the `maxRevisits`, and its `url`
+ * is the node it would visit.
  * @throws What `browse` throws, if it follows a reference.
  * @throws A `TypeError` if a test isn't `null`, `undefined`, a string, an
  * object, a function, or an array of strings, objects, and functions, or
@@ -260,18 +261,18 @@ export type WalkOptions = {
  */
 export type VisitOptions = WalkOptions & {
   /**
-   * How many times a visit can go back under the same value before it's an
-   * `Error` whose `cause.code` is `ERR_MAX_REVISITS`, unless it's reached
-   * more than a tenth that many values. A value that's used in many places
-   * is gone under once for each, and the visit reaches each reference to it
-   * first, so that's never an error. A value that's used in values that are
-   * used, many times over, is gone under many times more than there are
-   * values, like in a document that refers to each level twice from the one
-   * above, which a visit can't finish.
+   * How many times in all a visit can visit values it's visited before,
+   * before it's an `Error` whose `cause.code` is `ERR_MAX_REVISITS`, unless
+   * it's reached more than a hundredth that many values. A value that's
+   * used in many places is visited once for each, and the visit reaches
+   * each reference to it first, so that's never an error. A value that's
+   * used in values that are used, many times over, is visited many times
+   * more than there are values, like in a document that refers to each
+   * level twice from the one above, which a visit can't finish.
    *
    * It's a guard, like {@link WalkOptions.maxDepth}, and it's checked
-   * before anything under the value is followed. It's 10,000 by default,
-   * and `Infinity` doesn't limit it. A visit with `reference: "manual"`
+   * before a value is visited. It's 250,000 by default, and `Infinity`
+   * doesn't limit it. A visit with `reference: "manual"`
    * walks the tree as it's written, which has each value once, so it's
    * never an error then.
    */
