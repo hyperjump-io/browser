@@ -6,9 +6,11 @@ that isn't released is marked `*Coming soon*`.
 
 ## Before
 
-- [ ] `main` is clean and pushed, and CI passed on its last commit
+- [ ] `main` is clean, and CI passed on the last commit pushed
   (`gh run list --branch main --limit 1`).
-- [ ] `npm test`, `npm run lint`, and `npm run type-check` pass.
+- [ ] `npm test`, `npm run lint`, and `npm run type-check` pass in a clean
+  worktree of `main`, as they do in CI. In a checkout, Vitest also finds the
+  tests in `scratch/`.
 - [ ] `vale website design` has no errors.
 - [ ] Every page in `website/` about a feature that isn't released has
   `*Coming soon*` on its own line under the heading. A major release has no
@@ -26,9 +28,10 @@ that isn't released is marked `*Coming soon*`.
   `scripts/version-docs.js`, which replaces `*Coming soon*` with
   `*Added in vX.Y.Z*` in `website/`, and commits and tags. A prerelease,
   like `2.1.0-dev.0`, leaves the markers.
-- [ ] `git push --follow-tags`
 - [ ] `npm publish`. A prerelease gets `--tag next`, and a release from the
   `v1` branch gets `--tag v1`, so `latest` stays the newest stable version.
+- [ ] `git push --follow-tags`. It's after publishing, so the site shows the
+  new version and its "Added in" badges once it's on npm.
 - [ ] `gh release create vX.Y.Z --title vX.Y.Z --notes-file <notes>`, with
   `--prerelease` for a prerelease. The notes are written, not generated.
   See [Release notes](#release-notes).
