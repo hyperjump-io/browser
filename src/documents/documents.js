@@ -22,10 +22,13 @@ import { responseMeta, withUrl } from "../response-meta.js";
  * the initiator of the requests its references cause, and the documents it
  * contains, and itself, by URL. A document found in another has its
  * container's record and set. `container` is the document that was retrieved: the document
- * itself, or the one it was found in.
+ * itself, or the one it was found in. `url` is where the container's
+ * response came from, which a document can say isn't its URL, or for a
+ * document the session didn't retrieve, its URL.
  *
  * @typedef {{
  *   document: DocumentNode,
+ *   url: string,
  *   record: FetchRecord | undefined,
  *   embedded: ReadonlyMap<string, DocumentNode>,
  *   container: DocumentNode
@@ -198,7 +201,7 @@ const entryFor = (session, url, options, priority) => {
 const entryOf = (session, from) => {
   const document = /** @type DocumentNode */ (startOf(from).document);
   return documentsOf(session).retrieved.get(document)
-    ?? { document, record: undefined, embedded: embeddedIn(document), container: document };
+    ?? { document, url: document.url, record: undefined, embedded: embeddedIn(document), container: document };
 };
 
 /**
@@ -221,7 +224,7 @@ const referenced = async (session, url, from, priority) => {
  *
  * @type (entry: Entry) => Cause
  */
-const causeOf = (entry) => entry.record ? { initiator: entry.record } : { referrer: entry.container.url };
+const causeOf = (entry) => entry.record ? { initiator: entry.record } : { referrer: entry.url };
 
 /**
  * A percent-encoded fragment, decoded, or `undefined` if it isn't
@@ -331,9 +334,8 @@ const load = (session, url, cause, priority) => {
  * @type (entry: Entry, url: string, referrer: string | undefined) => Entry
  */
 const referable = (entry, url, referrer) => {
-  const responseUrl = entry.container.url;
-  if (!canRefer(responseUrl, referrer)) {
-    throw refusedReferenceResponse(url, responseUrl, /** @type string */ (referrer));
+  if (!canRefer(entry.url, referrer)) {
+    throw refusedReferenceResponse(url, entry.url, /** @type string */ (referrer));
   }
   return entry;
 };
@@ -378,7 +380,7 @@ const retrieve = async (session, url, cause, priority) => {
     const parsed = response.url === responseUrl.href ? response : withUrl(response, responseUrl.href);
     const document = await mediaType.parse(parsed, session);
     /** @type Entry */
-    const entry = { document, record: responseMeta(response).record, embedded: embeddedIn(document), container: document };
+    const entry = { document, url: responseUrl.href, record: responseMeta(response).record, embedded: embeddedIn(document), container: document };
     retrieved.set(document, entry);
     return { entry, responseUrl: responseUrl.href, fragment };
   } catch (error) {

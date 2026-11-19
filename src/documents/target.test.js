@@ -134,6 +134,23 @@ describe("targets", () => {
       await expect(following).rejects.toThrow(/led to .*secret\.json/);
       await expect(following).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
     });
+
+    test("a document whose response came from a file is refused by where its response came from, not the URL it says it has", async () => {
+      /** @type MediaTypePlugin<DocumentNode<JrefNode>> */
+      const identified = {
+        mediaType: "application/x-identified",
+        extensions: [".identified"],
+        parse: async (response) => bundleDocument(JSON.parse(await response.text()), "https://id.test/secret")
+      };
+      const stack = fetcher((request) => request.url === "https://a.test/alias"
+        ? withUrl(new Response(`"secret"`), "file:///project/secret.identified")
+        : new Response(null, { status: 404 }));
+      const session = new Hyperjump({ stack, allowRetrieval: allowed, mediaTypes: [...defaultMediaTypes, identified] });
+      expect(jsonValue((await browse(session, "https://a.test/alias")).node)).to.equal("secret");
+
+      const web = linkDocument("https://a.test/alias", "https://a.test/mine");
+      await expect(browse(session, web.children[0].href, { referencedFrom: web })).rejects.toMatchObject({ cause: { code: "ERR_FILE_REFERENCE_NOT_ALLOWED" } });
+    });
   });
 
   test("a document a document the session didn't retrieve contains is judged by its container's URL", async () => {
