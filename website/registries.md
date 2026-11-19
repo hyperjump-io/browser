@@ -5,18 +5,19 @@ bundled with it. A Hyperjump session answers them from the registry instead of
 fetching them:
 
 ```typescript
-import { Hyperjump, browse, registry } from "@hyperjump/browser";
+import { Hyperjump, browse, jrefValue, registry } from "@hyperjump/browser";
 
 const session = new Hyperjump({
   registry: registry({
-    "https://example.com/person.json": {
+    "https://example.com/person": {
       body: `{ "name": "Jason" }`,
-      headers: { "content-type": "application/json" }
+      headers: { "content-type": "application/reference+json" }
     }
   })
 });
 
-const name = await browse(session, "https://example.com/person.json#/name");
+const name = await browse(session, "https://example.com/person#/name");
+console.log(await jrefValue(session, name)); // Jason
 ```
 
 The session asks the registry before it checks
