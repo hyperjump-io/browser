@@ -49,6 +49,7 @@ a network error.
 | `ERR_FILE_REFERENCE_NOT_ALLOWED` | A document that isn't a file referred to a `file:` URL. For more information, see [File URLs](file-urls.md#documents-from-the-web). |
 | `ERR_UNEXPECTED_REDIRECT` | The response redirected, and the request's `redirect` is `"error"`. |
 | `ERR_TOO_MANY_REDIRECTS` | The request redirected more times than the session's `maxRedirects`. |
+| `ERR_INVALID_REDIRECT` | A redirect's `Location` isn't a URL, or has a username or password in it. |
 | `ERR_UNSAFE_REDIRECT` | A redirect led to a `file:` URL, or to a scheme that isn't in the session's `redirectSchemes`. For more information, see [Redirects](redirects.md). |
 | `ERR_CACHE_MISS` | The request's `cache` is `"only-if-cached"`, and no cache has the response. |
 | `ERR_UNKNOWN_URL_SCHEME` | The transport doesn't have a fetcher for the URL's scheme. For more information, see [Transports](transports.md). |

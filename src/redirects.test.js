@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { layer } from "./layers.js";
+import { fetcher, layer } from "./layers.js";
 import { defaultTransport } from "./transports/scheme-transport.js";
 import { nodeTransport } from "./transports/node-transport.js";
 import { responseMeta } from "./response-meta.js";
@@ -184,6 +184,19 @@ describe("redirects", () => {
       expect(withFragment.url, "a response's URL doesn't have a fragment").to.equal(`${server.url}/final`);
     } finally {
       await server.close();
+    }
+  });
+
+  test("a Location that isn't a URL, or has a username or password, is a network error", async () => {
+    const session = testHyperjump(fetcher((request) => new Response(null, {
+      status: 302,
+      headers: { location: request.url.endsWith("/bad") ? "http://[::1" : "https://user:secret@a.test/landed" }
+    })));
+    for (const [path, message] of [["/bad", /isn't a URL/], ["/credentials", /username or password/]]) {
+      const fetching = session.fetch(`https://a.test${path}`);
+      await expect(fetching).rejects.toBeInstanceOf(TypeError);
+      await expect(fetching).rejects.toThrow(message);
+      await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_INVALID_REDIRECT" } });
     }
   });
 

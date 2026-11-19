@@ -64,6 +64,10 @@ request's own headers go to each step, as in `fetch`.
   it.
 - A stack that's called without a session returns a 3xx as it is, like
   `redirect: "manual"`.
+- A `Location` that isn't a URL is a network error, as in the Fetch
+  standard, `ERR_INVALID_REDIRECT`, Chrome's name for it. So is one with a
+  username or password, because a `Request` can't be made for a URL that
+  has one.
 
 Rejected:
 
@@ -77,6 +81,10 @@ Rejected:
   anywhere the transport goes.
 
 ## Known limitations
+
+- The Fetch standard follows a redirect to a URL with a username or
+  password unless it's to another origin in `cors` mode. A `Request` can't
+  be made for one, so it's a network error here.
 
 - In a browser, the browser follows redirects, so the layers see only the
   first request, and its rules apply instead of `redirectSchemes`. Only the

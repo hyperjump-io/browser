@@ -26,8 +26,8 @@ readers: a person reads its message, and code reads its `cause.code`.
   - A failure a layer makes itself has `{ code }` as its cause. A code is
     named like Node.js's own codes. Where Chrome has a name for the network
     error, the code is Chrome's (`ERR_TOO_MANY_REDIRECTS`,
-    `ERR_UNKNOWN_URL_SCHEME`, `ERR_UNSAFE_REDIRECT`, `ERR_CACHE_MISS`,
-    `ERR_METHOD_NOT_SUPPORTED`).
+    `ERR_INVALID_REDIRECT`, `ERR_UNKNOWN_URL_SCHEME`, `ERR_UNSAFE_REDIRECT`,
+    `ERR_CACHE_MISS`, `ERR_METHOD_NOT_SUPPORTED`).
 - An abort isn't a network error. It's the signal's reason, as it is in
   `fetch`.
 
@@ -37,6 +37,7 @@ readers: a person reads its message, and code reads its `cause.code`.
 | `ERR_FILE_REFERENCE_NOT_ALLOWED` | A `file:` URL from a document that isn't a file | session ([`file:` from `file:`](file-references.md)) |
 | `ERR_UNEXPECTED_REDIRECT` | A redirect when `redirect` is `"error"` | session ([Redirects](redirects.md)) |
 | `ERR_TOO_MANY_REDIRECTS` | More redirects than `maxRedirects` | session |
+| `ERR_INVALID_REDIRECT` | A redirect whose `Location` isn't a URL, or has a username or password | session |
 | `ERR_UNSAFE_REDIRECT` | A redirect to a scheme that isn't in `redirectSchemes` | session |
 | `ERR_CACHE_MISS` | Nothing cached for `only-if-cached` | [HTTP cache](http-cache.md) |
 | `ERR_UNKNOWN_URL_SCHEME` | A scheme without a fetcher | [The scheme transport](scheme-transport.md) |

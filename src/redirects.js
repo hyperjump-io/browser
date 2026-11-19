@@ -90,7 +90,16 @@ export const follow = async (stack, request, ctx, policy, added) => {
     if (hops + 1 > policy.max) {
       throw networkError(`'${relativeFileUrl(request.url)}' redirected more than ${policy.max} times, the limit in 'maxRedirects'`, { code: "ERR_TOO_MANY_REDIRECTS" }, request.url);
     }
-    const target = new URL(location, response.url || current.url);
+    // As in the Fetch standard, a `Location` that isn't a URL is a network
+    // error. A request can't be made for a URL with a username or password
+    // in it, so that's one too.
+    const target = URL.parse(location, response.url || current.url);
+    if (!target) {
+      throw networkError(`'${relativeFileUrl(current.url)}' redirected to '${location}', which isn't a URL`, { code: "ERR_INVALID_REDIRECT" }, current.url);
+    }
+    if (target.username || target.password) {
+      throw networkError(`'${relativeFileUrl(current.url)}' redirected to a URL with a username or password in it, which a request can't have`, { code: "ERR_INVALID_REDIRECT" }, current.url);
+    }
     if (target.protocol === "file:") {
       throw networkError(`'${relativeFileUrl(current.url)}' redirected to a file: URL, '${relativeFileUrl(target.href)}'. A redirect can't lead to a file.`, { code: "ERR_UNSAFE_REDIRECT" }, target.href);
     }
