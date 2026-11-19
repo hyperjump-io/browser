@@ -57,8 +57,19 @@ request's own headers go to each step, as in `fetch`.
   from and to. Every step has the request's context and record.
 - It asks the stack for each step with `redirect: "manual"`. Node.js, Deno,
   and Bun return the 3xx. A browser returns an opaque redirect, which
-  doesn't say where it leads, so the session asks again with the request's
-  own mode and the browser follows it.
+  doesn't say where it leads.
+  - With `redirect: "manual"`, the opaque redirect is the response, as it
+    is from a browser's `fetch`. With `"error"`, it's a network error,
+    `ERR_UNEXPECTED_REDIRECT`. Neither sends the request again.
+  - With `"follow"`, the session asks again with `redirect: "follow"`, and
+    the browser follows it. It's asked without the session's headers. They
+    were for the first URL, and the browser sends a request's headers to
+    every URL it's redirected to, so a credential like `X-API-Key` would
+    go wherever the server said. The request's own headers go, as they do
+    to each step in Node.js.
+  - Asking again with the session's headers was rejected. The session
+    can't see where the redirect leads, so it can't keep its promise that
+    a credential goes only to the URLs it's for.
 - `maxRedirects` and `redirectSchemes` are session options. What a session
   may be sent to is about what it fetches, not about how the stack fetches
   it.
@@ -90,3 +101,10 @@ Rejected:
   first request, and its rules apply instead of `redirectSchemes`. Only the
   URL it led to is checked against `allowRetrieval`, after the request was
   sent.
+- In a browser, a request that's redirected with `redirect: "follow"` is
+  sent twice: once to learn that it's a redirect, and once for the browser
+  to follow it. A `POST` reaches the server twice. A browser's `fetch`
+  can't say where a redirect leads without following it.
+- In a browser, where a redirect leads gets none of the session's headers,
+  even one for its own URL. A redirect to a URL that needs a credential,
+  like one that adds a trailing `/`, fails as it would without one.

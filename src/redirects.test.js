@@ -200,22 +200,47 @@ describe("redirects", () => {
     }
   });
 
-  test("a redirect a browser won't say the target of is sent again for the browser to follow, with its body", async () => {
-    /** @type string[] */
-    const sent = [];
-    const session = testHyperjump(fetcher(async (request) => {
-      sent.push(`${request.redirect} ${await request.text()}`);
-      if (request.redirect === "manual") {
-        // What a browser gives for a redirect with redirect: "manual"
-        const response = new Response(null, { status: 200 });
-        Object.defineProperty(response, "type", { value: "opaqueredirect" });
-        return response;
-      }
-      return new Response("followed");
-    }));
-    const response = await session.fetch("https://a.test/form", { method: "POST", body: "payload" });
-    expect(await response.text()).to.equal("followed");
-    expect(sent).to.eql(["manual payload", "follow payload"]);
+  describe("a redirect a browser won't say the target of", () => {
+    /** @type () => { sent: string[], session: Hyperjump } */
+    const browserLike = () => {
+      /** @type string[] */
+      const sent = [];
+      const session = testHyperjump(fetcher(async (request) => {
+        sent.push(`${request.redirect} ${request.headers.get("x-api-key") ?? "-"} ${await request.text()}`);
+        if (request.redirect === "manual") {
+          // What a browser gives for a redirect with redirect: "manual"
+          const response = new Response(null, { status: 200 });
+          Object.defineProperty(response, "type", { value: "opaqueredirect" });
+          return response;
+        }
+        return new Response("followed");
+      }), { headers: { "https://a.test/": { "x-api-key": "secret" } } });
+      return { sent, session };
+    };
+
+    test("is sent again for the browser to follow, with its body and without the session's headers", async () => {
+      const { sent, session } = browserLike();
+      const response = await session.fetch("https://a.test/form", { method: "POST", body: "payload", headers: { "x-api-key": "own" } });
+      expect(await response.text()).to.equal("followed");
+      expect(sent, "the request's own headers are sent again").to.eql(["manual own payload", "follow own payload"]);
+
+      sent.length = 0;
+      await (await session.fetch("https://a.test/form", { method: "POST", body: "payload" })).text();
+      expect(sent, "the session's headers for the first URL aren't sent where it leads").to.eql(["manual secret payload", "follow - payload"]);
+    });
+
+    test("is the response with redirect: manual, and a network error with redirect: error, each sent once", async () => {
+      const { sent, session } = browserLike();
+      const manual = await session.fetch("https://a.test/form", { method: "POST", body: "payload", redirect: "manual" });
+      expect(manual.type).to.equal("opaqueredirect");
+      expect(sent).to.eql(["manual secret payload"]);
+
+      sent.length = 0;
+      const error = session.fetch("https://a.test/form", { method: "POST", body: "payload", redirect: "error" });
+      await expect(error).rejects.toBeInstanceOf(TypeError);
+      await expect(error).rejects.toMatchObject({ cause: { code: "ERR_UNEXPECTED_REDIRECT" } });
+      expect(sent).to.eql(["manual secret payload"]);
+    });
   });
 
   test("when following a redirect fails, the copy of the body is cancelled, so its source isn't held open", async () => {

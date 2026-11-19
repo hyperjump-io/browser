@@ -38,7 +38,8 @@ is the safe way.
 - Each redirect is a new request (see [Redirects](redirects.md)), and it
   gets the headers for the URL it leads to, not the ones the URL before it
   got. A token for one path doesn't follow a redirect to another path on
-  the same origin.
+  the same origin. In a browser, which follows redirects itself, where a
+  redirect leads gets none of them (see [Redirects](redirects.md)).
 
 Rejected:
 

@@ -74,9 +74,19 @@ export const follow = async (stack, request, ctx, policy, added) => {
       const response = await checked(stack.fetch(withHeaders(current, added, "manual"), ctx), current.url, ctx, policy);
 
       if (response.type === "opaqueredirect") {
-        // A browser doesn't say where a redirect leads, so it follows it,
-        // with the copy of the body, since the request's was sent
-        return checked(stack.fetch(withHeaders(spare ?? current, added, mode), ctx), current.url, ctx, policy);
+        // A browser doesn't say where a redirect leads
+        if (mode === "manual") {
+          void spare?.body?.cancel().catch(() => {});
+          return response;
+        }
+        if (mode === "error") {
+          throw networkError(`'${relativeFileUrl(current.url)}' redirected, and redirect is "error"`, { code: "ERR_UNEXPECTED_REDIRECT" }, current.url);
+        }
+        // So it's asked again, to follow it, with the copy of the body, since
+        // the request's was sent. The session's headers are for this URL, and
+        // the browser would send them wherever the redirect leads, so they
+        // aren't sent again.
+        return checked(stack.fetch(new Request(spare ?? current, { redirect: mode }), ctx), current.url, ctx, policy);
       }
 
       const location = response.headers.get("location");

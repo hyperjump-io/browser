@@ -62,3 +62,13 @@ responseMeta(response).redirects;
 
 A browser doesn't let a script see where a redirect leads, so in a browser, the
 browser follows redirects, and the layers only see the first request.
+
+The session sends a redirected request twice in a browser: once to learn that
+it's a redirect, and once for the browser to follow it. A `POST` that's
+redirected reaches the server twice. With `redirect: "manual"` or `"error"`,
+the session sends it once.
+
+The session can't tell which URL the browser follows a redirect to, so the
+browser's request to it doesn't get the session's
+[headers](hyperjump-sessions.md#headers). A credential doesn't go to wherever a
+server redirects to, but a redirect to a URL that needs one fails.
