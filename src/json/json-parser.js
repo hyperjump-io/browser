@@ -1,4 +1,4 @@
-import { scanToken } from "./json-scanner.js";
+import { emptyToken, scanToken } from "./json-scanner.js";
 import { appendToLocation } from "./location.js";
 
 /**
@@ -105,8 +105,6 @@ export const jsonSyntaxErrorMessage = (error) => MESSAGES[error.ruleId](error.ac
  * @type (text: string, url: string, options?: JsonOptions, onObject?: (node: JsonTolerantObjectNode) => void) => ParsedJson
  */
 export const parseJson = (text, url, options = {}, onObject) => {
-  const lineStarts = findLineStarts(text);
-
   /** @type SyntaxError[] */
   const errors = [];
 
@@ -126,8 +124,11 @@ export const parseJson = (text, url, options = {}, onObject) => {
   // The tree has everything, so it's recovered.
   const hasByteOrderMark = text.startsWith("\uFEFF");
 
+  // The scanner writes each token into one of these instead of making an
+  // object for it. Lookahead has its own, so the current token is kept.
   /** @type JsonToken */
-  let token = scanToken("", hasByteOrderMark ? 1 : 0);
+  let token = emptyToken(hasByteOrderMark ? 1 : 0);
+  const ahead = emptyToken(0);
   let previousOffset = 0;
   let previousLength = 0;
 
@@ -153,39 +154,40 @@ export const parseJson = (text, url, options = {}, onObject) => {
   };
 
   // Points are mostly requested in document order, so the line of the last
-  // point is checked before searching. Its bounds are kept, since checking
-  // them is most of finding a point.
+  // point is kept, and lines are found going forward from it. A point
+  // before it searches a table of every line's start, which is made only
+  // then, or when lines end with "\r".
+  /** @type number[] | undefined */
+  let lineStarts = text.includes("\r") ? findLineStarts(text) : undefined;
   let lastLine = 0;
   let lastLineStart = 0;
-  let nextLineStart = lineStarts.length > 1 ? lineStarts[1] : Infinity;
-
-  /** @type (line: number, offset: number) => boolean */
-  const isOnLine = (line, offset) => {
-    return lineStarts[line] <= offset && (line + 1 === lineStarts.length || offset < lineStarts[line + 1]);
-  };
+  let nextLineStart = lineStarts
+    ? (lineStarts.length > 1 ? lineStarts[1] : Infinity)
+    : lineStartAfter(text, 0);
 
   /** @type (offset: number) => Point */
   const point = (offset) => {
-    if (offset < lastLineStart || offset >= nextLineStart) {
-      let line = lastLine;
-      if (line + 1 < lineStarts.length && isOnLine(line + 1, offset)) {
-        line++;
-      } else {
-        let low = 0;
-        let high = lineStarts.length - 1;
-        while (low < high) {
-          const middle = Math.ceil((low + high) / 2);
-          if (lineStarts[middle] <= offset) {
-            low = middle;
-          } else {
-            high = middle - 1;
-          }
+    if (offset >= nextLineStart && !lineStarts) {
+      do {
+        lastLine++;
+        lastLineStart = nextLineStart;
+        nextLineStart = lineStartAfter(text, lastLineStart);
+      } while (offset >= nextLineStart);
+    } else if (offset < lastLineStart || offset >= nextLineStart) {
+      lineStarts ??= findLineStarts(text);
+      let low = 0;
+      let high = lineStarts.length - 1;
+      while (low < high) {
+        const middle = Math.ceil((low + high) / 2);
+        if (lineStarts[middle] <= offset) {
+          low = middle;
+        } else {
+          high = middle - 1;
         }
-        line = low;
       }
-      lastLine = line;
-      lastLineStart = lineStarts[line];
-      nextLineStart = line + 1 < lineStarts.length ? lineStarts[line + 1] : Infinity;
+      lastLine = low;
+      lastLineStart = lineStarts[low];
+      nextLineStart = low + 1 < lineStarts.length ? lineStarts[low + 1] : Infinity;
     }
 
     return { line: lastLine + 1, column: offset - lastLineStart + 1, offset: offset };
@@ -229,25 +231,11 @@ export const parseJson = (text, url, options = {}, onObject) => {
   /** @type (node: { position?: Position }) => number */
   const endOf = (node) => /** @type Position */ (node.position).end.offset ?? 0;
 
-  // Looking ahead scans the token that's usually consumed next, so the first
-  // token scanned is kept to save scanning it again
-  let peekedFrom = -1;
-
-  /** @type JsonToken */
-  let peeked = token;
-
-  /** @type (offset: number) => JsonToken */
-  const scanAt = (offset) => {
-    return offset === peekedFrom ? peeked : scanToken(text, offset);
-  };
-
   /** @type (offset: number) => JsonToken */
   const scanSignificant = (offset) => {
-    let result = scanAt(offset);
-    peekedFrom = offset;
-    peeked = result;
+    let result = scanToken(text, offset, ahead);
     while (result.kind === "comment") {
-      result = scanToken(text, result.offset + result.length);
+      result = scanToken(text, result.offset + result.length, ahead);
     }
     return result;
   };
@@ -257,7 +245,7 @@ export const parseJson = (text, url, options = {}, onObject) => {
     previousLength = token.length;
 
     for (;;) {
-      token = scanAt(token.offset + token.length);
+      token = scanToken(text, token.offset + token.length, token);
 
       // Most tokens have none
       if (token.errors.length > 0) {
@@ -491,16 +479,16 @@ export const parseJson = (text, url, options = {}, onObject) => {
     if (!containerEnds) {
       containerEnds = new Map();
 
-      /** @type JsonToken[] */
+      /** @type {{ kind: JsonTokenKind, offset: number }[]} */
       const openers = [];
       let scanned = scanSignificant(0);
       while (scanned.kind !== "eof") {
         if (scanned.kind === "{" || scanned.kind === "[") {
-          openers.push(scanned);
+          openers.push({ kind: scanned.kind, offset: scanned.offset });
         } else if (scanned.kind === "}" || scanned.kind === "]") {
           const match = scanned.kind === "}" ? "{" : "[";
           while (openers.length > 0 && openers[openers.length - 1].kind !== match) {
-            containerEnds.set(/** @type JsonToken */ (openers.pop()).offset, scanned.offset);
+            containerEnds.set(/** @type {{ offset: number }} */ (openers.pop()).offset, scanned.offset);
           }
           const opener = openers.pop();
           if (opener) {
@@ -566,11 +554,10 @@ export const parseJson = (text, url, options = {}, onObject) => {
     const closer = jsonType === "object" ? "}" : "]";
     next();
 
-    /** @type JsonPropertyNode<{ type: "json" }, JsonErrorNode>[] */
-    const properties = [];
-
-    /** @type JsonValueNode[] */
-    const items = [];
+    // Only the array of the container's kind is made, since one for each
+    // kind was a cost of every container
+    /** @type {(JsonPropertyNode<{ type: "json" }, JsonErrorNode> | JsonValueNode)[]} */
+    const children = [];
 
     /** @type {{ position?: Position } | undefined} */
     let lastItem;
@@ -589,7 +576,7 @@ export const parseJson = (text, url, options = {}, onObject) => {
         const gapOffset = parseComma(closer, !separated, index === 0);
         if (gapOffset !== undefined && jsonType === "array") {
           // An index never needs escaping or encoding
-          items.push(missing(`${containerLocation}/${index}`, gapOffset));
+          children.push(missing(`${containerLocation}/${index}`, gapOffset));
         }
         if (gapOffset !== undefined) {
           index++;
@@ -624,7 +611,7 @@ export const parseJson = (text, url, options = {}, onObject) => {
       if (jsonType === "object") {
         index++;
         const property = parseProperty(containerLocation);
-        properties.push(property);
+        children.push(property);
         lastItem = property;
         // A property's value is missing only when it wasn't there to parse
         const value = property.children[1];
@@ -632,7 +619,7 @@ export const parseJson = (text, url, options = {}, onObject) => {
       } else {
         // Every token that isn't a value was handled above
         const item = /** @type JsonValueNode */ (parseValue(`${containerLocation}/${index++}`, true));
-        items.push(item);
+        children.push(item);
         lastItem = item;
         separatorAfter = item;
       }
@@ -648,10 +635,14 @@ export const parseJson = (text, url, options = {}, onObject) => {
     const isClosed = token.kind === closer;
     const containerPosition = positionFrom(startPoint, isClosed ? token.offset + token.length : token.offset);
 
-    /** @type JsonTolerantNode */
-    const container = jsonType === "object"
-      ? { type: "json", jsonType: jsonType, children: properties, location: containerLocation, position: containerPosition }
-      : { type: "json", jsonType: jsonType, children: items, location: containerLocation, position: containerPosition };
+    // The children were pushed by kind above, so they're the container's
+    const container = /** @type JsonTolerantNode */ ({
+      type: "json",
+      jsonType: jsonType,
+      children: children,
+      location: containerLocation,
+      position: containerPosition
+    });
     if (jsonType === "object" && onObject) {
       onObject(/** @type JsonTolerantObjectNode */ (container));
     }
@@ -754,6 +745,12 @@ export const parseJson = (text, url, options = {}, onObject) => {
   const status = syntaxErrors.length === 0 ? "success" : failed ? "failure" : "recovered";
 
   return { status, node, errors: syntaxErrors, comments };
+};
+
+/** @type (text: string, offset: number) => number */
+const lineStartAfter = (text, offset) => {
+  const index = text.indexOf("\n", offset);
+  return index === -1 ? Infinity : index + 1;
 };
 
 /** @type (text: string) => number[] */

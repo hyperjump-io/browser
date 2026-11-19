@@ -39,10 +39,23 @@ reading the intent, like a trailing comma), or `failure`.
   point is found where it starts, not when it ends. Finding one backward
   searched the line starts and lost the line the parser was on, which was a
   quarter of parsing a document of many lines.
+- Lines are found going forward from the last point's line. A table of
+  every line's start is made only for a point behind it, like an error's
+  after parsing, or for text with a `\r`. With a container making only the
+  array of its kind of children, it made parsing a document of many lines
+  18% faster.
 - Garbage collection is a third of parsing, since every node survives, so
   nothing is built on the way to a node: a scalar isn't an object of its
-  type and value, a property returns only its node, and the comma after an
-  item is variables, not an object.
+  type and value, a property returns only its node, the comma after an item
+  is variables, not an object, and a container makes only the array of its
+  kind of children.
+- The scanner writes each token into one of the parser's two tokens, the
+  current one and the one looking ahead, instead of making an object for
+  it. It made parsing 3–13% faster.
+- A second parser for valid JSON, tried first with the tolerant one as the
+  fallback, was rejected. It made a valid document 24–38% faster, but one
+  with an error near its end, as while typing at the end, took twice as
+  long, and the two parsers would have to make the same tree.
 - The scanner finds a token like `{` or `,` by its character code in an
   array. An object with keys like those is a dictionary, and scanning took
   twice as long.

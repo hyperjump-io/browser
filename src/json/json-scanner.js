@@ -71,29 +71,30 @@ const ESCAPES = {
 /**
  * Scan the token that starts at `offset`, skipping any whitespace before it.
  * Scanning never fails. Anything that isn't valid JSON is still returned as a
- * token so the parser can decide how to report it.
+ * token so the parser can decide how to report it. The token is written into
+ * `into`, which is returned, so scanning doesn't make an object for each one.
  *
- * @type (text: string, offset: number) => JsonToken
+ * @type (text: string, offset: number, into: JsonToken) => JsonToken
  */
-export const scanToken = (text, offset) => {
+export const scanToken = (text, offset, into) => {
   const length = text.length;
   while (offset < length && isWhitespace(text.charCodeAt(offset))) {
     offset++;
   }
 
   if (offset >= length) {
-    return token("eof", offset, 0, "");
+    return token(into, "eof", offset, 0, "");
   }
 
   const code = text.charCodeAt(offset);
 
   const punctuator = code < 128 ? PUNCTUATORS[code] : undefined;
   if (punctuator !== undefined) {
-    return token(punctuator, offset, 1, punctuator);
+    return token(into, punctuator, offset, 1, punctuator);
   }
 
   if (code === DOUBLE_QUOTE || code === SINGLE_QUOTE) {
-    return scanString(text, offset, code);
+    return scanString(text, offset, code, into);
   }
 
   if (code === SLASH) {
@@ -107,13 +108,13 @@ export const scanToken = (text, offset) => {
         }
         end++;
       }
-      return token("comment", offset, end - offset, text.slice(offset, end));
+      return token(into, "comment", offset, end - offset, text.slice(offset, end));
     }
 
     if (next === ASTERISK) {
       const close = text.indexOf("*/", offset + 2);
       const end = close === -1 ? length : close + 2;
-      const result = token("comment", offset, end - offset, text.slice(offset, end));
+      const result = token(into, "comment", offset, end - offset, text.slice(offset, end));
       result.reachedEndOfFile = close === -1;
       return result;
     }
@@ -130,11 +131,11 @@ export const scanToken = (text, offset) => {
 
   const word = text.slice(offset, end);
   if (isNumberStart(code)) {
-    return token("number", offset, end - offset, word);
+    return token(into, "number", offset, end - offset, word);
   }
 
   const kind = word === "true" || word === "false" || word === "null" ? word : "unknown";
-  return token(kind, offset, end - offset, word);
+  return token(into, kind, offset, end - offset, word);
 };
 
 /** @type (code: number) => boolean */
@@ -149,22 +150,37 @@ const isHexDigit = (code) => (code >= 0x30 && code <= 0x39) || (code >= 0x41 && 
 /**
  * Every token has the same shape so property access stays fast.
  *
- * @type (kind: JsonTokenKind, offset: number, length: number, value: string) => JsonToken
+ * @type (into: JsonToken, kind: JsonTokenKind, offset: number, length: number, value: string) => JsonToken
  */
-const token = (kind, offset, length, value) => {
-  return {
-    kind: kind,
-    offset: offset,
-    length: length,
-    value: value,
-    quote: undefined,
-    errors: NO_ERRORS,
-    reachedEndOfFile: false
-  };
+const token = (into, kind, offset, length, value) => {
+  into.kind = kind;
+  into.offset = offset;
+  into.length = length;
+  into.value = value;
+  into.quote = undefined;
+  into.errors = NO_ERRORS;
+  into.reachedEndOfFile = false;
+  return into;
 };
 
-/** @type (text: string, offset: number, quoteCode: number) => JsonToken */
-const scanString = (text, offset, quoteCode) => {
+/**
+ * A token to scan into. It's an empty token at `offset`, so scanning after it
+ * starts there.
+ *
+ * @type (offset: number) => JsonToken
+ */
+export const emptyToken = (offset) => ({
+  kind: "eof",
+  offset: offset,
+  length: 0,
+  value: "",
+  quote: undefined,
+  errors: NO_ERRORS,
+  reachedEndOfFile: false
+});
+
+/** @type (text: string, offset: number, quoteCode: number, into: JsonToken) => JsonToken */
+const scanString = (text, offset, quoteCode, into) => {
   const length = text.length;
 
   /** @type ScanError[] | undefined */
@@ -240,13 +256,12 @@ const scanString = (text, offset, quoteCode) => {
     (errors ??= []).unshift({ code: "string-not-closed", offset: offset, length: position - offset });
   }
 
-  return {
-    kind: "string",
-    offset: offset,
-    length: position - offset,
-    value: value,
-    quote: quoteCode === DOUBLE_QUOTE ? "\"" : "'",
-    errors: errors ?? NO_ERRORS,
-    reachedEndOfFile: !closed && position >= length
-  };
+  into.kind = "string";
+  into.offset = offset;
+  into.length = position - offset;
+  into.value = value;
+  into.quote = quoteCode === DOUBLE_QUOTE ? "\"" : "'";
+  into.errors = errors ?? NO_ERRORS;
+  into.reachedEndOfFile = !closed && position >= length;
+  return into;
 };
