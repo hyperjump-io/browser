@@ -273,9 +273,11 @@ export const parseJson = (text, url, options = {}) => {
     }
 
     if (lastItem) {
-      // The last item can be an unclosed container that covers whitespace
-      const lastItemText = text.slice(startOf(lastItem), endOf(lastItem));
-      report(code, startOf(lastItem), lastItemText.trimEnd().length);
+      // The last item can be an unclosed container that covers whitespace,
+      // which ends after the last token. Trimming its text instead would go
+      // over the same whitespace for every container it's in.
+      const end = Math.min(endOf(lastItem), previousOffset + previousLength);
+      report(code, startOf(lastItem), end - startOf(lastItem));
     } else {
       report(code, startOf(container), 1);
     }

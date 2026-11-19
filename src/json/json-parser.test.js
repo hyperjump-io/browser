@@ -483,6 +483,21 @@ describe("recovery", () => {
     ]);
   });
 
+  test("a container left open points at its last item without the whitespace or comments after it", () => {
+    const { errors } = parse(`[[1, 2 /* c */   `, { allowComments: true });
+
+    expect(errors).toEqual([
+      { code: "bracket-not-closed", offset: 1, length: 5 },
+      { code: "bracket-not-closed", offset: 5, length: 1 }
+    ]);
+  });
+
+  test("a container left open whose last item is a character that isn't whitespace in JSON points at it", () => {
+    const { errors } = parse(`{ `);
+
+    expect(errors).toContainEqual({ code: "brace-not-closed", offset: 1, length: 1 });
+  });
+
   test("an unterminated string that ends at a newline does not hide a later unclosed array", () => {
     const { errors } = parse(`{
       "a": "x

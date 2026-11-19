@@ -32,7 +32,10 @@ the root of a document, whose parse status is one of:
   where parsing stopped, as it does in `json-language-server`. A property
   with no value extends the same way, so the cursor is inside it while
   typing the value. The missing value node stays zero width after the
-  colon.
+  colon. The error for a container left open is its last item up to the
+  last token, without the whitespace and comments after it, so it's the
+  same for every container the item is in, and it's found without going
+  over that whitespace again for each of them.
 - `allowComments` supports JSONC. Comments are listed on the document node.
 - Nesting is limited to 1000 levels instead of overflowing the stack.
   Recovery heuristics run in linear time regardless of the input.
