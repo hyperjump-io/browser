@@ -23,7 +23,7 @@ what each layer did, and how it ended. A response has it as
   when the request starts, and the `file:` rule judges by it.
 - `session.observe(observer)` sees each request start, be marked, get its
   response, and end. An observer that throws doesn't stop the request or
-  the others. Its error is rethrown later, as uncaught.
+  the others. Its error is thrown again later, as uncaught.
 - A body is wrapped only while someone is watching, because it costs a
   stream for every response. So `endTime` and `bodySize` are known only for
   watched requests. Bodies are kept for an observer that asks: each chunk

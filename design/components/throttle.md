@@ -6,9 +6,11 @@ like Chrome's resource scheduler.
 - A request can be held when `isDelayable` says so, by default when its
   priority is `low`. Anything else is important and never held.
 - While an important request of the page is in flight, only
-  `maxDelayableWhileBusy` (1) delayable ones are. Otherwise `maxDelayable`
-  (10) are. Held requests start by priority, then order.
-- A held request whose priority stops being delayable starts right away.
+  `maxDelayableWhileBusy` (1) of the ones that can be delayed are.
+  Otherwise `maxDelayable` (10) are. Held requests start by priority, then
+  order.
+- A held request whose priority no longer lets it be delayed starts right
+  away.
 - A page is a session. Its counts are in the session's state, and in flight
   means until the body is done (`releaseOn`, as for the scheduler).
 - A held request marks `throttle:held` and `throttle:released`.

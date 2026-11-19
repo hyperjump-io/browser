@@ -6,7 +6,7 @@
 - A missing file, a directory, or a method other than `GET` or `HEAD` is a
   network error, as in a browser (see
   [Like a web browser](../principles/like-a-web-browser.md)), with the
-  filesystem's error as its cause (see [Errors](errors.md)).
+  file system's error as its cause (see [Errors](errors.md)).
 - The file is opened before it's answered, so one that can't be read is a
   network error, not a body that fails partway. Size and modified time are
   from the open file.
