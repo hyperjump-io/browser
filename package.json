@@ -1,6 +1,6 @@
 {
   "name": "@hyperjump/browser",
-  "version": "2.0.0-dev",
+  "version": "2.0.0",
   "description": "A hypermedia browser that retrieves documents like a web browser: sessions, a stack of layers, an HTTP cache, and file: URLs on the server",
   "keywords": [
     "hypermedia",
