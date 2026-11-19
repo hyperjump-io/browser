@@ -21,7 +21,8 @@ Node.js, and its browser version throws (see [Packaging](packaging.md)).
 - A file is written under a temporary name and renamed, so a reader, even in
   another process, sees the old file or the new one, never part of one. A
   temporary file left by a crash is removed the next time the directory is
-  read.
+  read, if it hasn't been written to for an hour. One that's newer can be
+  a put in flight, in this process or another, which would be lost.
 - In a process, operations on the same file run one at a time, so puts at
   the same time don't lose each other's variants. Between processes, the
   last write wins.
@@ -41,6 +42,9 @@ Rejected:
   variant it's for across files, which can't be done atomically.
 - JSON for the whole file, with the body as text or base64. Binary bodies
   would be changed or made a third bigger.
+- Removing every temporary file when the directory is read. A put in
+  flight would be lost, and the directory is first read when the index is
+  needed, which can be while another put is writing.
 - An index file of sizes and times. It would have to be written with every
   put, by every process, without losing the others' writes.
 

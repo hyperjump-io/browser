@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { mkdir, mkdtemp, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { defaultTransport } from "../transports/scheme-transport.js";
@@ -114,8 +114,19 @@ describe("the file cache store", () => {
     await new FileCacheStore({ directory: dir }).put(entry("https://a.test/x", "x"));
     const [path] = await files(dir);
     await writeFile(`${path}.abc123.tmp`, "half-written");
+    const longAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    await utimes(`${path}.abc123.tmp`, longAgo, longAgo);
     await new FileCacheStore({ directory: dir }).size();
     expect(await files(dir)).to.eql([path]);
+  });
+
+  test("a temporary file that's being written isn't removed, so a put in flight, in this process or another, isn't lost", async () => {
+    const dir = await directory();
+    await new FileCacheStore({ directory: dir }).put(entry("https://a.test/x", "x"));
+    const [path] = await files(dir);
+    await writeFile(`${path}.abc123.tmp`, "being written");
+    await new FileCacheStore({ directory: dir }).size();
+    expect((await files(dir)).toSorted()).to.eql([path, `${path}.abc123.tmp`].toSorted());
   });
 
   test("leaves alone what isn't the store's in its directory, when it counts, evicts, and clears", async () => {

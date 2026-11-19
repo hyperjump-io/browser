@@ -24,6 +24,13 @@ const shardName = /^[0-9a-f]{2}$/;
 const fileName = /^[0-9a-f]{62}$/;
 const temporaryName = /^[0-9a-f]{62}\.[0-9a-f]+\.tmp$/;
 
+/**
+ * How long a temporary file goes unwritten before it's taken as left by a
+ * crash. One that's newer can be a put in flight, in this process or
+ * another.
+ */
+const abandonedAfter = 60 * 60 * 1000;
+
 /** @implements API.FileCacheStore */
 export class FileCacheStore {
   /**
@@ -192,7 +199,7 @@ export class FileCacheStore {
   }
 
   /**
-   * Each file's size and time, and temporary files from a crash removed
+   * Each file's size and time, and temporary files left by a crash removed
    *
    * @type () => Promise<Map<string, IndexEntry>>
    */
@@ -201,7 +208,10 @@ export class FileCacheStore {
     const index = new Map();
     for (const { files, temporaries } of await this.#own()) {
       for (const path of temporaries) {
-        await rm(path, { force: true });
+        const stats = await stat(path).catch(() => undefined);
+        if (stats && Date.now() - stats.mtimeMs > abandonedAfter) {
+          await rm(path, { force: true });
+        }
       }
       for (const path of files) {
         const stats = await stat(path).catch(() => undefined);
