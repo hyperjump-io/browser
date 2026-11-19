@@ -132,7 +132,17 @@ describe("the file: scheme", () => {
   });
 
   test("the Node.js transport can leave file: out", async () => {
-    await expect(testHyperjump(nodeTransport({ file: false }), { allow: [pathToFileURL(directory + "/").href] }).fetch(pathToFileURL(join(directory, "secret.txt")))).rejects.toMatchObject({ cause: { code: "ERR_UNKNOWN_URL_SCHEME" } });
+    const url = pathToFileURL(join(directory, "secret.txt")).href;
+    const fetching = testHyperjump(nodeTransport({ file: false }), { allow: [pathToFileURL(directory + "/").href] }).fetch(url);
+    await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_UNKNOWN_URL_SCHEME" } });
+    await expect(fetching).rejects.toThrow(`The 'file:' scheme isn't supported, so '${relativeFileUrl(url)}' can't be fetched`);
+  });
+
+  test("a file: URL that isn't a path says it relative to the working directory", async () => {
+    const url = `${pathToFileURL(directory).href}/a%2Fb.txt`;
+    const fetching = testHyperjump(nodeTransport(), { allow: [pathToFileURL(directory + "/").href] }).fetch(url);
+    await expect(fetching).rejects.toThrow(`'${relativeFileUrl(url)}' isn't a file URL`);
+    await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_INVALID_FILE_URL_PATH" } });
   });
 
   test("in a browser, file: and the Node.js transport throw", () => {

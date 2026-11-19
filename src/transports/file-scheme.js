@@ -32,7 +32,7 @@ export const fileScheme = (options = {}) => fetcher(async (request, ctx) => {
   try {
     written = fileURLToPath(url);
   } catch (error) {
-    throw networkError(`'${request.url}' isn't a file URL: ${/** @type Error */ (error).message}`, error, request.url);
+    throw networkError(`'${relativeFileUrl(request.url)}' isn't a file URL: ${/** @type Error */ (error).message}`, error, request.url);
   }
 
   if (options.root !== undefined && !isInside(resolve(options.root), written)) {

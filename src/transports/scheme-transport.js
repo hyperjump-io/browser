@@ -1,5 +1,6 @@
 import { fetcher } from "../layers.js";
 import { networkError, setResponseMeta } from "../response-meta.js";
+import { relativeFileUrl } from "../file-urls.js";
 
 /**
  * @import * as API from "./scheme-transport.d.ts"
@@ -18,7 +19,7 @@ export class SchemeTransport {
     const scheme = new URL(request.url).protocol;
     const handler = this.schemes[scheme];
     if (!handler) {
-      throw networkError(`The '${scheme}' scheme isn't supported, so '${request.url}' can't be fetched`, { code: "ERR_UNKNOWN_URL_SCHEME" }, request.url);
+      throw networkError(`The '${scheme}' scheme isn't supported, so '${relativeFileUrl(request.url)}' can't be fetched`, { code: "ERR_UNKNOWN_URL_SCHEME" }, request.url);
     }
     return handler.fetch(request, ctx);
   }
