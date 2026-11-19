@@ -175,6 +175,25 @@ describe("sessions", () => {
       expect(new TextDecoder().decode(responseMeta(kept).record?.body)).to.equal("body");
     });
 
+    test("a body that comes in chunks is kept whole, as its own copy", async () => {
+      const encoder = new TextEncoder();
+      const session = testHyperjump(fetcher(() => new Response(new ReadableStream({
+        start: (controller) => {
+          for (const part of ["one ", "two ", "three"]) {
+            controller.enqueue(encoder.encode(part));
+          }
+          controller.close();
+        }
+      }))));
+      session.observe(() => {}, { bodies: true });
+      const response = await session.fetch("https://a.test/");
+      const reader = /** @type ReadableStream<Uint8Array> */ (response.body).getReader();
+      for (let read = await reader.read(); !read.done; read = await reader.read()) {
+        read.value.fill(0);
+      }
+      expect(new TextDecoder().decode(responseMeta(response).record?.body)).to.equal("one two three");
+    });
+
     test("a failure is recorded with its error", async () => {
       const session = testHyperjump(fetcher(() => Promise.reject(new TypeError("offline"))));
       /** @type TraceEvent[] */

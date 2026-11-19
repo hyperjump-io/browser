@@ -35,7 +35,11 @@ what each layer did with it, and how it ended. A response has it as
 - A body is wrapped to know when it's done, and how big it was, only while
   someone is watching, because wrapping costs a stream for every response.
   So `endTime` and `bodySize` are known only for requests that were watched.
-  An observer that asks for bodies gets them kept on the records.
+  An observer that asks for bodies gets them kept on the records. Each
+  chunk is copied as it comes, because the caller gets the same chunk and
+  can change it, and the chunks are joined the first time `body` is read.
+  Joining each chunk to the ones before it as it came was rejected: it
+  copied the body again for every chunk, so a big body took seconds.
 
 Rejected:
 

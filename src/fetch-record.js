@@ -19,7 +19,7 @@ import { responseMeta } from "./response-meta.js";
  *   source?: string;
  *   cache?: import("./response-meta.d.ts").ResponseMeta["cache"];
  *   bodySize?: number;
- *   body?: Uint8Array;
+ *   chunks?: Uint8Array[];
  *   error?: unknown;
  * }} RecordState
  */
@@ -98,8 +98,23 @@ export class FetchRecord {
     return this.#state.bodySize;
   }
 
+  /**
+   * The chunks kept so far, joined when they're read, and kept joined. A
+   * chunk is only kept as it comes, because joining every chunk to the ones
+   * before it would copy the body again for each one.
+   */
   get body() {
-    return this.#state.body;
+    const { chunks } = this.#state;
+    if (chunks && chunks.length > 1) {
+      const joined = new Uint8Array(chunks.reduce((length, chunk) => length + chunk.byteLength, 0));
+      let offset = 0;
+      for (const chunk of chunks) {
+        joined.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      chunks.splice(0, chunks.length, joined);
+    }
+    return chunks?.[0];
   }
 
   get error() {
@@ -156,12 +171,10 @@ export const recordChunk = (record, chunk, keep) => {
   const { state } = writerOf(record);
   state.bodySize = (state.bodySize ?? 0) + chunk.byteLength;
   if (keep) {
-    const joined = new Uint8Array((state.body?.byteLength ?? 0) + chunk.byteLength);
-    if (state.body) {
-      joined.set(state.body);
-    }
-    joined.set(chunk, state.body?.byteLength ?? 0);
-    state.body = joined;
+    // The caller gets the same chunk, and can change it or transfer its
+    // buffer, so the record keeps a copy
+    state.chunks ??= [];
+    state.chunks.push(chunk.slice());
   }
 };
 
