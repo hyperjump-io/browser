@@ -31,8 +31,9 @@ Hyperjump session reads a `file:` URL every time.
   a request of its own, so a [trace](tracing.md) shows it, caused by the
   stale response.
 - It keeps a response for each value of the headers a response's `Vary` names.
-- A successful `POST`, `PUT`, `PATCH`, or `DELETE` to a URL removes what's
-  cached for it.
+- A successful request to a URL with any method other than `GET`, `HEAD`,
+  `OPTIONS`, or `TRACE`, like `POST`, `PUT`, `PATCH`, or `DELETE`, removes
+  what's cached for it.
 
 The cache belongs to the layer, so every session on the same stack shares it,
 the way a browser's tabs do.

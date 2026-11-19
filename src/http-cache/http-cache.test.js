@@ -452,6 +452,26 @@ describe("the HTTP cache", () => {
     }
   });
 
+  test("any method that isn't safe makes its URL's response stale, even one whose safety isn't known", async () => {
+    const cache = new HttpCache(fetcher((request) => new Response(request.method, { headers: { "cache-control": "max-age=60" } })));
+    const session = testHyperjump(cache);
+    const url = "https://a.test/item";
+    /** @type (method?: string) => Promise<string | undefined> */
+    const fetched = async (method) => {
+      const response = await session.fetch(url, method ? { method } : {});
+      await response.text();
+      await settle();
+      return responseMeta(response).cache;
+    };
+
+    await fetched();
+    for (const method of ["OPTIONS", "PROPPATCH", "patch", "LINK"]) {
+      expect(await fetched(), `before ${method}`).to.equal("hit");
+      await fetched(method);
+      expect(await fetched(), `after ${method}`).to.equal(method === "OPTIONS" ? "hit" : "miss");
+    }
+  });
+
   test("purge removes a URL", async () => {
     const { server, cache, get } = await setup();
     try {

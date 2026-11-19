@@ -62,8 +62,13 @@ it's a private cache, like a browser's.
   [The scheme transport](scheme-transport.md)).
   As in the Fetch standard, a request that's already conditional bypasses
   the cache, and `only-if-cached` is a network error when nothing's stored.
-- A successful `POST`, `PUT`, `PATCH`, or `DELETE` removes what's stored for
-  its URL, and for its `Location` and `Content-Location` on the same origin.
+- A successful request with any method that isn't safe removes what's
+  stored for its URL, and for its `Location` and `Content-Location` on the
+  same origin. The safe methods are RFC 9110's: `GET`, `HEAD`, `OPTIONS`,
+  and `TRACE`. Any other method invalidates, even one whose safety isn't
+  known, like `PROPPATCH`, as RFC 9111 says a cache must. Methods are
+  case-sensitive, and the Fetch standard only makes six of them uppercase,
+  so `patch` is a method of its own, not `PATCH`, and it invalidates too.
 - A response is stored while the caller reads it: a clone is read for the
   store, so the caller's body streams. The clone is read a chunk at a time,
   and once it's bigger than `maxBodySize` it's cancelled and nothing is

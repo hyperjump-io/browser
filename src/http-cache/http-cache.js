@@ -17,7 +17,13 @@ const heuristicallyCacheable = new Set([200, 203, 204, 206, 300, 301, 308, 404, 
 
 const httpSchemes = new Set(["http:", "https:"]);
 
-const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+/**
+ * The methods RFC 9110 defines as safe. Any other, even one whose safety
+ * isn't known, invalidates (RFC 9111 §4.4). Methods are case-sensitive, and
+ * the Fetch standard only makes six of them uppercase, so `patch` isn't
+ * `PATCH`.
+ */
+const safeMethods = new Set(["GET", "HEAD", "OPTIONS", "TRACE"]);
 
 /** A request with one of these is already conditional, so the Fetch standard bypasses the cache */
 const conditionalHeaders = ["if-modified-since", "if-none-match", "if-unmodified-since", "if-match", "if-range"];
@@ -97,7 +103,7 @@ export class HttpCache {
     const method = request.method;
     if (method !== "GET" && method !== "HEAD") {
       const response = await this.inner.fetch(request, ctx);
-      if (unsafeMethods.has(method) && response.status < 400) {
+      if (!safeMethods.has(method) && response.status < 400) {
         await this.#invalidate(request, response);
       }
       return response;
