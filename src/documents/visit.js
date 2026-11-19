@@ -46,7 +46,7 @@ const MAX_REVISITS = 250_000;
  * nested, which correct documents have too, like a grammar whose
  * definitions refer to each other. The most measured in a real schema is
  * 180, and a document that doubles at each level is past any multiple
- * within a few levels (see `design/benchmarks/revisits.md`).
+ * within a few levels (see `design/components/browsing.md#stopping-a-walk`).
  */
 const REVISITS_PER_NODE = 100;
 

@@ -3,52 +3,38 @@
 A `CacheStore` on disk, so the HTTP cache outlives the process. It's for
 Node.js, and its browser version throws (see [Packaging](packaging.md)).
 
-- A URL is one file, with all its `Vary` variants: a header with the
-  format's version, the variants as JSON, and their bodies one after
-  another. Bodies are bytes, so binary responses are kept as they are.
-- A file is named by a SHA-256 hash of its URL, in one of 256 directories by
-  the hash's first two characters, so a URL is never a path and no
-  directory gets too big.
-- Its files are only the user's (`0o600`), and so are the directories it
-  makes for them (`0o700`). A response can be private, like one to a
-  request with credentials, and a cache directory can be where other users
-  can read. A directory it's given that exists already keeps its mode.
-- It only touches what has its names: directories of two hex characters
-  and, in them, files of 62 hex characters and their temporary files. A
-  directory it's given can have other things in it, and counting,
-  eviction, and `clear` leave them alone. `clear` removes a directory of
-  its own only if nothing else is in it.
-- A file is written under a temporary name and renamed, so a reader, even in
-  another process, sees the old file or the new one, never part of one. A
-  temporary file left by a crash is removed the next time the directory is
-  read, if it hasn't been written to for an hour. One that's newer can be
-  a put in flight, in this process or another, which would be lost.
-- In a process, operations on the same file run one at a time, so puts at
-  the same time don't lose each other's variants. Between processes, the
-  last write wins.
-- With `maxSize`, the least recently used URLs are removed after a write
-  until the cache is under it. When each URL was last used is kept in
-  memory, read from the files' times the first time it's needed, and a
-  match sets the file's time too, so the order outlives the process.
-- A file that's damaged, from another version of the format, or for another
-  URL is a miss, and it's removed.
+- A URL is one file with all its `Vary` variants: a version header, the
+  variants as JSON, and their bodies as bytes, so binary responses are kept
+  as they are.
+- A file is named by a SHA-256 of its URL, in one of 256 directories by the
+  first two characters, so a URL is never a path and no directory gets too
+  big.
+- Files are `0o600` and the directories it makes are `0o700`, because a
+  response can be private and a cache directory can be readable by others.
+  A directory it's given keeps its mode.
+- It only touches what has its names, so a directory it's given can have
+  other things in it, and `clear` removes a directory only if it's empty.
+- A file is written under a temporary name and renamed, so any reader sees
+  the old file or the new one. A temporary file is removed when the
+  directory is read only if it's an hour old, since a newer one can be a
+  put in flight.
+- In a process, operations on a file run one at a time, so concurrent puts
+  keep each other's variants. Between processes, the last write wins.
+- With `maxSize`, least recently used URLs are removed after a write. The
+  order is kept in memory, read from file times when first needed, and a
+  match sets the file's time, so it outlives the process.
+- A file that's damaged, from another format version, or for another URL is
+  a miss and is removed.
 
 Rejected:
 
-- Taking over the whole directory, removing everything in it. A directory
-  that's shared, like a project's or the system's temporary one, would
-  lose files the store never wrote.
-- A file for each variant. A put would have to find and replace the
-  variant it's for across files, which can't be done atomically.
-- JSON for the whole file, with the body as text or base64. Binary bodies
-  would be changed or made a third bigger.
-- Removing every temporary file when the directory is read. A put in
-  flight would be lost, and the directory is first read when the index is
-  needed, which can be while another put is writing.
-- An index file of sizes and times. It would have to be written with every
-  put, by every process, without losing the others' writes.
+- Taking over the whole directory. A shared one would lose others' files.
+- A file for each variant. Replacing a variant across files can't be
+  atomic.
+- JSON for the whole file. Binary bodies would change or grow a third.
+- An index file of sizes and times. Every process would write it with every
+  put.
 
 ## Known limitations
 
-- With more than one process writing, each knows only the sizes it has seen,
-  so `maxSize` is only about right.
+- With more than one process writing, `maxSize` is only about right.

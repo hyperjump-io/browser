@@ -1,112 +1,67 @@
 # Media types (`src/media-types/`)
 
-A media type plugin parses a response into a document, which says what
-its fragments identify. JSON and JRef are built in.
+A media type plugin parses a response into a document. JSON and JRef are
+built in.
 
-- A plugin is a plain object: its `mediaType`, the `extensions` its files
-  have, an optional `quality`, and `parse`.
-  The built-in ones are values (`jsonMediaType`, `jrefMediaType`), so one
-  with another quality is `{ ...jsonMediaType, quality: 0.5 }`.
-- The plugins an application uses are a list, and `defaultMediaTypes` is
-  JRef, then JSON. What a list means is three pure functions of it, so
-  they're tested without fetching anything:
-  - `acceptHeader` lists every plugin with its quality, `q=0` included, in
-    order, and `*/*` last. A quality has to be a number from 0 to 1 with at
-    most three decimal places, RFC 9110's `qvalue`, or it throws.
-  - `mediaTypeForContentType` is the plugin with the most specific match
-    for a `Content-Type`: its own media type, then a structured suffix
-    (`application/json` for `application/problem+json`), then a range
-    (`application/*`). The first plugin wins a tie. A `Content-Type`
-    that's missing or isn't a media type has none.
-  - `mediaTypeForExtension` is the plugin with the longest extension a
-    URL's path ends with, so a plugin for `.schema.json` wins over the JSON
-    plugin, whatever order they're in. A file doesn't have a media type,
-    so its extension is all there is (see
-    [The `file:` scheme](file-scheme.md)). Case doesn't matter, as it
-    doesn't to a web server that gives a file its `Content-Type`, like
-    Apache's or nginx's, so `A.JSON` is JSON on any file system.
-    - Matching case was rejected. A file's name has the case it was
-      saved with, and on a file system that ignores case, like the ones
-      on macOS and Windows, nothing else does.
-- A `Content-Type` is read without a parser of its own: what's before the
-  first `;`, in lowercase, checked against RFC 9110's `token "/" token`. A
-  parameter can't change which plugin parses a response, so parameters
-  aren't parsed.
-  - A header that's several values, like two `Content-Type` headers that
-    `Headers` combined, is the last one that's a media type and isn't
-    `*/*`, by the Fetch standard's "extract a MIME type". It's split at
-    commas outside quoted strings, so a parameter with a comma in it
-    doesn't split it. A browser reads it that way, so a response is parsed
-    the way it's rendered.
-  - Known limitation: a plugin that reads its `Content-Type`'s parameters
-    gets the whole header, not the value it was chosen for.
-- `parse` gets the response and the session. The response's `url` is the
-  document's, without a fragment, and its `headers` have its
-  `Content-Type`'s parameters, which a media type can give a meaning.
-  - The session is for a media type that needs other documents to parse
-    one, like a document that names what defines it. It gets them with
-    `browse(session, url, { initiator: response, reference: "manual" })`, so a trace shows
-    them under the document, and a document from the web can't make its
-    plugin read a file (see [`file:` from `file:`](file-references.md)).
-  - The JSON and JRef plugins take only a response's `text` and `url`
-    (`ParseSource`), which is all they read. A plugin that's read the text
-    already gives them the text as it is, without making a new `Response`.
-- A URL a plugin puts in a document, a reference's `href` or an
-  `embedded` document's, is a URL, because a plugin checks what it reads
-  from the document. The JRef plugin makes a `$ref` that doesn't resolve
-  an `invalid-reference`. A plugin that gives `browse` one that isn't a
-  URL has a bug, and `browse` throws the `TypeError` that `new URL` does.
-  - Giving it a code, like a document that can't be used, was rejected.
-    It would make a plugin's bug look like a problem with the document.
-- The JSON and JRef plugins only make a document for a parse whose status
-  is `success`. Anything else rejects with a `SyntaxError` whose message
-  says the first error and where it is. Its `cause` is the error, which is
-  plain data (see [The JSON AST](json-ast.md)), with the code `ERR_SYNTAX`,
-  and its `url` is the document's (see
-  [Errors with codes](coded-errors.md)).
-- `parse` gives a document the documents it contains, as `embedded` (see
-  [Documents](documents.md)). An embedded document is in its container's
-  media type.
-- `parse` gives a document its `anchors`, which say what its fragments
-  identify, so a media type defines that in the documents it makes (see
-  [Documents](documents.md)). JRef's fragments are JSON Pointers, so its
-  documents have `anchors` with none in it. JSON's have no `anchors`, so
-  a fragment identifies the whole document.
-  - A `fragmentPointer` function of the plugin's was rejected (see
-    [Documents](documents.md)).
-- Nothing in the stack knows media types. They're for what reads a
-  response, not for what fetches it: `browse` chooses the plugin and
-  sets `Accept` (see [Documents](documents.md)).
+- A plugin is a plain object: `mediaType`, `extensions`, an optional
+  `quality`, and `parse`. The built-in ones are values, so one with
+  another quality is `{ ...jsonMediaType, quality: 0.5 }`.
+- The plugins are a list, `defaultMediaTypes` by default. What a list means
+  is three pure functions of it, tested without fetching:
+  - `acceptHeader` lists every plugin with its quality, then `*/*`. A
+    quality that isn't RFC 9110's `qvalue` throws.
+  - `mediaTypeForContentType` is the most specific match: the media type,
+    then a structured suffix (`application/json` for
+    `application/problem+json`), then a range. The first plugin wins a tie.
+  - `mediaTypeForExtension` is the longest extension a URL's path ends
+    with, so `.schema.json` wins over `.json` in any order. It's for files,
+    which have no media type (see [The `file:` scheme](file-scheme.md)).
+    Case doesn't matter, as it doesn't to Apache or nginx.
+    - Matching case was rejected. On a file system that ignores case,
+      nothing else does.
+- A `Content-Type` is what's before the first `;`, lowercased and checked
+  against `token "/" token`. A parameter can't change which plugin parses,
+  so parameters aren't parsed. A header with several values is read by the
+  Fetch standard's "extract a MIME type", as a browser reads it.
+- `parse` gets the response and the session. The session is for a media
+  type that needs other documents to parse one. It gets them with
+  `browse(session, url, { initiator: response, reference: "manual" })`, so
+  a trace shows them under the document and the `file:` rule applies (see
+  [`file:` from `file:`](file-references.md)).
+- The JSON and JRef plugins read only `text` and `url` (`ParseSource`), so
+  a plugin that has the text already doesn't make a `Response`.
+- A plugin checks the URLs it reads. A URL it gives `browse` that isn't one
+  is the plugin's bug, so `browse` throws `new URL`'s `TypeError`.
+  - Giving it a code was rejected. A plugin's bug would look like a
+    problem with the document.
+- The JSON and JRef plugins make a document only for a `success` parse.
+  Anything else is a `SyntaxError` with the code `ERR_SYNTAX`, whose cause
+  is the syntax error (see [Errors](errors.md)).
+- `parse` gives a document its `embedded` documents and its `anchors` (see
+  [Documents](documents.md)).
+- Nothing in the stack knows media types. `browse` chooses the plugin and
+  sets `Accept`.
 
 Rejected:
 
-- `parse` without the session, with what else a document needs worked out
-  from the document `browse` returns. It moves the session to
-  whatever wraps `browse`, which then keeps its own documents next to
-  the session's, and the response's headers have to be carried on the
-  document to get there.
-- Plugins made for each session, which close over it. A session is made
-  from the configuration that has the plugins, so the session would be
-  given to them after it's made.
-- Classes, like `new JsonMediaTypePlugin({ quality })`. A plugin holds no
-  state, so a class would only hold its options.
-- Factory functions, like `jsonMediaType({ quality })`. The only option is
-  the quality, and spreading the value says the same.
-- The `content-type` package for parsing the header. Only the media type
-  is read, which is a few lines, and it would be a dependency for them.
-- Matching only a plugin's own media type. A response in
-  `application/problem+json` is JSON, and a plugin for a suffix is how the
-  JSON plugin parses every media type that's JSON.
-- A later plugin replacing an earlier one for the same media type, with
-  the defaults always first. The list would be a configuration language of
-  its own. An application that changes a default writes the list out.
-- A `VFileMessage` for a document with a syntax error. It would be a
-  dependency for a class, and its `source`, `ruleId`, and `place` are what
+- `parse` without the session. Whatever wraps `browse` would keep its own
+  documents next to the session's.
+- Plugins made for each session. The session is made from the
+  configuration that has the plugins.
+- Classes or factory functions. A plugin holds no state, and its only
+  option is spread into the value.
+- The `content-type` package. Only the media type is read, which is a few
+  lines.
+- Matching only a plugin's own media type. A suffix is how the JSON plugin
+  parses every media type that's JSON.
+- A later plugin replacing an earlier one for the same media type. The
+  list would be a configuration language. An application writes it out.
+- A `VFileMessage` for a syntax error. It would be a dependency for what
   the cause already has.
 
 ## Known limitations
 
-- A plugin that gets the document it's parsing, like one that defines
-  itself, waits for itself. The plugin has to see that it's the same URL.
-- What a plugin gets has the priority it asks for, not the priority of the
-  document it's parsing.
+- A plugin that reads parameters gets the whole `Content-Type`, not the
+  value it was chosen for.
+- A plugin that gets the document it's parsing waits for itself.
+- What a plugin gets has the priority it asks for, not the document's.

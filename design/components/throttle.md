@@ -1,26 +1,16 @@
 # The throttle (`src/layers/throttle.js`)
 
 A page's low-priority requests are held back while its important ones load,
-like Chrome's resource scheduler, so analytics, prefetches, and images below
-the fold don't compete with the stylesheet the page is waiting for.
+like Chrome's resource scheduler.
 
-- A request can be held back when `isDelayable` says so, which by default
-  is when its priority is `low`. Anything else is important, and is never
-  held back.
-- While any important request of the page is in flight, only
-  `maxDelayableWhileBusy` of the ones that can be held back are in flight
-  too (1). Otherwise, `maxDelayable` are (10). Held requests start by
-  priority, then in the order they came.
-- A held request whose priority changes so `isDelayable` no longer says so
-  starts right away, as an important request.
-- A page is a session, so each session is throttled by itself.
-- Its counts are a page's, in the session's state. The scheduler's
-  limits are the network's, on the layer. They answer different questions:
-  what a page asks for first, and how many requests the network carries at
-  once (see
-  [State lives as long as what it's for](../principles/state-lifetimes.md)).
-- A request counts as in flight until its body is done (`releaseOn`, as for
-  the scheduler).
+- A request can be held when `isDelayable` says so, by default when its
+  priority is `low`. Anything else is important and never held.
+- While an important request of the page is in flight, only
+  `maxDelayableWhileBusy` (1) delayable ones are. Otherwise `maxDelayable`
+  (10) are. Held requests start by priority, then order.
+- A held request whose priority stops being delayable starts right away.
+- A page is a session. Its counts are in the session's state, and in flight
+  means until the body is done (`releaseOn`, as for the scheduler).
 - A held request marks `throttle:held` and `throttle:released`.
 
 ## Where it goes
@@ -31,6 +21,7 @@ a page asks for first is what the scheduler gets first.
 Rejected:
 
 - Throttling in the scheduler. Its state is the network's, shared by every
-  session, and the throttle's is a page's.
-- The phases Chrome has, like treating requests differently before the
-  body of the document has started. A session doesn't know about documents.
+  session, and the throttle's is a page's (see
+  [State lives as long as what it's for](../principles/state-lifetimes.md)).
+- Chrome's phases, like before the document's body has started. A session
+  doesn't know about documents.

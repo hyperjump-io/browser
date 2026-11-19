@@ -1,40 +1,24 @@
 # Local paths in errors (`src/file-urls.js`)
 
-An error's message is copied into logs, issues, and what tools report, and
-a `file:` URL in it says where the files are on the machine. So
-`relativeFileUrl` says a `file:` URL relative to the working directory
-(`contextUrl`, which relative URLs are resolved against too):
-`data/a.json#/a`, or `../other/a.json` outside it. Other URLs are said as
-they are.
-
-- A network error says its URLs this way, and keeps the exact URL that
-  failed as its `url` (see [Network errors](network-errors.md)).
-- An error from `jsonPointerGet` or `jsonStep` says the location it failed
-  at, made relative this way, and has the exact one as its `url` (see
-  [Errors with codes](coded-errors.md)). The location is already on the
-  node, so they aren't given the document's URL.
-- `relativeFileUrl` is exported, so applications say URLs the same way in
-  their own messages. It takes an `href`: a document's URL or a node's
-  location (see
-  [Identifiers are URLs](../principles/identifiers-are-urls.md)). A `file:`
-  URL on another host is returned as it is.
-- Where the working directory isn't a folder, as in a browser, there are no
-  `file:` URLs, and one is said by its file name.
+An error's message is copied into logs and issues, and a `file:` URL in it
+says where files are on the machine. So `relativeFileUrl` says a `file:`
+URL relative to the working directory, like `data/a.json#/a` or
+`../other/a.json`, and the error keeps the exact URL as its `url` (see
+[Errors](errors.md)). It's exported, so applications say URLs the same
+way. A `file:` URL on another host is said as it is, and where the working
+directory isn't a folder, as in a browser, a `file:` URL is said by its
+file name.
 
 Rejected:
 
-- Leaving it to whatever reports the error. Every application that shows
-  an error would have to rewrite its text, and it can't tell which part of
-  a message is a URL.
-- Giving `relativeFileUrl` the base (`relativeFileUrl(url, base)`), such as
-  a session's context URL. Messages are made in many places that don't
-  have a session, so every one would need a base passed to it. A message
-  is for whoever reads it, and relative to the working directory is what a
-  relative path means to them.
+- Leaving it to whatever reports the error. Every application would
+  rewrite messages, and it can't tell which part of one is a URL.
+- Passing the base, like a session's context URL. Messages are made in
+  many places that don't have a session, and relative to the working
+  directory is what a relative path means to whoever reads it.
 
 ## Known limitations
 
-- A network error's cause is the system's error, whose own message says
-  the absolute path.
-- A stack trace still says where the library is installed. Showing it is
-  up to the application.
+- A network error's cause is the system's error, whose message says the
+  absolute path.
+- A stack trace says where the library is installed.

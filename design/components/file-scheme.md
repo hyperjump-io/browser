@@ -1,66 +1,52 @@
 # The `file:` scheme (`src/transports/file-scheme.js`)
 
-`file:` URLs are fetched on a server, the way a browser fetches them, with
+`file:` URLs are fetched on a server the way a browser fetches them, with
 `nodeTransport()`.
 
 - A missing file, a directory, or a method other than `GET` or `HEAD` is a
-  network error, as in a browser, not a 404 (see
-  [Like a web browser](../principles/like-a-web-browser.md)). Its cause is
-  the error from the filesystem, like `ENOENT`, and its message says what
-  that means for the URL, like "doesn't exist" (see
-  [Network errors](network-errors.md)).
+  network error, as in a browser (see
+  [Like a web browser](../principles/like-a-web-browser.md)), with the
+  filesystem's error as its cause (see [Errors](errors.md)).
 - The file is opened before it's answered, so one that can't be read is a
-  network error, not a body that fails partway. Its size and modified time
-  are from the open file.
-- Something that isn't a file, like a directory, a FIFO, or a device, is
-  an `ERR_NOT_A_FILE`, found from the open file. It's opened with
+  network error, not a body that fails partway. Size and modified time are
+  from the open file.
+- What isn't a file, like a directory, a FIFO, or a device, is
+  `ERR_NOT_A_FILE`, found from the open file. It's opened with
   `O_NONBLOCK`, which a file ignores, because opening a FIFO otherwise
-  waits for something to write to it, and a fetch of one would never end.
-  - Checking what a path is before opening it was rejected. What's at a
-    path can change between the check and the open, and the open file is
-    what's read.
-- A response is a 200 with the file's `Content-Length` and
-  `Last-Modified`. It has no `Content-Type`, because a file doesn't have a
-  media type. What a file is, by its extension, is for whoever reads the
-  response to say.
-- The body is streamed, and the stream is closed when the request's signal
-  aborts. As with `fetch`, the body errors with the signal's reason, and a
-  request that's aborted before its response rejects with it. A stream
-  given the signal would error with an `AbortError` of its own.
+  waits for a writer forever.
+  - Checking the path before opening it was rejected. It can change between
+    the check and the open.
+- A response is a 200 with `Content-Length` and `Last-Modified`, and no
+  `Content-Type`, because a file has no media type. Whoever reads it says
+  what it is.
+- The body is streamed and closed when the signal aborts, erroring with the
+  signal's reason, as `fetch` does.
 - The query and fragment aren't part of the path.
-- `root` limits what can be read to a directory. A path outside it is a
-  network error. A `root` that can't be read is one too, and its message
-  names `root`, so it isn't mistaken for a missing file. It's the transport's, so it's for every session on the
-  stack, before a session's `allowRetrieval`, which allows only the working
-  directory by default (see [What a session can fetch](allow-retrieval.md)).
-- Only a `file:` document can refer to a `file:` URL. It's the session's
-  rule, not the transport's, so it's checked before anything in the stack
-  answers (see [`file:` from `file:`](file-references.md)).
-- Symlinks are followed before `root` is checked, so a symlink inside `root`
-  that points outside it is a network error. The path as it's written is
-  checked first too, so whether a file outside `root` exists can't be told
-  from the error.
-- The response's URL is the file's real path, with the query of the URL
-  that was asked for. A file reached through a symlink is where it is, so
-  references in it resolve against its own directory.
+- `root` limits what can be read to a directory, for every session on the
+  stack. A path outside it is a network error. A `root` that can't be read
+  is one too, naming `root`, so it isn't taken for a missing file. A
+  session's `allowRetrieval` applies on top (see
+  [What a session can fetch](allow-retrieval.md)).
+- Only a `file:` document can refer to a `file:` URL, which the session
+  checks (see [`file:` from `file:`](file-references.md)).
+- Symlinks are followed before `root` is checked, so a link out of `root`
+  is refused. The path as written is checked first too, so the error
+  doesn't tell whether a file outside `root` exists.
+- The response's URL is the file's real path, with the query asked for, so
+  a file reached through a symlink resolves references against its own
+  directory.
 
 Rejected:
 
-- The URL that was asked for as the response's URL, for a symlink. A
-  document's relative references would resolve against the link's
-  directory, and two URLs for one file would be two documents.
-- A 404 for a missing file. That's a server's answer, and a browser gives a
-  network error.
-- A `Content-Type` from a fixed table of extensions, with an option for
-  more. The transport would decide what files are, and a table can't know
-  an application's types.
-- `file:` in `defaultTransport()`. It needs Node.js, and a stack for a
-  browser would have to leave it out.
+- The requested URL as the response's URL for a symlink. References would
+  resolve against the link's directory, and one file would be two
+  documents.
+- A `Content-Type` from a table of extensions. The transport would decide
+  what files are, and a table can't know an application's types.
+- `file:` in `defaultTransport()`. It needs Node.js.
 
 ## Known limitations
 
-- The real path is found, then the file is opened, so a symlink that's
-  changed between the two can still lead outside `root`. Someone who can
-  change links in `root` while it's read can get around it.
-- A file that changes during a read is read as it is, partly old and partly
-  new.
+- The real path is found, then the file is opened, so someone who can
+  change links in `root` meanwhile can get outside it.
+- A file that changes during a read is read partly old and partly new.

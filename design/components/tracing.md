@@ -1,25 +1,21 @@
 # Tracing (`src/trace.js`)
 
-A `Trace` records what a session fetches, like a network panel in
-devtools, from the session's observers and the requests' records (see
+A `Trace` records what a session fetches, like a devtools network panel,
+from the session's observers and the records (see
 [Fetch records](fetch-records.md)).
 
-- It records each request when it starts, so its list is in start order, and
-  each record fills in as the request goes.
-- `bodies: true` asks the session to keep response bodies.
-- `tree()` puts each request after the one that initiated it. A request
-  whose initiator isn't in the trace is at the top.
-- `waterfall()` draws one row for each request, indented under its
-  initiator, with where its response came from, its status, and a bar: `░` while it waited in the throttle or the scheduler,
-  `█` while it loaded. A failure's status is `ERR`.
-- What a request waited for is read from the throttle's and the scheduler's
-  marks: from when it started to when it first reached the transport. Later
-  steps of a redirect aren't waiting. Reading marks is what traces are for
+- Requests are in start order, and each fills in as it goes. `bodies: true`
+  keeps response bodies.
+- `tree()` puts each request after its initiator, or at the top if its
+  initiator isn't in the trace. `waterfall()` draws it, `░` while waiting
+  and `█` while loading.
+- Waiting is read from the throttle's and the scheduler's marks, until the
+  request first reached the transport. Reading marks is what traces are for
   (see [How layers communicate](../principles/how-layers-communicate.md)).
 - `toJSON()` is the records as data, and `toHar()` is a HAR log (see
   [HAR export](har.md)).
 
 Rejected:
 
-- A trace that reads the layers' state, like the scheduler's queue. It would
-  only show what's waiting now, not what each request did.
+- Reading the layers' state, like the scheduler's queue. It shows only
+  what's waiting now.

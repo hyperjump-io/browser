@@ -1,11 +1,10 @@
 # Browsing (`src/documents/step.js`, `visit.js`, `select.js`, and `walk.js`)
 
 Browsing is `browse` and the `jref*` functions that go on from where it
-leads (see [Documents](documents.md)). The `jref*` functions read values
-and step into them while following references. The ones that step into
-a value one level are named for the `json*` functions, and the ones that
-walk are the unist utilities for a tree with its references followed. They
-take the session to follow references with, and a target to start from.
+leads (see [Documents](documents.md)). The ones that step one level are
+named for the `json*` functions, and the ones that walk are the unist
+utilities, for a tree with its references followed. They take the session
+first, then the counterpart's arguments with a target for the node.
 
 | As written | JRef (follows references) |
 | --- | --- |
@@ -26,525 +25,306 @@ take the session to follow references with, and a target to start from.
 | `select(selector, tree)` (`unist-util-select`) | `jrefSelect(session, selector, target)` |
 | `selectAll(selector, tree)` (`unist-util-select`) | `jrefSelectAll(session, selector, target)` |
 
-- They take a target and give targets. A reference is followed from the
-  document it's in, which a node doesn't say, and what's found is given
-  with its document so they can start from it in turn. A member that isn't
-  a reference is in its parent's document, so its target has that
-  document.
-  - They take a document where they take a target, and start from its
-    root, as a unist utility takes the tree (see
-    [Documents](documents.md)).
-  - Tests and selectors are about what kind of node a value is, so a
-    `type`, an object of properties, and a selector match a target's
-    node. A function gets the target, since it can ask anything.
-  - Nodes, with a node's document found from its location, was rejected
-    (see [Documents](documents.md)).
-
-- There are three ways to go on from a target, for three kinds of code:
-  - A walk (`jrefVisit`, `jrefFind`, `jrefFindAll`) decides where to go
-    and tells a visitor about each value. It's for doing something at
-    every value.
+- They take a target or a document and give targets, because a reference
+  is followed from its document (see [Documents](documents.md)). Tests and
+  selectors match a target's node. A function test gets the target.
+- There are three ways to go on, for three kinds of code:
+  - A walk (`jrefVisit`, `jrefFind`, `jrefFindAll`) does something at every
+    value.
   - A selector (`jrefSelect`, `jrefSelectAll`) reaches values by a path or
-    a pattern. `> [key=title]` is the title, and `> [key=characters] > *`
-    is each character. What it returns doesn't have its key or where it
-    was in the tree.
-  - A step (`jrefStep` and the iterators) is one level, asked for by the
-    caller. It's for recursion where the caller decides what to step into
-    and builds a result from what comes back, like compiling a document
-    by what each of its properties means. A visitor can't return a result
-    built from a value's members, and a selector's results have no
-    structure to build one from, so neither can do that.
-- The step functions are named for their `json*` counterparts, so the
-  prefix says what it does with references: `json*` reads a node of the
-  tree as written, and `jref*` takes a target and follows references. The
-  session comes first and the rest are the counterpart's arguments.
-  - The iterators (`jrefArrayIter`, `jrefObjectValues`,
-    `jrefObjectEntries`) follow a member when a loop reaches it, so a
-    loop that stops early retrieves less. They leave out a member that's
-    missing from a parse that failed, as the walks do, and so do
-    `jrefObjectKeys` and `jrefObjectHas`, so every `jref*` function has
-    the same members. `jsonObjectKeys` and `jsonObjectHas` have it,
-    because they read the tree as it's written.
-  - `jrefStep` to a member that's missing from a parse that failed is an
-    `ERR_POINTER_NOT_FOUND`, as it is for a property that doesn't exist,
-    and so is `browse` with a fragment that ends at one. `jsonStep` gives
-    `undefined` there, but a target is a value's, and a missing value
-    isn't a member.
-  - They're `@hyperjump/pact`'s async iterators, a `map` over the
-    node's children, so `for await` and an engine's helpers work on
-    them, calls to `next()` that overlap get the members in order, and
-    only a reference is waited for. Once one is done it stays done,
-    `return()` ends it, and an error from following a reference ends it
-    too. A missing value is only looked for in a node that has one, which
-    only a parse that failed does, so the pipeline is one step for any
-    other node.
-  - `jrefJsonType` is a node's `jsonType`, with the target followed. Code
-    that decides what to do with a value, like whether to get its value
-    or step into it, asks it instead of reading the target's node. A
-    target is what's passed to the `jref*` functions. Its node can also
-    be a reference, from `reference: "manual"`, and then its `jsonType`
-    is `"object"`, the reference as it's written.
-    - Rejected: a type predicate on the target, like `isJrefString`.
-      Following the target is async, so it can't narrow it, and one
-      for each kind of value is six functions for one question.
-  - `jrefFollow` gives what a target leads to: the value a reference
-    refers to, followed until it isn't a reference, or the target itself.
-    It's what every step and walk does to the target it starts at, for
-    code that has a reference as it's written and follows it itself, like
-    code that loads references in parallel or reports each one that's
-    broken.
-    - Rejected: `browse` with the reference's `href` and the reference as
-      `referencedFrom`, behind a check that it's a reference. Every caller
-      wrote the same three lines and read the target's node to do it.
-    - Rejected: `jrefSelect(session, ":scope", target)`. It works, but a
-      selector that only matches where it starts doesn't say that it
-      follows.
-  - `jrefIsReference`, `jrefHref`, and `jrefLocation` read the target as
-    it's written, so they don't take the session and aren't async. A
-    followed target is never a reference, so `jrefIsReference` is only
-    `true` for one from `reference: "manual"`, which can be a reference or
-    a value. It's a type predicate, so it narrows the target for
-    `jrefHref`, which is a reference's URL, resolved, and throws a
-    `TypeError` for any other target, because asking for it is a mistake
-    in the call. `jrefLocation` is where the target's value is, and a
-    reference's is where the reference is, because that's what identifies
-    it, like the place to report a reference that's broken.
-    - Rejected: `jrefHref` giving `undefined` for a target that isn't a
-      reference, as the way to tell. A call that gets a URL doesn't say
-      it's asking a question, and every URL it gives would need a check
-      for `undefined`, even where a test like `"reference"` already
-      found only references.
-    - Rejected: following the target for `jrefLocation`, like the step
-      functions do. Where a reference leads is `jrefLocation` of what
-      `jrefFollow` gives, and where a reference is would need
-      `reference: "manual"` on every call.
-  - `jrefObjectHas`, `jrefObjectKeys`, `jrefJsonType`, and `jrefValue` take the session
-    and are async, because the target can be a reference, which they
-    follow like every step does (see below). They don't follow the
-    members, since reading a property name doesn't need them.
-    `jrefObjectKeys` is an async iterator like the other iterators.
-    - Rejected: not taking the session, because nothing needs following to
-      read a name or a scalar. That's only true of a target that isn't a
-      reference. Given one from `reference: "manual"`, they read the
-      reference as the object it's written as, so `jrefObjectKeys` gave
-      `["$ref"]`, which looks like an answer and isn't one.
-  - A document's root can be a value that couldn't be parsed, which a
-    `json*` function doesn't take. `jrefStep` into one is an
-    `ERR_POINTER_NOT_INDEXABLE`, as `jsonPointerGet` has for a pointer
-    that goes into one. `jrefValue` and `jrefJsonType` of a missing one
-    are an `ERR_POINTER_NOT_FOUND`, as `browse` has, and of an invalid
-    one an `ERR_INVALID_VALUE`, as `toJson` has.
-  - `jrefValue` throws for an object or an array
-    (`ERR_STRUCTURED_VALUE`), which `jsonValue` doesn't. Getting their
-    value would mean following every reference in them, which could
-    retrieve any number of documents. A string, number, boolean, or null
-    node also has its value in `value`, like any unist literal, and a
-    selector's `[jsonType=...]` narrows a node to one that has it (see
-    Selecting).
-  - Rejected: generators for the iterators. They show up when profiling
-    code that uses them, and compiling steps through every value of a
-    document.
-  - Rejected: an async iterator class of this package's, written by
-    hand. It was what pact's `map` already is, with pact's rules for
-    closing and for calls that overlap written again. On 37 real schemas
-    it was within a few percent of pact's.
-  - Rejected: stepping only through selectors, like `> [key=title]`. A
-    selector is parsed for each step, a key that isn't a plain name needs
-    quoting, and what `jrefSelectAll` returns for `> *` doesn't have its
-    keys.
-  - Rejected: a public `targetFor(target, node)`, for the target of a
-    node an application has from a `json*` function. An application would
-    be making targets. The step functions return targets, so nothing is
-    made by hand.
-- `reference: "manual"` doesn't follow references, like `browse`'s option. A
-  step function reads the target it starts at as it's written and gives
-  the member as it's written, in the same document, which can be a
-  reference. A walk visits or selects the tree as it's
-  written, as targets, and doesn't follow the target it starts at, so a
-  `"reference"` test or `[type=reference]` finds the references in a
-  document, each with the document it's followed from. What's returned is
-  typed by the option: a node that could be a reference if `reference`
-  is, or could be, `"manual"`.
-  - Rejected: `unist-util-visit` and the `json*` functions for this, with
-    a way to make a target from a node they return. They give nodes, and
-    following a reference takes a target.
-  - They're async with `"manual"` too, though nothing is followed or
-    waited for. It costs a few percent of compiling a schema, which steps
-    through every schema as it's written, and a walk of a whole document
-    as written is about a quarter of the time parsing it takes (see
-    [Async steps as written](../benchmarks/manual-steps.md)).
-  - Rejected: synchronous step functions for reading as written, as a
-    second set or typed by the option. It's API for a few percent. It's worth
-    another look for something that walks whole documents as written
-    many times without parsing them again, like an editor on each
-    change.
-- The ones that give targets are async and follow references, because
-  following one can retrieve a document. What's needed next isn't known
-  until a value is read, so a reference is followed when it's reached.
-  Only a reference is waited for inside a walk or an iterator, so a
-  member that isn't one doesn't cost a promise of its own.
-  - Synchronous `jref*` functions that return references as they are,
-    with an async `follow` for a reference, were rejected. Browsing would
-    take as many `await`s with a `follow` after every step, and one that's
-    left out returns a reference instead of its value.
-- A reference that can't be followed is an error from the function that
-  followed it: what `browse` throws (see [Documents](documents.md)). It ends
-  a walk, as it ends an iterator. Code that carries on past one, like
-  lint, browses as written and follows each reference with `browse`, so it
-  has the reference, its document, and why it couldn't be followed, and
-  decides for each what to do.
-  - Rejected: a walk that gives the visitor the error and goes on, like an
-    `onError` option or an error in place of a target. A caller that
-    carries on needs each reference as it's written and why it failed,
-    which is what browsing as written and `browse` give it, and it doesn't
-    always want what a reference leads to walked. `jrefFind`,
-    `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` would find less
-    without saying so, which is why `maxDepth` throws too.
-- They follow references with `browse`, the same way an application's own
-  function would, giving it the target the reference is in as
-  `referencedFrom` (see [Documents](documents.md)).
-- There's no `jrefPointerGet`. A JSON Pointer in a JRef fragment doesn't go
-  through references, so `browse` with a fragment does the one correct thing,
-  which is to follow the reference the pointer ends at.
+    a pattern, like `> [key=characters] > *`. What it returns has no key or
+    structure.
+  - A step (`jrefStep` and the iterators) is one level, for recursion that
+    builds a result from what comes back, like compiling a document. A
+    visitor can't return one, and a selector's results have no structure.
+- They're async, because following a reference can retrieve a document,
+  and what's needed next isn't known until a value is read. Only a
+  reference is waited for, so other members don't cost a promise.
+- They follow references with `browse` and `referencedFrom`, as an
+  application's own function would. A reference that can't be followed
+  throws what `browse` throws and ends a walk or an iterator.
 - A walk or a step that starts at a reference starts at what it leads to,
-  following it the way it follows every member. An iterator follows it
-  when it's first read, as it follows a member when it's reached. So a
-  target whose node is a reference, like one from `jrefStep` with
-  `reference: "manual"`, is passed as it is, and the nodes of the targets
-  `browse` and the `jref*` functions return are followed (`FollowedNode`)
-  unless they're told not to. The starting target is followed after the
-  selector and the options are checked, so a call that's a mistake doesn't
-  retrieve anything. A target that isn't followed is returned as it is,
-  not as a copy.
-  - Taking only a node that isn't a reference, checked by types, was
-    rejected. Every caller with a target that could be a reference would
-    narrow it with `node.type !== "reference"` first, and code that isn't
-    type-checked would get a walk of the reference as the object it's
-    written as, which looks like an answer and isn't one.
-  - Throwing for a reference was rejected. The caller would follow it by
-    hand, which is what the walk does for every other reference.
-- They take a target with a node of any tree, like the `json*` functions
-  take a node of one, and not only a JRef one. All they need of a node is
-  what a reference is: a `reference` node with an `href`. So what's built
-  on browser browses its own trees with them, like a tree with more kinds
-  of node. A tree the session didn't retrieve is read from its
-  document, and its references find what the document contains.
-- What they return is typed by where a node can come from. A value or an
-  item that isn't a reference is a node of the tree it's in. A reference
-  can lead to a document in any of the session's media types, so it's a
-  node of any of those (`SessionNode`, see [Documents](documents.md)). The
-  caller tells them apart by `type`. A target's document is the one the
-  walk started in or any of the session's, and its type isn't tied to its
-  node's, so narrowing a node by its `jsonType` stays simple.
-  - The type of the node that was given, for what's returned, was
-    rejected. It says a reference leads to a document like the one it's
-    in, which isn't so: a document can refer to one in another media type.
-  - A node with only `type: string`, which is all that's certain without
-    the session, was rejected. It can't be narrowed to a kind of node, so
-    every caller would cast.
+  after the selector and options are checked, so a mistaken call retrieves
+  nothing. A target that isn't followed is returned as it is.
+- They take a target with a node of any tree, not only JRef. All they need
+  is a `reference` node with an `href`, so what's built on the browser can
+  browse its own trees.
+- What's returned is typed by where a node can come from: a member that
+  isn't a reference is in its parent's tree, and a reference can lead to
+  any of the session's media types (`SessionNode`), told apart by `type`.
+
+Rejected:
+
+- Synchronous `jref*` functions with an async `follow`. It's as many
+  `await`s, and a missed `follow` returns a reference instead of a value.
+- A walk that gives the visitor errors and goes on, like `onError`. Code
+  that carries on past a broken reference, like lint, browses as written
+  and follows each with `browse`, so it has the reference and why it
+  failed. A find would find less without saying so.
+- Taking only nodes that aren't references, or throwing for one. Every
+  caller would check `node.type` first, and untyped code would walk the
+  reference as an object, which looks like an answer.
+- The type of the node given, for what's returned. A reference can lead to
+  another media type. A node with only `type: string` can't be narrowed.
+- A `jrefPointerGet`. A JRef fragment's pointer doesn't go through
+  references, so `browse` with a fragment is the one correct way.
+- A public `targetFor(target, node)`. Applications would be making targets.
+
+## Steps
+
+- The iterators (`jrefArrayIter`, `jrefObjectValues`, `jrefObjectEntries`,
+  `jrefObjectKeys`) follow a member when a loop reaches it, so a loop that
+  stops early retrieves less. They're `@hyperjump/pact`'s async iterators,
+  a `map` over the node's children, so overlapping `next()` calls get
+  members in order.
+- Every `jref*` function leaves out a member that's missing from a failed
+  parse, as walks do. `jrefStep` to one is `ERR_POINTER_NOT_FOUND`, because
+  a target is a value's. `jsonObjectKeys` and `jsonObjectHas` have it,
+  because they read the tree as written.
+- `jrefObjectHas`, `jrefObjectKeys`, `jrefJsonType`, and `jrefValue` take the
+  session and are async, because the target can be a reference. They don't
+  follow members.
+- `jrefJsonType` is the followed node's `jsonType`. A target from
+  `reference: "manual"` that's a reference has `jsonType` `"object"`, as
+  it's written.
+- `jrefValue` throws `ERR_STRUCTURED_VALUE` for an object or an array,
+  because getting its value would follow every reference in it. A scalar
+  also has its value in `value`, and `[jsonType=...]` narrows a selection
+  to one.
+- A root that couldn't be parsed is `ERR_POINTER_NOT_INDEXABLE` to step
+  into, and `ERR_POINTER_NOT_FOUND` or `ERR_INVALID_VALUE` for `jrefValue`
+  and `jrefJsonType`, as `browse` and `toJson` have.
+- `jrefFollow` gives what a target leads to, or the target itself, for code
+  that follows references itself, like loading them in parallel.
+- `jrefIsReference`, `jrefHref`, and `jrefLocation` read the target as
+  written, so they're synchronous and don't take the session.
+  `jrefIsReference` is a type predicate that narrows for `jrefHref`, which
+  throws a `TypeError` for anything else, a mistake in the call.
+  `jrefLocation` of a reference is where the reference is, the place to
+  report it broken.
+
+Rejected:
+
+- Not taking the session in `jrefObjectKeys` and friends. Given a
+  reference as written, `jrefObjectKeys` gave `["$ref"]`, which looks like
+  an answer.
+- A type predicate for each kind of value, like `isJrefString`. Following
+  is async, so it can't narrow.
+- `browse` with `href` and `referencedFrom` for `jrefFollow`. Every caller
+  wrote the same three lines. `jrefSelect(session, ":scope", target)`
+  works but doesn't say it follows.
+- `jrefHref` giving `undefined` for a target that isn't a reference. Every
+  URL would need a check, even where a test found only references.
+- `jrefLocation` following the target. Where a reference leads is
+  `jrefLocation(jrefFollow(...))`.
+- Generators, or an async iterator class of this package's. Generators
+  show up in profiles, and a class would rewrite pact's `map`.
+- Stepping only through selectors. A selector is parsed for each step,
+  keys need quoting, and `> *` loses its keys.
+
+## As written
+
+`reference: "manual"` doesn't follow, like `browse`'s option. A step reads
+and gives members as written. A walk visits or selects the tree as written,
+so a `"reference"` test or `[type=reference]` finds a document's
+references, each with its document. What's returned is typed by the
+option.
+
+- They're still async. An async step is 300–400 nanoseconds a node, 12–21 times a
+  synchronous one, which is a few percent of compiling a schema, and a
+  walk of a whole document as written is about a quarter of parsing it.
+
+Rejected:
+
+- `unist-util-visit` and the `json*` functions, with a way to make a
+  target from their nodes. Following a reference takes a target.
+- Synchronous steps for reading as written. It's API for a few percent.
+  It's worth another look for something that walks whole documents as
+  written many times without parsing them again, like an editor.
 
 ## Visiting
 
-- `jrefVisit` is `unist-util-visit` for the tree with its references
-  followed. Its counterpart is `unist-util-visit` and not a `json*`
-  function because the tree is a unist tree and the ecosystem's utilities
-  already read it as written. `CONTINUE`, `SKIP`, and `EXIT` are the same
-  values as `unist-util-visit`'s.
-- It visits values, as targets, with the key they're at and the target of
-  the value that has them, the same keys `[key=...]` matches. It doesn't visit `json-property` or
-  `json-property-name` nodes. A reference's value isn't in the document
-  the reference is in, so a unist `index` into its parent's `children`
-  wouldn't find it, and the `jref*` functions deal in values.
-- The visitor also gets the node's depth below the node the visit starts
-  at, so returning `SKIP` at a depth is how a visit goes only so deep.
-- Each member is followed just before it's visited and not all of a
-  node's members first, so `SKIP` and `EXIT` keep the session from
-  retrieving what isn't visited.
-- A value reached through two references is visited each time because
-  it's in the tree twice. A reference back to a value that's being visited
-  is visited, but its members aren't, so a recursive definition ends the
-  walk instead of making it infinite. What's being visited is told by the
-  node and not its location, because two documents can say they have the
-  same URL, like two that say they contain the same document.
-  - An `ERR_REFERENCE_CYCLE` was rejected. A recursive definition, like a
-    tree whose children are trees, is a valid document whose references
-    all resolve.
-  - Visiting each location once was rejected. A visitor that keeps state
-    by its key or parent, like one that builds a value, would miss every
-    place a shared value is used after the first.
-- The visitor can be async, so it can retrieve what it needs, and it's
-  awaited before the walk goes on.
-- A test before the visitor picks the nodes the visitor gets, as
-  `unist-util-visit`'s does, with `unist-util-is`'s kinds of test: a
-  `type`, an object of properties that are `===`, a function, or an array
-  of those. `null` or `undefined` passes every node, as it does in
-  `unist-util-is`. The node of the visitor's target is narrowed to what
-  can pass it, so `{ jsonType: "number" }` gives a number node.
-  - The walk still goes through nodes that don't pass and follows their
-    references, because what passes can be under them. A node that
-    doesn't pass can't be skipped, because the visitor doesn't get it.
-  - A function test gets the target, the key, and the parent's target
-    instead of a node and an index, the same as the visitor. One that's a
-    type predicate is a predicate on the target.
-  - Converting tests with `unist-util-is` was rejected. Its function tests
-    take an index, and it throws for a key that isn't a number.
-  - An array of tests can't have arrays in it. A recursive test type makes
-    TypeScript's inference too deep for a function test, and
-    `unist-util-is`'s arrays are one level too.
-  - A function test that isn't a type predicate doesn't narrow. An object
-    test with a property no node type has narrows to `never`, because no
-    node can pass it.
-- What the visitor's target is typed as is what a walk can reach
-  (`ReachableTarget`): the target it starts at or what's under it, once
-  each is followed. Its node is a `Reachable`.
+- `jrefVisit` is `unist-util-visit` for the tree with references followed.
+  `CONTINUE`, `SKIP`, and `EXIT` are `unist-util-visit`'s.
+- It visits values, as targets, with their key and their parent's target.
+  It doesn't visit property nodes, and a unist `index` wouldn't find a
+  reference's value. The visitor also gets the depth, so `SKIP` at a depth
+  limits how deep it goes.
+- Each member is followed just before it's visited, so `SKIP` and `EXIT`
+  keep the session from retrieving what isn't visited.
+- A value reached through two references is visited each time. A
+  reference back to a value being visited is visited, but not its members,
+  so a recursive definition ends. What's being visited is told by node,
+  not location, since two documents can say they have the same URL.
+- The visitor can be async and is awaited.
+- A test is `unist-util-is`'s kinds: a `type`, an object of properties, a
+  function, an array of those, or `null`. The visitor's node is narrowed to
+  what can pass it (`ReachableTarget`). The walk still goes through nodes
+  that don't pass, since matches can be under them.
+  - A function test gets the target, key, and parent like the visitor.
+  - Arrays can't nest. A recursive test type makes inference too deep.
+
+Rejected:
+
+- `ERR_REFERENCE_CYCLE` for a recursive definition. It's a valid document.
+- Visiting each location once. A visitor that keeps state by key or
+  parent would miss every use of a shared value after the first.
+- `unist-util-is` for tests. Its function tests take an index, and it
+  throws for a key that isn't a number.
 
 ## Finding
 
-- `jrefFind` is `unist-util-find` for the tree with its references
-  followed, and `jrefFindAll` is the same for every node that passes. They
-  take the session, the target, and a test, in `jrefVisit`'s order, and
-  they're `jrefVisit` with a visitor that keeps what it gets. So they find
-  in the order a visit does, follow a reference just before its value is
-  tested, and take a walk's options. `jrefFind` stops at the first node
-  that passes, so nothing after it is retrieved.
-- A test is `jrefVisit`'s, so a string is a `type`, as `unist-util-is`
-  has it, and what's found is narrowed to what can pass it.
-  - `unist-util-find`'s conditions were rejected. Its string matches a
-    node whose `value` contains it, so the same string would mean
-    something else to `jrefFind` than to `jrefVisit`.
-- `jrefFindAll` has each node once, like `jrefSelectAll`, even if it's
-  reached through more than one reference, and so one target for it. A visit has it each time,
-  because a visitor can keep state by where a node is, but a list of what
-  was found would only repeat it.
-- So a find walks under a value once. A value it reaches again is tested
-  with its key and parent, but what's under it isn't walked again: it
-  would be tested with the same keys and parents and find only what was
-  found. Walking under it each time, as a visit does, costs the document
-  as a tree, and a document of a few kilobytes that refers to each level
-  twice from the one above is a tree too big to walk.
-- They're for finding by what a node is. A selector finds by where a node
-  is, and it can rule out a member by its key before following it, so
-  `jrefSelect` retrieves less for a path.
-- A walk that follows references never reaches one, because each one it
-  reaches is followed, and so is the one it starts at. A test that can
-  only pass a reference, a `"reference"` type, an object whose `type` is
-  `"reference"`, or an array of only those, can't find anything then, so
-  `jrefVisit`, `jrefFind`, and `jrefFindAll` throw a `TypeError` for it
-  before anything is retrieved. It's a mistake in the call, and walking
-  instead would retrieve everything the walk reaches, and in documents
-  that refer to each other visit them over and over, to say it found
-  nothing.
-  - A function test isn't checked, because it can pass anything. A test
-    with a part that can pass something else isn't either, because the
-    call still finds something.
-  - Returning nothing, which the types already say, was rejected. Code
-    that isn't type-checked gets no hint, and the walk can run until
-    `maxDepth`.
+- `jrefFind` and `jrefFindAll` are `unist-util-find` for the followed tree,
+  in `jrefVisit`'s order and with its tests and options. `jrefFind` stops
+  at the first match.
+- `jrefFindAll` has each node once, so a find walks under a value once. A
+  value reached again is tested but not walked again. Walking each time
+  costs the document as a tree, which for a few kilobytes that refer to
+  each level twice is too big to walk.
+- A test that can only pass a reference is a `TypeError`, before anything
+  is retrieved, because a followed walk never reaches one. A function
+  test, or one with a part that can pass something else, isn't checked.
+- A selector finds by where a node is and can rule out a member before
+  following it, so `jrefSelect` retrieves less for a path.
+
+Rejected:
+
+- `unist-util-find`'s conditions. Its string matches a node whose `value`
+  contains it, unlike `jrefVisit`'s.
+- Returning nothing for a reference-only test. Untyped code gets no hint,
+  and the walk runs until `maxDepth`.
 
 ## How deep a walk goes
 
-- `jrefVisit`, `jrefFind`, `jrefFindAll`, `jrefSelect`, and
-  `jrefSelectAll` throw an `ERR_MAX_DEPTH`
-  if they'd go more than `maxDepth` levels below the node (`WalkOptions`).
-  A reference back to a node that's being walked already ends a walk, but
-  references can lead to new documents without end, like a `next` link on
-  every page of results. Each document is finite, so only depth through
-  references can be unbounded.
-- It's a guard and not a way to choose how deep to go. A walk that reaches
-  it is almost always a mistake, so it throws instead of returning what it
-  found, which would look like everything. A walk that's meant to stop at
-  a depth says so: a visitor returns `SKIP` at a `depth`, which it's given
-  for that, and a selector of child combinators is only as deep as it's
-  written.
-  - Stopping at `maxDepth` and going on with the rest of the tree was
-    rejected. Results that are missing what's deeper are wrong without
-    looking wrong.
-  - Returning whether the walk stopped, like `{ nodes, truncated }`, was
-    rejected. Every caller would have to check it, and one that doesn't
-    has the same wrong results.
-- It's only an error if the walk would go under a node at `maxDepth`: the
-  visitor didn't skip it, it isn't a reference back to a node that's being
-  walked, it has members, and for a selector, one of them could match or
-  have a match under it. For a find or a selection, it also isn't a node
-  that was walked under already, so a second way to reach one that's
-  deeper isn't an error, because it would find nothing new. It's checked before a member is followed, so a
-  walk that's too deep doesn't retrieve anything past `maxDepth`.
-- The error's `url` is the node the walk would go under, because that's
-  where to look for what leads deeper, and its cause has the `maxDepth`.
-  `jrefSelectAll` loses what it found when it throws, because it wouldn't
-  be everything.
-- Limiting the references followed or the documents retrieved was rejected
-  for now. They bound the cost of a walk, but not a broad one that's
-  shallow, like every person in a film, which is correct to retrieve.
-- The default is the parser's nesting limit, 1000 (`MAX_DEPTH` in
-  `json-parser.js`), so a walk of one document is never too deep, and a
-  walk through references can go as deep as the deepest document.
-  `Infinity` turns it off. Any other `maxDepth` that isn't a whole number
-  from 0 is a `RangeError`, because it's a mistake in the call.
+- Walks and selections throw `ERR_MAX_DEPTH` if they'd go more than
+  `maxDepth` levels below the start. Cycles already end, but references can
+  lead to new documents without end, like a `next` link on every page.
+- It's a guard, not a way to choose depth, so it throws rather than return
+  what looks like everything. A walk meant to stop uses `SKIP` at a
+  `depth`, or a selector of child combinators.
+- It's an error only if the walk would really go under a node at the
+  limit: not skipped, not a cycle, has members, could match, and for a find
+  or selection not walked under already. It's checked before a member is
+  followed, so nothing past it is retrieved.
+- The error's `url` is the node it would go under. `jrefSelectAll` loses
+  what it found.
+- The default is the parser's nesting limit, 1000, so one document is
+  never too deep. `Infinity` turns it off, and anything else that isn't a
+  whole number from 0 is a `RangeError`.
+
+Rejected:
+
+- Stopping at `maxDepth` and going on, or returning `{ nodes, truncated }`.
+  Results that miss what's deeper look right, and every caller would have
+  to check.
+- Limiting references followed or documents retrieved. A broad, shallow
+  walk, like every person in a film, is correct to retrieve.
 
 ## Stopping a walk
 
-- A visit costs the document as a tree, because it visits a value each
-  place it is. A document of a few kilobytes whose levels each refer to
-  the next one twice is a tree too big to visit, and `maxDepth` doesn't
-  stop it, because it's shallow. A walk takes a `signal` (`WalkOptions`)
-  so an application that walks documents it doesn't control can stop it,
-  with a timeout or when what the walk was for is cancelled, like a
-  request to a language server.
-- It's checked at each node, and the walk rejects with its `reason`, like
-  `fetch`. One that's aborted already rejects before the target the walk
-  starts at is followed, so nothing is retrieved.
-- A retrieval the walk is waiting for isn't aborted. It's the session's,
-  and other walks can be waiting for the same document, so it's kept like
-  any other.
-- A walk of documents the session has waits only for promises that are
-  settled, and what waits for one runs before any other task, so nothing
-  else would run until the walk ended, not even the timer that would abort
-  it. So a walk waits for the next
-  task every 1000 nodes (`pace` in `walk.js`). It's `setImmediate` in
-  Node.js and a message to a `MessageChannel` port in a browser
-  (`#next-task`). Its cost is in
-  [Pausing walks](../benchmarks/pausing-walks.md).
-  - A nested `setTimeout` was rejected. A browser waits at least 4 ms for
-    one, which is more than a thousand nodes take.
-  - `scheduler.yield` was rejected for now. Safari 18.4 doesn't have it.
-  - Pausing by time was rejected. It would read a clock at each node, and
-    a count pauses often enough: a thousand nodes are about a millisecond.
-- `jrefFind`, `jrefFindAll`, `jrefSelect`, and `jrefSelectAll` take it
-  too. They walk under a value once, so they cost the document and not
-  the tree, but a document can still be large, or lead to many more.
-- A signal stops a walk only if the application passes one, so a visit
-  also has a guard, `maxRevisits` (`VisitOptions`), like `maxDepth`. It's
-  an `ERR_MAX_REVISITS` to visit nodes it's visited before more than
-  `maxRevisits` times in all, 250,000 by default, and more than 100 times
-  for each node the visit has reached, with the references it followed.
-  - A value that's used in many places is visited once for each reference
-    to it, and the visit reaches each of those references first, so that
-    alone is never an error, however large the document. Visiting nodes
-    again more times than there are nodes takes sharing that's nested,
-    values that are used in values that are used, and 100 times more takes
-    it many times over. A document that refers to each level twice from the
-    one above is past that within a few levels, so it's stopped when it
-    reaches the 250,000, in about a second.
-  - Comparing with the nodes reached makes it a rule about the shape of
-    the documents and not their size, so what a hostile document costs
-    grows with its size: about 100 visits for each of its nodes, 15 seconds
-    for 800 KB. Correct schemas have nested sharing too: a grammar whose
-    definitions refer to each other visited nodes again 180 times for each
-    node it reached, 126,782 times in all, and a large schema 25.5 times.
-    The measurements are in [Revisits](../benchmarks/revisits.md).
-  - The visit keeps every node it reaches and every node it visits to
-    count them, which costs a visit that follows references 10–20%. A
-    visit with `reference: "manual"` walks a tree, which has each node
-    once, so it doesn't keep anything. A find or a selection walks under a
-    node once, so it doesn't take `maxRevisits`.
-  - Counting for each node, how many times the visit goes back under it,
-    was rejected. A big value that's visited again many times is few times
-    for one node, but each time visits all of its nodes, and those nodes
-    make the limit bigger. A document padded with a big value took work
-    that grows with the square of its size: 112 seconds for 21 KB.
-  - A limit on the number of visits was rejected. A broad walk that's
-    shallow, like every person in a film, makes many visits correctly, so
-    no default is right.
-  - A limit on how many times a visit visits nodes again, with no
-    comparison, was rejected. The large schema visits nodes again 619,115
-    times, so a default that allows documents like it lets a hostile one
-    run as long.
-  - Comparing with the references the visit followed, and not every node,
-    was rejected. It's cheaper, but the large schema's sharing is nested,
-    so it was an error for a correct document.
-  - A smaller default was rejected because of the grammar, which visits
-    nodes again 180 times for each node it reaches. Only the default lets
-    it finish, with twice as much room as it needs. A bigger one lets a
-    small hostile document run longer: a million takes 4 seconds.
+- A visit costs the document as a tree. A few kilobytes whose levels each
+  refer to the next one twice is too big to visit, and `maxDepth` doesn't
+  stop it. So walks take a `signal`, checked at each node, rejecting with
+  its `reason`. An aborted one rejects before anything is retrieved. A
+  retrieval it waits for isn't aborted, because it's the session's.
+- A walk of documents the session has waits only for settled promises, so
+  no other task would run, not even the timer that aborts it. So a walk
+  waits for the next task every 1000 nodes (`pace` in `walk.js`),
+  `setImmediate` in Node.js and a `MessageChannel` in a browser
+  (`#next-task`). A node is about 600 nanoseconds, so that's about a millisecond.
+  It cost less than run-to-run noise in Node.js 26, Chromium 157, and
+  Firefox 160, and a 10 ms timer ran at about 11 ms instead of after the
+  walk. Every 100 nodes cost a third of a walk in Chromium, where a wait is
+  16 µs.
+- Finds and selections take a `signal` too, since a document can be large
+  or lead to many more.
+- A visit also has a guard, `maxRevisits`, for applications that pass no
+  signal. It's `ERR_MAX_REVISITS` to revisit nodes more than `maxRevisits`
+  times in all, 250,000 by default, and more than 100 times for each node
+  reached. Finds and selections walk under a node once, so they don't take
+  it.
+  - A value used in many places is visited once per reference, and those
+    references are reached first, so that alone is never an error.
+    Revisiting more than 100 times each takes sharing nested many times
+    over.
+  - Comparing with nodes reached makes it about a document's shape, not its
+    size, so a hostile document's cost grows with its size: about 1 s for
+    1.6 KB and 13.5 s for 800 KB.
+  - Of the 57 SchemaStore schemas in `sourcemeta/jsonschema-benchmark`, a
+    grammar (`cql2`) revisited 126,782 times, 180 for each node reached,
+    and the largest (`biome`) 619,115 times, 25.5 for each. No other
+    passed 7 for each. The default fits `cql2` with twice the room it
+    needs, and the comparison lets `biome` through.
+  - Keeping every node reached and visited costs a followed visit 10–20%.
+    A visit with `reference: "manual"` walks a tree and keeps nothing.
+
+Rejected:
+
+- A nested `setTimeout`. A browser waits at least 4 ms.
+- `scheduler.yield`, for now. Safari 18.4 doesn't have it.
+- Pausing by time. It reads a clock at each node.
+- Counting revisits for each node. A big value revisited a few times visits
+  all its nodes each time, so a padded document's work grows with the
+  square of its size: 112 s for 21 KB.
+- A limit on visits, or on revisits with no comparison. A correct broad
+  walk makes many, and allowing `biome` lets a hostile document run as
+  long.
+- Comparing with references followed, not nodes. `biome`'s nested sharing
+  made it an error.
+- Another default. Smaller fails `cql2`. A million lets 1.6 KB run 4 s.
 
 ## Selecting
 
-- `jrefSelect` and `jrefSelectAll` are `unist-util-select`'s `select` and
-  `selectAll` for the tree with its references followed. They take the
-  session first and then `unist-util-select`'s arguments like the other
-  `jref*` functions. They're for reaching values by a path, one step or
-  many, or by a pattern.
-  - Using `unist-util-select` was rejected. Following a reference is
-    async, and it matches against the tree as written, where a reference
-    is the object and a value has no key.
-- A value doesn't have its key, because the key is on the property's name
-  node, so `[key=...]` is a pseudo-attribute that matches the property
-  name or array index the value is at. It takes the place of a property
-  called `key`, which no JSON or JRef node has. A media type shouldn't
-  annotate its nodes with one.
-  - A pseudo-class like `:key(director)` was rejected. It can't collide
-    with a property, but it's longer for the selector that's used most, and an
-    attribute already says "a value that's at this name".
-- Selectors are matched top down with every selector of a list at once,
-  so a member is only followed if a selector could still match it or
-  something under it, and `jrefSelect` stops at the first match. A child
-  selector's `[key=...]` rules out a member before it's followed, so
-  `> [key=director]` doesn't retrieve a film's characters. A descendant
-  selector can match anywhere, so it follows everything under the node.
-- A selector that starts with `>` starts at the node like a relative
-  selector in `querySelector`, so a path from the node doesn't need
-  `:root`.
-- `jrefSelectAll` gives each node once in the order they're reached. A
-  reference back to a node that's being walked can match, and what's under
-  it is walked again only for what it could match that the node it leads
-  back to couldn't. In `{ "y": 1, "x": { "$ref": "#" } }`, `[key=x] [key=y]`
-  matches `/x/y`, which the root's walk couldn't match. The states a node
-  is walked with are finite, so a cycle still ends.
-- A node is walked under once with the same states, like a find walks
-  under a value once. One it reaches again is matched with its key, but
-  what's under it would match what it matched, so it isn't walked again.
-  What a selection costs is the document's nodes times the states they're
-  reached with, not the document as a tree.
-  - Not walking under a reference back to a node that's being walked, as
-    `jrefVisit` doesn't, was rejected. A visit's node is the same wherever
-    it's reached, but a selector's partial matches aren't, so it would miss
-    matches.
-- `[name]` matches a node that has the property, whatever its value, like
-  `[children]` for objects and arrays. `[name=value]` only matches a
-  string, number, boolean, or null.
-- What's supported is a `type` or `*`, `[name]`, `[name=value]`, `:root`
-  and `:scope`, the descendant and child combinators, and lists. Anything
-  else is a `SyntaxError` that says what's supported, as `querySelector`'s
-  is. A selector that isn't one is a mistake in the call and not a failure
-  to handle, so it doesn't have a code (see
-  [Errors with codes](coded-errors.md)).
-  - Values are compared as strings like CSS attributes, so `[value=42]`
-    matches the number `42` and the string `"42"`. Comparing unquoted
-    values as JSON was rejected. Keys and properties like `jsonType` are
-    strings, so the common selectors would need quotes.
-  - `:has()` was rejected for now. Deciding whether a node matches would
-    follow references under it, even for `jrefSelect`, which otherwise
-    stops at the first match.
-  - Sibling combinators (`+`, `~`) and `:nth-child()` were rejected. An
-    object's members aren't ordered in JSON, and an array's are reached by
-    `[key=...]`.
-  - `:not()` and the other attribute operators (`^=`, `$=`, `*=`) aren't
-    supported yet. They could be added without changing what's supported.
-- Selectors aren't cached. Parsing one takes microseconds, and a walk that
-  follows references takes far longer.
+- `jrefSelect` and `jrefSelectAll` are `unist-util-select` for the
+  followed tree.
+- `[key=...]` is a pseudo-attribute for the property name or index a value
+  is at, since a value doesn't have its key. A media type shouldn't
+  annotate nodes with a `key`.
+- Every selector in a list is matched top down at once, so a member is
+  followed only if a selector could still match it or under it. `>
+  [key=director]` doesn't retrieve a film's characters. A descendant
+  selector follows everything.
+- A selector that starts with `>` is relative to the node, like
+  `querySelector`'s.
+- `jrefSelectAll` gives each node once, in the order reached. A node is
+  walked under once for each set of partial matches, so a cycle back can
+  still match what the first pass couldn't, like `[key=x] [key=y]` in
+  `{ "y": 1, "x": { "$ref": "#" } }`, and still ends. The cost is the
+  nodes times their states, not the tree.
+- `[name]` matches having the property, and `[name=value]` only a scalar.
+  Values compare as strings, like CSS, so `[value=42]` matches `42` and
+  `"42"`.
+- Supported: a `type` or `*`, `[name]`, `[name=value]`, `:root`, `:scope`,
+  descendant and child combinators, and lists. Anything else is a
+  `SyntaxError` with no code, a mistake in the call.
+- Selectors aren't cached. Parsing one takes microseconds.
 - What's returned is narrowed by the `[jsonType=...]` attributes in the
-  last compound of each selector in the list (`Selected`), so
-  `> [key=title][jsonType=string]` returns a string node whose `value` is
-  a `string`. Reading a scalar is what a selection is most often for,
-  and without it every `value` needs a `jsonType` check first. A list is
-  narrowed to what any of its selectors selects, and one that isn't
-  narrowed makes the list the whole `Reachable`. A selector that isn't a
-  string literal isn't narrowed.
-  - The types only find the attributes of each last compound, without
-    checking the rest of the selector. That takes a step for each attribute
-    and for each character of a quoted value, so it's quick to check. An
-    invalid selector throws when it's called, so its type doesn't matter,
-    but where the types can't read one they don't narrow it.
-  - Narrowing by `type` too was rejected for now. A `type` is a media
-    type's, and `jsonType` is the one property whose values are known for
-    every media type's nodes.
-  - Parsing the whole selector in the types, to narrow by `:root` and by
-    other properties, was rejected. It would be slow to check, and the
-    other properties don't say what kind of value a node is.
-- To find references without following them, select with
-  `reference: "manual"`. Otherwise the nodes a walk reaches are followed,
-  so `[type=reference]` never matches. A selector whose every complex
-  selector needs a reference, by the `reference` type or
-  `[type=reference]`, is a `TypeError`, like a test that only passes one
-  (see Finding).
+  last compound of each selector (`Selected`), because reading a scalar is
+  what selection is most for. The types read only those attributes, so
+  checking is quick. One they can't read isn't narrowed.
+- Without `reference: "manual"`, `[type=reference]` never matches, so a
+  selector whose every part needs a reference is a `TypeError`, as in
+  Finding.
+
+Rejected:
+
+- `unist-util-select`. Following is async, and it matches the tree as
+  written.
+- `:key(director)`. It's longer for the selector used most.
+- Not walking under a reference back to a node being walked, as visits do.
+  A selector's partial matches differ by path, so it would miss matches.
+- Comparing unquoted values as JSON. Keys and `jsonType` are strings, so
+  common selectors would need quotes.
+- `:has()`, for now. It follows references under a node even for
+  `jrefSelect`.
+- Sibling combinators and `:nth-child()`. Object members aren't ordered,
+  and array items are reached by `[key=...]`.
+- Narrowing by `type`, for now. A `type` is a media type's, and `jsonType`
+  is known for every media type.
+- Parsing the whole selector in the types. It's slow to check, and other
+  properties don't say what kind of value a node is.
+
+## Known limitations
+
+- `:not()` and the attribute operators `^=`, `$=`, and `*=` aren't
+  supported yet. They could be added without changing what's supported.

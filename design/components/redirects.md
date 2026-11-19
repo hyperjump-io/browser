@@ -1,130 +1,85 @@
 # Redirects (`src/redirects.js`)
 
 The session follows redirects one at a time, each as a new request down the
-stack, instead of letting the runtime follow them inside the transport.
-Every layer sees each URL:
+stack, so every layer sees each URL: the HTTP cache stores a cacheable 301,
+a layer that answers a URL answers where a redirect leads, and the
+scheduler sees the URLs really fetched.
 
-- the HTTP cache stores a redirect as a response of its own, so a cacheable
-  301 saves a round trip;
-- a layer that answers a URL itself answers where a redirect leads, and it
-  can answer with a redirect, which makes a URL an alias;
-- the scheduler sees the URLs that are really fetched.
+It follows the Fetch standard: `redirect` is `"follow"`, `"error"`, or
+`"manual"`, methods change on 301, 302, and 303, a 307 or 308 sends the
+body again, so a request with a body is cloned before each step, and a URL
+without a fragment gets the original's.
 
-It follows the Fetch standard:
+- `Authorization`, `Cookie`, and `Proxy-Authorization` aren't sent to
+  another origin. The Fetch standard drops only `Authorization`, because a
+  page can't set the others, but a server can, and Node.js's `fetch` drops
+  all three.
+- More than `maxRedirects` (20) is a network error. One that isn't a whole
+  number from 0, or `Infinity`, is a `RangeError` when the session is
+  created. `NaN` would never end a loop.
+- A `Location` that isn't a URL, or has a username or password, is
+  `ERR_INVALID_REDIRECT`. A `Request` can't be made for a URL with one.
 
-- `redirect: "follow"`, `"error"`, or `"manual"`, from the request.
-- A 301 or 302 makes a `POST` a `GET`, and a 303 makes anything but `GET` or
-  `HEAD` a `GET`, without the body or the headers about it. A 307 or 308
-  sends the method and body again, so a request with a body is cloned before
-  each step, to have the body for the next.
-- `Authorization`, `Cookie`, and `Proxy-Authorization`, the credentials
-  HTTP defines, aren't sent to another origin. The Fetch standard drops
-  only `Authorization`, because a page can't set the others: a browser
-  sends its own cookies for each origin. On a server, a request can have
-  them, and Node.js's `fetch` drops all three, so the session does too.
-- A URL a redirect leads to without a fragment gets the original's.
-- More than 20 redirects (`maxRedirects`) is a network error. A
-  `maxRedirects` that isn't a whole number from 0, or `Infinity`, is a
-  `RangeError` when the session is created, as `maxDepth` is when a walk
-  starts. No count is more than `NaN`, so a redirect loop wouldn't end.
+It's stricter than `fetch`: a redirect only leads to a scheme in
+`redirectSchemes`, `http:` and `https:` by default, and to a URL
+`allowRetrieval` allows. Both are checked before it's followed.
 
-And it's stricter than `fetch` in two ways: a redirect can only lead to
-`http:` or `https:` (`redirectSchemes`), and only to a URL the session's
-`allowRetrieval` allows (see [What a session can fetch](allow-retrieval.md)).
-Both are checked before the redirect is followed.
+A redirect never leads to `file:`, and `redirectSchemes` with it throws a
+`TypeError`. A server can't choose which of the application's files are
+read. A file a URL should answer with is the registry's or a layer's.
 
-A redirect can never lead to `file:`, even when the transport has it, and
-`redirectSchemes` can't have it: the session's constructor throws a
-`TypeError`. A redirect is what a server says, and a server can't choose
-which of the application's files a request reads. A file the application
-wants a URL to answer with is the registry's, or a layer's that answers
-the URL with it (see [`file:` from `file:`](file-references.md)).
+- `file:` as an opt-in was rejected. Any server the session fetches from
+  could read any allowed file, as a `file:` document whose references read
+  more, and the stack can't tell a layer's redirect from a server's.
+- Ignoring `file:` in `redirectSchemes` was rejected. A session would seem
+  to allow what it doesn't.
 
-- `file:` in `redirectSchemes` as an opt-in was rejected. A redirect from
-  any server the session fetches from would read any file
-  `allowRetrieval` allows, for the application's own requests and a
-  `file:` document's, and what it read would be a `file:` document whose
-  references can read more. The stack can't tell a redirect a layer made
-  from one a server made, and nothing needs a redirect for what the
-  registry and a layer already do.
-- Ignoring `file:` in `redirectSchemes` was rejected. A session made with
-  it would seem to allow what it doesn't.
+Each step gets the session's headers for its own URL (see
+[Request headers](request-headers.md)), and the request's own headers, as
+in `fetch`.
 
-The session's headers are for the URL each step leads to, not the ones the
-step before it got (see [Request headers](request-headers.md)). The
-request's own headers go to each step, as in `fetch`.
-
-- The response has its final `url`, `redirected`, and the URLs it went
-  through as `responseMeta(response).redirects`. Each redirect marks
-  `redirect` on the request's record, with its status and where it went
-  from and to. Every step has the request's context and record.
-- It asks the stack for each step with `redirect: "manual"`. Node.js, Deno,
-  and Bun return the 3xx. A browser returns an opaque redirect, which
-  doesn't say where it leads.
-  - With `redirect: "manual"`, the opaque redirect is the response, as it
-    is from a browser's `fetch`. With `"error"`, it's a network error,
-    `ERR_UNEXPECTED_REDIRECT`. Neither sends the request again.
-  - With `"follow"`, the session asks again with `redirect: "follow"`, and
-    the browser follows it, if the request's method is idempotent (RFC 9110
-    §9.2.2: `GET`, `HEAD`, `OPTIONS`, `TRACE`, `PUT`, and `DELETE`). The
-    request reached the server, and only those can be sent again without
-    the server doing what they ask twice. Any other method, like `POST`, is
-    a network error, `ERR_REDIRECT_NOT_FOLLOWED`, whose message says the
-    request was sent, so a caller doesn't take it for a request that
-    failed. `redirect: "manual"` gets the redirect.
-    - Sending every request again was rejected. A `POST` would reach the
-      server twice.
-    - Sending a request with `redirect: "follow"` in the first place in a
-      browser was rejected. The session's headers for the first URL would
-      go wherever the redirect leads, and the session would have to know
-      it's in a browser before it asks.
-    - Returning the opaque redirect, as for `"manual"`, was rejected. A
-      caller that asked to follow redirects would get a response it can't
-      read, as if it were the answer.
-  - The request is asked again without the session's headers. They were
-    for the first URL, and the browser sends a request's headers to every
-    URL it's redirected to, so a credential like `X-API-Key` would go
-    wherever the server said. The request's own headers go, as they do to
-    each step in Node.js.
-    - Asking again with the session's headers was rejected. The session
-      can't see where the redirect leads, so it can't keep its promise
-      that a credential goes only to the URLs it's for.
-- `maxRedirects` and `redirectSchemes` are session options. What a session
-  may be sent to is about what it fetches, not about how the stack fetches
-  it.
-- A stack that's called without a session returns a 3xx as it is, like
-  `redirect: "manual"`.
-- A `Location` that isn't a URL is a network error, as in the Fetch
-  standard, `ERR_INVALID_REDIRECT`, Chrome's name for it. So is one with a
-  username or password, because a `Request` can't be made for a URL that
-  has one.
+- The response has `redirected`, its final `url`, and
+  `responseMeta(response).redirects`. Each step marks `redirect` on the
+  request's record, and has its context.
+- Each step is asked with `redirect: "manual"`. Node.js, Deno, and Bun
+  return the 3xx, and a browser returns an opaque redirect:
+  - With `"manual"`, it's the response. With `"error"`, it's
+    `ERR_UNEXPECTED_REDIRECT`.
+  - With `"follow"`, the request is sent again with `redirect: "follow"`,
+    without the session's headers, if its method is idempotent (RFC 9110
+    §9.2.2). Otherwise it's `ERR_REDIRECT_NOT_FOLLOWED`, whose message says
+    the request was sent.
+  - Sending every request again was rejected. A `POST` would reach the
+    server twice.
+  - Sending with `"follow"` in the first place was rejected. The session's
+    headers for the first URL would go wherever it leads, and the session
+    would have to know it's in a browser.
+  - Returning the opaque redirect for `"follow"` was rejected. It's a
+    response the caller can't read, as if it were the answer.
+  - Sending it again with the session's headers was rejected. The browser
+    sends them wherever the server says, so a credential wouldn't stay with
+    its URL.
+- `maxRedirects` and `redirectSchemes` are session options. They're about
+  what a session fetches, not how the stack fetches.
+- A stack called without a session returns the 3xx.
 
 Rejected:
 
-- A `Redirects` layer at the top of the stack. A layer above it saw only
-  the first request, so a redirect to a URL that layer answers went past it,
-  and nothing checked that it was at the top. What has to be decided for
-  each URL a session fetches, like which headers it gets, would have to be
-  below it, or it would see only the first URL.
-- Letting the runtime follow them. The layers would see only the first URL,
-  the cache couldn't store a redirect, and a server could redirect a request
+- A `Redirects` layer at the top of the stack. A layer above saw only the
+  first request, nothing checked it was at the top, and what's decided for
+  each URL would have to be below it.
+- Letting the runtime follow them. Layers would see only the first URL, the
+  cache couldn't store a redirect, and a server could send a request
   anywhere the transport goes.
 
 ## Known limitations
 
-- The Fetch standard follows a redirect to a URL with a username or
-  password unless it's to another origin in `cors` mode. A `Request` can't
-  be made for one, so it's a network error here.
-
-- In a browser, the browser follows redirects, so the layers see only the
-  first request, and its rules apply instead of `redirectSchemes`. Only the
-  URL it led to is checked against `allowRetrieval`, after the request was
-  sent.
-- In a browser, a request that's redirected with `redirect: "follow"` is
-  sent twice: once to learn that it's a redirect, and once for the browser
-  to follow it. A browser's `fetch` can't say where a redirect leads
-  without following it. A request whose method isn't idempotent, like a
-  `POST`, is sent once, and its redirect isn't followed.
-- In a browser, where a redirect leads gets none of the session's headers,
-  even one for its own URL. A redirect to a URL that needs a credential,
-  like one that adds a trailing `/`, fails as it would without one.
+- A request's own headers follow every step, so a credential like
+  `X-API-Key` goes wherever a redirect leads. A credential that should stay
+  with its URL goes in the session's `headers`.
+- In a browser, the browser follows redirects. Layers see only the first
+  request, its rules apply instead of `redirectSchemes`, and only the final
+  URL is checked against `allowRetrieval`, after it was sent.
+- In a browser, a redirect with `"follow"` is sent twice, once to learn it's
+  a redirect and once to follow it, and where it leads gets none of the
+  session's headers, even its own.
