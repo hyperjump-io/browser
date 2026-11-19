@@ -69,56 +69,67 @@ export const follow = async (stack, request, ctx, policy, added) => {
   for (let hops = 0; ; hops++) {
     // A copy of the body, in case a 307 or 308 sends it again
     const spare = current.body ? current.clone() : undefined;
-    const response = await checked(stack.fetch(withHeaders(current, added, "manual"), ctx), current.url, ctx, policy);
+    const sending = current;
+    try {
+      const response = await checked(stack.fetch(withHeaders(current, added, "manual"), ctx), current.url, ctx, policy);
 
-    if (response.type === "opaqueredirect") {
-      // A browser doesn't say where a redirect leads, so it follows it, with
-      // the copy of the body, since the request's was sent
-      return checked(stack.fetch(withHeaders(spare ?? current, added, mode), ctx), current.url, ctx, policy);
-    }
+      if (response.type === "opaqueredirect") {
+        // A browser doesn't say where a redirect leads, so it follows it,
+        // with the copy of the body, since the request's was sent
+        return checked(stack.fetch(withHeaders(spare ?? current, added, mode), ctx), current.url, ctx, policy);
+      }
 
-    const location = response.headers.get("location");
-    if (!redirectStatuses.has(response.status) || location === null || mode === "manual") {
+      const location = response.headers.get("location");
+      if (!redirectStatuses.has(response.status) || location === null || mode === "manual") {
+        void spare?.body?.cancel().catch(() => {});
+        return hops === 0 ? response : finish(response, current.url, urls);
+      }
+
+      await response.body?.cancel();
+      if (mode === "error") {
+        throw networkError(`'${relativeFileUrl(current.url)}' redirected to '${location}', and redirect is "error"`, { code: "ERR_UNEXPECTED_REDIRECT" }, current.url);
+      }
+      if (hops + 1 > policy.max) {
+        throw networkError(`'${relativeFileUrl(request.url)}' redirected more than ${policy.max} times, the limit in 'maxRedirects'`, { code: "ERR_TOO_MANY_REDIRECTS" }, request.url);
+      }
+      // As in the Fetch standard, a `Location` that isn't a URL is a network
+      // error. A request can't be made for a URL with a username or password
+      // in it, so that's one too.
+      const target = URL.parse(location, response.url || current.url);
+      if (!target) {
+        throw networkError(`'${relativeFileUrl(current.url)}' redirected to '${location}', which isn't a URL`, { code: "ERR_INVALID_REDIRECT" }, current.url);
+      }
+      if (target.username || target.password) {
+        throw networkError(`'${relativeFileUrl(current.url)}' redirected to a URL with a username or password in it, which a request can't have`, { code: "ERR_INVALID_REDIRECT" }, current.url);
+      }
+      if (target.protocol === "file:") {
+        throw networkError(`'${relativeFileUrl(current.url)}' redirected to a file: URL, '${relativeFileUrl(target.href)}'. A redirect can't lead to a file.`, { code: "ERR_UNSAFE_REDIRECT" }, target.href);
+      }
+      if (!policy.schemes.includes(target.protocol)) {
+        throw networkError(`'${relativeFileUrl(current.url)}' redirected to a ${target.protocol} URL, '${relativeFileUrl(target.href)}', which isn't allowed. Add the scheme to 'redirectSchemes' to allow it.`, { code: "ERR_UNSAFE_REDIRECT" }, target.href);
+      }
+      if (!target.hash) {
+        target.hash = new URL(current.url).hash;
+      }
+      await check(current.url, target.href, ctx, policy);
+
+      const from = current.url;
+      current = nextHop(spare ?? current, target, response.status);
+      urls.push(target.href);
+      added = await policy.headers(target.href);
+      // The next request's headers are worked out again, so the mark says what
+      // they are
+      ctx.record.mark("redirect", { status: response.status, from, to: target.href, requestHeaders: [...sentHeaders(current.headers, added)] });
+      current.signal.throwIfAborted();
+    } catch (error) {
+      // The copy of the body won't be sent, and holds what it was copied
+      // from open. Once it's the next request's, that request's body is it.
       void spare?.body?.cancel().catch(() => {});
-      return hops === 0 ? response : finish(response, current.url, urls);
+      if (current !== sending) {
+        void current.body?.cancel().catch(() => {});
+      }
+      throw error;
     }
-
-    await response.body?.cancel();
-    if (mode === "error") {
-      throw networkError(`'${relativeFileUrl(current.url)}' redirected to '${location}', and redirect is "error"`, { code: "ERR_UNEXPECTED_REDIRECT" }, current.url);
-    }
-    if (hops + 1 > policy.max) {
-      throw networkError(`'${relativeFileUrl(request.url)}' redirected more than ${policy.max} times, the limit in 'maxRedirects'`, { code: "ERR_TOO_MANY_REDIRECTS" }, request.url);
-    }
-    // As in the Fetch standard, a `Location` that isn't a URL is a network
-    // error. A request can't be made for a URL with a username or password
-    // in it, so that's one too.
-    const target = URL.parse(location, response.url || current.url);
-    if (!target) {
-      throw networkError(`'${relativeFileUrl(current.url)}' redirected to '${location}', which isn't a URL`, { code: "ERR_INVALID_REDIRECT" }, current.url);
-    }
-    if (target.username || target.password) {
-      throw networkError(`'${relativeFileUrl(current.url)}' redirected to a URL with a username or password in it, which a request can't have`, { code: "ERR_INVALID_REDIRECT" }, current.url);
-    }
-    if (target.protocol === "file:") {
-      throw networkError(`'${relativeFileUrl(current.url)}' redirected to a file: URL, '${relativeFileUrl(target.href)}'. A redirect can't lead to a file.`, { code: "ERR_UNSAFE_REDIRECT" }, target.href);
-    }
-    if (!policy.schemes.includes(target.protocol)) {
-      throw networkError(`'${relativeFileUrl(current.url)}' redirected to a ${target.protocol} URL, '${relativeFileUrl(target.href)}', which isn't allowed. Add the scheme to 'redirectSchemes' to allow it.`, { code: "ERR_UNSAFE_REDIRECT" }, target.href);
-    }
-    if (!target.hash) {
-      target.hash = new URL(current.url).hash;
-    }
-    await check(current.url, target.href, ctx, policy);
-
-    const from = current.url;
-    current = nextHop(spare ?? current, target, response.status);
-    urls.push(target.href);
-    added = await policy.headers(target.href);
-    // The next request's headers are worked out again, so the mark says what
-    // they are
-    ctx.record.mark("redirect", { status: response.status, from, to: target.href, requestHeaders: [...sentHeaders(current.headers, added)] });
-    current.signal.throwIfAborted();
   }
 };
 

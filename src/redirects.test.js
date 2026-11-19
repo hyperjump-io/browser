@@ -218,6 +218,27 @@ describe("redirects", () => {
     expect(sent).to.eql(["manual payload", "follow payload"]);
   });
 
+  test("when following a redirect fails, the copy of the body is cancelled, so its source isn't held open", async () => {
+    const session = testHyperjump(fetcher(async (request) => {
+      await request.body?.cancel();
+      return new Response(null, { status: 307, headers: { location: request.url.endsWith("/refused") ? "https://not-allowed.test/" : "/next" } });
+    }));
+    for (const [path, init] of /** @type [string, RequestInit][] */ ([["/error", { redirect: "error" }], ["/refused", {}]])) {
+      let cancelled = false;
+      const body = new ReadableStream({
+        pull: (controller) => controller.enqueue(new TextEncoder().encode("chunk")),
+        cancel: () => {
+          cancelled = true;
+        }
+      });
+      // Node.js needs `duplex` for a streamed body, which the DOM's types don't have
+      const request = new Request(`https://a.test${path}`, /** @type RequestInit */ ({ ...init, method: "POST", body, duplex: "half" }));
+      await expect(session.fetch(request)).rejects.toBeInstanceOf(TypeError);
+      await settle();
+      expect(cancelled, path).to.equal(true);
+    }
+  });
+
   test("a server can't send a request to file:, even when the transport has it", async () => {
     const server = await redirectServer();
     try {
