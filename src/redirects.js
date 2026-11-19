@@ -47,6 +47,13 @@ export const redirectSchemesOf = (schemes = ["http:", "https:"]) => {
  */
 const credentialHeaders = ["authorization", "cookie", "proxy-authorization"];
 
+/**
+ * The methods RFC 9110 says are idempotent (§9.2.2), which a client can send
+ * again without the server doing what they ask twice. Methods are
+ * case-sensitive.
+ */
+const idempotentMethods = new Set(["GET", "HEAD", "OPTIONS", "TRACE", "PUT", "DELETE"]);
+
 /** Headers about a request's body, which go when a redirect makes it a GET */
 const bodyHeaders = ["content-encoding", "content-language", "content-location", "content-type", "content-length"];
 
@@ -81,6 +88,11 @@ export const follow = async (stack, request, ctx, policy, added) => {
         }
         if (mode === "error") {
           throw networkError(`'${relativeFileUrl(current.url)}' redirected, and redirect is "error"`, { code: "ERR_UNEXPECTED_REDIRECT" }, current.url);
+        }
+        // Following it means sending the request again, which only an
+        // idempotent one can be
+        if (!idempotentMethods.has(current.method)) {
+          throw networkError(`'${relativeFileUrl(current.url)}' redirected, and a browser doesn't say where. The ${current.method} request reached the server, so it isn't sent again to follow the redirect. Use redirect: "manual" to get the redirect.`, { code: "ERR_REDIRECT_NOT_FOLLOWED" }, current.url);
         }
         // So it's asked again, to follow it, with the copy of the body, since
         // the request's was sent. The session's headers are for this URL, and

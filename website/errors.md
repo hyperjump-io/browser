@@ -48,6 +48,7 @@ a network error.
 | `ERR_RETRIEVAL_NOT_ALLOWED` | The URL, where a redirect leads, or the response's URL isn't in the session's `allowRetrieval`. For more information, see [What a session can fetch](allow-retrieval.md). |
 | `ERR_FILE_REFERENCE_NOT_ALLOWED` | A document that isn't a file referred to a `file:` URL. For more information, see [File URLs](file-urls.md#documents-from-the-web). |
 | `ERR_UNEXPECTED_REDIRECT` | The response redirected, and the request's `redirect` is `"error"`. |
+| `ERR_REDIRECT_NOT_FOLLOWED` | In a browser, a request whose method isn't idempotent, such as `POST`, redirected. The server got the request, and following the redirect would send it again. For more information, see [Redirects](redirects.md#in-a-browser). |
 | `ERR_TOO_MANY_REDIRECTS` | The request redirected more times than the session's `maxRedirects`. |
 | `ERR_INVALID_REDIRECT` | A redirect's `Location` isn't a URL, or has a username or password in it. |
 | `ERR_UNSAFE_REDIRECT` | A redirect led to a `file:` URL, or to a scheme that isn't in the session's `redirectSchemes`. For more information, see [Redirects](redirects.md). |

@@ -64,9 +64,13 @@ A browser doesn't let a script see where a redirect leads, so in a browser, the
 browser follows redirects, and the layers only see the first request.
 
 The session sends a redirected request twice in a browser: once to learn that
-it's a redirect, and once for the browser to follow it. A `POST` that's
-redirected reaches the server twice. With `redirect: "manual"` or `"error"`,
-the session sends it once.
+it's a redirect, and once for the browser to follow it. It only sends a request
+again if its method is idempotent: `GET`, `HEAD`, `OPTIONS`, `TRACE`, `PUT`, or
+`DELETE`. Any other method, such as `POST`, would make the server do what it
+asks twice, so the session doesn't follow its redirect. The request fails with
+`ERR_REDIRECT_NOT_FOLLOWED`, after the server got it. To get the redirect
+instead, use `redirect: "manual"`. With `redirect: "manual"` or `"error"`, the
+session sends a request once.
 
 The session can't tell which URL the browser follows a redirect to, so the
 browser's request to it doesn't get the session's

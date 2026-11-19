@@ -62,14 +62,30 @@ request's own headers go to each step, as in `fetch`.
     is from a browser's `fetch`. With `"error"`, it's a network error,
     `ERR_UNEXPECTED_REDIRECT`. Neither sends the request again.
   - With `"follow"`, the session asks again with `redirect: "follow"`, and
-    the browser follows it. It's asked without the session's headers. They
-    were for the first URL, and the browser sends a request's headers to
-    every URL it's redirected to, so a credential like `X-API-Key` would
-    go wherever the server said. The request's own headers go, as they do
-    to each step in Node.js.
-  - Asking again with the session's headers was rejected. The session
-    can't see where the redirect leads, so it can't keep its promise that
-    a credential goes only to the URLs it's for.
+    the browser follows it, if the request's method is idempotent (RFC 9110
+    §9.2.2: `GET`, `HEAD`, `OPTIONS`, `TRACE`, `PUT`, and `DELETE`). The
+    request reached the server, and only those can be sent again without
+    the server doing what they ask twice. Any other method, like `POST`, is
+    a network error, `ERR_REDIRECT_NOT_FOLLOWED`, whose message says the
+    request was sent, so a caller doesn't take it for a request that
+    failed. `redirect: "manual"` gets the redirect.
+    - Sending every request again was rejected. A `POST` would reach the
+      server twice.
+    - Sending a request with `redirect: "follow"` in the first place in a
+      browser was rejected. The session's headers for the first URL would
+      go wherever the redirect leads, and the session would have to know
+      it's in a browser before it asks.
+    - Returning the opaque redirect, as for `"manual"`, was rejected. A
+      caller that asked to follow redirects would get a response it can't
+      read, as if it were the answer.
+  - The request is asked again without the session's headers. They were
+    for the first URL, and the browser sends a request's headers to every
+    URL it's redirected to, so a credential like `X-API-Key` would go
+    wherever the server said. The request's own headers go, as they do to
+    each step in Node.js.
+    - Asking again with the session's headers was rejected. The session
+      can't see where the redirect leads, so it can't keep its promise
+      that a credential goes only to the URLs it's for.
 - `maxRedirects` and `redirectSchemes` are session options. What a session
   may be sent to is about what it fetches, not about how the stack fetches
   it.
@@ -103,8 +119,9 @@ Rejected:
   sent.
 - In a browser, a request that's redirected with `redirect: "follow"` is
   sent twice: once to learn that it's a redirect, and once for the browser
-  to follow it. A `POST` reaches the server twice. A browser's `fetch`
-  can't say where a redirect leads without following it.
+  to follow it. A browser's `fetch` can't say where a redirect leads
+  without following it. A request whose method isn't idempotent, like a
+  `POST`, is sent once, and its redirect isn't followed.
 - In a browser, where a redirect leads gets none of the session's headers,
   even one for its own URL. A redirect to a URL that needs a credential,
   like one that adds a trailing `/`, fails as it would without one.

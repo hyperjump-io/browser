@@ -220,13 +220,24 @@ describe("redirects", () => {
 
     test("is sent again for the browser to follow, with its body and without the session's headers", async () => {
       const { sent, session } = browserLike();
-      const response = await session.fetch("https://a.test/form", { method: "POST", body: "payload", headers: { "x-api-key": "own" } });
+      const response = await session.fetch("https://a.test/form", { method: "PUT", body: "payload", headers: { "x-api-key": "own" } });
       expect(await response.text()).to.equal("followed");
       expect(sent, "the request's own headers are sent again").to.eql(["manual own payload", "follow own payload"]);
 
       sent.length = 0;
-      await (await session.fetch("https://a.test/form", { method: "POST", body: "payload" })).text();
+      await (await session.fetch("https://a.test/form", { method: "PUT", body: "payload" })).text();
       expect(sent, "the session's headers for the first URL aren't sent where it leads").to.eql(["manual secret payload", "follow - payload"]);
+    });
+
+    test("isn't followed when its method isn't idempotent, because that would send it twice", async () => {
+      const { sent, session } = browserLike();
+      for (const method of ["POST", "PATCH", "patch"]) {
+        sent.length = 0;
+        const fetching = session.fetch("https://a.test/form", { method, body: "payload" });
+        await expect(fetching).rejects.toBeInstanceOf(TypeError);
+        await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_REDIRECT_NOT_FOLLOWED" } });
+        expect(sent, method).to.eql(["manual secret payload"]);
+      }
     });
 
     test("is the response with redirect: manual, and a network error with redirect: error, each sent once", async () => {

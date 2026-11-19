@@ -36,6 +36,7 @@ readers: a person reads its message, and code reads its `cause.code`.
 | `ERR_RETRIEVAL_NOT_ALLOWED` | A URL, where a redirect leads, or a response's URL isn't in `allowRetrieval` | session ([What a session can fetch](allow-retrieval.md)) |
 | `ERR_FILE_REFERENCE_NOT_ALLOWED` | A `file:` URL from a document that isn't a file | session ([`file:` from `file:`](file-references.md)) |
 | `ERR_UNEXPECTED_REDIRECT` | A redirect when `redirect` is `"error"` | session ([Redirects](redirects.md)) |
+| `ERR_REDIRECT_NOT_FOLLOWED` | In a browser, a redirect of a request whose method isn't idempotent, like `POST`, with `redirect` `"follow"` | session |
 | `ERR_TOO_MANY_REDIRECTS` | More redirects than `maxRedirects` | session |
 | `ERR_INVALID_REDIRECT` | A redirect whose `Location` isn't a URL, or has a username or password | session |
 | `ERR_UNSAFE_REDIRECT` | A redirect to a scheme that isn't in `redirectSchemes` | session |
