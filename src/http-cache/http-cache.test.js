@@ -472,6 +472,25 @@ describe("the HTTP cache", () => {
     }
   });
 
+  test("a successful request whose Location isn't a URL still succeeds, and invalidates its own URL", async () => {
+    const cache = new HttpCache(fetcher((request) => request.method === "POST"
+      ? new Response("created", { status: 201, headers: { "location": "http://[bad", "content-location": "http://[bad" } })
+      : new Response("item", { headers: { "cache-control": "max-age=60" } })));
+    const session = testHyperjump(cache);
+    const get = async () => {
+      const response = await session.fetch("https://a.test/item");
+      await response.text();
+      await settle();
+      return responseMeta(response).cache;
+    };
+
+    await get();
+    expect(await get()).to.equal("hit");
+    const posted = await session.fetch("https://a.test/item", { method: "POST", body: "x" });
+    expect(posted.status).to.equal(201);
+    expect(await get()).to.equal("miss");
+  });
+
   test("purge removes a URL", async () => {
     const { server, cache, get } = await setup();
     try {

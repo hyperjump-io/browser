@@ -69,6 +69,9 @@ it's a private cache, like a browser's.
   known, like `PROPPATCH`, as RFC 9111 says a cache must. Methods are
   case-sensitive, and the Fetch standard only makes six of them uppercase,
   so `patch` is a method of its own, not `PATCH`, and it invalidates too.
+  A `Location` or `Content-Location` that isn't a URL names nothing, so
+  it's skipped. The request has succeeded, so it doesn't fail because of
+  it.
 - A response is stored while the caller reads it: a clone is read for the
   store, so the caller's body streams. The clone is read a chunk at a time,
   and once it's bigger than `maxBodySize` it's cancelled and nothing is

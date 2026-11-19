@@ -432,11 +432,11 @@ export class HttpCache {
   async #invalidate(request, response) {
     const base = new URL(request.url);
     for (const target of [request.url, response.headers.get("location"), response.headers.get("content-location")]) {
-      if (target) {
-        const url = new URL(target, base);
-        if (url.origin === base.origin) {
-          await this.#storeDelete(cacheKey(url.href));
-        }
+      // One that isn't a URL names nothing to invalidate. The request has
+      // succeeded, so it doesn't fail because of it.
+      const url = target ? URL.parse(target, base) : null;
+      if (url?.origin === base.origin) {
+        await this.#storeDelete(cacheKey(url.href));
       }
     }
   }
