@@ -474,6 +474,31 @@ describe("documents", () => {
       await expect(loading).rejects.toMatchObject({ cause: { code: "ERR_ABSOLUTE_FILE_URL" }, url: "https://a.test/bundle" });
     });
 
+    test("a document that isn't a file can't say it is one, to contain files", async () => {
+      const { session } = site({
+        "/bundle": [bundle({ $ref: "passwd" }, { "file:///etc/passwd": "the bundle's" }, "file:///etc/"), bundled],
+        "/plain": [bundle({ $ref: "passwd" }, {}, "file:///etc/"), bundled]
+      }, { mediaTypes });
+      for (const path of ["/bundle", "/plain"]) {
+        const loading = browse(session, `https://a.test${path}`);
+        await expect(loading).rejects.toThrow(`'https://a.test${path}' can't be used, because it says its URL is an absolute file: URL`);
+        await expect(loading).rejects.toMatchObject({ cause: { code: "ERR_ABSOLUTE_FILE_URL" }, url: `https://a.test${path}` });
+      }
+    });
+
+    test("a file that says it isn't one can still contain files", async () => {
+      const session = new Hyperjump({
+        stack: fetcher((request) => request.url.endsWith("/bundle")
+          ? new Response(bundle(1, { "file:///project/a.json": "contained" }, "https://example.com/bundle"), { headers: bundled })
+          : new Response(`"fetched"`)),
+        mediaTypes: [{ ...bundleMediaType, extensions: ["/bundle"] }, ...defaultMediaTypes],
+        allowRetrieval: ["file:///project/"]
+      });
+      const { document } = await browse(session, "file:///project/bundle", { reference: "manual" });
+      expect(document.url).to.equal("https://example.com/bundle");
+      expect(jsonValue((await browse(session, "file:///project/a.json", { referencedFrom: document })).node)).to.equal("contained");
+    });
+
     test("a file can contain files, and they can refer to files", async () => {
       const session = new Hyperjump({
         stack: fetcher((request) => request.url.endsWith("/bundle")
@@ -539,11 +564,12 @@ describe("documents", () => {
 
 /**
  * A made-up format with embedded documents: JSON with a `main` JRef value
- * and the JRef values it contains by URL
+ * and the JRef values it contains by URL, and the URL it says it has, like
+ * an `$id`, if it says one
  *
- * @type (main: Json, embedded: Record<string, Json>) => string
+ * @type (main: Json, embedded: Record<string, Json>, id?: string) => string
  */
-const bundle = (main, embedded) => JSON.stringify({ main, embedded });
+const bundle = (main, embedded, id) => JSON.stringify({ main, embedded, id });
 
 /** @type (value: Json, url: string) => JrefNode */
 const jrefNode = (value, url) => /** @type JrefNode */ (fromJref(JSON.stringify(value), url).document.children[0]);
@@ -553,11 +579,11 @@ const bundleMediaType = {
   mediaType: "application/x-bundle",
   extensions: [],
   parse: async (response) => {
-    const { main, embedded } = /** @type {{ main: Json, embedded: Record<string, Json> }} */ (JSON.parse(await response.text()));
+    const { main, embedded, id } = /** @type {{ main: Json, embedded: Record<string, Json>, id?: string }} */ (JSON.parse(await response.text()));
     /** @type (value: Json, url: string) => DocumentNode<JrefNode> */
     const document = (value, url) => ({ type: "bundle-document", children: [jrefNode(value, url)], url, anchors: {} });
     return {
-      ...document(main, response.url),
+      ...document(main, id ?? response.url),
       embedded: Object.fromEntries(Object.entries(embedded).map(([url, value]) => [url, document(value, URL.parse(url)?.href.split("#")[0] ?? "https://invalid.test/")]))
     };
   }

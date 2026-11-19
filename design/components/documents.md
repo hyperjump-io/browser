@@ -257,7 +257,7 @@ says why, with the exact URL as its `url` (see
 | --- | --- |
 | `ERR_HTTP_STATUS` | A response that isn't a success. The cause has its `status`. |
 | `ERR_UNSUPPORTED_MEDIA_TYPE` | A response no media type plugin parses |
-| `ERR_ABSOLUTE_FILE_URL` | A document that isn't a file and says it contains a document with a `file:` URL (see [`file:` from `file:`](file-references.md)) |
+| `ERR_ABSOLUTE_FILE_URL` | A document that isn't a file and says it contains a document with a `file:` URL, or that its own URL is one (see [`file:` from `file:`](file-references.md)) |
 | `ERR_ANCHOR_NOT_FOUND` | A fragment that isn't an anchor of the document or a JSON Pointer. The cause has the `anchor`. |
 | `ERR_REFERENCE_CYCLE` | References that lead back to one already followed. The cause has the `chain`. |
 | `ERR_TOO_MANY_REFERENCES` | More than the session's `maxReferences` references in a row. The cause has the `maxReferences` and the `chain`. |

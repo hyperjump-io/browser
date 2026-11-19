@@ -170,7 +170,7 @@ needs now. For more information, see [Priorities](priorities.md).
 | An `Error` whose `cause.code` is `"ERR_HTTP_STATUS"` | The response's status isn't a success. The `cause.status` is the status. |
 | An `Error` whose `cause.code` is `"ERR_UNSUPPORTED_MEDIA_TYPE"` | No media type parses the response. For more information, see [Media types](media-types.md). |
 | A `SyntaxError` whose `cause.code` is `"ERR_SYNTAX"` | The document has a syntax error, or a reference that's an absolute `file:` URL. Its `cause` also has the error's `ruleId` and `place`. |
-| An `Error` whose `cause.code` is `"ERR_ABSOLUTE_FILE_URL"` | A document that isn't a file says it contains a document with a `file:` URL. For more information, see [Media types](media-types.md#a-plugin). |
+| An `Error` whose `cause.code` is `"ERR_ABSOLUTE_FILE_URL"` | A document that isn't a file says it contains a document with a `file:` URL, or that its own URL is one. For more information, see [Media types](media-types.md#a-plugin). |
 | An `Error` whose `cause.code` is `"ERR_ANCHOR_NOT_FOUND"` | The fragment isn't an anchor of the document or a JSON Pointer. The `cause.anchor` is the fragment. |
 | An `Error` whose `cause.code` starts with `"ERR_POINTER_"` | The fragment doesn't identify a value. For more information, see [Parse JSON and JRef](parsing.md#read-the-ast). |
 | An `Error` whose `cause.code` is `"ERR_REFERENCE_CYCLE"` | Following references leads back to a reference that `browse` already followed. The `cause.chain` lists the URLs. |

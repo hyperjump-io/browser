@@ -201,7 +201,7 @@ const entryFor = (session, url, options, priority) => {
 const entryOf = (session, from) => {
   const document = /** @type DocumentNode */ (startOf(from).document);
   return documentsOf(session).retrieved.get(document)
-    ?? { document, url: document.url, record: undefined, embedded: embeddedIn(document), container: document };
+    ?? { document, url: document.url, record: undefined, embedded: embeddedIn(document, document.url), container: document };
 };
 
 /**
@@ -380,7 +380,7 @@ const retrieve = async (session, url, cause, priority) => {
     const parsed = response.url === responseUrl.href ? response : withUrl(response, responseUrl.href);
     const document = await mediaType.parse(parsed, session);
     /** @type Entry */
-    const entry = { document, url: responseUrl.href, record: responseMeta(response).record, embedded: embeddedIn(document), container: document };
+    const entry = { document, url: responseUrl.href, record: responseMeta(response).record, embedded: embeddedIn(document, responseUrl.href), container: document };
     retrieved.set(document, entry);
     return { entry, responseUrl: responseUrl.href, fragment };
   } catch (error) {
@@ -402,17 +402,29 @@ const retrieve = async (session, url, cause, priority) => {
  * A document that isn't a file can only have a `file:` URL in it that's
  * absolute, which says where files are on a machine, so it can't be used.
  * In a file, one could have been relative, which can't be told from here.
+ * Whether it's a file is by `from`, where it came from: the URL of the
+ * response it was parsed from, or for a document the session didn't
+ * retrieve, its own. A document can say its own URL, like with an `$id`, so
+ * a document from the web could say it's a file.
  *
- * @type (document: DocumentNode) => Map<string, DocumentNode>
+ * @type (document: DocumentNode, from: string) => Map<string, DocumentNode>
  * @throws {TypeError} If a URL isn't one.
  */
-const embeddedIn = (document) => {
+const embeddedIn = (document, from) => {
+  if (new URL(from).protocol !== "file:") {
+    if (new URL(document.url).protocol === "file:") {
+      throw codedError(`'${relativeFileUrl(from)}' can't be used, because it says its URL is an absolute file: URL`, { code: "ERR_ABSOLUTE_FILE_URL" }, from);
+    }
+    for (const url of Object.keys(document.embedded ?? {})) {
+      if (new URL(url).protocol === "file:") {
+        throw codedError(`'${relativeFileUrl(from)}' can't be used, because it says it contains a document with an absolute file: URL`, { code: "ERR_ABSOLUTE_FILE_URL" }, from);
+      }
+    }
+  }
+
   const embedded = new Map();
   for (const [url, contained] of Object.entries(document.embedded ?? {})) {
     const parsed = new URL(url);
-    if (parsed.protocol === "file:" && !document.url.startsWith("file:")) {
-      throw codedError(`'${document.url}' can't be used, because it says it contains a document with an absolute file: URL`, { code: "ERR_ABSOLUTE_FILE_URL" }, document.url);
-    }
     parsed.hash = "";
     embedded.set(parsed.href, contained);
   }

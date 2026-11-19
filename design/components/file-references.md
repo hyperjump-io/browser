@@ -60,6 +60,13 @@ on that machine.
   `file:` URL is an error, `ERR_ABSOLUTE_FILE_URL` (see
   [Documents](documents.md)). A URL that's given resolved can't be told
   from a relative one in a file, so a file can contain files.
+  - Whether it's a file is by the URL of the response it was parsed from,
+    not the `url` it says it has, which a format with identifiers gives
+    it. A document that isn't a file and says its own URL is a `file:`
+    URL is the same error, because its nodes' locations would be files.
+    A file that says its URL is another can still contain files.
+  - Judging by the document's own `url` was rejected. A document from the
+    web would say it's a file, and then contain one.
 - Checking the document a request comes from stays, for a media type
   plugin that makes references itself.
 
