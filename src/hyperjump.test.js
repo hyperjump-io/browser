@@ -1,4 +1,5 @@
 import { describe, test, expect } from "vitest";
+import { getEventListeners } from "node:events";
 import { join } from "node:path";
 import { cwd } from "node:process";
 import { pathToFileURL } from "node:url";
@@ -160,6 +161,14 @@ describe("sessions", () => {
       stop();
       await (await session.fetch("https://a.test/")).text();
       expect(events.length, "nothing after stop").to.equal(4);
+    });
+
+    test("requests don't listen to the session's signal, so a session's requests cost the same however many it has made", async () => {
+      const session = testHyperjump(fetcher(() => new Response("body")));
+      for (let index = 0; index < 100; index++) {
+        await (await session.fetch(`https://a.test/${index}`)).text();
+      }
+      expect(getEventListeners(session.signal, "abort")).to.eql([]);
     });
 
     test("bodies are kept only when an observer asks for them", async () => {

@@ -110,7 +110,12 @@ export class Hyperjump {
 
     const { cache, priority, initiator, referrer: givenReferrer, ...requestInit } = init;
     const callerSignal = init.signal ?? (input instanceof Request ? input.signal : undefined);
-    const signal = callerSignal ? AbortSignal.any([this.signal, callerSignal]) : this.signal;
+    // A request follows its signal, and following one adds a listener to it,
+    // which costs as much as the listeners it has already. The session's
+    // would have one for every request it had made, until each was
+    // collected. A signal from `AbortSignal.any` follows its sources without
+    // a listener.
+    const signal = AbortSignal.any(callerSignal ? [this.signal, callerSignal] : [this.signal]);
 
     const request = input instanceof Request
       ? new Request(input, { ...requestInit, signal })

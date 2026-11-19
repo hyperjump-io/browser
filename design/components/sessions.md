@@ -52,6 +52,12 @@ on a stack it's given and gives the stack what the stack can't know.
   (`AbortSignal.any`), so closing the session aborts what it started, like
   navigating away, and a closed session refuses new requests with its
   signal's reason.
+  - It's from `AbortSignal.any` even when the caller gives no signal. A
+    `Request` follows its signal with a listener, and in Node.js adding a
+    listener costs as much as the listeners a signal has already, so a
+    session whose requests followed its own signal got slower with each
+    one, until each was collected. A signal from `AbortSignal.any` follows
+    its sources without listening to them.
 - `priority` and `initiator` aren't given to `new Request`.
   Runtimes ignore them or reject some values, so the session gives them to
   the stack as context (see [Layers](layers.md)).
