@@ -29,6 +29,9 @@ that isn't released is marked `*Coming soon*`.
 - [ ] `git push --follow-tags`
 - [ ] `npm publish`. A prerelease gets `--tag next`, and a release from the
   `v1` branch gets `--tag v1`, so `latest` stays the newest stable version.
+- [ ] `gh release create vX.Y.Z --title vX.Y.Z --notes-file <notes>`, with
+  `--prerelease` for a prerelease. The notes are written, not generated.
+  See [Release notes](#release-notes).
 
 ## After
 
@@ -38,3 +41,26 @@ that isn't released is marked `*Coming soon*`.
   right tag.
 - [ ] Packages that depend on this one, like `@hyperjump/json-schema`, are
   updated to it if they need what's new.
+
+## Release notes
+
+The notes say what changed for someone who uses the package, in the docs'
+voice, like the other Hyperjump packages' releases. They link to the page
+at <https://hyperjump.io/browser/> for each feature they name.
+
+- A major release starts with a sentence that says what it is and where the
+  documentation is, like "A rewrite of `@hyperjump/browser`. The
+  documentation is now at …". Then `## What's new`, as bullets that start
+  with the feature in bold, and `## Breaking changes`, one bullet for each.
+  It ends by linking the page on migrating, if there is one.
+- A minor or patch release has a section for each kind of change, in this
+  order, leaving out what's empty: a section named for each new feature,
+  with an example, then `## Security`, `## Fixes`, `## Performance`, and
+  `## Internal`. A bullet says what changed and what it means for the
+  user, and ends with the pull request and who wrote it, like
+  "(#140, by `@name`)", when it's someone else's.
+- A release with no code changes starts with "No changes to the code." and
+  says what did change, like the README.
+- Except for a major release, the notes end with
+  `**Full Changelog**: https://github.com/hyperjump-io/browser/compare/vA.B.C...vX.Y.Z`,
+  from the release before.
