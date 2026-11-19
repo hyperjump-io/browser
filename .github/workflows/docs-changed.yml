@@ -1,0 +1,28 @@
+name: Docs Changed
+
+# Rebuilds hyperjump.io, which is built from website/ on this branch. The
+# token is the hyperjump.io docs dispatch app's, which can only dispatch to
+# hyperjump.io, and expires when the job ends.
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "website/**"
+
+jobs:
+  dispatch:
+    if: github.repository_owner == 'hyperjump-io'
+    runs-on: ubuntu-latest
+    steps:
+      - id: token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.SITE_DISPATCH_CLIENT_ID }}
+          private-key: ${{ secrets.SITE_DISPATCH_APP_KEY }}
+          owner: hyperjump-io
+          repositories: hyperjump.io
+          permission-contents: write
+      - run: gh api repos/hyperjump-io/hyperjump.io/dispatches -f event_type=docs-changed
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
