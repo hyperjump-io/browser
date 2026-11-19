@@ -90,6 +90,8 @@ describe("allowRetrieval", () => {
       await symlink(join(outside, "outside.json"), join(inside, "link.json"));
       await symlink(outside, join(inside, "linked-directory"));
       await symlink(inside, join(directory, "link-to-inside"));
+      await symlink(join(inside, "loop-b"), join(inside, "loop-a"));
+      await symlink(join(inside, "loop-a"), join(inside, "loop-b"));
     });
 
     afterAll(async () => {
@@ -127,6 +129,31 @@ describe("allowRetrieval", () => {
     test("a missing file in an allowed directory is missing, not refused", async () => {
       const session = new Hyperjump({ stack: nodeTransport(), allowRetrieval: [directoryUrl(inside)] });
       await expect(session.fetch(fileUrl(inside, "missing.json"))).rejects.toMatchObject({ cause: { code: "ENOENT" } });
+    });
+
+    test("a path without a real path fails for its own reason, and is recorded", async () => {
+      const session = new Hyperjump({ stack: nodeTransport(), allowRetrieval: [directoryUrl(inside)] });
+      /** @type FetchRecord[] */
+      const ended = [];
+      session.observe((event) => {
+        if (event.type === "end") {
+          ended.push(event.record);
+        }
+      });
+
+      const loop = session.fetch(fileUrl(inside, "loop-a"));
+      await expect(loop).rejects.toBeInstanceOf(TypeError);
+      await expect(loop).rejects.toMatchObject({ cause: { code: "ELOOP" } });
+      const notAPath = session.fetch(`${directoryUrl(inside)}a%2Fb.json`);
+      await expect(notAPath).rejects.toBeInstanceOf(TypeError);
+      await expect(notAPath).rejects.toMatchObject({ cause: { code: "ERR_INVALID_FILE_URL_PATH" } });
+      expect(ended.map((record) => record.error instanceof TypeError)).to.eql([true, true]);
+    });
+
+    test("an entry without a real path allows only what it says, and the session's other entries still work", async () => {
+      const session = new Hyperjump({ stack: nodeTransport(), allowRetrieval: [directoryUrl(join(inside, "loop-a")), directoryUrl(inside)] });
+      expect((await session.fetch(fileUrl(inside, "inside.json"))).ok).to.equal(true);
+      expect((await session.fetch(fileUrl(inside, "inside.json"))).ok, "and again").to.equal(true);
     });
 
     test("a file: entry with a host is compared as it is", async () => {

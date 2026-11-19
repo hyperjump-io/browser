@@ -134,9 +134,18 @@ checking below the cache.
   is opened.
 - A `file:` entry's real path is found the first time the session checks a
   URL, and kept for the session, which is a snapshot anyway.
-- A file that doesn't exist has no real path, so its path is checked as
-  it's written. If it's allowed, fetching it fails as missing rather than
-  refused.
+- A path that has no real path is checked as it's written: a file that
+  doesn't exist, one in a directory that can't be searched, a symlink
+  loop, or a URL that isn't a path, like one with `%2F` in it on POSIX.
+  If it's allowed, fetching it fails for that reason, like missing,
+  rather than refused. The `file:` scheme finds the real path again
+  before it opens the file, so it can't be read either, and its error is
+  a network error that says why. An entry is the same, so one that can't
+  be resolved allows only what it says, and the session's other entries
+  still work.
+- Throwing what finding the real path threw was rejected. It wasn't a
+  network error, the request wasn't recorded, and an entry's error was
+  kept for the session, so one bad entry made every fetch fail.
 - A `file:` URL with a host, and an entry with one, is compared as it is.
   On Windows its path is a UNC path, and `realpath` would connect to the
   host, with the user's credentials, before the URL is refused. A document
