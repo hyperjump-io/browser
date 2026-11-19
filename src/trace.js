@@ -44,7 +44,9 @@ export class Trace {
     const children = new Map();
     for (const record of this.#records) {
       const parent = record.initiator && inTrace.has(record.initiator) ? record.initiator : undefined;
-      children.set(parent, [...children.get(parent) ?? [], record]);
+      const siblings = children.get(parent) ?? [];
+      siblings.push(record);
+      children.set(parent, siblings);
     }
 
     /** @type {{ record: FetchRecord, depth: number }[]} */
@@ -69,8 +71,10 @@ export class Trace {
       return "(no requests)";
     }
 
-    const origin = Math.min(...rows.map(({ record }) => record.startTime));
-    const end = Math.max(...rows.map(({ record }) => record.endTime ?? record.responseTime ?? record.startTime), origin + 1);
+    // Reduced rather than spread, which throws past the engine's limit on
+    // arguments
+    const origin = rows.reduce((earliest, { record }) => Math.min(earliest, record.startTime), Infinity);
+    const end = rows.reduce((latest, { record }) => Math.max(latest, record.endTime ?? record.responseTime ?? record.startTime), origin + 1);
     const scale = width / (end - origin);
     /** @type (time: number) => number */
     const column = (time) => Math.min(width - 1, Math.max(0, Math.floor((time - origin) * scale)));
