@@ -16,6 +16,7 @@ for users is in [`website/`](../website/README.md).
 - **[Style](style/README.md)**: how code here is laid out and written.
 - **Components**: how each part works, what was decided, and what was
   rejected, with known limitations.
+- **[Releasing](releasing.md)**: the checklist for publishing a version.
 
 ## Components
 
