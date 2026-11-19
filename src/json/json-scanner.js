@@ -45,15 +45,16 @@ for (const character of " \t\n\r{}[]:,\"'/") {
   TERMINATORS[character.charCodeAt(0)] = 1;
 }
 
-/** @type Record<number, JsonTokenKind> */
-const PUNCTUATORS = {
-  0x7b: "{",
-  0x7d: "}",
-  0x5b: "[",
-  0x5d: "]",
-  0x3a: ":",
-  0x2c: ","
-};
+// The punctuators, indexed by character code. An array and not an object,
+// since an object with keys like these is a dictionary, which is slower.
+/** @type (JsonTokenKind | undefined)[] */
+const PUNCTUATORS = Array.from({ length: 128 }, () => undefined);
+PUNCTUATORS[0x7b] = "{";
+PUNCTUATORS[0x7d] = "}";
+PUNCTUATORS[0x5b] = "[";
+PUNCTUATORS[0x5d] = "]";
+PUNCTUATORS[0x3a] = ":";
+PUNCTUATORS[0x2c] = ",";
 
 /** @type Record<string, string> */
 const ESCAPES = {
@@ -86,7 +87,7 @@ export const scanToken = (text, offset) => {
 
   const code = text.charCodeAt(offset);
 
-  const punctuator = PUNCTUATORS[code];
+  const punctuator = code < 128 ? PUNCTUATORS[code] : undefined;
   if (punctuator !== undefined) {
     return token(punctuator, offset, 1, punctuator);
   }

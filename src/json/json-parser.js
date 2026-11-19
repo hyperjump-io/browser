@@ -24,6 +24,10 @@ import { appendToLocation } from "./location.js";
  */
 
 /**
+ * @typedef {Extract<JsonTolerantNode, { jsonType: "object" }>} JsonTolerantObjectNode
+ */
+
+/**
  * What a parse found: the root value, how parsing went, and the errors and
  * comments. `fromJson` and `fromJref` make a document of it.
  *
@@ -49,14 +53,6 @@ import { appendToLocation } from "./location.js";
  *   length: number;
  *   found?: string;
  * }} SyntaxError
- */
-
-/**
- * @typedef {{
- *   after: { position?: Position } | undefined;
- *   offset: number;
- *   length: number;
- * }} Separator
  */
 
 /** @type Record<JsonSyntaxErrorCode, (found?: string) => string> */
@@ -102,9 +98,13 @@ export const jsonSyntaxErrorMessage = (error) => MESSAGES[error.ruleId](error.ac
  * Parse JSON text into a JSON AST, recovering from syntax errors wherever
  * possible. Every error found is returned along with the best-effort AST.
  *
- * @type (text: string, url: string, options?: JsonOptions) => ParsedJson
+ * `onObject` is told of each object when it's parsed, inner ones first, so
+ * `fromJref` makes references while the object is still in the CPU's cache.
+ * It's told, not asked: what it returns isn't used.
+ *
+ * @type (text: string, url: string, options?: JsonOptions, onObject?: (node: JsonTolerantObjectNode) => void) => ParsedJson
  */
-export const parseJson = (text, url, options = {}) => {
+export const parseJson = (text, url, options = {}, onObject) => {
   const lineStarts = findLineStarts(text);
 
   /** @type SyntaxError[] */
@@ -153,8 +153,11 @@ export const parseJson = (text, url, options = {}) => {
   };
 
   // Points are mostly requested in document order, so the line of the last
-  // point is checked before searching
+  // point is checked before searching. Its bounds are kept, since checking
+  // them is most of finding a point.
   let lastLine = 0;
+  let lastLineStart = 0;
+  let nextLineStart = lineStarts.length > 1 ? lineStarts[1] : Infinity;
 
   /** @type (line: number, offset: number) => boolean */
   const isOnLine = (line, offset) => {
@@ -163,8 +166,8 @@ export const parseJson = (text, url, options = {}) => {
 
   /** @type (offset: number) => Point */
   const point = (offset) => {
-    let line = lastLine;
-    if (!isOnLine(line, offset)) {
+    if (offset < lastLineStart || offset >= nextLineStart) {
+      let line = lastLine;
       if (line + 1 < lineStarts.length && isOnLine(line + 1, offset)) {
         line++;
       } else {
@@ -181,14 +184,29 @@ export const parseJson = (text, url, options = {}) => {
         line = low;
       }
       lastLine = line;
+      lastLineStart = lineStarts[line];
+      nextLineStart = line + 1 < lineStarts.length ? lineStarts[line + 1] : Infinity;
     }
 
-    return { line: line + 1, column: offset - lineStarts[line] + 1, offset: offset };
+    return { line: lastLine + 1, column: offset - lastLineStart + 1, offset: offset };
   };
 
   /** @type (start: number, end: number) => Position */
   const position = (start, end) => {
     return { start: point(start), end: point(end) };
+  };
+
+  // A node that has others in it ends after them, so its start point is
+  // found before them. Points are found quickly only in document order.
+  /** @type (start: Point, end: number) => Position */
+  const positionFrom = (start, end) => {
+    return { start: start, end: point(end) };
+  };
+
+  /** @type (offset: number) => Position */
+  const emptyPosition = (offset) => {
+    const at = point(offset);
+    return { start: at, end: at };
   };
 
   /** @type (comment: JsonToken) => JsonCommentNode */
@@ -241,8 +259,11 @@ export const parseJson = (text, url, options = {}) => {
     for (;;) {
       token = scanAt(token.offset + token.length);
 
-      for (const error of token.errors) {
-        report(error.code, error.offset, error.length);
+      // Most tokens have none
+      if (token.errors.length > 0) {
+        for (const error of token.errors) {
+          report(error.code, error.offset, error.length);
+        }
       }
 
       if (token.reachedEndOfFile) {
@@ -283,16 +304,11 @@ export const parseJson = (text, url, options = {}) => {
     }
   };
 
-  /** @type (separator: Separator) => void */
-  const reportCommaExpected = (separator) => {
-    if (separator.after && !unclosed.has(separator.after)) {
-      report("comma-expected", separator.offset, Math.max(separator.length, 1));
+  /** @type (after: { position?: Position } | undefined, offset: number, length: number) => void */
+  const reportCommaExpected = (after, offset, length) => {
+    if (after && !unclosed.has(after)) {
+      report("comma-expected", offset, Math.max(length, 1));
     }
-  };
-
-  /** @type (after: { position?: Position } | undefined) => Separator */
-  const separatorAfter = (after) => {
-    return { after, offset: previousOffset, length: previousLength };
   };
 
   const skipStrayColons = () => {
@@ -343,7 +359,7 @@ export const parseJson = (text, url, options = {}) => {
     return {
       type: "json-missing",
       location: nodeLocation,
-      position: position(offset, offset)
+      position: emptyPosition(offset)
     };
   };
 
@@ -362,14 +378,17 @@ export const parseJson = (text, url, options = {}) => {
     return node;
   };
 
-  /** @type (scalar: JsonScalar, nodeLocation: string) => JsonTolerantNode */
-  const parseScalar = (scalar, nodeLocation) => {
-    // The scalar's fields are copied one by one, which is faster than a
-    // spread, so the type of the pair they're from is lost
+  /**
+   * The type and the value are separate arguments, which is faster than an
+   * object of them, so the type doesn't know they're a pair
+   *
+   * @type (jsonType: JsonScalar["jsonType"], value: JsonScalar["value"], nodeLocation: string) => JsonTolerantNode
+   */
+  const parseScalar = (jsonType, value, nodeLocation) => {
     const node = /** @type JsonTolerantNode */ ({
       type: "json",
-      jsonType: scalar.jsonType,
-      value: scalar.value,
+      jsonType: jsonType,
+      value: value,
       location: nodeLocation,
       position: position(token.offset, token.offset + token.length)
     });
@@ -378,13 +397,12 @@ export const parseJson = (text, url, options = {}) => {
   };
 
   /**
-   * Parse a property. The value is returned separately, and is `undefined`
-   * when it's missing, so the caller can tell where the property's text ends.
+   * Parse a property. A value that's missing is a `json-missing` node.
    *
-   * @type (objectLocation: string) => { property: JsonPropertyNode<{ type: "json" }, JsonErrorNode>, value: JsonValueNode | undefined }
+   * @type (objectLocation: string) => JsonPropertyNode<{ type: "json" }, JsonErrorNode>
    */
   const parseProperty = (objectLocation) => {
-    const start = token.offset;
+    const startPoint = point(token.offset);
 
     /** @type JsonPropertyNameNode */
     let keyNode;
@@ -396,7 +414,7 @@ export const parseJson = (text, url, options = {}) => {
         type: "json-property-name",
         jsonType: "string",
         value: "",
-        position: position(token.offset, token.offset)
+        position: emptyPosition(token.offset)
       };
     } else {
       if (token.kind !== "string") {
@@ -410,7 +428,7 @@ export const parseJson = (text, url, options = {}) => {
         jsonType: "string",
         // For anything other than a string, the value is the text as written
         value: token.value,
-        position: position(token.offset, token.offset + token.length)
+        position: positionFrom(startPoint, token.offset + token.length)
       };
       next();
     }
@@ -443,18 +461,18 @@ export const parseJson = (text, url, options = {}) => {
       const property = {
         type: "json-property",
         children: [keyNode, missingNode],
-        position: position(start, token.offset)
+        position: positionFrom(startPoint, token.offset)
       };
-      return { property, value };
+      return property;
     }
 
     /** @type JsonPropertyNode<{ type: "json" }, JsonErrorNode> */
     const property = {
       type: "json-property",
       children: [keyNode, value],
-      position: position(start, endOf(value))
+      position: { start: startPoint, end: /** @type Position */ (value.position).end }
     };
-    return { property, value };
+    return property;
   };
 
   /**
@@ -544,7 +562,7 @@ export const parseJson = (text, url, options = {}) => {
   /** @type (jsonType: "object" | "array", containerLocation: string, isArrayItem: boolean) => JsonTolerantNode */
   const parseContainer = (jsonType, containerLocation, isArrayItem) => {
     depth++;
-    const start = token.offset;
+    const startPoint = point(token.offset);
     const closer = jsonType === "object" ? "}" : "]";
     next();
 
@@ -558,11 +576,17 @@ export const parseJson = (text, url, options = {}) => {
     let lastItem;
     let index = 0;
 
-    /** @type Separator | undefined */
-    let separator;
+    // Where a comma is expected, after an item or stray colons, and the
+    // token before it. They're variables and not an object, since an
+    // object for each item was a cost of every container.
+    let separated = false;
+    /** @type {{ position?: Position } | undefined} */
+    let separatorAfter;
+    let separatorOffset = 0;
+    let separatorLength = 0;
     while (!isEndOfContainer()) {
       if (token.kind === ",") {
-        const gapOffset = parseComma(closer, !separator, index === 0);
+        const gapOffset = parseComma(closer, !separated, index === 0);
         if (gapOffset !== undefined && jsonType === "array") {
           // An index never needs escaping or encoding
           items.push(missing(`${containerLocation}/${index}`, gapOffset));
@@ -570,18 +594,23 @@ export const parseJson = (text, url, options = {}) => {
         if (gapOffset !== undefined) {
           index++;
         }
-        separator = undefined;
+        separated = false;
         continue;
       }
 
       if (jsonType === "array" && token.kind === ":") {
         skipStrayColons();
-        separator ??= separatorAfter(undefined);
+        if (!separated) {
+          separated = true;
+          separatorAfter = undefined;
+          separatorOffset = previousOffset;
+          separatorLength = previousLength;
+        }
         continue;
       }
 
-      if (separator) {
-        reportCommaExpected(separator);
+      if (separated) {
+        reportCommaExpected(separatorAfter, separatorOffset, separatorLength);
       }
 
       if (jsonType === "array" && looksLikeProperty()) {
@@ -594,17 +623,22 @@ export const parseJson = (text, url, options = {}) => {
 
       if (jsonType === "object") {
         index++;
-        const { property, value } = parseProperty(containerLocation);
+        const property = parseProperty(containerLocation);
         properties.push(property);
         lastItem = property;
-        separator = separatorAfter(value);
+        // A property's value is missing only when it wasn't there to parse
+        const value = property.children[1];
+        separatorAfter = value.type === "json-missing" ? undefined : value;
       } else {
         // Every token that isn't a value was handled above
         const item = /** @type JsonValueNode */ (parseValue(`${containerLocation}/${index++}`, true));
         items.push(item);
         lastItem = item;
-        separator = separatorAfter(item);
+        separatorAfter = item;
       }
+      separated = true;
+      separatorOffset = previousOffset;
+      separatorLength = previousLength;
     }
 
     // An unclosed container extends to where parsing stopped, including any
@@ -612,12 +646,15 @@ export const parseJson = (text, url, options = {}) => {
     // cursor, and while typing at the end of a truncated document, the
     // cursor is usually in that whitespace.
     const isClosed = token.kind === closer;
-    const containerPosition = position(start, isClosed ? token.offset + token.length : token.offset);
+    const containerPosition = positionFrom(startPoint, isClosed ? token.offset + token.length : token.offset);
 
     /** @type JsonTolerantNode */
     const container = jsonType === "object"
       ? { type: "json", jsonType: jsonType, children: properties, location: containerLocation, position: containerPosition }
       : { type: "json", jsonType: jsonType, children: items, location: containerLocation, position: containerPosition };
+    if (jsonType === "object" && onObject) {
+      onObject(/** @type JsonTolerantObjectNode */ (container));
+    }
 
     if (isClosed) {
       next();
@@ -645,7 +682,7 @@ export const parseJson = (text, url, options = {}) => {
         if (token.quote === "'") {
           report("string-single-quoted", token.offset, token.length);
         }
-        return parseScalar({ jsonType: "string", value: token.value }, valueLocation);
+        return parseScalar("string", token.value, valueLocation);
 
       case "number":
         if (!NUMBER.test(token.value)) {
@@ -655,20 +692,21 @@ export const parseJson = (text, url, options = {}) => {
         // RFC 8259 allows a limit on a number's range. One past a
         // JavaScript number's would be Infinity, which isn't JSON, so it
         // couldn't be written back. One too small to be a number is 0.
-        if (!Number.isFinite(Number(token.value))) {
+        const number = Number(token.value);
+        if (!Number.isFinite(number)) {
           report("number-out-of-range", token.offset, token.length, token.value);
           return parseInvalid(valueLocation);
         }
-        return parseScalar({ jsonType: "number", value: Number(token.value) }, valueLocation);
+        return parseScalar("number", number, valueLocation);
 
       case "true":
-        return parseScalar({ jsonType: "boolean", value: true }, valueLocation);
+        return parseScalar("boolean", true, valueLocation);
 
       case "false":
-        return parseScalar({ jsonType: "boolean", value: false }, valueLocation);
+        return parseScalar("boolean", false, valueLocation);
 
       case "null":
-        return parseScalar({ jsonType: "null", value: null }, valueLocation);
+        return parseScalar("null", null, valueLocation);
 
       case "unknown":
         report("invalid-literal", token.offset, token.length, token.value);

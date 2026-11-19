@@ -35,6 +35,17 @@ reading the intent, like a trailing comma), or `failure`.
   - `Infinity`, as `JSON.parse` has it, was rejected. `toJson` would write
     `null` without an error. Writing back `1e999` was rejected too, since
     `jsonValue` would give a value that isn't JSON.
+- Points are found in document order. A container's or a property's start
+  point is found where it starts, not when it ends. Finding one backward
+  searched the line starts and lost the line the parser was on, which was a
+  quarter of parsing a document of many lines.
+- Garbage collection is a third of parsing, since every node survives, so
+  nothing is built on the way to a node: a scalar isn't an object of its
+  type and value, a property returns only its node, and the comma after an
+  item is variables, not an object.
+- The scanner finds a token like `{` or `,` by its character code in an
+  array. An object with keys like those is a dictionary, and scanning took
+  twice as long.
 
 ## Transforming
 
@@ -43,10 +54,15 @@ reading the intent, like a trailing comma), or `failure`.
   - A reviver and a replacer, like `JSON.parse`'s, were rejected. They're
     for values that can't be changed after they're built, and typing a
     reviver means typing a fold.
-- `fromJref` is `fromJson` and then a pass that makes each object with a
-  string `$ref` a reference. The second pass costs up to 8% on documents
-  with many references, measured against one pass with a reviver, so a
-  private reviver was rejected too.
+- `fromJref` makes each object with a string `$ref` a reference as the
+  parser makes the object. The parser tells it of each one, inner ones
+  first, and doesn't use what it returns, so it's an event and not a
+  reviver, and it isn't exported. `fromJref` takes about as long as
+  `fromJson`, and the event costs `fromJson` nothing measurable.
+  - A second pass over the tree was rejected. It cost 4–11%, mostly
+    reading the tree again after it's left the CPU's cache.
+  - A private reviver was rejected. It's a fold, and calling it at every
+    node made `fromJson` up to 7% slower.
 - A `$ref` that doesn't resolve with `URL.parse`, like `b` against
   `urn:example:a`, makes its object an `invalid-reference`, with a
   `JrefSyntaxError`, and the status `failure`. So every reference in a
@@ -80,6 +96,14 @@ reading the intent, like a trailing comma), or `failure`.
 - The iterators are `@hyperjump/pact`'s, a `map` over the children.
   - Generators were rejected. They show up when profiling, and reading
     members is most of what browsing does.
+- Nodes share points where their positions meet. A property starts at its
+  name's start point and ends at its value's end point, and an empty
+  position starts and ends at one point. It made parsing 3–7% faster. A
+  transformer that changes a point in place changes every position that
+  has it, so one that moves a node gives it a new position.
+  - Freezing the tree was rejected. It's what an application transforms,
+    and freezing cost a quarter of parsing or more, even for only the
+    positions as they're made.
 
 ## Locations
 
@@ -90,6 +114,8 @@ reading the intent, like a trailing comma), or `failure`.
   `appendToLocation` caches each segment's encoded form and doesn't encode
   array indexes. Encoding was most of what `fromJs` took, and the cache
   made it two to three times faster.
+  - Skipping the cache for a name that encodes to itself was rejected.
+    Checking the name took as long as looking it up.
 - `fromJson` and `fromJref` are given the document's URL and parse it. One
   with a fragment throws, because its locations would have two.
 - The unified plugins make the URL from the file's `path` and `cwd`, or

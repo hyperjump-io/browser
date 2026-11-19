@@ -3,7 +3,7 @@ import { parseJson } from "../json/json-parser.js";
 import { parseDocumentUrl } from "../json/document-url.js";
 
 /**
- * @import { JsonErrorNode, JsonTolerantNode } from "../json/jsonast.js"
+ * @import { JsonTolerantObjectNode } from "../json/json-parser.js"
  * @import { JrefDocumentNode } from "./jref-ast.d.ts"
  * @import * as API from "./jref-util.d.ts"
  */
@@ -14,13 +14,14 @@ export const hasStatus = /** @type typeof API.hasStatus */ (jsonHasStatus);
 /** @type typeof API.fromJref */
 export const fromJref = (jref, url, options = {}) => {
   const documentUrl = parseDocumentUrl(url);
-  const result = parseJson(jref, documentUrl, options);
-
   /** @type API.JrefSyntaxError[] */
   const referenceErrors = [];
-  annotateReferences(result.node, documentUrl, referenceErrors);
+  const result = parseJson(jref, documentUrl, options, (node) => {
+    annotateReference(node, documentUrl, referenceErrors);
+  });
 
-  // Both lists are in document order, and so is their merge
+  // The reference errors are found inner objects first, so they're sorted
+  // into document order with the others
   const errors = referenceErrors.length === 0
     ? result.errors
     : [...result.errors, ...referenceErrors]
@@ -56,52 +57,50 @@ export const jrefSyntaxErrorMessage = (error) => {
 };
 
 /**
- * Make every object with a string `$ref` a reference, or an invalid
- * reference with an error in `errors`.
+ * Make an object with a string `$ref` a reference, or an invalid reference
+ * with an error in `errors`.
  *
- * @type (node: JsonTolerantNode | JsonErrorNode, url: string, errors: API.JrefSyntaxError[]) => void
+ * @type (node: JsonTolerantObjectNode, url: string, errors: API.JrefSyntaxError[]) => void
  */
-const annotateReferences = (node, url, errors) => {
-  if (!("jsonType" in node)) {
-    return;
-  }
-
-  if (node.jsonType === "array") {
-    for (const item of node.children) {
-      annotateReferences(item, url, errors);
-    }
-  } else if (node.jsonType === "object") {
-    // More than one `$ref` is ambiguous, as a JSON Pointer to a name that's
-    // there more than once is, and readers of JSON don't agree on which wins
-    const refs = node.children.filter((propertyNode) => propertyNode.children[0].value === "$ref");
-    if (refs.length > 1) {
+const annotateReference = (node, url, errors) => {
+  // More than one `$ref` is ambiguous, as a JSON Pointer to a name that's
+  // there more than once is, and readers of JSON don't agree on which wins.
+  // They're counted without a list, since almost every object has none.
+  let refs = 0;
+  for (const propertyNode of node.children) {
+    if (propertyNode.children[0].value === "$ref" && ++refs === 2) {
       Object.assign(node, { type: "invalid-reference" });
       errors.push({
         source: "jref",
         ruleId: "duplicate-reference",
-        place: /** @type NonNullable<typeof node.position> */ (refs[1].children[0].position)
+        place: /** @type NonNullable<typeof node.position> */ (propertyNode.children[0].position)
       });
     }
+  }
+  if (refs !== 1) {
+    return;
+  }
 
-    for (const propertyNode of node.children) {
-      const [keyNode, valueNode] = propertyNode.children;
-      if (refs.length === 1 && keyNode.value === "$ref" && "jsonType" in valueNode && valueNode.jsonType === "string") {
-        const href = resolveReference(valueNode.value, url);
-        const absoluteFile = isAbsoluteFileUrl(valueNode.value);
-        if (href === undefined || absoluteFile) {
-          Object.assign(node, { type: "invalid-reference" });
-          errors.push({
-            source: "jref",
-            ruleId: absoluteFile ? "absolute-file-reference" : "invalid-reference",
-            // fromJson gives every node a position
-            place: /** @type NonNullable<typeof valueNode.position> */ (valueNode.position),
-            actual: valueNode.value
-          });
-        } else {
-          Object.assign(node, { type: "reference", href });
-        }
+  for (const propertyNode of node.children) {
+    const keyNode = propertyNode.children[0];
+    const valueNode = propertyNode.children[1];
+    if (keyNode.value === "$ref" && "jsonType" in valueNode && valueNode.jsonType === "string") {
+      const href = resolveReference(valueNode.value, url);
+      // An absolute file: URL resolves to one, so the reference is parsed
+      // again only for a reference that resolves to one
+      const absoluteFile = href?.startsWith("file:") === true && isAbsoluteFileUrl(valueNode.value);
+      if (href === undefined || absoluteFile) {
+        Object.assign(node, { type: "invalid-reference" });
+        errors.push({
+          source: "jref",
+          ruleId: absoluteFile ? "absolute-file-reference" : "invalid-reference",
+          // fromJson gives every node a position
+          place: /** @type NonNullable<typeof valueNode.position> */ (valueNode.position),
+          actual: valueNode.value
+        });
+      } else {
+        Object.assign(node, { type: "reference", href });
       }
-      annotateReferences(valueNode, url, errors);
     }
   }
 };

@@ -259,7 +259,9 @@ const processor = unified()
 Without a `path` or a `url`, the document has no URL and the parse fails. A file
 that has both also fails, because they could disagree about where the document
 is. The stringify plugins take the `space` option of `toJson`. To change the AST in a
-pipeline, use a transformer plugin between the parse and stringify plugins.
+pipeline, use a transformer plugin between the parse and stringify plugins. Nodes share
+point objects where their positions meet, like a property and its value, so
+to move a node, give it a new `position` instead of changing its points.
 
 The parse plugins produce a document node whose `status` says how parsing went.
 Use `hasStatus` to check it. Unlike checking `status` directly, `hasStatus`
