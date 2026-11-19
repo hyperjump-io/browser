@@ -28,6 +28,7 @@ describe("the file: scheme", () => {
     directory = await realpath(await mkdtemp(join(tmpdir(), "browser-file-")));
     await mkdir(join(directory, "site"));
     await writeFile(join(directory, "site", "index.html"), "<h1>hi</h1>");
+    await writeFile(join(directory, "site", "..dots.txt"), "dots");
     await writeFile(join(directory, "secret.txt"), "nope");
     await writeFile(join(directory, "site", "unreadable.txt"), "nope");
     await chmod(join(directory, "site", "unreadable.txt"), 0o000);
@@ -103,6 +104,10 @@ describe("the file: scheme", () => {
     const fetching = session.fetch(site("../secret.txt"));
     await expect(fetching).rejects.toThrow(`is outside the file: scheme's root, '${join(directory, "site")}'`);
     await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_OUTSIDE_ROOT" } });
+  });
+
+  test("a name in the root that starts with .. is in the root", async () => {
+    expect(await (await session.fetch(site("..dots.txt"))).text()).to.equal("dots");
   });
 
   test("a symlink in the root that points outside it is a network error", async () => {

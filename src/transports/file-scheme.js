@@ -1,6 +1,6 @@
 import { constants } from "node:fs";
 import { open, realpath } from "node:fs/promises";
-import { isAbsolute, relative, resolve } from "node:path";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import { Readable } from "node:stream";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { fetcher } from "../layers.js";
@@ -118,8 +118,13 @@ const readError = (url, error) => {
 /** @type (error: unknown) => string | undefined */
 const codeOf = (error) => /** @type NodeJS.ErrnoException */ (error).code;
 
-/** @type (root: string, path: string) => boolean */
+/**
+ * Whether a path is in a directory. Outside it, the path from the directory
+ * starts with a `..` segment, but a name in it can start with `..` too.
+ *
+ * @type (root: string, path: string) => boolean
+ */
 const isInside = (root, path) => {
   const fromRoot = relative(root, path);
-  return !fromRoot.startsWith("..") && !isAbsolute(fromRoot);
+  return fromRoot !== ".." && !fromRoot.startsWith(`..${sep}`) && !isAbsolute(fromRoot);
 };
