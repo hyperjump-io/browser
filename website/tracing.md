@@ -121,9 +121,15 @@ await writeFile("load.har", JSON.stringify(har));
 ```
 
 The HAR has every request's headers, status, and size, and its body if the
-trace keeps bodies. Each redirect is an entry of its own. A request's
-`blocked` time is how long it waited for the throttle or the scheduler. DNS,
-connection, and TLS times aren't known, so they're `-1`.
+trace keeps bodies. Each redirect is an entry of its own, with the headers
+the session sent for that step. A request's `blocked` time is how long it
+waited for the throttle or the scheduler. DNS, connection, and TLS times
+aren't known, so they're `-1`.
+
+HAR files get shared, so the HAR leaves out `Authorization`,
+`Proxy-Authorization`, `Cookie`, and `Set-Cookie` headers, like Chrome's
+sanitized HAR. Use `sensitive: true` to keep them. It keeps a credential in
+another header, like `X-API-Key`, or in a URL either way.
 
 Some fields start with `_`, which HAR allows for extra information:
 

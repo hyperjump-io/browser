@@ -7,7 +7,14 @@ export, so a trace can be opened in Chrome's or Firefox's network panel.
   URL, or the first request's.
 - Each redirect the session followed is an entry of its own, with
   its 3xx status and `redirectURL`, as browsers record them. They're made
-  from the `redirect` marks, so only the last step has its headers.
+  from the `redirect` marks, so only the last step has its response's
+  headers. Each step has the headers its request was sent with, which a
+  redirect works out again for the URL it leads to. The first step's are
+  the record's, and each `redirect` mark has the next one's.
+- `Authorization`, `Proxy-Authorization`, `Cookie`, and `Set-Cookie` are
+  left out unless `sensitive` is `true`, like Chrome's sanitized HAR. A HAR
+  is shared, like in a bug report, and a session's headers can have
+  credentials in them.
 - `blocked` is the time a request waited in the throttle or the scheduler
   before it first reached the transport, and it's the first step's when a
   request redirected. `wait` is until the response arrived, and `receive` is
@@ -22,3 +29,15 @@ export, so a trace can be opened in Chrome's or Firefox's network panel.
   `_cache`, `_error`, and `_marks` say what the stack did.
 - What's made is checked against the HAR 1.2 schema in the tests
   (`har-validator`).
+
+Rejected:
+
+- Giving every step of a redirect the record's request headers. After a
+  redirect to another origin, the HAR would say credentials were sent there
+  that the session didn't send.
+
+## Known limitations
+
+- A credential in a header with another name, like `X-API-Key`, or in a
+  URL's query, is kept. Only those four headers are known to have
+  credentials.

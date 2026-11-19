@@ -62,12 +62,20 @@ export type HarOptions = {
   /** Each request's marks, in milliseconds from its start, as `_marks`. Default `true`. */
   marks?: boolean;
 
+  /**
+   * Whether to keep the headers with credentials: `Authorization`,
+   * `Proxy-Authorization`, `Cookie`, and `Set-Cookie`. They're left out by
+   * default, like in Chrome's sanitized HAR, since a HAR gets shared. Default
+   * `false`.
+   */
+  sensitive?: boolean;
+
   creator?: { name: string; version: string };
 };
 
 /**
  * Records as a HAR 1.2 log, which browser devtools open, with every entry in
- * one page. Each redirect the `Redirects` layer followed is an entry of its
- * own.
+ * one page. Each redirect the session followed is an entry of its own, with
+ * the headers its request was sent with.
  */
 export const toHar: (records: readonly FetchRecord[], options?: HarOptions) => Har;

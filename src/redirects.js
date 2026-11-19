@@ -102,10 +102,13 @@ export const follow = async (stack, request, ctx, policy, added) => {
     }
     await check(current.url, target.href, ctx, policy);
 
-    ctx.record.mark("redirect", { status: response.status, from: current.url, to: target.href });
+    const from = current.url;
     current = nextHop(spare ?? current, target, response.status);
     urls.push(target.href);
     added = await policy.headers(target.href);
+    // The next request's headers are worked out again, so the mark says what
+    // they are
+    ctx.record.mark("redirect", { status: response.status, from, to: target.href, requestHeaders: [...sentHeaders(current.headers, added)] });
     current.signal.throwIfAborted();
   }
 };

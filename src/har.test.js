@@ -95,6 +95,39 @@ describe("HAR", () => {
     ]);
   });
 
+  test("headers with credentials are left out unless they're asked for", async () => {
+    const stack = fetcher(() => new Response("{}", { headers: { "content-type": "application/json", "set-cookie": "sid=secret" } }));
+    const session = testHyperjump(stack, { headers: { "https://a.test/": { "authorization": "Bearer token", "cookie": "sid=secret", "proxy-authorization": "Basic secret", "x-kept": "1" } } });
+    const trace = new Trace(session);
+    await (await session.fetch("https://a.test/a")).text();
+
+    const [sanitized] = trace.toHar().log.entries;
+    expect(sanitized.request.headers.map(({ name }) => name)).to.eql(["x-kept"]);
+    expect(sanitized.response.headers.map(({ name }) => name)).to.eql(["content-type"]);
+
+    const [sensitive] = trace.toHar({ sensitive: true }).log.entries;
+    expect(sensitive.request.headers.map(({ name }) => name).toSorted()).to.eql(["authorization", "cookie", "proxy-authorization", "x-kept"]);
+    expect(sensitive.response.headers.map(({ name }) => name)).to.eql(["content-type", "set-cookie"]);
+  });
+
+  test("each step of a redirect has the headers its request was sent with", async () => {
+    const steps = fetcher((request) => request.url === "https://a.test/a"
+      ? new Response(null, { status: 302, headers: { location: "https://b.test/b" } })
+      : new Response("done", { headers: { "content-type": "text/plain" } }));
+    const session = testHyperjump(steps, {
+      allow: ["https://b.test/"],
+      headers: { "https://a.test/": { authorization: "Bearer for-a" }, "https://b.test/": { "x-for-b": "1" } }
+    });
+    const trace = new Trace(session);
+    await (await session.fetch("https://a.test/a")).text();
+    const har = trace.toHar({ sensitive: true });
+    await valid(har);
+    expect(har.log.entries.map((entry) => [entry.request.url, entry.request.headers.map(({ name }) => name)])).to.eql([
+      ["https://a.test/a", ["authorization"]],
+      ["https://b.test/b", ["x-for-b"]]
+    ]);
+  });
+
   test("waiting in the scheduler is blocked", async () => {
     const net = controlled();
     const session = testHyperjump(scheduler({ perKey: 1 })(net.transport));
