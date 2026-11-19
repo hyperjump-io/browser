@@ -76,6 +76,12 @@ export const fileScheme = (options = {}) => fetcher(async (request, ctx) => {
     await handle.close();
     throw networkError(`'${relativeFileUrl(request.url)}' is ${stats.isDirectory() ? "a directory" : "something other than a file"}, so it can't be fetched`, { code: "ERR_NOT_A_FILE" }, request.url);
   }
+  // As with fetch, a request that's aborted before its response rejects
+  // with the signal's reason
+  if (request.signal.aborted) {
+    await handle.close();
+    throw request.signal.reason;
+  }
 
   const headers = new Headers({
     "content-length": String(stats.size),
@@ -86,7 +92,13 @@ export const fileScheme = (options = {}) => fetcher(async (request, ctx) => {
   if (request.method === "HEAD") {
     await handle.close();
   } else {
-    body = /** @type ReadableStream<Uint8Array> */ (Readable.toWeb(handle.createReadStream({ signal: request.signal })));
+    // As with fetch, an abort errors the body with the signal's reason. A
+    // stream given the signal would error with an `AbortError` of its own.
+    const stream = handle.createReadStream();
+    const abort = () => stream.destroy(request.signal.reason);
+    request.signal.addEventListener("abort", abort, { once: true });
+    stream.once("close", () => request.signal.removeEventListener("abort", abort));
+    body = /** @type ReadableStream<Uint8Array> */ (Readable.toWeb(stream));
   }
   const response = new Response(body, { status: 200, statusText: "OK", headers });
   const responseUrl = pathToFileURL(path);

@@ -24,7 +24,9 @@
   media type. What a file is, by its extension, is for whoever reads the
   response to say.
 - The body is streamed, and the stream is closed when the request's signal
-  aborts.
+  aborts. As with `fetch`, the body errors with the signal's reason, and a
+  request that's aborted before its response rejects with it. A stream
+  given the signal would error with an `AbortError` of its own.
 - The query and fragment aren't part of the path.
 - `root` limits what can be read to a directory. A path outside it is a
   network error. A `root` that can't be read is one too, and its message

@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { relativeFileUrl } from "../file-urls.js";
+import { compose, layer } from "../layers.js";
 import { responseMeta } from "../response-meta.js";
 import { nodeTransport } from "./node-transport.js";
 import { fileScheme as browserFileScheme } from "./file-scheme.browser.js";
@@ -29,6 +30,7 @@ describe("the file: scheme", () => {
     await mkdir(join(directory, "site"));
     await writeFile(join(directory, "site", "index.html"), "<h1>hi</h1>");
     await writeFile(join(directory, "site", "..dots.txt"), "dots");
+    await writeFile(join(directory, "site", "big.bin"), new Uint8Array(4 * 1024 * 1024));
     await writeFile(join(directory, "secret.txt"), "nope");
     await writeFile(join(directory, "site", "unreadable.txt"), "nope");
     await chmod(join(directory, "site", "unreadable.txt"), 0o000);
@@ -104,6 +106,27 @@ describe("the file: scheme", () => {
     const fetching = session.fetch(site("../secret.txt"));
     await expect(fetching).rejects.toThrow(`is outside the file: scheme's root, '${join(directory, "site")}'`);
     await expect(fetching).rejects.toMatchObject({ cause: { code: "ERR_OUTSIDE_ROOT" } });
+  });
+
+  test("an abort errors the body with the signal's reason, as fetch does", async () => {
+    const controller = new AbortController();
+    const response = await session.fetch(site("big.bin"), { signal: controller.signal });
+    const reader = /** @type ReadableStream<Uint8Array> */ (response.body).getReader();
+    await reader.read();
+    const reason = new Error("stop");
+    controller.abort(reason);
+    await expect((async () => {
+      for (let read = await reader.read(); !read.done; read = await reader.read()) {
+        // Read until the abort errors the body
+      }
+    })()).rejects.toBe(reason);
+  });
+
+  test("a request that's aborted when it reaches the file: scheme rejects with the signal's reason", async () => {
+    const reason = new Error("stop");
+    const aborting = layer((request, ctx, inner) => inner.fetch(new Request(request, { signal: AbortSignal.abort(reason) }), ctx));
+    const aborted = testHyperjump(compose(aborting)(nodeTransport({ file: { root: join(directory, "site") } })), { allow: [pathToFileURL(directory + "/").href] });
+    await expect(aborted.fetch(site("index.html"))).rejects.toBe(reason);
   });
 
   test("a name in the root that starts with .. is in the root", async () => {
