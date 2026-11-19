@@ -134,15 +134,24 @@ checking below the cache.
   is opened.
 - A `file:` entry's real path is found the first time the session checks a
   URL, and kept for the session, which is a snapshot anyway.
-- A path that has no real path is checked as it's written: a file that
-  doesn't exist, one in a directory that can't be searched, a symlink
-  loop, or a URL that isn't a path, like one with `%2F` in it on POSIX.
-  If it's allowed, fetching it fails for that reason, like missing,
-  rather than refused. The `file:` scheme finds the real path again
+- A path that has no real path, like a file that doesn't exist, one in a
+  directory that can't be searched, or a symlink loop, is checked as the
+  real path of the closest directory it's in that has one, with the rest
+  as it's written. What doesn't exist has no symlinks in it, so it's
+  checked where it would be. A missing file under an entry reached
+  through a symlink is under that entry's real path too, and an entry for
+  a directory that doesn't exist yet is where it would be. A URL that
+  isn't a path, like one with `%2F` in it on POSIX, is checked as it's
+  written. If it's allowed, fetching it fails for its own reason, like
+  missing, rather than refused. The `file:` scheme finds the real path again
   before it opens the file, so it can't be read either, and its error is
   a network error that says why. An entry is the same, so one that can't
   be resolved allows only what it says, and the session's other entries
   still work.
+- Checking a path that has no real path as it's written was rejected. An
+  entry is its real path, so a missing file under an entry reached
+  through a symlink, like one in `/tmp` on macOS, was refused rather than
+  missing.
 - Throwing what finding the real path threw was rejected. It wasn't a
   network error, the request wasn't recorded, and an entry's error was
   kept for the session, so one bad entry made every fetch fail.

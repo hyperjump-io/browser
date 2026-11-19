@@ -131,6 +131,20 @@ describe("allowRetrieval", () => {
       await expect(session.fetch(fileUrl(inside, "missing.json"))).rejects.toMatchObject({ cause: { code: "ENOENT" } });
     });
 
+    test("a missing file under an entry reached through a symlink is missing, not refused", async () => {
+      const linked = join(inside, "..", "link-to-inside");
+      const session = new Hyperjump({ stack: nodeTransport(), allowRetrieval: [directoryUrl(linked)] });
+      await expect(session.fetch(fileUrl(linked, "missing.json"))).rejects.toMatchObject({ cause: { code: "ENOENT" } });
+      await expect(session.fetch(fileUrl(inside, "missing.json"))).rejects.toMatchObject({ cause: { code: "ENOENT" } });
+      await expect(session.fetch(fileUrl(outside, "missing.json"))).rejects.toMatchObject({ cause: { code: "ERR_RETRIEVAL_NOT_ALLOWED" } });
+    });
+
+    test("an entry for a directory that doesn't exist yet is compared by where it would be", async () => {
+      const session = new Hyperjump({ stack: nodeTransport(), allowRetrieval: [directoryUrl(join(inside, "..", "link-to-inside", "new"))] });
+      await expect(session.fetch(fileUrl(inside, "new", "a.json"))).rejects.toMatchObject({ cause: { code: "ENOENT" } });
+      await expect(session.fetch(fileUrl(inside, "a.json"))).rejects.toMatchObject({ cause: { code: "ERR_RETRIEVAL_NOT_ALLOWED" } });
+    });
+
     test("a path without a real path fails for its own reason, and is recorded", async () => {
       const session = new Hyperjump({ stack: nodeTransport(), allowRetrieval: [directoryUrl(inside)] });
       /** @type FetchRecord[] */
