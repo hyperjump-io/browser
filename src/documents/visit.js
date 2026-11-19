@@ -70,7 +70,7 @@ const visitFrom = async (session, from, testOrVisitor, visitorOrOptions, options
   // references walks a tree, which has each node once
   const revisits = walked || manual || maxRevisits === Infinity
     ? undefined
-    : { max: maxRevisits, reached: new Set(), visited: new Set(), total: 0 };
+    : { max: maxRevisits, reached: new Map(), total: 0 };
   const walk = { session, maxDepth: maxDepth(walkOptions), manual, ancestors: new Set(), walked, revisits, check, visitor: visit, signal: walkOptions?.signal, steps: 0 };
   // A walk that's aborted already doesn't retrieve the target it starts at
   walk.signal?.throwIfAborted();
@@ -154,21 +154,23 @@ export const jrefFindAll = /** @type typeof API.jrefFindAll */ (async (
  */
 
 /**
- * What a visit keeps for `maxRevisits`: the nodes it's visited, how many
- * times in all it's visited one again, and every node it's reached, with
- * the references it followed. A value that's used in many places is visited
- * once for each reference to it, and each of those references is reached
- * first, so visiting nodes again many times more than the nodes the visit
- * has reached takes values that are used in values that are used, many
- * times over. A document that refers to each level twice from the one above
- * does that within a few levels.
+ * What a visit keeps for `maxRevisits`: every node it's reached, with the
+ * references it followed, and whether it's visited each one, and how many
+ * times in all it's visited one again. It's one map and not a set of each,
+ * because a node is reached when it's visited unless it's a reference, and
+ * each lookup is a cost at every node of a followed visit. A value that's
+ * used in many places is visited once for each reference to it, and each
+ * of those references is reached first, so visiting nodes again many times
+ * more than the nodes the visit has reached takes values that are used in
+ * values that are used, many times over. A document that refers to each
+ * level twice from the one above does that within a few levels.
  *
  * The count is of every visit, not of each node's. A big value that's
  * visited again many times would otherwise be work that grows with the
  * square of a document's size: each time is under the limit for one node,
  * and the value's own nodes make the limit bigger.
  *
- * @typedef {{ max: number; reached: Set<unknown>; visited: Set<Walked>; total: number }} Revisits
+ * @typedef {{ max: number; reached: Map<unknown, boolean>; total: number }} Revisits
  */
 
 /**
@@ -195,7 +197,6 @@ const visitTarget = async (walk, target, key, parent, depth) => {
   }
 
   const { node } = target;
-  walk.revisits?.reached.add(node);
   if (action === SKIP || walk.ancestors.has(node) || walk.walked?.has(node)) {
     return CONTINUE;
   }
@@ -211,9 +212,12 @@ const visitTarget = async (walk, target, key, parent, depth) => {
         throw maxDepthError(walk.maxDepth, node.location);
       }
 
-      walk.revisits?.reached.add(memberNode);
       const followed = follow(walk.session, target, memberNode, walk.manual);
       const member = followed instanceof Promise ? await followed : followed;
+      // A member that isn't a reference is reached when it's visited
+      if (walk.revisits && member.node !== memberNode && !walk.revisits.reached.has(memberNode)) {
+        walk.revisits.reached.set(memberNode, false);
+      }
       if (await visitTarget(walk, member, memberKey, target, depth + 1) === EXIT) {
         return EXIT;
       }
@@ -234,8 +238,8 @@ const visitTarget = async (walk, target, key, parent, depth) => {
  * @type (revisits: Revisits, node: Walked) => void
  */
 const visitAgain = (revisits, node) => {
-  if (!revisits.visited.has(node)) {
-    revisits.visited.add(node);
+  if (revisits.reached.get(node) !== true) {
+    revisits.reached.set(node, true);
     return;
   }
 

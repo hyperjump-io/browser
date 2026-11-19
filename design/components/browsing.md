@@ -255,8 +255,12 @@ Rejected:
     and the largest (`biome`) 619,115 times, 25.5 for each. No other
     passed 7 for each. The default fits `cql2` with twice the room it
     needs, and the comparison lets `biome` through.
-  - Keeping every node reached and visited costs a followed visit 10–20%.
-    A visit with `reference: "manual"` walks a tree and keeps nothing.
+  - Keeping every node reached and visited costs a followed visit about
+    30%: 185 ms against 130 ms for 220,000 nodes and no references. It's
+    one map, of whether each node reached is visited, since a node is
+    reached when it's visited unless it's a reference. A set of each
+    looked up each node twice as often and cost 40%. A visit with
+    `reference: "manual"` walks a tree and keeps nothing.
 
 Rejected:
 
