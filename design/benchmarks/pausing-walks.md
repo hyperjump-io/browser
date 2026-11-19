@@ -22,5 +22,30 @@ to the next one twice, 18 levels and 1,048,557 visits, took 5.1 s without
 waiting and 5.0 s waiting every 1000 nodes, and a 10 ms timer ran at
 11 ms instead of after the walk.
 
-Measured in Node.js 26, where the next task is `setImmediate`. A
-browser's `MessageChannel` wasn't measured.
+Measured in Node.js 26, where the next task is `setImmediate`.
+
+In a browser, the next task is a `MessageChannel`. The same document,
+110,001 nodes as the page builds it, in Chromium 157 and Firefox 160 on
+Linux, with the median of 9 walks in each of 3 rounds:
+
+| Waits for the next task | Chromium 157 | Firefox 160 |
+| --- | --- | --- |
+| Never | 54.5, 53.7, 52.5 ms | 59.0, 60.0, 58.0 ms |
+| Every 100 nodes | 73.9, 70.6, 70.4 ms | 64.0, 64.0, 62.0 ms |
+| Every 1000 nodes | 54.3, 54.2, 53.5 ms | 56.0, 57.0, 56.0 ms |
+| Every 10,000 nodes | 51.0, 52.9, 51.1 ms | 57.0, 58.0, 56.0 ms |
+
+A wait is 16.2 µs in Chromium and 4.5 µs in Firefox, so in Chromium
+waiting every 100 nodes costs a third of the walk, about 1100 waits, and
+every 1000 nodes costs less than the difference between rounds. A 10 ms
+timer ran at 10.9 ms in Chromium and 11 ms in Firefox, instead of after
+the walk.
+
+The deep visit, alternating, starting with waiting:
+
+- Chromium: 4.30, 4.36, and 4.45 s waiting every 1000 nodes, and 4.21,
+  4.27, and 4.38 s without waiting, about 2% more.
+- Firefox: from 6.7 s to 13.4 s in either setting, run to run, so it
+  can't tell them apart.
+
+Safari wasn't measured.
