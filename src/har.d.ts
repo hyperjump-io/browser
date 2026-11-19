@@ -56,7 +56,7 @@ export type HarEntry = {
 };
 
 export type HarOptions = {
-  /** The page's title. By default, the URL of the first `"document"` request, or of the first request. */
+  /** The page's title. By default, the URL of the first request. */
   title?: string;
 
   /** Each request's marks, in milliseconds from its start, as `_marks`. Default `true`. */

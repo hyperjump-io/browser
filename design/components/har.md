@@ -3,8 +3,7 @@
 A trace's records as a HAR 1.2 log, the format browser devtools import and
 export, so a trace can be opened in Chrome's or Firefox's network panel.
 
-- Every entry is in one page. Its title is the first `"document"` request's
-  URL, or the first request's.
+- Every entry is in one page. Its title is the first request's URL.
 - Each redirect the session followed is an entry of its own, with
   its 3xx status and `redirectURL`, as browsers record them. They're made
   from the `redirect` marks, so only the last step has its response's

@@ -1,5 +1,6 @@
 import type { Hyperjump } from "./hyperjump.d.ts";
 import type { ResponseMeta } from "./response-meta.d.ts";
+import type { Priority } from "./priority.d.ts";
 
 /** Something a layer did with a request, and when */
 export type Mark = {
@@ -46,7 +47,7 @@ export class FetchRecord {
   readonly startTime: number;
 
   /** The priority the caller asked for. The one that was used is on the `"network:start"` mark. */
-  readonly priority: string;
+  readonly priority: Priority;
 
   /** The request's headers as it went into the stack, with the session's */
   readonly requestHeaders: readonly [string, string][];
@@ -117,7 +118,7 @@ export const startRecord: (init: {
   initiator: FetchRecord | undefined;
   referrer: string | undefined;
   session: Hyperjump;
-  priority: string;
+  priority: Priority;
   requestHeaders: [string, string][];
   notify: Observer;
 }) => FetchRecord;
