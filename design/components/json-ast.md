@@ -41,14 +41,18 @@ reading the intent, like a trailing comma), or `failure`.
   quarter of parsing a document of many lines.
 - Lines are found going forward from the last point's line. A table of
   every line's start is made only for a point behind it, like an error's
-  after parsing, or for text with a `\r`. With a container making only the
-  array of its kind of children, it made parsing a document of many lines
-  18% faster.
+  after parsing, or for text with a `\r`. With a container making one
+  array of children instead of one for each kind, it made parsing a
+  document of many lines 18% faster.
 - Garbage collection is a third of parsing, since every node survives, so
   nothing is built on the way to a node: a scalar isn't an object of its
   type and value, a property returns only its node, the comma after an item
-  is variables, not an object, and a container makes only the array of its
-  kind of children.
+  is variables, not an object.
+- A container's children are gathered on one stack for every container
+  being parsed, and its array is sliced from it at its exact size when it
+  closes. An array that's pushed to has room for 16 children from the
+  first push, so it took 184 bytes for two. It made the tree 6% smaller,
+  with no measurable change in how long parsing takes.
 - The scanner writes each token into one of the parser's two tokens, the
   current one and the one looking ahead, instead of making an object for
   it. It made parsing 3–13% faster.

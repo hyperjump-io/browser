@@ -534,6 +534,13 @@ export const parseJson = (text, url, options = {}, onObject) => {
 
   let depth = 0;
 
+  // The children of the containers being parsed, innermost last. A container
+  // takes its own when it closes, so its array is made at its exact size. An
+  // array that's pushed to has room for 16 from the first push.
+  /** @type {(JsonPropertyNode<{ type: "json" }, JsonErrorNode> | JsonValueNode)[]} */
+  const pending = [];
+  let pendingLength = 0;
+
   /**
    * A container nested too deeply is reported once and kept as a single
    * invalid node so the rest of the document can still be parsed.
@@ -554,10 +561,7 @@ export const parseJson = (text, url, options = {}, onObject) => {
     const closer = jsonType === "object" ? "}" : "]";
     next();
 
-    // Only the array of the container's kind is made, since one for each
-    // kind was a cost of every container
-    /** @type {(JsonPropertyNode<{ type: "json" }, JsonErrorNode> | JsonValueNode)[]} */
-    const children = [];
+    const childrenStart = pendingLength;
 
     /** @type {{ position?: Position } | undefined} */
     let lastItem;
@@ -576,7 +580,7 @@ export const parseJson = (text, url, options = {}, onObject) => {
         const gapOffset = parseComma(closer, !separated, index === 0);
         if (gapOffset !== undefined && jsonType === "array") {
           // An index never needs escaping or encoding
-          children.push(missing(`${containerLocation}/${index}`, gapOffset));
+          pending[pendingLength++] = missing(`${containerLocation}/${index}`, gapOffset);
         }
         if (gapOffset !== undefined) {
           index++;
@@ -611,7 +615,7 @@ export const parseJson = (text, url, options = {}, onObject) => {
       if (jsonType === "object") {
         index++;
         const property = parseProperty(containerLocation);
-        children.push(property);
+        pending[pendingLength++] = property;
         lastItem = property;
         // A property's value is missing only when it wasn't there to parse
         const value = property.children[1];
@@ -619,7 +623,7 @@ export const parseJson = (text, url, options = {}, onObject) => {
       } else {
         // Every token that isn't a value was handled above
         const item = /** @type JsonValueNode */ (parseValue(`${containerLocation}/${index++}`, true));
-        children.push(item);
+        pending[pendingLength++] = item;
         lastItem = item;
         separatorAfter = item;
       }
@@ -634,6 +638,9 @@ export const parseJson = (text, url, options = {}, onObject) => {
     // cursor is usually in that whitespace.
     const isClosed = token.kind === closer;
     const containerPosition = positionFrom(startPoint, isClosed ? token.offset + token.length : token.offset);
+
+    const children = pending.slice(childrenStart, pendingLength);
+    pendingLength = childrenStart;
 
     // The children were pushed by kind above, so they're the container's
     const container = /** @type JsonTolerantNode */ ({
