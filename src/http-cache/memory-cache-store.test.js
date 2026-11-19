@@ -39,7 +39,7 @@ describe("the memory cache store", () => {
     store.put(sized("https://a.test/1"));
     store.put(entry("https://a.test/2", { headers: [["etag", "\"x\""]], body: new Uint8Array(10) }));
 
-    expect(store.size).to.equal(118 + (10 + 16 + 2 + 4 + 3));
+    expect(store.size()).to.equal(118 + (10 + 16 + 2 + 4 + 3));
   });
 
   test("forgets the least recently used URLs past its maxSize", () => {
@@ -49,7 +49,7 @@ describe("the memory cache store", () => {
     store.match("https://a.test/1");
     store.put(sized("https://a.test/3"));
 
-    expect(store.size).to.equal(2 * 118);
+    expect(store.size()).to.equal(2 * 118);
     expect(store.match("https://a.test/2")).to.eql([]);
     expect(store.match("https://a.test/1").length).to.equal(1);
   });
@@ -59,17 +59,17 @@ describe("the memory cache store", () => {
     store.put(sized("https://a.test/1"));
 
     expect(store.match("https://a.test/1")).to.eql([]);
-    expect(store.size).to.equal(0);
+    expect(store.size()).to.equal(0);
   });
 
   test("a variant that replaces another, and a delete, change its size", () => {
     const store = new MemoryCacheStore();
     store.put(sized("https://a.test/1"));
     store.put(entry("https://a.test/1", { body: new Uint8Array(50) }));
-    expect(store.size).to.equal(50 + 16 + 2);
+    expect(store.size()).to.equal(50 + 16 + 2);
 
     store.delete("https://a.test/1");
-    expect(store.size).to.equal(0);
+    expect(store.size()).to.equal(0);
   });
 
   test("its maxSize is 64 MB by default", () => {

@@ -100,7 +100,7 @@ httpCache({
 ## Where the cache keeps responses
 
 `MemoryCacheStore` keeps responses in memory, up to 64 MB of bodies and headers,
-and forgets the least recently used first. `size` says how many bytes it keeps:
+and forgets the least recently used first. `size()` says how many bytes it keeps:
 
 ```typescript
 import { MemoryCacheStore } from "@hyperjump/browser";

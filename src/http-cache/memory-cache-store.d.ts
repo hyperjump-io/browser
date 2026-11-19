@@ -16,6 +16,9 @@ export class MemoryCacheStore implements CacheStore {
   put(entry: CachedEntry): void;
   delete(url: string): void;
 
-  /** How many bytes it keeps, its bodies and their headers */
-  get size(): number;
+  /**
+   * How many bytes it keeps, its bodies and their headers. It's a method, like
+   * `FileCacheStore`'s, so `await store.size()` reads either.
+   */
+  size(): number;
 }

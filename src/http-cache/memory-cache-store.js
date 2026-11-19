@@ -73,7 +73,8 @@ export class MemoryCacheStore {
     }
   }
 
-  get size() {
+  /** @type API.MemoryCacheStore["size"] */
+  size() {
     return this.#size;
   }
 }

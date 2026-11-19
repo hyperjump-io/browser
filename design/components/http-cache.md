@@ -118,8 +118,9 @@ it's a private cache, like a browser's.
 - The store is a `CacheStore`: entries are data by URL, one for each `Vary`
   variant, so a store can keep them anywhere. The cache does all the HTTP.
   `MemoryCacheStore` is the default, and keeps at most 64 MB of bodies and
-  headers, least recently used first out. Its `size` is bytes, like
-  `FileCacheStore`'s.
+  headers, least recently used first out. Its `size()` is bytes, like
+  `FileCacheStore`'s. Both are methods, so `await store.size()` reads
+  either, and the memory store's answers at once, like its other methods.
 - A body bigger than `maxBodySize`, 16 MB by default, isn't stored. The
   default is many times the biggest schemas, 815 KB in the SchemaStore
   schemas in `sourcemeta/jsonschema-benchmark`, and big enough for a large
