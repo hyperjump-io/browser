@@ -1,5 +1,5 @@
 import { hasValue, startOf } from "./start.js";
-import { limit } from "./limit.js";
+import { limit } from "../limit.js";
 import { follow, isManual, maxDepth, maxDepthError, memberEntries, pace, unreachableReferenceError } from "./walk.js";
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";

@@ -3,7 +3,7 @@ import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
 import { jsonPointerGet } from "../json/jsonast-util.js";
 import { isJsonPointer } from "../json/json-pointer-syntax.js";
-import { limit } from "./limit.js";
+import { limit } from "../limit.js";
 import { missingValueError, startOf } from "./start.js";
 import { acceptHeader, defaultMediaTypes, mediaTypeForContentType, mediaTypeForExtension } from "../media-types/media-types.js";
 import { PriorityGroup, PrioritySignal } from "../priority.js";

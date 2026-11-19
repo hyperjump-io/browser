@@ -23,7 +23,10 @@ It follows the Fetch standard:
   sends its own cookies for each origin. On a server, a request can have
   them, and Node.js's `fetch` drops all three, so the session does too.
 - A URL a redirect leads to without a fragment gets the original's.
-- More than 20 redirects (`maxRedirects`) is a network error.
+- More than 20 redirects (`maxRedirects`) is a network error. A
+  `maxRedirects` that isn't a whole number from 0, or `Infinity`, is a
+  `RangeError` when the session is created, as `maxDepth` is when a walk
+  starts. No count is more than `NaN`, so a redirect loop wouldn't end.
 
 And it's stricter than `fetch` in two ways: a redirect can only lead to
 `http:` or `https:` (`redirectSchemes`), and only to a URL the session's

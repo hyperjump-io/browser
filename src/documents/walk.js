@@ -1,6 +1,6 @@
 import { nextTask } from "#next-task";
 import { browse } from "./documents.js";
-import { limit } from "./limit.js";
+import { limit } from "../limit.js";
 import { relativeFileUrl } from "../file-urls.js";
 import { codedError } from "../json/coded-error.js";
 import { MAX_DEPTH } from "../json/json-parser.js";

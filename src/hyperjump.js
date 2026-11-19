@@ -3,6 +3,7 @@ import { PrioritySignal } from "./priority.js";
 import { recordChunk, recordEnd, recordResponse, startRecord } from "./fetch-record.js";
 import { follow, redirectSchemesOf, sentHeaders } from "./redirects.js";
 import { urlEntries } from "./url-entries.js";
+import { limit } from "./limit.js";
 import { headersFor } from "./request-headers.js";
 import { allows, realEntries, refused, resolveAllowRetrieval } from "./allowed-urls.js";
 import { canRefer, referrerFor, refusedReference, refusedReferenceResponse } from "./file-references.js";
@@ -74,7 +75,7 @@ export class Hyperjump {
     this.#headers = urlEntries(config.headers ?? {}, this.#contextUrl);
     this.#allowRetrieval = resolveAllowRetrieval(config.allowRetrieval, this.#contextUrl, defaultAllowRetrieval);
     this.#policy = {
-      max: config.maxRedirects ?? 20,
+      max: limit("maxRedirects", config.maxRedirects ?? 20),
       schemes: redirectSchemesOf(config.redirectSchemes),
       headers: (url) => headersFor(this.#headers, url),
       allows: (url) => this.#allows(url)

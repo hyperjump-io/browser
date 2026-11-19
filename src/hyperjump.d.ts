@@ -46,7 +46,11 @@ export interface HyperjumpConfig {
    */
   registry?: Registry;
 
-  /** More redirects than this is a network error. Default 20, the Fetch standard's. */
+  /**
+   * More redirects than this is a network error. Default 20, the Fetch
+   * standard's. The session's constructor throws a `RangeError` if it isn't
+   * a whole number that isn't negative, or `Infinity`.
+   */
   maxRedirects?: number;
 
   /**

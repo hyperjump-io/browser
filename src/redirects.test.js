@@ -285,6 +285,10 @@ describe("redirects", () => {
     }
   });
 
+  test.each([[-1], [1.5], [Number.NaN]])("a maxRedirects of %s is a RangeError when the session is created", (maxRedirects) => {
+    expect(() => testHyperjump(undefined, { maxRedirects })).toThrow(RangeError);
+  });
+
   test("maxRedirects and redirectSchemes are the session's", async () => {
     const server = await redirectServer();
     try {
