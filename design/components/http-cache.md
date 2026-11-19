@@ -62,6 +62,9 @@ it's a private cache, like a browser's.
   [The scheme transport](scheme-transport.md)).
   As in the Fetch standard, a request that's already conditional bypasses
   the cache, and `only-if-cached` is a network error when nothing's stored.
+  `only-if-cached` never sends, so nothing about the request makes it
+  another mode. A request's `no-store` only says not to store anything
+  (RFC 9111 §5.2.1.5), so a stored response still answers it.
 - A successful request with any method that isn't safe removes what's
   stored for its URL, and for its `Location` and `Content-Location` on the
   same origin. The safe methods are RFC 9110's: `GET`, `HEAD`, `OPTIONS`,

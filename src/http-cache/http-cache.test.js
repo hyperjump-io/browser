@@ -218,6 +218,21 @@ describe("the HTTP cache", () => {
     }
   });
 
+  test("only-if-cached never sends, even when the request says no-store", async () => {
+    const { server, get, hits } = await setup();
+    try {
+      const noStore = { cache: /** @type RequestCache */ ("only-if-cached"), headers: { "cache-control": "no-store" } };
+      await expect(get("/max-age", noStore)).rejects.toMatchObject({ cause: { code: "ERR_CACHE_MISS" } });
+      expect(hits("/max-age")).to.equal(0);
+
+      await get("/max-age");
+      expect((await get("/max-age", noStore)).cache).to.equal("hit");
+      expect(hits("/max-age")).to.equal(1);
+    } finally {
+      await server.close();
+    }
+  });
+
   test("has the cache modes of Request.cache", async () => {
     const { server, get, advance, hits } = await setup();
     try {

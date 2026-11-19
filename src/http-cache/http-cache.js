@@ -452,13 +452,18 @@ export const httpCache = (options) => (inner) => new HttpCache(inner, options);
  * @type (request: Request, mode: CacheMode) => CacheMode
  */
 const effectiveMode = (request, mode) => {
+  // With `only-if-cached`, nothing can be sent, so it's never another mode,
+  // which could send. A stored response is an answer to a range, because a
+  // server can ignore one, and a request's `no-store` only says not to store
+  // anything (RFC 9111 §5.2.1.5), which this mode doesn't.
+  if (mode === "only-if-cached") {
+    return mode;
+  }
   if (mode === "default" && conditionalHeaders.some((name) => request.headers.has(name))) {
     return "no-store";
   }
-  // The cache doesn't answer ranges, so a range is the server's to answer.
-  // With `only-if-cached`, nothing can be sent, and a stored response is an
-  // answer to a range, because a server can ignore one.
-  if (request.headers.has("range") && mode !== "only-if-cached") {
+  // The cache doesn't answer ranges, so a range is the server's to answer
+  if (request.headers.has("range")) {
     return "no-store";
   }
   if (parseCacheControl(request.headers.get("cache-control")).has("no-store")) {
