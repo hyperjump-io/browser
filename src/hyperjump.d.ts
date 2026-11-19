@@ -78,6 +78,12 @@ export type HyperjumpFetchInit = Omit<RequestInit, "cache" | "priority" | "refer
   cache?: CacheMode;
 
   /**
+   * The Fetch standard's, which TypeScript's DOM types don't have. A streamed
+   * body needs `"half"` in Node.js.
+   */
+  duplex?: "half";
+
+  /**
    * Like `fetchpriority` in browsers. A {@link PrioritySignal}, from a
    * `PriorityController`, can change while the request waits.
    */

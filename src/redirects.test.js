@@ -231,9 +231,7 @@ describe("redirects", () => {
           cancelled = true;
         }
       });
-      // Node.js needs `duplex` for a streamed body, which the DOM's types don't have
-      const request = new Request(`https://a.test${path}`, /** @type RequestInit */ ({ ...init, method: "POST", body, duplex: "half" }));
-      await expect(session.fetch(request)).rejects.toBeInstanceOf(TypeError);
+      await expect(session.fetch(`https://a.test${path}`, { ...init, method: "POST", body, duplex: "half" })).rejects.toBeInstanceOf(TypeError);
       await settle();
       expect(cancelled, path).to.equal(true);
     }
