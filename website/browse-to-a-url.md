@@ -3,9 +3,9 @@
 `browse` retrieves a document through a Hyperjump session and gives you a target
 for the value its URL identifies. A document can refer to values in other
 documents, and you don't follow those references yourself. In a web browser, you
-click a link, and the browser resolves its URL, requests it and shows you the
+click a link, and the browser resolves its URL, requests it, and shows you the
 page it leads to. In a Hyperjump session, you navigate to a reference, and
-`browse` resolves its URL, retrieves the document it leads to and gives you the
+`browse` resolves its URL, retrieves the document it leads to, and gives you the
 value it refers to.
 
 Luke's document at `https://swapi.hyperjump.io/api/people/1` has his homeworld
