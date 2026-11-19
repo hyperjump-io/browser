@@ -57,7 +57,7 @@ export type MediaTypePlugin<T extends DocumentNode = DocumentNode> = {
    * (`.jref`), and a whole file name starts with `/` (`/.bowerrc`). Case
    * doesn't matter, so `.json` is `A.JSON`'s too.
    */
-  extensions: string[];
+  extensions: readonly string[];
 
   /**
    * The quality of the media type in the `Accept` header, a number from 0 to

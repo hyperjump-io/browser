@@ -8,7 +8,8 @@ import { documentSyntaxError } from "./syntax-error.js";
 /** @type typeof API.jsonMediaType */
 export const jsonMediaType = Object.freeze({
   mediaType: "application/json",
-  extensions: [".json"],
+  // Frozen too, so changing a copy of the plugin can't change the built-in
+  extensions: Object.freeze([".json"]),
 
   /** @type typeof API.jsonMediaType.parse */
   parse: async (response) => {

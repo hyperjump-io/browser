@@ -12,6 +12,14 @@ describe("media types", () => {
     expect(defaultMediaTypes).to.eql([jrefMediaType, jsonMediaType]);
   });
 
+  test("a copy of a built-in plugin can't change it", () => {
+    for (const plugin of defaultMediaTypes) {
+      const copy = { ...plugin };
+      expect(() => /** @type string[] */ (copy.extensions).push(".txt")).toThrow(TypeError);
+    }
+    expect(mediaTypeForExtension(defaultMediaTypes, "file:///a.txt")).to.equal(undefined);
+  });
+
   describe("the Accept header", () => {
     test("lists each media type in order, and any media type last", () => {
       expect(acceptHeader(defaultMediaTypes)).to.equal("application/reference+json, application/json, */*; q=0.001");

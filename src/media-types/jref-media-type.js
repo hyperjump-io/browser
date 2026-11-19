@@ -8,7 +8,8 @@ import { documentSyntaxError } from "./syntax-error.js";
 /** @type typeof API.jrefMediaType */
 export const jrefMediaType = Object.freeze({
   mediaType: "application/reference+json",
-  extensions: [".jref"],
+  // Frozen too, so changing a copy of the plugin can't change the built-in
+  extensions: Object.freeze([".jref"]),
 
   /** @type typeof API.jrefMediaType.parse */
   parse: async (response) => {
