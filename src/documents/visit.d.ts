@@ -104,9 +104,9 @@ export type JrefCheck<T>
  */
 export type JrefTestedTarget<T, C> = C extends null | undefined ? T
   : C extends (target: any, ...rest: any[]) => target is infer M ? Extract<T, M> extends never ? M : Extract<T, M>
-    : C extends (...args: any[]) => unknown ? T
-      : C extends readonly (infer U)[] ? JrefTestedTarget<T, U>
-        : T extends Target<infer D, infer N> ? TargetOf<D, JrefTestedNode<N, C>> : never;
+  : C extends (...args: any[]) => unknown ? T
+  : C extends readonly (infer U)[] ? JrefTestedTarget<T, U>
+  : T extends Target<infer D, infer N> ? TargetOf<D, JrefTestedNode<N, C>> : never;
 
 /**
  * Whether test `C` only passes a reference in a walk that follows them,
@@ -128,10 +128,10 @@ export type TargetOf<D, N> = [N] extends [never] ? never : Target<D, N>;
  */
 export type JrefTestedNode<N, C> = C extends null | undefined ? N
   : C extends (node: any, ...rest: any[]) => node is infer M ? Extract<N, M> extends never ? M : Extract<N, M>
-    : C extends (...args: any[]) => unknown ? N
-      : C extends readonly (infer U)[] ? JrefTestedNode<N, U>
-        : C extends string ? HasProperties<N, { type: C }>
-          : HasProperties<N, C>;
+  : C extends (...args: any[]) => unknown ? N
+  : C extends readonly (infer U)[] ? JrefTestedNode<N, U>
+  : C extends string ? HasProperties<N, { type: C }>
+  : HasProperties<N, C>;
 
 /**
  * The members of `N` that can have the properties of `O`, with them

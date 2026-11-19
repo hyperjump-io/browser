@@ -154,7 +154,7 @@ export type AnyJsonNode = JsonNode<unknown, unknown, unknown>;
  */
 export type JsonMember<N> = N extends { jsonType: "array"; children: (infer M)[] } ? M
   : N extends { jsonType: "object"; children: (infer C)[] } ? C extends { children: [JsonPropertyNameNode, infer M] } ? M : never
-    : never;
+  : never;
 
 /**
  * The value of an object member or array item. A {@link JsonMissingNode} from

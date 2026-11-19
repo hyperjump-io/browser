@@ -135,7 +135,7 @@ type SelectorJsonTypes<L extends string, Current extends string = string, Done =
 type AfterText<Text extends string, Current extends string>
   = Text extends `${string},${infer Rest}` ? AfterText<Rest, string>
     : TrimEnd<Text> extends `${string}${Combinator}${string}` ? string
-      : Current;
+    : Current;
 
 /** A `[jsonType]` for each selector that ends in `Text` */
 type DoneInText<Text extends string, Current extends string>
